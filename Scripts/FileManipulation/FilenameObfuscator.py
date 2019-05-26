@@ -38,14 +38,6 @@ def append_line_to_file(file, line_content):
             new_line="\n"
         fileObject.write(new_line + line_content)
 
-def remove_extension(filename, extension):
-  if extension == "":
-    return filename
-  if filename.endswith(extension):
-    return filename[:-len(extension)]
-  else:
-    return filename
-
 directory=os.fsdecode(os.fsencode(args.inputFolder))
 if (os.path.isdir(directory)):
     printTableHeadline=toBoolean(args.printTableHeadline)
@@ -64,7 +56,6 @@ if (os.path.isdir(directory)):
         full_file_name=os.path.join(directory, file)
         hash=get_sha256_of_file(full_file_name)
         extension=pathlib.Path(file).suffix
-        file_without_extension=remove_extension(file, extension)
         new_file_name=os.path.join(directory, str(uuid.uuid4()) + extension)
         os.rename(full_file_name, new_file_name)
         append_line_to_file(args.nameMappingFile, full_file_name + ";" + new_file_name + ";" + hash)
