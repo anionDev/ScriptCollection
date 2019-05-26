@@ -5,7 +5,7 @@ import os
 import uuid
 import pathlib
 import sys
-parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputFolder-argument')
+parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputFolder-argument.')
 
 parser.add_argument('inputFolder', type=str, help='Specifies the foldere where the files are stored whose names should be obfuscated')
 parser.add_argument('--nameMappingFile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
@@ -61,4 +61,5 @@ if (os.path.isdir(directory)):
         append_line_to_file(args.nameMappingFile, full_file_name + ";" + new_file_name + ";" + hash)
         mapping_file_is_empty=False
 else:
+    print('Directory not found: ' + directory)
     sys.exit(2)

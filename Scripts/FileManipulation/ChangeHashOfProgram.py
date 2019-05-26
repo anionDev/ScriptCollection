@@ -14,7 +14,7 @@ valueToAppend= args.valueToAppend
 outputFile = args.outputFile
 
 if(outputFile==""):
-    outputFile=inputFile+'.modified'
+    outputFile=inputFile + '.modified'
 
 copy2(inputFile, outputFile)
 file = open(outputFile, 'a')
