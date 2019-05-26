@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description='Obfuscates the names of all files 
 
 parser.add_argument('inputFolder', type=str, help='Specifies the foldere where the files are stored whose names should be obfuscated')
 parser.add_argument('--nameMappingFile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
-parser.add_argument('--printTableHeadline', default = True, help='Prints the first')
+parser.add_argument('--printTableHeadline', default = True, help='Prints column-titles in the output-csv')
 
 args = parser.parse_args()
 
