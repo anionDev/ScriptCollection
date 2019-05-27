@@ -3,20 +3,27 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Changes the hash-value of arbitrary files by appending data at the end of the file.')
 
-parser.add_argument('inputFile', type=str, help='Specifies the script/executable-file whose hash-value should be changed')
-parser.add_argument('--valueToAppend', type=str, default=" ", help = 'Specifies the string which should be appended to the file. The default-value is one whitespace')
-parser.add_argument('--outputFile', type=str, default="", help = 'Specifies the outputfile and its location')
+parser.add_argument('inputfile', type=str, help='Specifies the script/executable-file whose hash-value should be changed')
+parser.add_argument('--valuetoappend', type=str, default=" ", help = 'Specifies the string which should be appended to the file. The default-value is one whitespace')
+parser.add_argument('--outputfile', type=str, default="", help = 'Specifies the outputfile and its location')
 
 args = parser.parse_args()
 
-inputFile = args.inputFile.replace("\"","")
-valueToAppend= args.valueToAppend
-outputFile = args.outputFile
+def normalize_path(path:str):
+    if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
+        path = path[1:]
+        path = path[:-1]
+        return path
+    else:
+        return path
+inputfile = normalize_path(args.inputfile)
+valuetoappend= args.valuetoappend
+outputfile = args.outputfile
 
-if(outputFile==""):
-    outputFile=inputFile + '.modified'
+if(outputfile==""):
+    outputfile=inputfile + '.modified'
 
-copy2(inputFile, outputFile)
-file = open(outputFile, 'a')
-file.write(valueToAppend)
+copy2(inputfile, outputfile)
+file = open(outputfile, 'a')
+file.write(valuetoappend)
 file.close()

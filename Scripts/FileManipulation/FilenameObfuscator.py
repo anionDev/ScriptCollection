@@ -5,15 +5,9 @@ import os
 import uuid
 import pathlib
 import sys
-parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputFolder-argument.')
+parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
-parser.add_argument('inputFolder', type=str, help='Specifies the foldere where the files are stored whose names should be obfuscated')
-parser.add_argument('--printTableHeadline', default = True, help='Prints column-titles in the name-mapping-csv-file')
-parser.add_argument('--nameMappingFile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
-
-args = parser.parse_args()
-
-def toBoolean(value):
+def to_boolean(value):
     if(type(value) is bool):
         return value
     if value.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -21,7 +15,21 @@ def toBoolean(value):
     elif value.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
-        raise argparse.ArgumentTypeError(value + ' is not boolean value.')
+        raise argparse.ArgumentTypeError(str(value) + ' is not boolean value.')
+
+def normalize_path(path:str):
+    if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
+        path = path[1:]
+        path = path[:-1]
+        return path
+    else:
+        return path
+
+parser.add_argument('inputfolder', type=str, help='Specifies the foldere where the files are stored whose names should be obfuscated')
+parser.add_argument('--printableheadline', default = True, type=to_boolean, help='Prints column-titles in the name-mapping-csv-file')
+parser.add_argument('--namemappingfile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
+
+args = parser.parse_args()
 
 def get_sha256_of_file(file:str):
     sha256 = hashlib.sha256()
@@ -39,17 +47,18 @@ def append_line_to_file(file, line_content):
             new_line="\n"
         fileObject.write(new_line + line_content)
 
-directory=os.fsdecode(os.fsencode(args.inputFolder))
+directory=normalize_path(os.fsdecode(os.fsencode(args.inputfolder)))
+namemappingfile=normalize_path(args.namemappingfile)
 if (os.path.isdir(directory)):
-    printTableHeadline=toBoolean(args.printTableHeadline)
+    printableheadline=toBoolean(args.printableheadline)
     files = []
-    if not os.path.isfile(args.nameMappingFile):
-        with open(args.nameMappingFile, "a"):
+    if not os.path.isfile(namemappingfile):
+        with open(namemappingfile, "a"):
             pass
-    with open(args.nameMappingFile, "a") as fileObject:
+    with open(namemappingfile, "a") as fileObject:
         pass
-    if printTableHeadline:
-        append_line_to_file(args.nameMappingFile, "Original filename;new filename;SHA2-hash of file")
+    if printableheadline:
+        append_line_to_file(namemappingfile, "Original filename;new filename;SHA2-hash of file")
     for file in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, file)):
             files.append(file)
@@ -59,7 +68,7 @@ if (os.path.isdir(directory)):
         extension=pathlib.Path(file).suffix
         new_file_name=os.path.join(directory, str(uuid.uuid4()) + extension)
         os.rename(full_file_name, new_file_name)
-        append_line_to_file(args.nameMappingFile, full_file_name + ";" + new_file_name + ";" + hash)
+        append_line_to_file(namemappingfile, full_file_name + ";" + new_file_name + ";" + hash)
         mapping_file_is_empty=False
 else:
     print('Directory not found: ' + directory)

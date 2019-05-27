@@ -3,13 +3,32 @@ import os
 import subprocess
 import shutil
 from pathlib import Path
+import sys
 
 parser = argparse.ArgumentParser(description='Creates an iso file with the files in the given folder and changes their names and hash-values.')
 
-parser.add_argument('inputFolder', type=str, help='Specifies the foldere where the files are stored which should be added to the iso-file')
-parser.add_argument('--outputFile', type=str, default="files.iso", help = 'Specifies the output-iso-file and its location')
-parser.add_argument('--printTableHeadline', default = True, help='Prints column-titles in the name-mapping-csv-file')
-parser.add_argument('--nameMappingFile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
+def to_boolean(value):
+    if(type(value) is bool):
+        return value
+    if value.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif value.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError(str(value) + ' is not boolean value.')
+
+def normalize_path(path:str):
+    if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
+        path = path[1:]
+        path = path[:-1]
+        return path
+    else:
+        return path
+
+parser.add_argument('inputfolder', type=str, help='Specifies the foldere where the files are stored which should be added to the iso-file')
+parser.add_argument('--outputfile', type=str, default="files.iso", help = 'Specifies the output-iso-file and its location')
+parser.add_argument('--printableheadline', default = True, type=to_boolean, help='Prints column-titles in the name-mapping-csv-file')
+parser.add_argument('--namemappingfile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
 
 args = parser.parse_args()
 
@@ -30,18 +49,19 @@ def delete_directory_and_its_content(directory:str):
             sub.unlink()
     pth.rmdir()
 
-directory=os.fsdecode(os.fsencode(args.inputFolder))
+directory=normalize_path(os.fsdecode(os.fsencode(args.inputfolder)))
+namemappingfile=normalize_path(args.namemappingfile)
 if (os.path.isdir(directory)):
     temp_directory=directory+"_temp"
     if os.path.isdir(temp_directory):
         delete_directory_and_its_content(temp_directory)
     os.makedirs(temp_directory)
-    if os.path.isfile(args.nameMappingFile):
-        os.remove(args.nameMappingFile)
+    if os.path.isfile(namemappingfile):
+        os.remove(namemappingfile)
     for file in get_files_in_directory(directory):
         shutil.copy2(file, temp_directory)
-    subprocess.call(["python", "ObfuscateFilesFolder.py", "--printTableHeadline=" + str(args.printTableHeadline) + " --nameMappingFile='" + args.nameMappingFile + "'", temp_directory])
-    shutil.move(args.nameMappingFile, temp_directory)
+    subprocess.call(["python", "ObfuscateFilesFolder.py", temp_directory + " --printableheadline=" + str(to_boolean(args.printableheadline)) + " --namemappingfile='" + namemappingfile + "' "])
+    #shutil.move(args.namemappingfile, temp_directory)
     #TODO
 else:
     print('Directory not found: ' + directory)
