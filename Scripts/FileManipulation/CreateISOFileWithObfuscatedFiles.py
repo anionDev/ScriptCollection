@@ -2,7 +2,6 @@ import argparse
 import os
 import subprocess
 import shutil
-from pathlib import Path
 import internal_utilities
 import sys
 
@@ -16,19 +15,19 @@ parser.add_argument('inputfolder', help='Specifies the foldere where the files a
 args = parser.parse_args()
 
 
-d=normalize_path(args.inputfolder)
-namemappingfile=normalize_path(args.namemappingfile)
-outputfile=normalize_path(args.outputfile)
+d=internal_utilities.normalize_path(args.inputfolder)
+namemappingfile=internal_utilities.normalize_path(args.namemappingfile)
+outputfile=internal_utilities.normalize_path(args.outputfile)
 if (os.path.isdir(d)):
     temp_directory=d+"_temp"
     if os.path.isdir(temp_directory):
-        delete_directory_and_its_content(temp_directory)
+        internal_utilities.delete_directory_and_its_content(temp_directory)
     os.mkdir(temp_directory)
     if os.path.isfile(namemappingfile):
         os.remove(namemappingfile)
-    for file in get_files_in_directory(d):
+    for file in internal_utilities.get_files_in_directory(d):
         shutil.copy2(file, temp_directory)
-    subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" \""+temp_directory+"\"")
+    subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(internal_utilities.to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" \""+temp_directory+"\"")
     shutil.move(args.namemappingfile, temp_directory)
     #TODO create iso with content of temp_directory
     #TODO delete temp_directory

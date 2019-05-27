@@ -10,8 +10,8 @@ parser.add_argument('inputfile', help='Specifies the script/executable-file whos
 
 args = parser.parse_args()
 
-inputfile = normalize_path(args.inputfile)
-valuetoappend= args.valuetoappend
+inputfile = internal_utilities.normalize_path(args.inputfile)
+valuetoappend = args.valuetoappend
 outputfile = args.outputfile
 
 if(outputfile==""):

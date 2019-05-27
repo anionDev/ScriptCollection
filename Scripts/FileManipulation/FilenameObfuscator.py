@@ -1,6 +1,5 @@
 from shutil import copy2
 import argparse
-import hashlib
 import os
 import uuid
 import pathlib
@@ -11,16 +10,16 @@ parser = argparse.ArgumentParser(description='Obfuscates the names of all files 
 
 
 
-parser.add_argument('--printtableheadline', type=to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
+parser.add_argument('--printtableheadline', type=internal_utilities.to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
 parser.add_argument('--namemappingfile', default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
 parser.add_argument('inputfolder', help='Specifies the foldere where the files are stored whose names should be obfuscated')
 
 args = parser.parse_args()
 
-d=normalize_path(args.inputfolder)
-namemappingfile=normalize_path(args.namemappingfile)
+d=internal_utilities.normalize_path(args.inputfolder)
+namemappingfile=internal_utilities.normalize_path(args.namemappingfile)
 if (os.path.isdir(d)):
-    printtableheadline=to_boolean(args.printtableheadline)
+    printtableheadline=internal_utilities.to_boolean(args.printtableheadline)
     files = []
     if not os.path.isfile(namemappingfile):
         with open(namemappingfile, "a"):
@@ -28,18 +27,17 @@ if (os.path.isdir(d)):
     with open(namemappingfile, "a") as fileObject:
         pass
     if printtableheadline:
-        append_line_to_file(namemappingfile, "Original filename;new filename;SHA2-hash of file")
+        internal_utilities.append_line_to_file(namemappingfile, "Original filename;new filename;SHA2-hash of file")
     for file in os.listdir(d):
         if os.path.isfile(os.path.join(d, file)):
             files.append(file)
     for file in files:
         full_file_name=os.path.join(d, file)
-        hash=get_sha256_of_file(full_file_name)
+        hash=internal_utilities.get_sha256_of_file(full_file_name)
         extension=pathlib.Path(file).suffix
         new_file_name=os.path.join(d, str(uuid.uuid4()) + extension)
         os.rename(full_file_name, new_file_name)
-        append_line_to_file(namemappingfile, full_file_name + ";" + new_file_name + ";" + hash)
-        mapping_file_is_empty=False
+        internal_utilities.append_line_to_file(namemappingfile, full_file_name + ";" + new_file_name + ";" + hash)
 else:
     print('Directory not found:' + d)
     sys.exit(2)

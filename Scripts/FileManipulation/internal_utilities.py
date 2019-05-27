@@ -1,4 +1,6 @@
 import os
+import hashlib
+from pathlib import Path
 
 def normalize_path(path:str):
     if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
