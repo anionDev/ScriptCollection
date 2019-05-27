@@ -3,9 +3,9 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Changes the hash-value of arbitrary files by appending data at the end of the file.')
 
-parser.add_argument('inputfile', type=str, help='Specifies the script/executable-file whose hash-value should be changed')
-parser.add_argument('--valuetoappend', type=str, default=" ", help = 'Specifies the string which should be appended to the file. The default-value is one whitespace')
-parser.add_argument('--outputfile', type=str, default="", help = 'Specifies the outputfile and its location')
+parser.add_argument('--valuetoappend', default=" ", help = 'Specifies the string which should be appended to the file. The default-value is one whitespace')
+parser.add_argument('--outputfile', default="", help = 'Specifies the outputfile and its location')
+parser.add_argument('inputfile', help='Specifies the script/executable-file whose hash-value should be changed')
 
 args = parser.parse_args()
 

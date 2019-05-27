@@ -23,9 +23,9 @@ def normalize_path(path:str):
     else:
         return path
 
-parser.add_argument('inputfolder', type=str, help='Specifies the foldere where the files are stored whose names should be obfuscated')
-parser.add_argument('--printableheadline', default = True, type=to_boolean, help='Prints column-titles in the name-mapping-csv-file')
-parser.add_argument('--namemappingfile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
+parser.add_argument('--printtableheadline', type=to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
+parser.add_argument('--namemappingfile', default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
+parser.add_argument('inputfolder', help='Specifies the foldere where the files are stored whose names should be obfuscated')
 
 args = parser.parse_args()
 
@@ -37,15 +37,14 @@ def get_files_in_directory(directory):
             files.append(file_with_directory)
     return files
 
-directory=normalize_path(os.fsdecode(os.fsencode(args.inputfolder)))
+d=normalize_path(args.inputfolder)
 namemappingfile=normalize_path(args.namemappingfile)
-if (os.path.isdir(directory)):
-    for file in get_files_in_directory(directory):
-        subprocess.call(["python", "ChangeHashOfProgram.py ", file])
+if (os.path.isdir(d)):
+    for file in get_files_in_directory(d):
+        subprocess.call("python ChangeHashOfProgram.py \"" + file + "\"")
         os.remove(file)
         os.rename(file + ".modified", file)
-    subprocess.call(["python", "FilenameObfuscator.py","'" + directory + "' --printableheadline=" + str(to_boolean(args.printableheadline)) + " --namemappingfile='" + namemappingfile + "'"])
-    
+    subprocess.call("python FilenameObfuscator.py --printtableheadline " + str(to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" \""+d+"\"")
 else:
-    print('Directory not found: ' + directory)
+    print('Directory not found: ' + d)
     sys.exit(2)

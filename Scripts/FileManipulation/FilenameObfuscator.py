@@ -5,6 +5,7 @@ import os
 import uuid
 import pathlib
 import sys
+
 parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
 def to_boolean(value):
@@ -25,9 +26,9 @@ def normalize_path(path:str):
     else:
         return path
 
-parser.add_argument('inputfolder', type=str, help='Specifies the foldere where the files are stored whose names should be obfuscated')
-parser.add_argument('--printableheadline', default = True, type=to_boolean, help='Prints column-titles in the name-mapping-csv-file')
-parser.add_argument('--namemappingfile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
+parser.add_argument('--printtableheadline', type=to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
+parser.add_argument('--namemappingfile', default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
+parser.add_argument('inputfolder', help='Specifies the foldere where the files are stored whose names should be obfuscated')
 
 args = parser.parse_args()
 
@@ -47,29 +48,29 @@ def append_line_to_file(file, line_content):
             new_line="\n"
         fileObject.write(new_line + line_content)
 
-directory=normalize_path(os.fsdecode(os.fsencode(args.inputfolder)))
+d=normalize_path(args.inputfolder)
 namemappingfile=normalize_path(args.namemappingfile)
-if (os.path.isdir(directory)):
-    printableheadline=toBoolean(args.printableheadline)
+if (os.path.isdir(d)):
+    printtableheadline=to_boolean(args.printtableheadline)
     files = []
     if not os.path.isfile(namemappingfile):
         with open(namemappingfile, "a"):
             pass
     with open(namemappingfile, "a") as fileObject:
         pass
-    if printableheadline:
+    if printtableheadline:
         append_line_to_file(namemappingfile, "Original filename;new filename;SHA2-hash of file")
-    for file in os.listdir(directory):
-        if os.path.isfile(os.path.join(directory, file)):
+    for file in os.listdir(d):
+        if os.path.isfile(os.path.join(d, file)):
             files.append(file)
     for file in files:
-        full_file_name=os.path.join(directory, file)
+        full_file_name=os.path.join(d, file)
         hash=get_sha256_of_file(full_file_name)
         extension=pathlib.Path(file).suffix
-        new_file_name=os.path.join(directory, str(uuid.uuid4()) + extension)
+        new_file_name=os.path.join(d, str(uuid.uuid4()) + extension)
         os.rename(full_file_name, new_file_name)
         append_line_to_file(namemappingfile, full_file_name + ";" + new_file_name + ";" + hash)
         mapping_file_is_empty=False
 else:
-    print('Directory not found: ' + directory)
+    print('Directory not found:' + d)
     sys.exit(2)
