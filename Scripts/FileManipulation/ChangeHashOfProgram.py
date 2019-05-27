@@ -1,3 +1,7 @@
+"""
+Tested on: Windows
+This program comes with absolutely no warranty.
+"""
 from shutil import copy2
 import argparse
 import internal_utilities

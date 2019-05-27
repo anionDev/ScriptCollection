@@ -1,3 +1,7 @@
+"""
+Tested on: Windows
+This program comes with absolutely no warranty.
+"""
 import os
 import hashlib
 from pathlib import Path
@@ -20,7 +24,7 @@ def to_boolean(value):
     else:
         raise argparse.ArgumentTypeError(str(value) + ' is not boolean value.')
 
-def get_files_in_directory(directory):
+def get_files_in_directory(directory:str):
     files = []
     for file in os.listdir(directory):
         file_with_directory=os.path.join(directory, file)
@@ -32,7 +36,7 @@ def delete_directory_and_its_content(directory:str):
     pth=Path(directory)
     for sub in pth.iterdir() :
         if sub.is_dir() :
-            delete_folder(sub)
+            delete_directory_and_its_content(sub)
         else :
             sub.unlink()
     pth.rmdir()
@@ -44,7 +48,7 @@ def get_sha256_of_file(file:str):
             sha256.update(chunk)
     return sha256.hexdigest()
 
-def append_line_to_file(file, line_content):
+def append_line_to_file(file:str, line_content:str):
     with open(file, "a") as fileObject:
         mapping_file_is_empty = os.stat(file).st_size == 0
         if mapping_file_is_empty:
@@ -52,3 +56,12 @@ def append_line_to_file(file, line_content):
         else:
             new_line="\n"
         fileObject.write(new_line + line_content)
+
+def create_directory_transitively(path:str):
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise

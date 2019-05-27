@@ -1,3 +1,7 @@
+"""
+Tested on: Windows
+This program comes with absolutely no warranty.
+"""
 import argparse
 import os
 import subprocess
