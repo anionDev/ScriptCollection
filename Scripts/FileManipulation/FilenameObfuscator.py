@@ -8,8 +8,8 @@ import sys
 parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputFolder-argument.')
 
 parser.add_argument('inputFolder', type=str, help='Specifies the foldere where the files are stored whose names should be obfuscated')
+parser.add_argument('--printTableHeadline', default = True, help='Prints column-titles in the name-mapping-csv-file')
 parser.add_argument('--nameMappingFile', type=str, default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
-parser.add_argument('--printTableHeadline', default = True, help='Prints column-titles in the output-csv')
 
 args = parser.parse_args()
 
@@ -22,6 +22,7 @@ def toBoolean(value):
         return False
     else:
         raise argparse.ArgumentTypeError(value + ' is not boolean value.')
+
 def get_sha256_of_file(file:str):
     sha256 = hashlib.sha256()
     with open(file, "rb") as fileObject:
