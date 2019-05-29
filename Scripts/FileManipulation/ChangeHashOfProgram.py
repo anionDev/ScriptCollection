@@ -23,5 +23,9 @@ if(outputfile==""):
 
 copy2(inputfile, outputfile)
 file = open(outputfile, 'a')
+#TODO use rcedit for .exe-files instead of appending valuetoappend ( https://github.com/electron/rcedit/ )
+#background: you can retrieve the "original-filename" from the .exe-file like discussed here: https://security.stackexchange.com/questions/210843/is-it-possible-to-change-original-filename-of-an-exe
+#so removing the original filename with rcedit is probably a better way to make it more difficult to detect the programname.
+#this would obviously also change the hashvalue of the program so appending a whitespace is not required anymore.
 file.write(valuetoappend)
 file.close()
