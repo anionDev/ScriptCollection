@@ -1,0 +1,1 @@
+EXEC sp_MSforeachtable @command1="ALTER TABLE ? DISABLE TRIGGER ALL"; EXEC sp_MSforeachtable @command1="ALTER TABLE ? NOCHECK CONSTRAINT ALL";
