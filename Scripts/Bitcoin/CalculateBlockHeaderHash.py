@@ -12,6 +12,6 @@ parser.add_argument('--target', help='TODO')
 parser.add_argument('--nonce', help='TODO')
 
 args = parser.parse_args()
-#TODO: do something like
+
 header = str(args.version + args.previousblockhash + args.transactionsmerkleroot + args.timestamp + args.target + args.nonce)
-print(binascii.hexlify(sha256(sha256(binascii.unhexlify(header)).digest()).digest()[::-1]))
+print(binascii.hexlify(sha256(sha256(binascii.unhexlify(header)).digest()).digest()[::-1]).decode('utf-8'))
