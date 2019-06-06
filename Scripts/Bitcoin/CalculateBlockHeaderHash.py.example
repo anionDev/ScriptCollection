@@ -1,0 +1,2 @@
+#Calculate Hash of block 502871:
+CalculateBlockHeaderHash.py version=02000000 previousblockhash=66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000 transactionsmerkleroot=7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187 timestamp=51eb505a target=c1910018 nonce=de19b302
