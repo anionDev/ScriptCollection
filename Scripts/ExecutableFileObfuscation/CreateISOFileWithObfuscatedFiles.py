@@ -1,6 +1,7 @@
 """
 Tested on: Windows
 This program comes with absolutely no warranty.
+This program requires pycdlib (you can install pycdlib using 'pip install pycdlib')
 """
 import argparse
 import os
@@ -8,6 +9,11 @@ import subprocess
 import shutil
 import internal_utilities
 import sys
+try:
+    from cStringIO import StringIO as BytesIO
+except ImportError:
+    from io import BytesIO
+import pycdlib
 
 parser = argparse.ArgumentParser(description='Creates an iso file with the files in the given folder and changes their names and hash-values. This script does not process subfolders transitively.')
 
@@ -18,10 +24,19 @@ parser.add_argument('inputfolder', help='Specifies the foldere where the files a
 
 args = parser.parse_args()
 
-
 d=internal_utilities.normalize_path(args.inputfolder)
 namemappingfile=internal_utilities.normalize_path(args.namemappingfile)
 outputfile=internal_utilities.normalize_path(args.outputfile)
+
+def create_iso(folder):
+	iso = pycdlib.PyCdlib()
+	iso.new()
+	foostr = b'foo\n'
+	iso.add_fp(BytesIO(foostr), len(foostr), '/FOO.;1')
+	iso.add_directory('/files')
+	iso.write(outputfile)
+	iso.close()
+
 if (os.path.isdir(d)):
     files_directory= "files"
     if os.path.isdir(files_directory):
@@ -38,6 +53,7 @@ if (os.path.isdir(d)):
         internal_utilities.delete_directory_and_its_content(iso_directory)
     internal_utilities.create_directory_transitively(iso_directory)
     os.rename(files_directory, os.path.join(iso_directory, files_directory))
+    create_iso(files_directory, outputfile)
     #TODO create iso with content of iso_directory
     #TODO delete iso_directory
 else:
