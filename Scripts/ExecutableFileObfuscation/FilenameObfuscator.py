@@ -37,7 +37,7 @@ if (os.path.isdir(d)):
         full_file_name=os.path.join(d, file)
         hash=internal_utilities.get_sha256_of_file(full_file_name)
         extension=pathlib.Path(file).suffix
-        new_file_name=os.path.join(d, str(uuid.uuid4()) + extension)
+        new_file_name=os.path.join(d,str(uuid.uuid4())[0:8] + extension)
         os.rename(full_file_name, new_file_name)
         internal_utilities.append_line_to_file(namemappingfile, full_file_name + ";" + new_file_name + ";" + hash)
 else:
