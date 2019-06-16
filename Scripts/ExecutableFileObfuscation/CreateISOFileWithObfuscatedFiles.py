@@ -2,7 +2,6 @@
 Tested on: Windows
 This program comes with absolutely no warranty.
 This program requires pycdlib (you can install pycdlib using 'pip install pycdlib')
-Remark: Before you use a toolkit created by this program always check whether the .iso-file contains the desired content.
 """
 import argparse
 import os
@@ -27,14 +26,16 @@ args = parser.parse_args()
 d=internal_utilities.normalize_path(args.inputfolder)
 outputfile=internal_utilities.normalize_path(args.outputfile)
 
-def create_iso(folder, iso_file):
+def create_iso(folder, iso_file,files_directory):
     iso = pycdlib.PyCdlib()
     iso.new()
+    files_directory=files_directory.upper()
+    iso.add_directory("/"+files_directory)
     for root, dirs, files in os.walk(folder):
         for file in files:
             fullpath=os.path.join(root, file)
-            with open(fullpath, 'rb') as f:
-                iso.add_fp(f, os.fstat(f.fileno()).st_size, '/'+file.upper()+';1')
+            content=open(fullpath, "rb").read()
+            iso.add_fp(BytesIO(content), len(content), '/'+files_directory+'/'+file.upper()+';1')
     iso.write(iso_file)
     iso.close()
 
@@ -55,7 +56,7 @@ if (os.path.isdir(d)):
         internal_utilities.delete_directory_and_its_content(iso_directory)
     internal_utilities.create_directory_transitively(iso_directory)
     os.rename(files_directory, os.path.join(iso_directory, files_directory))
-    create_iso(iso_directory, outputfile)
+    create_iso(iso_directory, outputfile,files_directory)
     shutil.rmtree(iso_directory)
 else:
     print('Directory not found: ' + d)
