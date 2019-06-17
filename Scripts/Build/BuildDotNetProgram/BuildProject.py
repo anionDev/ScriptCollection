@@ -21,16 +21,16 @@ try:
     args = parser.parse_args()
 
     output_folder=os.path.abspath(os.path.join(os.path.abspath(args.folder_of_csproj_filename),"bin\\" + args.configuration))
-    exitCode=utilities.execute("python", "RestoreNugetPackages.py --inputfolder "+args.folder_of_csproj_filename, os.getcwd())
-    if exitCode!=0:
-        sys.exit(exitCode)
+    exit_code=utilities.execute("python", "RestoreNugetPackages.py --inputfolder "+args.folder_of_csproj_filename, os.getcwd())
+    if exit_code!=0:
+        sys.exit(exit_code)
     if os.path.isdir(output_folder):
         shutil.rmtree(output_folder)
     os.makedirs(output_folder)
 
-    exitCode=utilities.execute("msbuild", args.csproj_filename+" /t:Rebuild /verbosity:normal /p:Configuration="+args.configuration+" /p:Platform=AnyCPU /p:OutputPath="+output_folder, args.folder_of_csproj_filename)
-    if exitCode!=0:
-        sys.exit(exitCode)
+    exit_code=utilities.execute("msbuild", args.csproj_filename+" /t:Rebuild /verbosity:normal /p:Configuration="+args.configuration+" /p:Platform=AnyCPU /p:OutputPath="+output_folder, args.folder_of_csproj_filename)
+    if exit_code!=0:
+        sys.exit(exit_code)
 
     print("Finished " + os.path.basename(__file__) + " without errors")
     sys.exit(0)

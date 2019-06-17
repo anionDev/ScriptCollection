@@ -21,15 +21,15 @@ try:
     args = parser.parse_args()
 
 
-    exitCode=utilities.execute("python", "BuildProject.py --folder_of_csproj_filename "+args.folder_of_csproj_filename+" --csproj_filename "+args.csproj_filename+" --configuration " + args.configuration, os.getcwd())
-    if exitCode!=0:
-        sys.exit(exitCode)
+    exit_code=utilities.execute("python", "BuildProject.py --folder_of_csproj_filename "+args.folder_of_csproj_filename+" --csproj_filename "+args.csproj_filename+" --configuration " + args.configuration, os.getcwd())
+    if exit_code!=0:
+        sys.exit(exit_code)
 
     output_folder=os.path.abspath(args.folder_of_csproj_filename)+"\\bin\\" + args.configuration
 
-    exitCode=utilities.execute("vstest.console.exe", args.test_dll_file, output_folder)
-    if exitCode!=0:
-        sys.exit(exitCode)
+    exit_code=utilities.execute("vstest.console.exe", args.test_dll_file, output_folder)
+    if exit_code!=0:
+        sys.exit(exit_code)
 
     print("Finished " + os.path.basename(__file__) + " without errors")
     sys.exit(0)

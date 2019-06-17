@@ -12,9 +12,9 @@ try:
 
     args = parser.parse_args()
     ##TODO do this only if packages.config-file exists in projectfolder
-    exitCode=utilities.execute("nuget", "restore -SolutionDirectory ..", args.inputfolder)
-    if exitCode!=0:
-        sys.exit(exitCode)
+    exit_code=utilities.execute("nuget", "restore -SolutionDirectory ..", args.inputfolder)
+    if exit_code!=0:
+        sys.exit(exit_code)
 
     print("Finished " + os.path.basename(__file__) + " without errors")
     sys.exit(0)
