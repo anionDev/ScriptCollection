@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(description='Changes the hash-value of the file
 
 parser.add_argument('--printtableheadline', type=internal_utilities.to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
 parser.add_argument('--namemappingfile', default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
-parser.add_argument('inputfolder', help='Specifies the foldere where the files are stored whose names should be obfuscated')
+parser.add_argument('inputfolder', help='Specifies the folder where the files are stored whose names should be obfuscated')
 
 args = parser.parse_args()
 
