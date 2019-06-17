@@ -1,6 +1,3 @@
-"""
-Important hint: This script is not ready for usage yet
-"""
 import sys
 import argparse
 import utilities
