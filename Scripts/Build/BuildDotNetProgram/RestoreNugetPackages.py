@@ -7,7 +7,7 @@ import utilities
 import os
 print("Start " + os.path.basename(__file__))
 start_directory=os.getcwd()
-os.chdir(os.path.dirname(os.path.basename(__file__)))
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 try:
 
     parser = argparse.ArgumentParser(description='Downloads missing nuget-packages')

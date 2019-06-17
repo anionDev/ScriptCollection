@@ -9,7 +9,7 @@ import sys
 import shutil
 print("Start " + os.path.basename(__file__))
 start_directory=os.getcwd()
-os.chdir(os.path.dirname(os.path.basename(__file__)))
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 try:
 
     parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download requires nuget-packages.')
@@ -21,7 +21,6 @@ try:
     args = parser.parse_args()
 
     output_folder=os.path.abspath(os.path.join(os.path.abspath(args.folder_of_csproj_filename),"bin\\" + args.configuration))
-    print(output_folder)
     exitCode=utilities.execute("python", "RestoreNugetPackages.py --inputfolder "+args.folder_of_csproj_filename, os.getcwd())
     if exitCode!=0:
         sys.exit(exitCode)
