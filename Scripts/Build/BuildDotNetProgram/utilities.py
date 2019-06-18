@@ -6,6 +6,5 @@ def execute(command:str, arguments:str, workingdirectory:str,timeout=120):
         workingdirectory=os.path.abspath(workingdirectory)
     print("Start "+workingdirectory +" "+command + " " + arguments)
     exit_code = subprocess.call(command + " " + arguments, cwd=workingdirectory, timeout=timeout)
-    print("Finished "+workingdirectory +" "+command + " " + arguments )
-    print("exit_code: "+str(exit_code))
+    print("Finished "+workingdirectory +" "+command + " " + arguments +" with exitcode "+str(exit_code))
     return exit_code
