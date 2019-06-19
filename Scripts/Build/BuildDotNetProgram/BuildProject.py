@@ -3,7 +3,6 @@ Important hint: This script removes the (usually untracked) outputfolder (e.g. D
 """
 import argparse
 import os
-import subprocess
 import utilities
 import sys
 import shutil
@@ -17,6 +16,7 @@ try:
     parser.add_argument('--folder_of_csproj_filename', help='Specifies the folder where the csproj-file is located')
     parser.add_argument('--csproj_filename', help='Specifies the csproj-file which should be compiled')
     parser.add_argument('--configuration', help='Specifies the Buildconfiguration (e.g. Debug or Release)')
+    parser.add_argument('--additional_msbuild_arguments', nargs='?', const=" ", help='Specifies arbitrary arguments which are passed to msbuild')
 
     args = parser.parse_args()
 
@@ -28,7 +28,7 @@ try:
         shutil.rmtree(output_folder)
     os.makedirs(output_folder)
 
-    exit_code=utilities.execute("msbuild", args.csproj_filename+" /t:Rebuild /verbosity:normal /p:Configuration="+args.configuration+" /p:Platform=AnyCPU /p:OutputPath="+output_folder, args.folder_of_csproj_filename)
+    exit_code=utilities.execute("msbuild", args.csproj_filename+" /t:Rebuild /verbosity:normal /p:Configuration="+args.configuration+" /p:Platform=AnyCPU /p:OutputPath="+output_folder+" "+utilities.str_none_safe(args.additional_msbuild_arguments), args.folder_of_csproj_filename)
     if exit_code!=0:
         sys.exit(exit_code)
 

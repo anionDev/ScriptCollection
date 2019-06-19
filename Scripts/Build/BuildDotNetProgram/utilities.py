@@ -8,3 +8,9 @@ def execute(command:str, arguments:str, workingdirectory:str,timeout=120):
     exit_code = subprocess.call(command + " " + arguments, cwd=workingdirectory, timeout=timeout)
     print("Finished "+workingdirectory +" "+command + " " + arguments +" with exitcode "+str(exit_code))
     return exit_code
+
+def str_none_safe(variable):
+    if variable is None:
+        return ''
+    else:
+        return str(variable)
