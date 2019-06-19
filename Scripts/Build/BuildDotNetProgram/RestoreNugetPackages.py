@@ -11,10 +11,11 @@ try:
     parser.add_argument('--inputfolder', help='Specifies the folder of the packages.config')
 
     args = parser.parse_args()
-    ##TODO do this only if packages.config-file exists in projectfolder
-    exit_code=utilities.execute("nuget", "restore -SolutionDirectory ..", args.inputfolder)
-    if exit_code!=0:
-        sys.exit(exit_code)
+    packages_config_file=os.path.join(args.inputfolder,"packages.config")
+    if(os.path.isfile(packages_config_file)):
+        exit_code=utilities.execute("nuget", "restore -SolutionDirectory ..", args.inputfolder)
+        if exit_code!=0:
+            sys.exit(exit_code)
 
     print("Finished " + os.path.basename(__file__) + " without errors")
     sys.exit(0)
