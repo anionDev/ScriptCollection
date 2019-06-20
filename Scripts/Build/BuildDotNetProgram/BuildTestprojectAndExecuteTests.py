@@ -27,7 +27,7 @@ try:
     if exit_code!=0:
         sys.exit(exit_code)
 
-    exit_code=utilities.execute("vstest.console.exe", args.test_dll_file+" "+additional_vstest_arguments, os.path.dirname(args.test_dll_file))
+    exit_code=utilities.execute("vstest.console.exe", args.test_dll_file+" "+utilities.str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file))
     if exit_code!=0:
         sys.exit(exit_code)
 
