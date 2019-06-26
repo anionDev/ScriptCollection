@@ -23,4 +23,4 @@ def absolute_file_paths(directory:str):
 def check_file(file:str):
     pass#TODO
 for file in absolute_file_paths(args.folder):
-    if check_file(file)
+    check_file(file)
