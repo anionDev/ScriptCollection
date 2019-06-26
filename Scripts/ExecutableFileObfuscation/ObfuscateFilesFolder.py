@@ -7,6 +7,7 @@ import os
 import subprocess
 import internal_utilities
 import sys
+import shutil
 
 parser = argparse.ArgumentParser(description='Changes the hash-value of the files in the given folder and renames them to obfuscated names. This script does not process subfolders transitively. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
@@ -17,6 +18,9 @@ parser.add_argument('inputfolder', help='Specifies the folder where the files ar
 args = parser.parse_args()
 
 d=internal_utilities.normalize_path(args.inputfolder)
+newd=d+"_Obfuscated"
+shutil.copytree(d, newd)
+d=newd
 namemappingfile=internal_utilities.normalize_path(args.namemappingfile)
 if (os.path.isdir(d)):
     for file in internal_utilities.get_files_in_directory(d):

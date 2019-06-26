@@ -7,8 +7,8 @@ import argparse
 import os
 import subprocess
 import shutil
-import internal_utilities
 import sys
+import internal_utilities
 try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
@@ -26,7 +26,8 @@ args = parser.parse_args()
 d=internal_utilities.normalize_path(args.inputfolder)
 outputfile=internal_utilities.normalize_path(args.outputfile)
 
-def create_iso(folder, iso_file,files_directory):
+def create_iso(folder, iso_file):
+    files_directory="files"
     iso = pycdlib.PyCdlib()
     iso.new()
     files_directory=files_directory.upper()
@@ -41,23 +42,14 @@ def create_iso(folder, iso_file,files_directory):
 
 if (os.path.isdir(d)):
     namemappingfile="name_map.csv"
-    files_directory= "files"
-    if os.path.isdir(files_directory):
-        internal_utilities.delete_directory_and_its_content(files_directory)
-    internal_utilities.create_directory_transitively(files_directory)
+    files_directory=args.inputfolder
     if os.path.isfile(namemappingfile):
         os.remove(namemappingfile)
-    for file in internal_utilities.get_files_in_directory(d):
-        shutil.copy2(file, files_directory)
     subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(internal_utilities.to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" \""+files_directory+"\"")
-    os.rename(namemappingfile, os.path.join(files_directory, os.path.basename(namemappingfile)))
-    iso_directory= "iso_content"
-    if os.path.isdir(iso_directory):
-        internal_utilities.delete_directory_and_its_content(iso_directory)
-    internal_utilities.create_directory_transitively(iso_directory)
-    os.rename(files_directory, os.path.join(iso_directory, files_directory))
-    create_iso(iso_directory, outputfile,files_directory)
-    shutil.rmtree(iso_directory)
+    files_directory=files_directory+"_Obfuscated"
+    os.rename(namemappingfile, os.path.join(files_directory,namemappingfile))
+    create_iso(files_directory, outputfile)
+    shutil.rmtree(files_directory)
 else:
     print('Directory not found: ' + d)
     sys.exit(2)

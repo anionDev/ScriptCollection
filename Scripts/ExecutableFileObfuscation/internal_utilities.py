@@ -58,10 +58,4 @@ def append_line_to_file(file:str, line_content:str):
         fileObject.write(new_line + line_content)
 
 def create_directory_transitively(path:str):
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
+    os.makedirs(path)
