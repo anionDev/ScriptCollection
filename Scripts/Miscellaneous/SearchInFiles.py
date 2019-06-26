@@ -20,7 +20,13 @@ def absolute_file_paths(directory:str):
        for f in filenames:
            yield os.path.abspath(os.path.join(dirpath, f))
 
+def file_contains_byte_array(file:str, byte_array:str):
+    return false#TODO
 def check_file(file:str):
-    pass#TODO
+    if file_contains_string(file,bytes_ascii):
+        print(file)
+    if file_contains_string(file,bytes_unicode):
+        print(file)
+
 for file in absolute_file_paths(args.folder):
     check_file(file)
