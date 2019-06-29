@@ -1,6 +1,6 @@
 """
 Tested on: Windows
-This program comes with absolutely no warranty.
+This functions come with absolutely no warranty.
 """
 import os
 import hashlib
