@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(description='Creates an iso file with the files
 parser.add_argument('--outputfile', default="files.iso", help = 'Specifies the output-iso-file and its location')
 parser.add_argument('--printtableheadline', type=internal_utilities.to_boolean, const=True, default=True,nargs='?', help='Prints column-titles in the name-mapping-csv-file')
 parser.add_argument('inputfolder', help='Specifies the foldere where the files are stored which should be added to the iso-file')
-
+parser.add_argument('--createnoisofile', type=internal_utilities.to_boolean, nargs='?', const=True, default=False, help="Create no iso file.")
 args = parser.parse_args()
 
 d = internal_utilities.normalize_path(args.inputfolder)
@@ -62,8 +62,9 @@ if (os.path.isdir(d)):
         os.remove(namemappingfile)
     subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(internal_utilities.to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" \"" + files_directory + "\"")
     os.rename(namemappingfile, os.path.join(files_directory_obf,namemappingfile))
-    create_iso(files_directory_obf, outputfile)
-    shutil.rmtree(files_directory_obf)
+    if not args.createnoisofile:
+        create_iso(files_directory_obf, outputfile)
+        shutil.rmtree(files_directory_obf)
 else:
     print('Directory not found: ' + d)
     sys.exit(2)

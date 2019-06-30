@@ -32,6 +32,11 @@ def get_files_in_directory(directory:str):
             files.append(file_with_directory)
     return files
 
+def absolute_file_paths(directory:str):
+   for dirpath,_,filenames in os.walk(directory):
+       for f in filenames:
+           yield os.path.abspath(os.path.join(dirpath, f))
+
 def delete_directory_and_its_content(directory:str):
     pth=Path(directory)
     for sub in pth.iterdir() :
