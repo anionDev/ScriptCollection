@@ -38,7 +38,6 @@ namemappingfile=internal_utilities.normalize_path(args.namemappingfile)
 if (os.path.isdir(d)):
     for file in internal_utilities.absolute_file_paths(d):
         if obfuscate_all_files or extension_matchs(file,obfuscate_file_extensions):
-            print("x7"+file)
             subprocess.call("python ChangeHashOfProgram.py \"" + file + "\"")
             os.remove(file)
             os.rename(file + ".modified", file)

@@ -10,7 +10,7 @@ import pathlib
 import sys
 import internal_utilities
 
-parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. This script does not work recursively for subfolders. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
+parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
 parser.add_argument('--printtableheadline', type=internal_utilities.to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
 parser.add_argument('--namemappingfile', default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
@@ -42,18 +42,17 @@ if (os.path.isdir(d)):
         pass
     if printtableheadline:
         internal_utilities.append_line_to_file(namemappingfile, "Original filename;new filename;SHA2-hash of file")
-    for file in os.listdir(d):
+    for file in internal_utilities.absolute_file_paths(d):
         if os.path.isfile(os.path.join(d, file)):
             if obfuscate_all_files or extension_matchs(file,obfuscate_file_extensions):
                 files.append(file)
     for file in files:
-        full_file_name=os.path.join(d, file)
-        hash=internal_utilities.get_sha256_of_file(full_file_name)
+        hash=internal_utilities.get_sha256_of_file(file)
         extension=pathlib.Path(file).suffix
         new_file_name_without_path=str(uuid.uuid4())[0:8] + extension
-        new_file_name=os.path.join(d,new_file_name_without_path)
-        os.rename(full_file_name, new_file_name)
-        internal_utilities.append_line_to_file(namemappingfile, file + ";" + new_file_name_without_path + ";" + hash)
+        new_file_name=os.path.join(os.path.dirname(file),new_file_name_without_path)
+        os.rename(file, new_file_name)
+        internal_utilities.append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash)
 else:
     print('Directory not found:' + d)
     sys.exit(2)
