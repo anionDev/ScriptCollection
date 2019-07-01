@@ -21,6 +21,7 @@ parser.add_argument('--outputfile', default="files.iso", help = 'Specifies the o
 parser.add_argument('--printtableheadline', type=internal_utilities.to_boolean, const=True, default=True,nargs='?', help='Prints column-titles in the name-mapping-csv-file')
 parser.add_argument('inputfolder', help='Specifies the foldere where the files are stored which should be added to the iso-file')
 parser.add_argument('--createnoisofile', type=internal_utilities.to_boolean, nargs='?', const=True, default=False, help="Create no iso file.")
+parser.add_argument('--extensions', default="exe,py,sh", help = 'Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
 args = parser.parse_args()
 
 d = internal_utilities.normalize_path(args.inputfolder)
@@ -60,7 +61,7 @@ if (os.path.isdir(d)):
         shutil.rmtree(files_directory_obf)
     if os.path.isfile(namemappingfile):
         os.remove(namemappingfile)
-    subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(internal_utilities.to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" \"" + files_directory + "\"")
+    subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(internal_utilities.to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" --extensions "+args.extensions+" \"" + files_directory + "\"")
     os.rename(namemappingfile, os.path.join(files_directory_obf,namemappingfile))
     if not args.createnoisofile:
         create_iso(files_directory_obf, outputfile)
