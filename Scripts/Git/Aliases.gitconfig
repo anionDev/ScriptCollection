@@ -1,0 +1,6 @@
+[alias]
+    showtrackedignored = ls-files -i --exclude-standard
+    showfull = show --format=fuller
+    showglobalconfig = config --list --show-origin
+	removelastcommit = reset HEAD~ --soft
+    removeuntrackedfiles = clean -fdx
