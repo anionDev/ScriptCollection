@@ -23,6 +23,8 @@ def process_file(file:str):
     new_filename=os.path.join(os.path.dirname(file),os.path.basename(file).replace(args.substringInFilename, args.newSubstringInFilename))
     if file != new_filename:
         if os.path.isfile(new_filename):
+            #TODO pip install Send2Trash and then from send2trash import send2trash
+            #send2trash(file)
             print("Warning: " + new_filename + " does already exist")
         else:
             os.rename(file, new_filename)
