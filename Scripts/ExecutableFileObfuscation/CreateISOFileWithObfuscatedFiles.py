@@ -7,8 +7,8 @@ import argparse
 import os
 import subprocess
 import shutil
-import internal_utilities
 import sys
+import internal_utilities
 try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
@@ -20,44 +20,52 @@ parser = argparse.ArgumentParser(description='Creates an iso file with the files
 parser.add_argument('--outputfile', default="files.iso", help = 'Specifies the output-iso-file and its location')
 parser.add_argument('--printtableheadline', type=internal_utilities.to_boolean, const=True, default=True,nargs='?', help='Prints column-titles in the name-mapping-csv-file')
 parser.add_argument('inputfolder', help='Specifies the foldere where the files are stored which should be added to the iso-file')
-
+parser.add_argument('--createnoisofile', type=internal_utilities.to_boolean, nargs='?', const=True, default=False, help="Create no iso file.")
+parser.add_argument('--extensions', default="exe,py,sh", help = 'Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
 args = parser.parse_args()
 
-d=internal_utilities.normalize_path(args.inputfolder)
-outputfile=internal_utilities.normalize_path(args.outputfile)
+d = internal_utilities.normalize_path(args.inputfolder)
+outputfile = internal_utilities.normalize_path(args.outputfile)
 
-def create_iso(folder, iso_file,files_directory):
+def adjust_folder_name(folder:str):
+    result = os.path.dirname(folder).replace("\\","/")
+    if result == "/":
+        return ""
+    else:
+        return result
+def create_iso(folder, iso_file):
+    created_directories = []
+    files_directory = "FILES"
     iso = pycdlib.PyCdlib()
     iso.new()
-    files_directory=files_directory.upper()
-    iso.add_directory("/"+files_directory)
+    files_directory = files_directory.upper()
+    iso.add_directory("/" + files_directory)
+    created_directories.append("/" + files_directory)
     for root, dirs, files in os.walk(folder):
         for file in files:
-            fullpath=os.path.join(root, file)
-            content=open(fullpath, "rb").read()
-            iso.add_fp(BytesIO(content), len(content), '/'+files_directory+'/'+file.upper()+';1')
+            full_path = os.path.join(root, file)
+            content = open(full_path, "rb").read()
+            path_in_iso = '/' + files_directory + adjust_folder_name(full_path[len(folder)::1]).upper()
+            if not (path_in_iso in created_directories):
+                iso.add_directory(path_in_iso)
+                created_directories.append(path_in_iso)
+            iso.add_fp(BytesIO(content), len(content),path_in_iso + '/' + file.upper() + ';1')
     iso.write(iso_file)
     iso.close()
 
 if (os.path.isdir(d)):
-    namemappingfile="name_map.csv"
-    files_directory= "files"
-    if os.path.isdir(files_directory):
-        internal_utilities.delete_directory_and_its_content(files_directory)
-    internal_utilities.create_directory_transitively(files_directory)
+    namemappingfile = "name_map.csv"
+    files_directory = args.inputfolder
+    files_directory_obf = files_directory + "_Obfuscated"
+    if os.path.isdir(files_directory_obf):
+        shutil.rmtree(files_directory_obf)
     if os.path.isfile(namemappingfile):
         os.remove(namemappingfile)
-    for file in internal_utilities.get_files_in_directory(d):
-        shutil.copy2(file, files_directory)
-    subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(internal_utilities.to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" \""+files_directory+"\"")
-    os.rename(namemappingfile, os.path.join(files_directory, os.path.basename(namemappingfile)))
-    iso_directory= "iso_content"
-    if os.path.isdir(iso_directory):
-        internal_utilities.delete_directory_and_its_content(iso_directory)
-    internal_utilities.create_directory_transitively(iso_directory)
-    os.rename(files_directory, os.path.join(iso_directory, files_directory))
-    create_iso(iso_directory, outputfile,files_directory)
-    shutil.rmtree(iso_directory)
+    subprocess.call("python ObfuscateFilesFolder.py --printtableheadline " + str(internal_utilities.to_boolean(args.printtableheadline)) + " --namemappingfile \"" + namemappingfile + "\" --extensions "+args.extensions+" \"" + files_directory + "\"")
+    os.rename(namemappingfile, os.path.join(files_directory_obf,namemappingfile))
+    if not args.createnoisofile:
+        create_iso(files_directory_obf, outputfile)
+        shutil.rmtree(files_directory_obf)
 else:
     print('Directory not found: ' + d)
     sys.exit(2)

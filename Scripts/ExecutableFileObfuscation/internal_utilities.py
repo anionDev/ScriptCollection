@@ -1,6 +1,6 @@
 """
 Tested on: Windows
-This program comes with absolutely no warranty.
+This functions come with absolutely no warranty.
 """
 import os
 import hashlib
@@ -32,6 +32,11 @@ def get_files_in_directory(directory:str):
             files.append(file_with_directory)
     return files
 
+def absolute_file_paths(directory:str):
+   for dirpath,_,filenames in os.walk(directory):
+       for f in filenames:
+           yield os.path.abspath(os.path.join(dirpath, f))
+
 def delete_directory_and_its_content(directory:str):
     pth=Path(directory)
     for sub in pth.iterdir() :
@@ -58,10 +63,4 @@ def append_line_to_file(file:str, line_content:str):
         fileObject.write(new_line + line_content)
 
 def create_directory_transitively(path:str):
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
+    os.makedirs(path)

@@ -1,2 +1,4 @@
 gitignored/
 *.pyc
+.vs
+*.user
