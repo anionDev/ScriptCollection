@@ -5,7 +5,6 @@ This program requires "pip install Send2Trash".
 """
 import argparse
 import os
-import hashlib
 import filecmp
 
 parser = argparse.ArgumentParser(description='Replaces certain substrings in filenames. This program requires "pip install Send2Trash" in certain cases.')
