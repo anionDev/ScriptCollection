@@ -1,3 +1,5 @@
-#run EnsureApache2Installed
-#run EnsureMariaDBInstalled
-#run EnsurePHPBBInstalled
+---
+
+- import_playbook: EnsureApache2Installed
+- import_playbook: EnsureMariaDBInstalled
+- import_playbook: EnsurePHPBBInstalled

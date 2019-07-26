@@ -1,11 +1,4 @@
-#run EnsureApache2AndMariaDBAndPHPInstalled
 ---
 
-- name: EnsurePHPBBWithDependenciesInstalled
-  hosts: myhostslist
-  remote_user: user
-  become: yes
-  become_user: root
-  become_method: sudo
- 
- #run EnsurePHPBBInstalled
+- import_playbook: EnsureApache2AndMariaDBAndPHPInstalled
+- import_playbook: EnsurePHPBBInstalled
