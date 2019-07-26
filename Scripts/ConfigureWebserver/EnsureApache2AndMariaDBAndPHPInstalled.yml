@@ -1,0 +1,3 @@
+#run EnsureApache2Installed
+#run EnsureMariaDBInstalled
+#run EnsurePHPBBInstalled
