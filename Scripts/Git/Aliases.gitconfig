@@ -1,7 +1,8 @@
 [alias]
-    showtrackedignored = ls-files -i --exclude-standard
+    listfiles = ls-tree --name-only
+    removelastcommit = reset HEAD~ --soft
+    removeuntrackedfiles = clean -fdx
+    showbranchname = rev-parse --abbrev-ref HEAD
     showfull = show --format=fuller
     showglobalconfig = config --list --show-origin
-	removelastcommit = reset HEAD~ --soft
-    removeuntrackedfiles = clean -fdx
-	showbranchname = rev-parse --abbrev-ref HEAD
+    showtrackedignored = ls-files -i --exclude-standard
