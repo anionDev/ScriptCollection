@@ -1,11 +1,12 @@
 [alias]
-    showtrackedignored = ls-files -i --exclude-standard
-    showfull = show --format=fuller
-    showglobalconfig = config --list --show-origin
+    checkintegrity = fsck --full
+    cleanup = gc --auto
+    getdateoflastcommit = log -1 --format=%cd
+    listfiles = ls-tree --name-only
     removelastcommit = reset HEAD~ --soft
     removeuntrackedfiles = clean -fdx
     showbranchname = rev-parse --abbrev-ref HEAD
-    cleanup = gc --auto
-    checkintegrity = fsck --full
-    getdateoflastcommit = log -1 --format=%cd
+    showcommitfull = show --format=fuller
     showdanglingobjects = fsck --lost-found
+    showglobalconfig = config --list --show-origin
+    showtrackedignored = ls-files -i --exclude-standard
