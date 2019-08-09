@@ -20,3 +20,7 @@ def execute(program:str, arguments:str, workingdirectory:str="",timeout=120):
     exit_code = subprocess.call(program + " " + arguments, cwd=workingdirectory, timeout=timeout)
     #print("Finished '"+workingdirectory +" "+program + " " + arguments +"' with exitcode "+str(exit_code))
     return exit_code
+
+def ensure_directory_exists(path:str):
+    if(not os.path.isdir(path)):
+        os.makedirs(path)
