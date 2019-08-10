@@ -1,5 +1,6 @@
 import os
 import subprocess
+import hashlib
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
