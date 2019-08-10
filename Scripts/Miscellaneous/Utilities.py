@@ -23,6 +23,12 @@ def execute(program:str, arguments:str, workingdirectory:str="",timeout=120):
 def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
         os.makedirs(path)
+
+def ensure_file_exists(path:str):
+    if(not os.path.isfile(path)):
+        with open(path,"a+") as f:
+            pass
+
 def ensure_file_does_not_exist(path:str):
     if(os.path.isfile(path)):
         os.remove(path)
