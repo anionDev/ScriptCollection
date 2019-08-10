@@ -16,9 +16,7 @@ def get_sha256_of_file(file:str):
 def execute(program:str, arguments:str, workingdirectory:str="",timeout=120):
     if not os.path.isabs(workingdirectory):
         workingdirectory=os.path.abspath(workingdirectory)
-    #print("Start '"+workingdirectory +" "+program + " " + arguments+"'")
     exit_code = subprocess.call(program + " " + arguments, cwd=workingdirectory, timeout=timeout)
-    #print("Finished '"+workingdirectory +" "+program + " " + arguments +"' with exitcode "+str(exit_code))
     return exit_code
 
 def ensure_directory_exists(path:str):
