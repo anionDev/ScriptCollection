@@ -15,7 +15,7 @@ def get_sha256_of_file(file:str):
     return sha256.hexdigest()
 
 def file_is_empty(file:str):
-    return os.stat("file").st_size == 0
+    return os.stat(file).st_size == 0
 
 def execute(program:str, arguments:str, workingdirectory:str="",timeout=120):
     if not os.path.isabs(workingdirectory):
