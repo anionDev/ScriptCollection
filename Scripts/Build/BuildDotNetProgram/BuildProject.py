@@ -12,7 +12,7 @@ start_directory=os.getcwd()
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 try:
 
-    parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download requires nuget-packages.')
+    parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download required nuget-packages.')
 
     parser.add_argument('--folder_of_csproj_filename', help='Specifies the folder where the csproj-file is located')
     parser.add_argument('--csproj_filename', help='Specifies the csproj-file which should be compiled')

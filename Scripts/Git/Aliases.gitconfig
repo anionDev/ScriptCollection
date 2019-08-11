@@ -2,7 +2,7 @@
     checkintegrity = fsck --full
     cleanup = gc --auto
     getdateoflastcommit = log -1 --format=%cd
-    listfiles = ls-tree --name-only
+    listfiles = ls-tree --full-tree -r --name-only HEAD
     removelastcommit = reset HEAD~ --soft
     removeuntrackedfiles = clean -fdx
     showbranchname = rev-parse --abbrev-ref HEAD
