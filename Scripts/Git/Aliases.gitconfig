@@ -11,3 +11,4 @@
     showglobalconfig = config --list --show-origin
     showtrackedignored = ls-files -i --exclude-standard
     showstashs = reflog show --format="%h" stash
+    verify = verify-commit HEAD
