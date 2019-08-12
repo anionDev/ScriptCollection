@@ -3,7 +3,8 @@
     cleanup = gc --auto
     getdateoflastcommit = log -1 --format=%cd
     listfiles = ls-tree --full-tree -r --name-only HEAD
-    removelastcommit = reset HEAD~ --soft
+    removelastcommitpreservechanges = reset HEAD~ --soft
+    pullsubmodules = submodule update --init --recursive
     removeuntrackedfiles = clean -fdx
     showbranchname = rev-parse --abbrev-ref HEAD
     showcommitfull = show --format=fuller
