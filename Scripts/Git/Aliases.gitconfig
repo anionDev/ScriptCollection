@@ -3,7 +3,8 @@
     cleanup = gc --auto
     getdateoflastcommit = log -1 --format=%cd
     listfiles = ls-tree --full-tree -r --name-only HEAD
-    removelastcommitpreservechanges = reset HEAD~ --soft
+    listcontributors = git log --pretty="%an, %ae, %cn, %ce" | sort | uniq # Shows author-name, author-email, committer-name, committer-email
+    removelastcommit = reset HEAD~ --soft # Preserves changes as unstaged changes
     pullsubmodules = submodule update --init --recursive
     removeuntrackedfiles = clean -fdx
     showbranchname = rev-parse --abbrev-ref HEAD
