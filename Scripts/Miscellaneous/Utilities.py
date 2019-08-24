@@ -1,6 +1,9 @@
 import os
 import subprocess
 import hashlib
+import codecs
+import sys
+import xml.dom.minidom
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
@@ -37,5 +40,12 @@ def ensure_file_does_not_exist(path:str):
         os.remove(path)
 
 def commit(directory:str, message:str):
-    execute("git","add -A",directory,3600)
+    execute("git","add -A", directory, 3600)
     execute("git","commit -m \""+message+"\"",directory)
+
+def format_xml_file(file:str, encoding:str):
+    with codecs.open(file, 'r', encoding=encoding) as f:
+        text = f.read()
+    text=xml.dom.minidom.parseString(text).toprettyxml()
+    with codecs.open(file, 'w', encoding=encoding) as f:
+        f.write(text)
