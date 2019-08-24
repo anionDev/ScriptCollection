@@ -4,6 +4,7 @@ import hashlib
 import codecs
 import sys
 import xml.dom.minidom
+import datetime
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
@@ -76,3 +77,22 @@ def format_xml_file(file:str, encoding:str):
     text=xml.dom.minidom.parseString(text).toprettyxml()
     with codecs.open(file, 'w', encoding=encoding) as f:
         f.write(text)
+
+def get_internet_time():
+    return datetime.datetime.now()#TODO
+
+def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
+    return abs(get_internet_time()-datetime.datetime)<maximal_tolerance_difference
+
+def system_time_equals_internet_time_with_default_tolerance():
+    return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
+
+def check_system_time(maximal_tolerance_difference: datetime.timedelta):
+    if not system_time_equals_internet_time(maximal_tolerance_difference):
+        raise ValueError("System time may be wrong")
+
+def check_system_time_with_default_tolerance():
+    return check_system_time(get_default_tolerance_for_system_time_equals_internet_time())
+
+def get_default_tolerance_for_system_time_equals_internet_time():
+    return datetime.timedelta(hours=0, minutes=0, seconds=3)
