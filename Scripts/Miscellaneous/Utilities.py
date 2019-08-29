@@ -1,6 +1,8 @@
 import os
 import subprocess
 import hashlib
+import time
+import datetime
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
@@ -39,3 +41,8 @@ def ensure_file_does_not_exist(path:str):
 def commit(directory:str, message:str):
     execute("git","add -A",directory,3600)
     execute("git","commit -m \""+message+"\"",directory)
+
+def get_time_from_internet():
+    import ntplib
+    response = ntplib.NTPClient().request('pool.ntp.org')
+    return datetime.datetime.fromtimestamp(response.tx_time)
