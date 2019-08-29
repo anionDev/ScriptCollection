@@ -8,13 +8,12 @@
   become_method: sudo
   tasks:
     - name: Install php
-      apt: name={{ items }} update_cache=yes state=latest
+      apt: name={{ item }} update_cache=yes state=latest
       with_items:
-       - php7.0
-       - php7.0-mysql
-       - php7.0-mcrypt
-       - libapache2-mod-php7.0
-       - php7.0-curl
-       - php7.0-json
-       - php7.0-cgi
-       - php7.0-xml
+       - php7.3-cli
+       - php7.3-common
+       - php7.3-curl
+       - php7.3-gd
+       - php7.3-json
+       - php7.3-mbstring
+       - php7.3-xml

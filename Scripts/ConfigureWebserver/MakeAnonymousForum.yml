@@ -1,0 +1,6 @@
+---
+
+- import_playbook: EnsurePHPBBWithDependenciesInstalled.yml
+- import_playbook: EnsureApache2MadeAnonymousViaTor.yml
+- import_playbook: EnsureApache2Hardened.yml
+- import_playbook: EnsureServerHardened.yml

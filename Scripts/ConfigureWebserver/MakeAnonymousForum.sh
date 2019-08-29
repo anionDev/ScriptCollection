@@ -1,3 +1,1 @@
-ansible-playbook EnsurePHPBBWithDependenciesInstalled.yml
-ansible-playbook EnsureApache2MadeAnonymousViaTor.yml
-ansible-playbook EnsureApache2Hardened.yml
+ansible-playbook MakeAnonymousForum.yml

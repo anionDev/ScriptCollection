@@ -24,7 +24,7 @@
     - name: Set Permissions
       shell: chown -R www-data:www-data /var/www/html/ && chmod 660 /var/www/html/images/avatars/upload/ config.php && chmod 770 /var/www/html/store/ /var/www/html/cache/ /var/www/html/files/
       
-#TODO create mysql user
+#TODO create Database user
 #TODO initialize PHPBB
 
      - name: Remove PHPBB install-remnants
