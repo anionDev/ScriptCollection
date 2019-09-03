@@ -23,9 +23,14 @@
       shell: rm /var/www/html/phpbb.zip
     - name: Set Permissions
       shell: chown -R www-data:www-data /var/www/html/ && chmod 660 /var/www/html/images/avatars/upload/ config.php && chmod 770 /var/www/html/store/ /var/www/html/cache/ /var/www/html/files/
-      
+
 #TODO create Database user
 #TODO initialize PHPBB
+#maybe see https://area51.phpbb.com/docs/dev/3.2.x/cli/getting_started.html
 
+     - name: Install PHPBB
+       shell: php install/phpbbcli.php install install-config.yml
      - name: Remove PHPBB install-remnants
-      shell: rm -r /var/www/html/install
+       shell: rm -r /var/www/html/install
+     - name: Update PHPBB
+       shell: install/phpbbcli.php update update-config.yml
