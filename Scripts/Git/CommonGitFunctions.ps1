@@ -18,7 +18,7 @@ function ShowUnexpectedChangesInGitRepository($repositoryFolder, $expectedChange
         Exit $exitCode
     }
     $stdout = $p.StandardOutput.ReadToEnd()
-    $changedFiles=$stdout.Split([Environment]::NewLine) | Where-Object { $_ –ne "" }
+    $changedFiles=$stdout.Split([Environment]::NewLine) | Where-Object { $_ -ne "" }
     $repositoryHasUnexpectedChanges=$false
     $changedFiles | ForEach-Object {
         if(-Not $expectedChanges.Contains($_)){
@@ -53,14 +53,11 @@ function GetAllRemotes($repositoryFolder){
     $originalWorkingDirectory=(Get-Item -Path ".\").FullName
     try{
         cd $repositoryFolder
-        
-        
-        
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = "git"
         $pinfo.RedirectStandardError = $true
         $pinfo.RedirectStandardOutput = $true
-        $pinfo.WorkingDirectory=$sourceFolder
+        $pinfo.WorkingDirectory=$repositoryFolder
         $pinfo.UseShellExecute = $false
         $pinfo.Arguments = "remote"
         $p = New-Object System.Diagnostics.Process
@@ -71,7 +68,15 @@ function GetAllRemotes($repositoryFolder){
         if($exitCode -ne 0){
             throw [System.Exception] "'Git remote' had exitcode $exitCode"
         }
-        return $remotes.split([Environment]::NewLine)
+        $remotes = $p.StandardOutput.ReadToEnd()
+        $listCollection = New-Object 'Collections.Generic.List[string]'
+        $splitted=$remotes.split([Environment]::NewLine)
+        ForEach($splittedItem in $splitted){
+            if($splittedItem -ne ""){
+                $listCollection.Add($splittedItem)
+            }
+        }
+        return $listCollection
     }
     finally{
         cd $originalWorkingDirectory
@@ -86,7 +91,7 @@ function RemoveAllRemotes($repositoryFolder){
             $pinfo.FileName = "git"
             $pinfo.RedirectStandardError = $true
             $pinfo.RedirectStandardOutput = $true
-            $pinfo.WorkingDirectory=$sourceFolder
+            $pinfo.WorkingDirectory=$repositoryFolder
             $pinfo.UseShellExecute = $false
             $pinfo.Arguments = "remote remove $remote"
             $p = New-Object System.Diagnostics.Process
