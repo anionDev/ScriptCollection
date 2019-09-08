@@ -108,3 +108,24 @@ function RemoveAllRemotes($repositoryFolder){
         cd $originalWorkingDirectory
     }
 }
+function RepositoryHasUncommittedChanges($repositoryFolder){
+ $originalWorkingDirectory=(Get-Item -Path ".\").FullName
+    try{
+        cd $repositoryFolder
+        #TODO
+    }
+    finally{
+        cd $originalWorkingDirectory
+    }
+}
+
+function PullFastForwardIfThereAreNoUncommittedChanges($repositoryFolder, $remote){
+ $originalWorkingDirectory=(Get-Item -Path ".\").FullName
+    try{
+        cd $repositoryFolder
+        #TODO
+    }
+    finally{
+        cd $originalWorkingDirectory
+    }
+}
