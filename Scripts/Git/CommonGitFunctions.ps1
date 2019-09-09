@@ -50,37 +50,30 @@ function ShowUnexpectedChangesInGitRepository($repositoryFolder, $expectedChange
     }
 }
 function GetAllRemotes($repositoryFolder){
-    $originalWorkingDirectory=(Get-Item -Path ".\").FullName
-    try{
-        cd $repositoryFolder
-        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-        $pinfo.FileName = "git"
-        $pinfo.RedirectStandardError = $true
-        $pinfo.RedirectStandardOutput = $true
-        $pinfo.WorkingDirectory=$repositoryFolder
-        $pinfo.UseShellExecute = $false
-        $pinfo.Arguments = "remote"
-        $p = New-Object System.Diagnostics.Process
-        $p.StartInfo = $pinfo
-        $p.Start() | Out-Null
-        $p.WaitForExit()
-        $exitCode=$p.ExitCode
-        if($exitCode -ne 0){
-            throw [System.Exception] "'Git remote' had exitcode $exitCode"
-        }
-        $remotes = $p.StandardOutput.ReadToEnd()
-        $listCollection = New-Object 'Collections.Generic.List[string]'
-        $splitted=$remotes.split([Environment]::NewLine)
-        ForEach($splittedItem in $splitted){
-            if($splittedItem -ne ""){
-                $listCollection.Add($splittedItem)
-            }
-        }
-        return $listCollection
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = "git"
+    $pinfo.RedirectStandardError = $true
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.WorkingDirectory=$repositoryFolder
+    $pinfo.UseShellExecute = $false
+    $pinfo.Arguments = "remote"
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    $p.WaitForExit()
+    $exitCode=$p.ExitCode
+    if($exitCode -ne 0){
+        throw [System.Exception] "'Git remote' had exitcode $exitCode"
     }
-    finally{
-        cd $originalWorkingDirectory
+    $remotes = $p.StandardOutput.ReadToEnd()
+    $listCollection = New-Object 'Collections.Generic.List[string]'
+    $splitted=$remotes.split([Environment]::NewLine)
+    ForEach($splittedItem in $splitted){
+        if($splittedItem -ne ""){
+            $listCollection.Add($splittedItem)
+        }
     }
+    return $listCollection
 }
 function RemoveAllRemotes($repositoryFolder){
     $originalWorkingDirectory=(Get-Item -Path ".\").FullName
@@ -123,7 +116,6 @@ function RepositoryHasUncommittedChanges($repositoryFolder){
 }
 
 function PullFastForwardIfThereAreNoUncommittedChanges($repositoryFolder, $remote){
-    cd $repositoryFolder
     if(-Not (RepositoryHasUncommittedChanges($repositoryFolder))){
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = "git"
