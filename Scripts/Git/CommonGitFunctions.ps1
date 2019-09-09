@@ -116,7 +116,9 @@ function RepositoryHasUncommittedChanges($repositoryFolder){
 }
 
 function PullFastForwardIfThereAreNoUncommittedChanges($repositoryFolder, $remote){
-    if(-Not (RepositoryHasUncommittedChanges($repositoryFolder))){
+    if(RepositoryHasUncommittedChanges $repositoryFolder){
+        return $false
+    }else{
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = "git"
         $pinfo.WorkingDirectory=$repositoryFolder
@@ -130,8 +132,6 @@ function PullFastForwardIfThereAreNoUncommittedChanges($repositoryFolder, $remot
         if($exitCode -ne 0){
             throw [System.Exception] "'Git pull --ff-only $remote' had exitcode $exitCode"
         }
-        return true
-    }else{
-        return false
+        return $true
     }
 }
