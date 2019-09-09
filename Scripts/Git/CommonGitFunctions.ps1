@@ -109,7 +109,7 @@ function RemoveAllRemotes($repositoryFolder){
     }
 }
 function RepositoryHasUncommittedChanges($repositoryFolder){
- $originalWorkingDirectory=(Get-Item -Path ".\").FullName
+    $originalWorkingDirectory=(Get-Item -Path ".\").FullName
     try{
         cd $repositoryFolder
         #TODO
@@ -120,12 +120,23 @@ function RepositoryHasUncommittedChanges($repositoryFolder){
 }
 
 function PullFastForwardIfThereAreNoUncommittedChanges($repositoryFolder, $remote){
- $originalWorkingDirectory=(Get-Item -Path ".\").FullName
-    try{
-        cd $repositoryFolder
-        #TODO
-    }
-    finally{
-        cd $originalWorkingDirectory
+    cd $repositoryFolder
+    if(RepositoryHasUncommittedChanges($repositoryFolder)){
+        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+        $pinfo.FileName = "git"
+        $pinfo.WorkingDirectory=$repositoryFolder
+        $pinfo.UseShellExecute = $false
+        $pinfo.Arguments = "pull --ff-only $remote"
+        $p = New-Object System.Diagnostics.Process
+        $p.StartInfo = $pinfo
+        $p.Start() | Out-Null
+        $p.WaitForExit()
+        $exitCode=$p.ExitCode
+        if($exitCode -ne 0){
+            throw [System.Exception] "'Git pull --ff-only $remote' had exitcode $exitCode"
+        }
+        return true;
+    }else{
+        return false;
     }
 }
