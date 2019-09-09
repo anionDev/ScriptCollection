@@ -124,7 +124,7 @@ function RepositoryHasUncommittedChanges($repositoryFolder){
 
 function PullFastForwardIfThereAreNoUncommittedChanges($repositoryFolder, $remote){
     cd $repositoryFolder
-    if(RepositoryHasUncommittedChanges($repositoryFolder)){
+    if(-Not (RepositoryHasUncommittedChanges($repositoryFolder))){
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = "git"
         $pinfo.WorkingDirectory=$repositoryFolder
