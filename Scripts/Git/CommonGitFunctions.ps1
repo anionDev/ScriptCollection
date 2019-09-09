@@ -106,7 +106,7 @@ function RepositoryHasUncommittedChanges($repositoryFolder){
     $pinfo.FileName = "git"
     $pinfo.WorkingDirectory=$repositoryFolder
     $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = "git diff-index --quiet HEAD --"
+    $pinfo.Arguments = "diff-index --quiet HEAD --"
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start()
