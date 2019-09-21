@@ -56,3 +56,10 @@ def format_xml_file(file:str, encoding:str):
     text=xml.dom.minidom.parseString(text).toprettyxml()
     with codecs.open(file, 'w', encoding=encoding) as f:
         f.write(text)
+
+def extract_winrar_archive(file:str, password:str):
+    password_set=password is None
+    argument="x "+"\""+file+"\""
+    if password_set:
+        argument=argument+" -p"+password
+    return execute("winrar",argument,os.getcwd(),sys.maxsize)
