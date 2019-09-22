@@ -17,9 +17,8 @@ parser.add_argument("--remove_duplicated_lines", type=string_to_boolean, nargs='
 args = parser.parse_args()
 
 if os.path.isfile(args.file):
-    with open(args.file, 'r', encoding=args.encoding) as f
+    with open(args.file, 'r', encoding=args.encoding) as f:
         lines=f.readlines()
-        #pass TODO
     if args.remove_duplicated_lines:
         lines.sort()
     if args.sort:
@@ -30,4 +29,3 @@ if os.path.isfile(args.file):
 else:
     print(f"File '{args.file}' does not exist")
     sys.exit(1)
-syss.exit(0)
