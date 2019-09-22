@@ -20,10 +20,12 @@ def get_sha256_of_file(file:str):
             sha256.update(chunk)
     return sha256.hexdigest()
 
-def remove_duplicates(sequence):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in sequence if not (x in seen or seen_add(x))]
+def remove_duplicates(input):
+    result=[]
+    for item in input:
+        if not item in result:
+            result.append(item)
+    return result
 
 def string_to_boolean(v):
     if isinstance(v, bool):

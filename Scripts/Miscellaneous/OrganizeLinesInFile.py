@@ -18,14 +18,26 @@ args = parser.parse_args()
 
 if os.path.isfile(args.file):
     with open(args.file, 'r', encoding=args.encoding) as f:
-        lines=f.readlines()
+        content=f.read()
+    lines=content.splitlines()
+    x=[]
+    for line in lines:
+     x.append(line.replace('\r','').replace('\n',''))
+    lines=x
     if args.remove_duplicated_lines:
         lines.sort()
     if args.sort:
         lines=remove_duplicates(lines)
+    is_first_line=True
+    result=""
+    for line in lines:
+        if(is_first_line):
+            is_first_line=False
+        else:
+            result=result+"\n"
+        result=result+line
     with open(args.file, 'w', encoding=args.encoding) as f:
-        for line in lines:
-            f.write("%s\n" % line)
+        f.write(result)
 else:
     print(f"File '{args.file}' does not exist")
     sys.exit(1)
