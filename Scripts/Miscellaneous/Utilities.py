@@ -20,6 +20,21 @@ def get_sha256_of_file(file:str):
             sha256.update(chunk)
     return sha256.hexdigest()
 
+def remove_duplicates(sequence):
+    seen = set()
+    seen_add = seen.add
+    return [x for x in sequence if not (x in seen or seen_add(x))]
+
+def string_to_boolean(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
