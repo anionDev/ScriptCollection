@@ -41,10 +41,6 @@ def ensure_file_does_not_exist(path:str):
     if(os.path.isfile(path)):
         os.remove(path)
 
-def commit(directory:str, message:str):
-    execute("git","add -A", directory, 3600)
-    execute("git","commit -m \""+message+"\"",directory)
-
 def get_time_from_internet():
     import ntplib
     response = ntplib.NTPClient().request('pool.ntp.org')
@@ -56,3 +52,10 @@ def format_xml_file(file:str, encoding:str):
     text=xml.dom.minidom.parseString(text).toprettyxml()
     with codecs.open(file, 'w', encoding=encoding) as f:
         f.write(text)
+
+def extract_winrar_archive(file:str, password:str):
+    password_set=password is None
+    argument="x "+"\""+file+"\""
+    if password_set:
+        argument=argument+" -p"+password
+    return execute("winrar",argument,os.getcwd(),sys.maxsize)
