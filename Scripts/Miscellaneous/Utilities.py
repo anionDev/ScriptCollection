@@ -101,4 +101,13 @@ def wipe_disk(diskpath:str, iterations=1):
     finally:
         os.chdir(original_working_directory)
 
+def extract_archive_with_7z(unzip_file:str, file:str, password:str):
+    password_set=not password is None
+    file_name=Path(file).name
+    file_folder=os.path.dirname(file)
+    argument="x"
+    if password_set:
+        argument=argument+" -p\""+password+"\""
+    argument=argument+" "+file_name
+    return execute(unzip_file,argument,file_folder)
 
