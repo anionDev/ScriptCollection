@@ -57,8 +57,11 @@ def execute_get_output_by_argument_array(program:str, arguments, workingdirector
     return execute_raw(program_and_arguments,workingdirectory,timeout,shell)
 
 def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shell=False):
-    if not os.path.isabs(workingdirectory):
-        workingdirectory=os.path.abspath(workingdirectory)
+    if workingdirectory=="":
+        workingdirectory=os.getcwd()
+    else:
+        if not os.path.isabs(workingdirectory):
+            workingdirectory=os.path.abspath(workingdirectory)
     process = Popen(program_and_arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
     stdout, stderr = process.communicate()
     exit_code = process.wait()
