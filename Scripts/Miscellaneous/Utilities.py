@@ -5,6 +5,7 @@ import time
 import datetime
 import shutil
 import uuid
+from pathlib import Path  
 import codecs
 import sys
 import xml.dom.minidom
@@ -83,7 +84,7 @@ def wipe_disk(diskpath:str, iterations=1):
     original_working_directory=os.getcwd()
     content_char="x"
     try:
-        for iteration_number in list(range(iterations))
+        for iteration_number in list(range(iterations)):
             print("Start iteration "+str(iteration_number+1)+"...")
             os.chdir(temp_folder)
             total, used, free = shutil.disk_usage(diskpath)
@@ -101,13 +102,14 @@ def wipe_disk(diskpath:str, iterations=1):
     finally:
         os.chdir(original_working_directory)
 
-def extract_archive_with_7z(unzip_file:str, file:str, password:str):
+def extract_archive_with_7z(unzip_file:str, file:str, password:str, output_directory:str):
     password_set=not password is None
     file_name=Path(file).name
     file_folder=os.path.dirname(file)
     argument="x"
     if password_set:
         argument=argument+" -p\""+password+"\""
+    argument=argument+" -o"+output_directory
     argument=argument+" "+file_name
     return execute(unzip_file,argument,file_folder)
 
