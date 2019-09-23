@@ -59,6 +59,7 @@ def format_xml_file(file:str, encoding:str):
     with codecs.open(file, 'w', encoding=encoding) as f:
         f.write(text)
 
+
 def get_clusters_and_sectors(dispath:str):
     import ctypes
     sectorsPerCluster = ctypes.c_ulonglong(0)
@@ -99,4 +100,5 @@ def wipe_disk(diskpath:str, iterations=1):
                 os.remove(file)
     finally:
         os.chdir(original_working_directory)
+
 
