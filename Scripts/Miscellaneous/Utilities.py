@@ -71,6 +71,10 @@ def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
         os.makedirs(path)
 
+def ensure_directory_does_not_exist(path:str):
+    if(os.path.isdir(path)):
+        shutil.rmtree(path)
+
 def ensure_file_exists(path:str):
     if(not os.path.isfile(path)):
         with open(path,"a+") as f:
