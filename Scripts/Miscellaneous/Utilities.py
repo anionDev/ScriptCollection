@@ -45,6 +45,11 @@ def file_is_empty(file:str):
 def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
     return execute_get_output(program, arguments, workingdirectory, timeout, shell)[0]
 
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
+    exit_code=execute(program, arguments, workingdirectory, timeout, shell)
+	if exit_code!=0:
+	    raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
+
 def execute_get_output(program:str, arguments:str, workingdirectory:str="",timeout=120, shell=False):
     program_and_arguments=arguments.split()
     program_and_arguments=[program]
@@ -84,21 +89,6 @@ def get_time_from_internet():
     import ntplib
     response = ntplib.NTPClient().request('pool.ntp.org')
     return datetime.datetime.fromtimestamp(response.tx_time)
-
-def commit(directory:str, message:str):
-    exitcode=execute("git","add -A", directory, 3600)
-    if not (exitcode==0):
-        raise ValueError("'git add' results in exitcode "+str(exitcode))
-
-    exitcode=execute_get_output_by_argument_array("git",["commit","-m \""+message+"\""], directory, 3600)[0]
-    if not (exitcode==0):
-        raise ValueError("'git commit' results in exitcode "+str(exitcode))
-
-    result = execute_get_output_by_argument_array("git", ["log","--format=\"%H\"","-n 1"], directory)
-    if not (result[0]==0):
-        raise ValueError("'git log' results in exitcode "+str(result[0]))
-
-    return result[1]
 
 def format_xml_file(file:str, encoding:str):
     with codecs.open(file, 'r', encoding=encoding) as f:
