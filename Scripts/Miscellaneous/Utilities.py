@@ -15,6 +15,12 @@ def absolute_file_paths(directory:str):
        for f in filenames:
            yield os.path.abspath(os.path.join(dirpath, f))
 
+def str_none_safe(variable):
+    if variable is None:
+        return ''
+    else:
+        return str(variable)
+
 def get_sha256_of_file(file:str):
     sha256 = hashlib.sha256()
     with open(file, "rb") as fileObject:
@@ -29,12 +35,12 @@ def remove_duplicates(input):
             result.append(item)
     return result
 
-def string_to_boolean(v):
-    if isinstance(v, bool):
-       return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+def string_to_boolean(value):
+    if isinstance(value, bool):
+       return value
+    if value.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    elif value.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
@@ -42,8 +48,12 @@ def string_to_boolean(v):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
-    return execute_get_output(program, arguments, workingdirectory, timeout, shell)[0]
+def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False, write_output_to_console=True):
+    result = execute_get_output(program, arguments, workingdirectory, timeout, shell)
+    if write_output_to_console:
+        sys.stdout.write(result[1]+'\n')
+        sys.stderr.write(result[2]+'\n')
+    return result[0]
 
 def execute_get_output(program:str, arguments:str, workingdirectory:str="",timeout=120, shell=False):
     program_and_arguments=arguments.split()
