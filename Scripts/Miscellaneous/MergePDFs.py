@@ -11,6 +11,7 @@ parser.add_argument('files', help='Comma-separated filenames without any blank')
 parser.add_argument('outputfolder', help='Folder where the files are stored which should be hashed')
 args = parser.parse_args()
 
+#TODO add wildcard-option
 files = args.files.split(',')
 pdfFileMerger = PdfFileMerger()
 for file in files:
