@@ -17,6 +17,8 @@ try:
 
     write_message_to_stdout(f"Arguments:")
     write_message_to_stdout("testdll: " + args.testdll)
+    
+    write_message_to_stdout("TODO: run 'vstest.console "+ args.testdll+"'")
 
     write_message_to_stdout("Finished " + os.path.basename(__file__) + " without errors")
 finally:

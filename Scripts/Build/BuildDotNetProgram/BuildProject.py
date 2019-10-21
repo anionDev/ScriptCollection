@@ -31,7 +31,6 @@ try:
     write_message_to_stdout("additional_msbuild_arguments: " + args.additional_msbuild_arguments)
     write_message_to_stdout("output_directory: " + args.output_directory)
     write_message_to_stdout("clear_output_directory: " + str(args.clear_output_directory))
-    sys.exit(0)
     output_folder=os.path.abspath(os.path.join(os.path.abspath(args.folder_of_csproj_filename),"bin\\" + args.buildconfiguration))
     exit_code=execute("python", "RestoreNugetPackages.py --inputfolder "+args.folder_of_csproj_filename, os.getcwd())
     if exit_code!=0:
@@ -39,7 +38,6 @@ try:
     if os.path.isdir(output_folder):
         shutil.rmtree(output_folder)
     os.makedirs(output_folder)
-
     exit_code=execute("msbuild", args.csproj_filename+" /t:Rebuild /verbosity:normal /p:Configuration="+args.buildconfiguration+" /p:Platform=AnyCPU /p:OutputPath="+output_folder+" "+str_none_safe(args.additional_msbuild_arguments), args.folder_of_csproj_filename)
     if exit_code!=0:
         write_message_to_stderr("msbuild had exitcode " +str(exit_code))
