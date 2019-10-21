@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 import shutil
-print("Start " + os.path.basename(__file__))
+write_message_to_stdout("Start " + os.path.basename(__file__))
 start_directory=os.getcwd()
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 try:
@@ -11,8 +11,9 @@ try:
     parser.add_argument('--testdll', help='Specifies the dll-file where the testcases are stored in')
     args = parser.parse_args()
 
-    print("(todo)")
+    print("TODO")
 
     sys.stdout.write("Finished " + os.path.basename(__file__) + " without errors\n")
+    sys.stdout.flush()
 finally:
     os.chdir(start_directory)
