@@ -80,7 +80,7 @@ def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shel
     process = Popen(program_and_arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
     stdout, stderr = process.communicate()
     exit_code = process.wait()
-    return (exit_code, stdout.decode("utf-8"), stderr.decode("utf-8"))
+    return (exit_code, stdout.decode("utf-8", "ignore"), stderr.decode("utf-8", "ignore"))
 
 def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
