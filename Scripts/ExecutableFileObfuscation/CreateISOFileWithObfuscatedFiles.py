@@ -9,10 +9,7 @@ import subprocess
 import shutil
 import sys
 import internal_utilities
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:
-    from io import BytesIO
+from io import BytesIO
 import pycdlib
 
 parser = argparse.ArgumentParser(description='Creates an iso file with the files in the given folder and changes their names and hash-values. This script does not process subfolders transitively.')
