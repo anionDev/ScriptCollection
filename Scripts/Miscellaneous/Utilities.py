@@ -15,6 +15,12 @@ def absolute_file_paths(directory:str):
        for f in filenames:
            yield os.path.abspath(os.path.join(dirpath, f))
 
+def str_none_safe(variable):
+    if variable is None:
+        return ''
+    else:
+        return str(variable)
+
 def get_sha256_of_file(file:str):
     sha256 = hashlib.sha256()
     with open(file, "rb") as fileObject:
@@ -29,12 +35,12 @@ def remove_duplicates(input):
             result.append(item)
     return result
 
-def string_to_boolean(v):
-    if isinstance(v, bool):
-       return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+def string_to_boolean(value):
+    if isinstance(value, bool):
+       return value
+    if value.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    elif value.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
@@ -42,8 +48,17 @@ def string_to_boolean(v):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
-    return execute_get_output(program, arguments, workingdirectory, timeout, shell)[0]
+def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False, write_output_to_console=True):
+    result = execute_get_output(program, arguments, workingdirectory, timeout, shell)
+    if write_output_to_console:
+        sys.stdout.write(result[1]+'\n')
+        sys.stderr.write(result[2]+'\n')
+    return result[0]
+
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
+    exit_code=execute(program, arguments, workingdirectory, timeout, shell)
+    if exit_code!=0:
+        raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
     exit_code=execute(program, arguments, workingdirectory, timeout, shell)
@@ -67,7 +82,9 @@ def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shel
     else:
         if not os.path.isabs(workingdirectory):
             workingdirectory=os.path.abspath(workingdirectory)
-    process = Popen(program_and_arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
+    program_and_argument_as_string=" ".join(program_and_arguments)
+    write_message_to_stdout(f"{workingdirectory}>{program_and_argument_as_string}")
+    process = Popen(program_and_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
     stdout, stderr = process.communicate()
     exit_code = process.wait()
     return (exit_code, stdout.decode("utf-8"), stderr.decode("utf-8"))
@@ -167,3 +184,23 @@ def check_system_time_with_default_tolerance():
 
 def get_default_tolerance_for_system_time_equals_internet_time():
     return datetime.timedelta(hours=0, minutes=0, seconds=3)
+def write_message_to_stderr(message:str):
+    sys.stderr.write(message+"\n")
+    sys.stderr.flush()
+def write_message_to_stdout(message:str):
+    sys.stdout.write(message+"\n")
+    sys.stdout.flush()
+def write_exception_to_stderr_with_traceback(exception:Exception, traceback):
+    write_message_to_stderr("Exception(")
+    write_message_to_stderr("Type: "+str(type(exception)))
+    write_message_to_stderr("Message: "+str(exception))
+    write_message_to_stderr("Traceback: {"+traceback)
+    write_message_to_stderr(")")
+def write_exception_to_stderr(exception:Exception):
+    write_message_to_stderr("Exception(")
+    write_message_to_stderr("Type: "+str(type(exception)))
+    write_message_to_stderr("Message: "+str(exception))
+    write_message_to_stderr(")")
+    
+
+    

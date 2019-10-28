@@ -4,9 +4,9 @@
     getdateoflastcommit = log -1 --format=%cd
     getidoflastcommit = log --format="%H" -n 1
     listfiles = ls-tree --full-tree -r --name-only HEAD
-    listcontributors = log --pretty=\"'%an', '%ae', '%cn', '%ce'\";Shows author-name, author-email, committer-name, committer-email. Append " | sort | uniq" for a better overview
+    listcontributors = log --pretty=\"'%an', '%ae', '%cn', '%ce'\"; Shows author-name, author-email, committer-name, committer-email. Append " | sort | uniq" for a better overview
     listcommitcounts = shortlog -s -n
-    removelastcommit = reset HEAD~ --soft # Preserves changes as unstaged changes
+    removelastcommit = reset HEAD~ --soft; Preserves changes as unstaged changes
     pullsubmodules = submodule update --init --recursive
     removeuntrackedfiles = clean -fdx
     showbranchname = rev-parse --abbrev-ref HEAD
@@ -15,4 +15,5 @@
     showglobalconfig = config --list --show-origin
     showtrackedignored = ls-files -i --exclude-standard
     showstashs = reflog show --format="%h" stash
+    tree = log --graph --decorate --pretty=oneline --abbrev-commit
     verify = verify-commit HEAD
