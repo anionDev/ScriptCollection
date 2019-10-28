@@ -1,16 +1,25 @@
 import os
-import subprocess
+from subprocess import Popen, PIPE
 import hashlib
 import time
-import datetime
+import shutil
+import uuid
+from pathlib import Path  
 import codecs
 import sys
 import xml.dom.minidom
+import datetime
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
        for f in filenames:
            yield os.path.abspath(os.path.join(dirpath, f))
+
+def str_none_safe(variable):
+    if variable is None:
+        return ''
+    else:
+        return str(variable)
 
 def get_sha256_of_file(file:str):
     sha256 = hashlib.sha256()
@@ -19,14 +28,59 @@ def get_sha256_of_file(file:str):
             sha256.update(chunk)
     return sha256.hexdigest()
 
+def remove_duplicates(input):
+    result=[]
+    for item in input:
+        if not item in result:
+            result.append(item)
+    return result
+
+def string_to_boolean(value):
+    if isinstance(value, bool):
+       return value
+    if value.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif value.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute(program:str, arguments:str, workingdirectory:str="",timeout=120):
-    if not os.path.isabs(workingdirectory):
-        workingdirectory=os.path.abspath(workingdirectory)
-    exit_code = subprocess.call(program + " " + arguments, cwd=workingdirectory, timeout=timeout)
-    return exit_code
+def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False, write_output_to_console=True):
+    result = execute_get_output(program, arguments, workingdirectory, timeout, shell)
+    if write_output_to_console:
+        sys.stdout.write(result[1]+'\n')
+        sys.stderr.write(result[2]+'\n')
+    return result[0]
+
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
+    exit_code=execute(program, arguments, workingdirectory, timeout, shell)
+	if exit_code!=0:
+	    raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
+
+def execute_get_output(program:str, arguments:str, workingdirectory:str="",timeout=120, shell=False):
+    program_and_arguments=arguments.split()
+    program_and_arguments=[program]
+    program_and_arguments.extend(arguments.split())
+    return execute_raw(program_and_arguments,workingdirectory,timeout,shell)
+
+def execute_get_output_by_argument_array(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
+    program_and_arguments=[program]
+    program_and_arguments.extend(arguments)
+    return execute_raw(program_and_arguments,workingdirectory,timeout,shell)
+
+def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shell=False):
+    if workingdirectory=="":
+        workingdirectory=os.getcwd()
+    else:
+        if not os.path.isabs(workingdirectory):
+            workingdirectory=os.path.abspath(workingdirectory)
+    process = Popen(program_and_arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
+    stdout, stderr = process.communicate()
+    exit_code = process.wait()
+    return (exit_code, stdout.decode("utf-8"), stderr.decode("utf-8"))
 
 def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
@@ -41,10 +95,6 @@ def ensure_file_does_not_exist(path:str):
     if(os.path.isfile(path)):
         os.remove(path)
 
-def commit(directory:str, message:str):
-    execute("git","add -A", directory, 3600)
-    execute("git","commit -m \""+message+"\"",directory)
-
 def get_time_from_internet():
     import ntplib
     response = ntplib.NTPClient().request('pool.ntp.org')
@@ -56,3 +106,74 @@ def format_xml_file(file:str, encoding:str):
     text=xml.dom.minidom.parseString(text).toprettyxml()
     with codecs.open(file, 'w', encoding=encoding) as f:
         f.write(text)
+
+def get_clusters_and_sectors(dispath:str):
+    import ctypes
+    sectorsPerCluster = ctypes.c_ulonglong(0)
+    bytesPerSector = ctypes.c_ulonglong(0)
+    rootPathName = ctypes.c_wchar_p(dispath)
+    ctypes.windll.kernel32.GetDiskFreeSpaceW(rootPathName, ctypes.pointer(sectorsPerCluster), ctypes.pointer(bytesPerSector), None, None)
+    return (sectorsPerCluster.value, bytesPerSector.value)
+
+def write_content_to_random_file(content:str):
+    temp_file=str(uuid.uuid4())
+    written_files.append(temp_file)
+    with open(temp_file, 'w+') as f:
+        f.write(file_content)
+    return temp_file
+
+def wipe_disk(diskpath:str, iterations=1):
+    total, used, free = shutil.disk_usage(diskpath)
+    id = str(uuid.uuid4())
+    temp_folder=diskpath+os.linesep+id
+    ensure_directory_exists(temp_folder)
+    original_working_directory=os.getcwd()
+    content_char="x"
+    try:
+        for iteration_number in list(range(iterations)):
+            print("Start iteration "+str(iteration_number+1)+"...")
+            os.chdir(temp_folder)
+            total, used, free = shutil.disk_usage(diskpath)
+            clusters_and_sectors=get_clusters_and_sectors(diskpath)
+            written_files=[]
+            file_size=clusters_and_sectors[0]*clusters_and_sectors[1]
+            file_content=content_char * file_size
+            while file_size < free:
+                written_files.append(create_file(file_content))
+                total, used, free = shutil.disk_usage(diskpath)
+            if 0 < free:
+                written_files.append(create_file(free))
+            for file in written_files:
+                os.remove(file)
+    finally:
+        os.chdir(original_working_directory)
+
+def extract_archive_with_7z(unzip_file:str, file:str, password:str, output_directory:str):
+    password_set=not password is None
+    file_name=Path(file).name
+    file_folder=os.path.dirname(file)
+    argument="x"
+    if password_set:
+        argument=argument+" -p\""+password+"\""
+    argument=argument+" -o"+output_directory
+    argument=argument+" "+file_name
+    return execute(unzip_file,argument,file_folder)
+
+def get_internet_time():
+    return datetime.datetime.now()#TODO
+
+def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
+    return abs(get_internet_time()-datetime.datetime)<maximal_tolerance_difference
+
+def system_time_equals_internet_time_with_default_tolerance():
+    return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
+
+def check_system_time(maximal_tolerance_difference: datetime.timedelta):
+    if not system_time_equals_internet_time(maximal_tolerance_difference):
+        raise ValueError("System time may be wrong")
+
+def check_system_time_with_default_tolerance():
+    return check_system_time(get_default_tolerance_for_system_time_equals_internet_time())
+
+def get_default_tolerance_for_system_time_equals_internet_time():
+    return datetime.timedelta(hours=0, minutes=0, seconds=3)

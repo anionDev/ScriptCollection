@@ -2,6 +2,7 @@
     checkintegrity = fsck --full
     cleanup = gc --auto
     getdateoflastcommit = log -1 --format=%cd
+    getidoflastcommit = log --format="%H" -n 1
     listfiles = ls-tree --full-tree -r --name-only HEAD
     listcontributors = log --pretty=\"'%an', '%ae', '%cn', '%ce'\"; Shows author-name, author-email, committer-name, committer-email. Append " | sort | uniq" for a better overview
     listcommitcounts = shortlog -s -n
@@ -13,4 +14,6 @@
     showdanglingobjects = fsck --lost-found
     showglobalconfig = config --list --show-origin
     showtrackedignored = ls-files -i --exclude-standard
+    showstashs = reflog show --format="%h" stash
+    tree = log --graph --decorate --pretty=oneline --abbrev-commit
     verify = verify-commit HEAD
