@@ -169,6 +169,9 @@ def get_internet_time():
 def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
     return abs(get_internet_time()-datetime.datetime)<maximal_tolerance_difference
 
+def clone_folder_structure(source, target, write_information_to_file):
+    pass
+
 def system_time_equals_internet_time_with_default_tolerance():
     return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
 
@@ -181,18 +184,22 @@ def check_system_time_with_default_tolerance():
 
 def get_default_tolerance_for_system_time_equals_internet_time():
     return datetime.timedelta(hours=0, minutes=0, seconds=3)
+
 def write_message_to_stderr(message:str):
     sys.stderr.write(message+"\n")
     sys.stderr.flush()
+
 def write_message_to_stdout(message:str):
     sys.stdout.write(message+"\n")
     sys.stdout.flush()
+
 def write_exception_to_stderr_with_traceback(exception:Exception, traceback):
     write_message_to_stderr("Exception(")
     write_message_to_stderr("Type: "+str(type(exception)))
     write_message_to_stderr("Message: "+str(exception))
     write_message_to_stderr("Traceback: {"+traceback)
     write_message_to_stderr(")")
+
 def write_exception_to_stderr(exception:Exception):
     write_message_to_stderr("Exception(")
     write_message_to_stderr("Type: "+str(type(exception)))
