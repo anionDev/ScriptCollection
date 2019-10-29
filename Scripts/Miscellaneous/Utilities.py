@@ -62,8 +62,8 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments,
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
     exit_code=execute(program, arguments, workingdirectory, timeout, shell)
-	if exit_code!=0:
-	    raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
+    if exit_code!=0:
+        raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
 
 def execute_get_output(program:str, arguments:str, workingdirectory:str="",timeout=120, shell=False):
     program_and_arguments=arguments.split()
@@ -201,6 +201,3 @@ def write_exception_to_stderr(exception:Exception):
     write_message_to_stderr("Type: "+str(type(exception)))
     write_message_to_stderr("Message: "+str(exception))
     write_message_to_stderr(")")
-    
-
-    
