@@ -102,11 +102,6 @@ def ensure_file_does_not_exist(path:str):
     if(os.path.isfile(path)):
         os.remove(path)
 
-def get_time_from_internet():
-    import ntplib
-    response = ntplib.NTPClient().request('pool.ntp.org')
-    return datetime.datetime.fromtimestamp(response.tx_time)
-
 def format_xml_file(file:str, encoding:str):
     with codecs.open(file, 'r', encoding=encoding) as f:
         text = f.read()
@@ -167,7 +162,9 @@ def extract_archive_with_7z(unzip_file:str, file:str, password:str, output_direc
     return execute(unzip_file,argument,file_folder)
 
 def get_internet_time():
-    return datetime.datetime.now()#TODO
+    import ntplib
+    response = ntplib.NTPClient().request('pool.ntp.org')
+    return datetime.datetime.fromtimestamp(response.tx_time)
 
 def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
     return abs(get_internet_time()-datetime.datetime)<maximal_tolerance_difference
