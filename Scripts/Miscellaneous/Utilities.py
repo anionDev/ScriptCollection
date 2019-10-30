@@ -174,6 +174,8 @@ def resolve_relative_path(path:str, base_path:str):
         return path
     else:
         return str(Path(os.path.join(base_path, path)).resolve())
+def get_metadata_for_file_for_clone_folder_structure(file:str):
+    pass
 def clone_folder_structure(source:str, target:str, write_information_to_file):
     source=resolve_relative_path(source,os.getcwd())
     target=resolve_relative_path(target,os.getcwd())
@@ -182,7 +184,7 @@ def clone_folder_structure(source:str, target:str, write_information_to_file):
         target_file=target+source_file[length_of_source:]
         ensure_directory_exists(os.path.dirname(target_file))
         with open(target_file,'w',encoding='utf8') as f:
-            f.write("TODO")
+            f.write(get_metadata_for_file_for_clone_folder_structure(source_file))
 
 def system_time_equals_internet_time_with_default_tolerance():
     return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
