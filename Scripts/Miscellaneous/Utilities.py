@@ -169,8 +169,20 @@ def get_internet_time():
 def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
     return abs(get_internet_time()-datetime.datetime)<maximal_tolerance_difference
 
-def clone_folder_structure(source, target, write_information_to_file):
-    pass
+def resolve_relative_path(path:str, base_path:str):
+    if(os.path.isabs(path)):
+        return path
+    else:
+        return str(Path(os.path.join(base_path, path)).resolve())
+def clone_folder_structure(source:str, target:str, write_information_to_file):
+    source=resolve_relative_path(source,os.getcwd())
+    target=resolve_relative_path(target,os.getcwd())
+    length_of_source=len(source)
+    for source_file in absolute_file_paths(source):
+        target_file=target+source_file[length_of_source:]
+        ensure_directory_exists(os.path.dirname(target_file))
+        with open(target_file,'w',encoding='utf8') as f:
+            f.write("TODO")
 
 def system_time_equals_internet_time_with_default_tolerance():
     return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
