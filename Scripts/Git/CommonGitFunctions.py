@@ -6,10 +6,10 @@ from Utilities import *
 def repository_has_uncommitted_changes(repository_folder:str):
     exit_code= execute("git","diff --exit-code --quiet", repository_folder)==0
     if exit_code==0:
-	    return False
+        return False
     if exit_code==1:
-	    return True
-	raise ValueError("'git diff --exit-code --quiet' results in exitcode "+str(exitcode))
+        return True
+    raise ValueError("'git diff --exit-code --quiet' results in exitcode "+str(exitcode))
 
 def get_current_commit_id(repository_folder:str):
     result=execute_get_output_by_argument_array("git",["rev-parse", "--verify HEAD"], repository_folder)
