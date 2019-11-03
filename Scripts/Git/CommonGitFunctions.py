@@ -43,4 +43,4 @@ def commit(directory:str, message:str):
     if not (result[0]==0):
         raise ValueError("'git log' results in exitcode "+str(result[0]))
 
-    return result[1]
+    return result[1].replace('\r','').replace('\n','')
