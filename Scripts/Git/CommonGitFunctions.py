@@ -15,7 +15,7 @@ def get_current_commit_id(repository_folder:str):
     result=execute_get_output_by_argument_array("git",["rev-parse", "--verify HEAD"], repository_folder)
     if not (result[0]==0):
         raise ValueError("'git rev-parse --verify HEAD' results in exitcode "+str(exitcode))
-    return result[1]
+    return result[1].replace('\r','').replace('\n','')
 
 def clone_if_not_already_done(folder:str, link:str):
     exit_code=-1
