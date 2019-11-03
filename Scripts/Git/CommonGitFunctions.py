@@ -4,7 +4,7 @@ sys.path.append(f'..{os.pathsep}Miscellaneous')
 from Utilities import *
 
 def repository_has_uncommitted_changes(repository_folder:str):
-    exit_code= execute("git","diff --exit-code --quiet", repository_folder)==0
+    exit_code= execute("git","diff --exit-code --quiet", repository_folder)
     if exit_code==0:
         return False
     if exit_code==1:
