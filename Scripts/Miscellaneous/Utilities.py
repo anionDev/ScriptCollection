@@ -167,7 +167,7 @@ def get_internet_time():
     return datetime.datetime.fromtimestamp(response.tx_time)
 
 def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
-    return abs(get_internet_time()-datetime.datetime)<maximal_tolerance_difference
+    return abs(datetime.datetime.now()-get_internet_time())<maximal_tolerance_difference
 
 def resolve_relative_path(path:str, base_path:str):
     if(os.path.isabs(path)):
@@ -180,7 +180,7 @@ def get_metadata_for_file_for_clone_folder_structure(file:str):
     created_timestamp=os.path.getmtime(file)
     last_modified_timestamp=0
     last_access_timestamp=os.path.getatime(file)
-    return f'{"size"="{size}","created"="{created_timestamp}","last_modified"="{last_modified_timestamp}","last_access"="{last_access_timestamp}"}'
+    return f'{{"size"="{size}","created"="{created_timestamp}","last_modified"="{last_modified_timestamp}","last_access"="{last_access_timestamp}"}}'
 def clone_folder_structure(source:str, target:str, write_information_to_file):
     source=resolve_relative_path(source,os.getcwd())
     target=resolve_relative_path(target,os.getcwd())
