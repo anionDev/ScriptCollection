@@ -4,29 +4,31 @@ sys.path.append(f'..{os.pathsep}Miscellaneous')
 from Utilities import *
 
 def repository_has_uncommitted_changes(repository_folder:str):
-    exit_code= execute("git","diff --exit-code --quiet", repository_folder)==0
+    exit_code= execute("git","diff --exit-code --quiet", repository_folder)
     if exit_code==0:
-	    return False
+        return False
     if exit_code==1:
-	    return True
-	raise ValueError("'git diff --exit-code --quiet' results in exitcode "+str(exitcode))
+        return True
+    raise ValueError("'git diff --exit-code --quiet' results in exitcode "+str(exitcode))
 
 def get_current_commit_id(repository_folder:str):
     result=execute_get_output_by_argument_array("git",["rev-parse", "--verify HEAD"], repository_folder)
     if not (result[0]==0):
         raise ValueError("'git rev-parse --verify HEAD' results in exitcode "+str(exitcode))
-    return result[1]
+    return result[1].replace('\r','').replace('\n','')
 
 def clone_if_not_already_done(folder:str, link:str):
+    exit_code=-1
     original_cwd=os.getcwd()
     try:
        if(not os.path.isdir(folder)):
-            execute_exit_code=execute("git", f"clone {link} --recurse-submodules --remote-submodules", original_cwd)
-           if not (execute_exit_code==0)
-                print("Git clone had exitcode "+str(execute_exit_code))
-                exit_code=execute_exit_code
+           execute_exit_code=execute("git", f"clone {link} --recurse-submodules --remote-submodules", original_cwd)
+           if execute_exit_code!=0:
+               print("Git clone had exitcode "+str(execute_exit_code))
+               exit_code=execute_exit_code
     finally:
         os.chdir(original_cwd)
+    return exit_code
 
 def commit(directory:str, message:str):
     exitcode=execute("git","add -A", directory, 3600)
@@ -41,4 +43,4 @@ def commit(directory:str, message:str):
     if not (result[0]==0):
         raise ValueError("'git log' results in exitcode "+str(result[0]))
 
-    return result[1]
+    return result[1].replace('\r','').replace('\n','')
