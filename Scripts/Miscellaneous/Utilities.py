@@ -169,6 +169,9 @@ def get_internet_time():
 def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
     return abs(datetime.datetime.now()-get_internet_time())<maximal_tolerance_difference
 
+def resolve_relative_path_from_current_working_directory(path:str):
+    return resolve_relative_path(path, os.getcwd())
+
 def resolve_relative_path(path:str, base_path:str):
     if(os.path.isabs(path)):
         return path
