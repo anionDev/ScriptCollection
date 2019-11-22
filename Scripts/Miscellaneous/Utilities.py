@@ -20,10 +20,12 @@ def rename_names_of_all_files_and_folders(folder:str, replace_from:str, replace_
     replace_in_foldername(folder, replace_from, replace_to)
 
 def get_direct_files_of_folder(folder:str):
-    return [f for f in listdir(folder) if isfile(join(folder, f))]
+    result = [os.path.join(folder,f) for f in listdir(folder) if isfile(join(folder, f))]
+    return result
 
 def get_direct_folders_of_folder(folder:str):
-    return [f for f in listdir(folder) if isdir(join(folder, f))]
+    result = [os.path.join(folder,f) for f in listdir(folder) if isdir(join(folder, f))]
+    return result
 
 def replace_in_filename(file:str, replace_from:str, replace_to:str):
     filename=Path(file).name
