@@ -12,30 +12,30 @@ import datetime
 from os import listdir
 from os.path import isfile, join, isdir
 
-def rename_names_of_all_files_and_folders(folder, replace_from, replace_to):
+def rename_names_of_all_files_and_folders(folder:str, replace_from:str, replace_to:str):
     for file in get_direct_files_of_folder(folder):
         replace_in_filename(file, replace_from, replace_to)
     for sub_folder in get_direct_folders_of_folder(folder):
         replace_in_foldername(sub_folder, replace_from, replace_to)
     replace_in_foldername(folder, replace_from, replace_to)
 
-def get_direct_files_of_folder(folder)
+def get_direct_files_of_folder(folder:str):
     return [f for f in listdir(folder) if isfile(join(folder, f))]
 
-def get_direct_folders_of_folder(folder)
+def get_direct_folders_of_folder(folder:str):
     return [f for f in listdir(folder) if isdir(join(folder, f))]
 
-def replace_in_filename(file, replace_from, replace_to):
+def replace_in_filename(file:str, replace_from:str, replace_to:str):
     filename=Path(file).name
     if(replace_from in filename):
         folder_of_file=os.path.dirname(file)
-        os.rename(file,os.path.join(folder_of_file, filename.replace(replace_from, replace_to))
+        os.rename(file,os.path.join(folder_of_file, filename.replace(replace_from, replace_to)))
 
-def replace_in_foldername(folder, replace_from, replace_to):
+def replace_in_foldername(folder:str, replace_from:str, replace_to:str):
     foldername=Path(folder).name
     if(replace_from in foldername):
         folder_of_folder=os.path.dirname(folder)
-        os.rename(folder,os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to))
+        os.rename(folder,os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to)))
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
