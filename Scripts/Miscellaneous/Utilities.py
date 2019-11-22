@@ -4,11 +4,38 @@ import hashlib
 import time
 import shutil
 import uuid
-from pathlib import Path  
+from pathlib import Path
 import codecs
 import sys
 import xml.dom.minidom
 import datetime
+from os import listdir
+from os.path import isfile, join, isdir
+
+def rename_names_of_all_files_and_folders(folder, replace_from, replace_to):
+    for file in get_direct_files_of_folder(folder):
+        replace_in_filename(file, replace_from, replace_to)
+    for sub_folder in get_direct_folders_of_folder(folder):
+        replace_in_foldername(sub_folder, replace_from, replace_to)
+    replace_in_foldername(folder, replace_from, replace_to)
+
+def get_direct_files_of_folder(folder)
+    return [f for f in listdir(folder) if isfile(join(folder, f))]
+
+def get_direct_folders_of_folder(folder)
+    return [f for f in listdir(folder) if isdir(join(folder, f))]
+
+def replace_in_filename(file, replace_from, replace_to):
+    filename=Path(file).name
+    if(replace_from in filename):
+        folder_of_file=os.path.dirname(file)
+        os.rename(file,os.path.join(folder_of_file, filename.replace(replace_from, replace_to))
+
+def replace_in_foldername(folder, replace_from, replace_to):
+    foldername=Path(folder).name
+    if(replace_from in foldername):
+        folder_of_folder=os.path.dirname(folder)
+        os.rename(folder,os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to))
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
@@ -184,6 +211,7 @@ def get_metadata_for_file_for_clone_folder_structure(file:str):
     last_modified_timestamp=0
     last_access_timestamp=os.path.getatime(file)
     return f'{{"size"="{size}","created":"{created_timestamp}","last_modified":"{last_modified_timestamp}","last_access":"{last_access_timestamp}"}}'
+
 def clone_folder_structure(source:str, target:str, write_information_to_file):
     source=resolve_relative_path(source,os.getcwd())
     target=resolve_relative_path(target,os.getcwd())
@@ -193,7 +221,6 @@ def clone_folder_structure(source:str, target:str, write_information_to_file):
         ensure_directory_exists(os.path.dirname(target_file))
         with open(target_file,'w',encoding='utf8') as f:
             f.write(get_metadata_for_file_for_clone_folder_structure(source_file))
-
 
 def system_time_equals_internet_time_with_default_tolerance():
     return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
