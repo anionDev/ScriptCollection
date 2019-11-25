@@ -208,11 +208,11 @@ def resolve_relative_path(path:str, base_path:str):
         return str(Path(os.path.join(base_path, path)).resolve())
 
 def get_metadata_for_file_for_clone_folder_structure(file:str):
-    size=os.path.getsize(file)#todo
-    created_timestamp=os.path.getmtime(file)
-    last_modified_timestamp=0
+    size=os.path.getsize(file)
+    last_modified_timestamp=os.path.getmtime(file)
+    hash_value=get_sha256_of_file(file)
     last_access_timestamp=os.path.getatime(file)
-    return f'{{"size":"{size}","created":"{created_timestamp}","last_modified":"{last_modified_timestamp}","last_access":"{last_access_timestamp}"}}'
+    return f'{{"size":"{size}","sha256":"{hash_value}","mtime":"{last_modified_timestamp}","atime":"{last_access_timestamp}"}}'
 
 def clone_folder_structure(source:str, target:str, write_information_to_file):
     source=resolve_relative_path(source,os.getcwd())
