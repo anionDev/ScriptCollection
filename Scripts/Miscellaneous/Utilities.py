@@ -212,7 +212,7 @@ def get_metadata_for_file_for_clone_folder_structure(file:str):
     created_timestamp=os.path.getmtime(file)
     last_modified_timestamp=0
     last_access_timestamp=os.path.getatime(file)
-    return f'{{"size"="{size}","created":"{created_timestamp}","last_modified":"{last_modified_timestamp}","last_access":"{last_access_timestamp}"}}'
+    return f'{{"size":"{size}","created":"{created_timestamp}","last_modified":"{last_modified_timestamp}","last_access":"{last_access_timestamp}"}}'
 
 def clone_folder_structure(source:str, target:str, write_information_to_file):
     source=resolve_relative_path(source,os.getcwd())
