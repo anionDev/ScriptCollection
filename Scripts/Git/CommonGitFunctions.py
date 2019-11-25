@@ -41,6 +41,6 @@ def commit(directory:str, message:str):
 
     result = execute_get_output_by_argument_array("git", ["log","--format=\"%H\"","-n 1"], directory)
     if not (result[0]==0):
-        raise ValueError("'git log' results in exitcode "+str(result[0]))
+        print("Warning: 'git log' results in exitcode "+str(result[0])+". This means that probably either there were no changes to commit or an error occurred while commiting")
 
     return result[1].replace('\r','').replace('\n','')
