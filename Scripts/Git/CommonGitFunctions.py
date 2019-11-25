@@ -37,10 +37,10 @@ def commit(directory:str, message:str):
 
     exitcode=execute_get_output_by_argument_array("git",["commit","-m \""+message+"\""], directory, 3600)[0]
     if not (exitcode==0):
-        raise ValueError("'git commit' results in exitcode "+str(exitcode))
+        print("Warning: 'git commit' results in exitcode "+str(result[0])+". This means that probably either there were no changes to commit or an error occurred while commiting")
 
     result = execute_get_output_by_argument_array("git", ["log","--format=\"%H\"","-n 1"], directory)
     if not (result[0]==0):
-        print("Warning: 'git log' results in exitcode "+str(result[0])+". This means that probably either there were no changes to commit or an error occurred while commiting")
+        raise ValueError("'git log' results in exitcode "+str(result[0]))
 
     return result[1].replace('\r','').replace('\n','')
