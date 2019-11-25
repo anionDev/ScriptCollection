@@ -16,7 +16,7 @@ def rename_names_of_all_files_and_folders(folder:str, replace_from:str, replace_
     for file in get_direct_files_of_folder(folder):
         replace_in_filename(file, replace_from, replace_to)
     for sub_folder in get_direct_folders_of_folder(folder):
-        replace_in_foldername(sub_folder, replace_from, replace_to)
+        rename_names_of_all_files_and_folders(sub_folder, replace_from, replace_to)
     replace_in_foldername(folder, replace_from, replace_to)
 
 def get_direct_files_of_folder(folder:str):
