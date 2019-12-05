@@ -14,6 +14,5 @@
     showdanglingobjects = fsck --lost-found
     showglobalconfig = config --list --show-origin
     showtrackedignored = ls-files -i --exclude-standard
-    showstashs = reflog show --format="%h" stash
     tree = log --graph --decorate --pretty=oneline --abbrev-commit
     verify = verify-commit HEAD
