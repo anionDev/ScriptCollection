@@ -26,13 +26,11 @@ else:
     write_message_to_stderr(configuration_file + " can not be found")
     sys.exit(1)
 this_folder=os.path.abspath(os.path.dirname(__file__))
-datasource_file=os.path.join(os.path.abspath(os.path.dirname(configuration_file)),generator.core.datasource)
-output_file=os.path.join(os.path.abspath(os.path.dirname(configuration_file)),generator.core.output)
-print(datasource_file)
-with open(datasource_file, encoding='utf8') as datasource_file_object:
+with open(generator.core.datasource, encoding='utf8') as datasource_file_object:
     generator.data = json.load(datasource_file_object)
 templates_folder=os.path.join(this_folder,"GenerateOverviewGraphicsHelper","Templates")
-global_template_file=os.path.join(templates_folder,"Global.svg.temlate")
-keyvaluepairlist_template_file=os.path.join(templates_folder,"KeyValuePairListTemplate.svg.temlate")
-list_template_file=os.path.join(templates_folder,"List.svg.temlate")
-copyfile(global_template_file,output_file)
+global_template_file=os.path.join(templates_folder,"Global.svg.template")
+keyvaluepairlist_template_file=os.path.join(templates_folder,"KeyValuePairListTemplate.svg.template")
+list_template_file=os.path.join(templates_folder,"List.svg.template")
+copyfile(global_template_file,generator.core.output)
+

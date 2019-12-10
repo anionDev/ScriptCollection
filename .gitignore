@@ -2,3 +2,4 @@ gitignored/
 *.pyc
 .vs
 *.user
+Scripts/Miscellaneous/GenerateOverviewGraphicsHelper/Examples/SimpleDemo/Result.svg
