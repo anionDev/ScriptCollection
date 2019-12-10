@@ -161,5 +161,31 @@
         }
       ]
     }
-  ]
+  ],
+  "Numbervalue":1,
+  "nullvalue":null,
+  "booleanv":true,
+  "SimpleString":"somevalue",
+  "ComplexObjectWithSomeValues":{
+    "Aa":"a1str",
+    "Xx":1,
+    "Yy":null,
+    "Zz":true,
+    "Bb":{
+      "Cc":"casstring",
+      "SimpleArray":[
+          241,
+          243,
+          245,
+          246,
+          247,
+      ],
+      "SimpleStringArray":[
+          "testvalue1",
+          "testvalue2"
+      ],
+      "EmptyArray":[
+      ]
+    }
+  }
 }
