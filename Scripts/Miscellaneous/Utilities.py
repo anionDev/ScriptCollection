@@ -64,15 +64,14 @@ def remove_duplicates(input):
             result.append(item)
     return result
 
-def string_to_boolean(value):
-    if isinstance(value, bool):
-       return value
-    if value.lower() in ('yes', 'true', 't', 'y', '1'):
+def string_to_boolean(value:str):
+    value=value.strip().lower()
+    if value in ('yes', 'true', 't', 'y', '1'):
         return True
-    elif value.lower() in ('no', 'false', 'f', 'n', '0'):
+    elif value in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+        raise argparse.ArgumentTypeError(f"Can not convert '{value}' to a boolean value")
 
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
@@ -80,8 +79,8 @@ def file_is_empty(file:str):
 def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False, write_output_to_console=True):
     result = execute_get_output(program, arguments, workingdirectory, timeout, shell)
     if write_output_to_console:
-        sys.stdout.write(result[1]+'\n')
-        sys.stderr.write(result[2]+'\n')
+        write_message_to_stdout(result[1])
+        write_message_to_stderr(result[2])
     return result[0]
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
@@ -107,10 +106,9 @@ def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shel
         if not os.path.isabs(workingdirectory):
             workingdirectory=os.path.abspath(workingdirectory)
     program_and_argument_as_string=" ".join(program_and_arguments)
-    write_message_to_stdout(f"{workingdirectory}>{program_and_argument_as_string}")
     process = Popen(program_and_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
     stdout, stderr = process.communicate()
-    exit_code = process.wait()
+    exit_code = process.wait()#TODO implement timeout-usage
     return (exit_code, stdout.decode("utf-8"), stderr.decode("utf-8"))
 
 def ensure_directory_exists(path:str):
@@ -121,6 +119,10 @@ def ensure_file_exists(path:str):
     if(not os.path.isfile(path)):
         with open(path,"a+") as f:
             pass
+
+def ensure_directory_does_not_exist(path:str):
+    if(os.path.isdir(path)):
+        shutil.rmtree(path)
 
 def ensure_file_does_not_exist(path:str):
     if(os.path.isfile(path)):
@@ -154,7 +156,7 @@ def wipe_disk(diskpath:str, iterations=1):
     temp_folder=diskpath+os.linesep+id
     ensure_directory_exists(temp_folder)
     original_working_directory=os.getcwd()
-    content_char="x"
+    content_char=ord(0)
     try:
         for iteration_number in list(range(iterations)):
             print("Start iteration "+str(iteration_number+1)+"...")
@@ -232,13 +234,13 @@ def check_system_time_with_default_tolerance():
 def get_default_tolerance_for_system_time_equals_internet_time():
     return datetime.timedelta(hours=0, minutes=0, seconds=3)
 
-def write_message_to_stderr(message:str):
-    sys.stderr.write(message+"\n")
-    sys.stderr.flush()
-
 def write_message_to_stdout(message:str):
     sys.stdout.write(message+"\n")
     sys.stdout.flush()
+
+def write_message_to_stderr(message:str):
+    sys.stderr.write(message+"\n")
+    sys.stderr.flush()
 
 def write_exception_to_stderr_with_traceback(exception:Exception, traceback):
     write_message_to_stderr("Exception(")
