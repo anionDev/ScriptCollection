@@ -81,6 +81,11 @@ def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=F
     if write_output_to_console:
         write_message_to_stdout(result[1])
         write_message_to_stderr(result[2])
+        exit_code_message=f"Exitcode was {str(result[0])}"
+        if result[0]==0:
+            write_message_to_stdout(exit_code_message)
+        else:
+            write_message_to_stderr(exit_code_message)
     return result[0]
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
@@ -109,7 +114,7 @@ def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shel
     process = Popen(program_and_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
     stdout, stderr = process.communicate()
     exit_code = process.wait()#TODO implement timeout-usage
-    return (exit_code, stdout.decode("utf-8"), stderr.decode("utf-8"))
+    return (exit_code, stdout.decode('unicode_escape'), stderr.decode('unicode_escape'))
 
 def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
