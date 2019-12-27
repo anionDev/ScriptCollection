@@ -12,12 +12,12 @@ import datetime
 from os import listdir
 from os.path import isfile, join, isdir
 
-def rename_names_of_all_files_and_folders(folder:str, replace_from:str, replace_to:str):
+def rename_names_of_all_files_and_folders(folder:str, replace_from:str, replace_to:str, replace_only_full_match=False):
     for file in get_direct_files_of_folder(folder):
-        replace_in_filename(file, replace_from, replace_to)
+        replace_in_filename(file, replace_from, replace_to, replace_only_full_match)
     for sub_folder in get_direct_folders_of_folder(folder):
-        rename_names_of_all_files_and_folders(sub_folder, replace_from, replace_to)
-    replace_in_foldername(folder, replace_from, replace_to)
+        rename_names_of_all_files_and_folders(sub_folder, replace_from, replace_to, replace_only_full_match)
+    replace_in_foldername(folder, replace_from, replace_to, replace_only_full_match)
 
 def get_direct_files_of_folder(folder:str):
     result = [os.path.join(folder,f) for f in listdir(folder) if isfile(join(folder, f))]
@@ -27,17 +27,23 @@ def get_direct_folders_of_folder(folder:str):
     result = [os.path.join(folder,f) for f in listdir(folder) if isdir(join(folder, f))]
     return result
 
-def replace_in_filename(file:str, replace_from:str, replace_to:str):
+def replace_in_filename(file:str, replace_from:str, replace_to:str, replace_only_full_match=False):
     filename=Path(file).name
-    if(replace_from in filename):
+    if(should_get_replaced_helper(filename, replace_from, replace_only_full_match)):
         folder_of_file=os.path.dirname(file)
         os.rename(file,os.path.join(folder_of_file, filename.replace(replace_from, replace_to)))
 
-def replace_in_foldername(folder:str, replace_from:str, replace_to:str):
+def replace_in_foldername(folder:str, replace_from:str, replace_to:str, replace_only_full_match=False):
     foldername=Path(folder).name
-    if(replace_from in foldername):
+    if(should_get_replaced_helper(foldername, replace_from, replace_only_full_match)):
         folder_of_folder=os.path.dirname(folder)
         os.rename(folder,os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to)))
+
+def should_get_replaced_helper(input_text, search_text, replace_only_full_match):
+    if replace_only_full_match:
+        return input_text==search_text
+    else:
+        return search_text in input_text
 
 def absolute_file_paths(directory:str):
    for dirpath,_,filenames in os.walk(directory):
