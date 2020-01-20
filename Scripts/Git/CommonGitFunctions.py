@@ -1,6 +1,7 @@
 import sys
 import os
-sys.path.append(f'..{os.pathsep}Miscellaneous')
+import pathlib
+sys.path.append(str(pathlib.Path(str(pathlib.Path(__file__).parent.absolute())+os.path.sep+".."+os.path.sep+"Miscellaneous").resolve()))
 from Utilities import *
 
 def repository_has_uncommitted_changes(repository_folder:str):

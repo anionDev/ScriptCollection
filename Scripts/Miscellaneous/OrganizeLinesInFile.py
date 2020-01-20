@@ -21,26 +21,30 @@ if os.path.isfile(args.file):
     with open(args.file, 'r', encoding=args.encoding) as f:
         content=f.read()
     lines=content.splitlines()
-    if(args.ignore_first_line):
-        del l[lines]
-    x=[]
+    raw_lines=[]
     for line in lines:
-     x.append(line.replace('\r','').replace('\n',''))
-    lines=x
-    if args.remove_duplicated_lines:
-        lines.sort()
-    if args.sort:
-        lines=remove_duplicates(lines)
-    is_first_line=True
-    result=""
-    for line in lines:
-        if(is_first_line):
-            is_first_line=False
-        else:
-            result=result+"\n"
-        result=result+line
-    with open(args.file, 'w', encoding=args.encoding) as f:
-        f.write(result)
+     raw_lines.append(line.replace('\r','').replace('\n',''))
+    lines=raw_lines
+    if len(lines) > 0 and args.ignore_first_line:
+        firstLine=lines[0]
+        del lines[0]
+    if len(lines) > 0 and args.ignore_first_line:
+        if args.remove_duplicated_lines:
+            lines=remove_duplicates(lines)
+        if args.sort:
+            lines.sort()
+        is_first_line=True
+        result=""
+        if args.ignore_first_line:
+            lines.insert(0, firstLine)
+        for line in lines:
+            if(is_first_line):
+                is_first_line=False
+            else:
+                result=result+"\n"
+            result=result+line
+        with open(args.file, 'w', encoding=args.encoding) as f:
+            f.write(result)
 else:
     print(f"File '{args.file}' does not exist")
     sys.exit(1)

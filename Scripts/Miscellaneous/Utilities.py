@@ -82,7 +82,7 @@ def string_to_boolean(value:str):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute(program:str, arguments, workingdirectory:str="",timeout=120, shell=False, write_output_to_console=True):
+def execute(program:str, arguments:str, workingdirectory:str="",timeout=120, shell=False, write_output_to_console=True):
     result = execute_get_output(program, arguments, workingdirectory, timeout, shell)
     if write_output_to_console:
         write_message_to_stdout(result[1])
@@ -110,7 +110,11 @@ def execute_get_output_by_argument_array(program:str, arguments, workingdirector
     program_and_arguments.extend(arguments)
     return execute_raw(program_and_arguments,workingdirectory,timeout,shell)
 
+def bytes_to_string(bytes):
+    return bytes.decode(encoding='unicode_escape',errors='ignore')
+
 def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shell=False):
+    print(f"{workingdirectory}>{' '.join(program_and_arguments)}")
     if workingdirectory=="":
         workingdirectory=os.getcwd()
     else:
@@ -120,7 +124,7 @@ def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shel
     process = Popen(program_and_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
     stdout, stderr = process.communicate()
     exit_code = process.wait()#TODO implement timeout-usage
-    return (exit_code, stdout.decode('unicode_escape'), stderr.decode('unicode_escape'))
+    return (exit_code, bytes_to_string(stdout), bytes_to_string(stderr))
 
 def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
@@ -204,7 +208,7 @@ def get_internet_time():
     return datetime.datetime.fromtimestamp(response.tx_time)
 
 def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
-    return abs(datetime.datetime.now()-get_internet_time())<maximal_tolerance_difference
+    return abs(datetime.datetime.now() - get_internet_time()) < maximal_tolerance_difference
 
 def resolve_relative_path_from_current_working_directory(path:str):
     return resolve_relative_path(path, os.getcwd())
