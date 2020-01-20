@@ -6,7 +6,6 @@ import argparse
 import shutil
 import os
 import sys
-sys.path.append(f"..{os.path.sep}Miscellaneous")
 from Utilities import *
 
 parser = argparse.ArgumentParser(description='Installs an operating system on a virtual machine')

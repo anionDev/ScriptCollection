@@ -8,7 +8,6 @@ import shutil
 import os
 import sys
 import io
-sys.path.append(f"..{os.path.sep}Miscellaneous")
 from Utilities import *
 
 parser = argparse.ArgumentParser(description='Creates a new virtual-machine as vmdk-file')
