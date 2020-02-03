@@ -6,9 +6,7 @@ import argparse
 from Utilities import *
 
 parser = argparse.ArgumentParser(description='Calculates the SHA-256-value of all files in the given folder and stores the hash-value in a file next to the hashed file.')
-
 parser.add_argument('folder', help='Folder where the files are stored which should be hashed')
-
 args = parser.parse_args()
 
 for file in absolute_file_paths(args.folder):
