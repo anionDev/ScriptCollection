@@ -1,38 +1,74 @@
 """
-Important hint: This script removes the (usually untracked) outputfolder (e.g. Debug or Release). Please make a backup of this folder before executing this script if you do not want to loose its current content.
+Important hint: This script removes the (usually untracked) outputfolder (e.g. bin\debug or \bin\release). Please make a backup of this folder before executing this script if you do not want to loose its current content.
 An example how to use this file can be found here: https://github.com/anionDev/gryLibrary/blob/development/Scripts/Build.py
 """
-import sys
-import argparse
-import utilities
 import os
-import time
-print("Start " + os.path.basename(__file__))
-start_directory=os.getcwd()
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+import sys
+import traceback
+from os.path import abspath
+original_directory=os.getcwd()
+current_directory = os.path.dirname(os.path.abspath(__file__))
+os.chdir(current_directory)
+
 try:
 
-    parser = argparse.ArgumentParser(description='Downloads missing nuget-packages')
+    script_folder=f"..{os.path.sep}..{os.path.sep}Miscellaneous"
+    sys.path.append(abspath(os.path.join(current_directory,f"{script_folder}")))
+    from Utilities import *
+    write_message_to_stdout("Start " + os.path.basename(__file__))
 
-    parser.add_argument('--folder_of_csproj_filename', help='Specifies the folder where the csproj-file is located')
-    parser.add_argument('--csproj_filename', help='Specifies the csproj-file which should be compiled')
-    parser.add_argument('--configuration', help='Specifies the Buildconfiguration (e.g. Debug or Release)')
-    parser.add_argument('--test_dll_file', help='Specifies the Test.dll-file')
-    parser.add_argument('--additional_msbuild_arguments', nargs='?', const=" ", help='Specifies arbitrary arguments which are passed to msbuild')
-    parser.add_argument('--additional_vstest_arguments', nargs='?', const=" ", help='Specifies arbitrary arguments which are passed to vstest')
+    import argparse
+    import time
+    parser = argparse.ArgumentParser(description='Builds a program using msbuild and execute the defined testcases')
 
+    #parameter for project
+    parser.add_argument('--folder_of_csproj_file', help='Specifies the folder where the csproj-file is located')
+    parser.add_argument('--csproj_filename', help='Specifies the csproj-file-name which should be compiled')
+    parser.add_argument('--output_directory', help='Specifies output directory for the compiled program')
+   
+    #parameter for testproject 
+    parser.add_argument('--folder_of_test_csproj_file', help='Specifies the folder where the test-csproj-file is located')
+    parser.add_argument('--test_csproj_filename', help='Specifies the test-csproj-file-name which should be compiled')
+    parser.add_argument('--test_dll_file', help='Specifies the resulting Test.dll-file')
+    
+    #parameter for project and testproject
+    parser.add_argument('--buildconfiguration', help='Specifies the Buildconfiguration (e.g. Debug or Release)')
+    parser.add_argument('--folder_for_nuget_restore', help='Specifies folder where nuget should be executed to restore the required nuget-packages')
+    parser.add_argument('--additional_msbuild_arguments', default="", help='Specifies arbitrary arguments which are passed to msbuild')
+    parser.add_argument('--msbuild_verbosity', default="normal", help='Specifies verbosity-argument for msbuild')
+    parser.add_argument('--clear_output_directory', type = string_to_boolean, nargs = '?', const = True, default = False, help='If true then the output directory will be cleared before compiling the program')
+    
     args = parser.parse_args()
 
-    exit_code=utilities.execute("python", "BuildProject.py --folder_of_csproj_filename "+args.folder_of_csproj_filename+" --csproj_filename "+args.csproj_filename+" --configuration " + args.configuration+" --additional_msbuild_arguments "+utilities.str_none_safe(args.additional_msbuild_arguments), os.getcwd())
-    if exit_code!=0:
-        sys.exit(exit_code)
+    #build project
+    argument=""
+    argument=argument+" --folder_of_csproj_file "+args.folder_of_csproj_file
+    argument=argument+" --csproj_filename "+args.csproj_filename
+    argument=argument+" --buildconfiguration "+args.buildconfiguration
+    argument=argument+" --additional_msbuild_arguments "+f'"{str_none_safe(args.additional_msbuild_arguments)}"'
+    argument=argument+" --output_directory "+args.output_directory
+    argument=argument+" --folder_for_nuget_restore "+args.folder_for_nuget_restore
+    argument=argument+" --msbuild_verbosity "+args.msbuild_verbosity
+    argument=argument+" --clear_output_directory "+str_none_safe(args.clear_output_directory)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument)
+    
+    #build testproject
+    argument=""
+    argument=argument+" --folder_of_csproj_file "+args.folder_of_test_csproj_file
+    argument=argument+" --csproj_filename "+args.test_csproj_filename
+    argument=argument+" --buildconfiguration "+args.buildconfiguration
+    argument=argument+" --additional_msbuild_arguments "+f'"{str_none_safe(args.additional_msbuild_arguments)}"'
+    argument=argument+" --output_directory "+args.output_directory
+    argument=argument+" --folder_for_nuget_restore "+args.folder_for_nuget_restore
+    argument=argument+" --msbuild_verbosity "+args.msbuild_verbosity
+    argument=argument+" --clear_output_directory "+str_none_safe(args.clear_output_directory)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument)
+    
+    #execute testcases
+    execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console.exe", args.test_dll_file+" "+str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file))
 
-    exit_code=utilities.execute("vstest.console.exe", args.test_dll_file+" "+utilities.str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file))
-    if exit_code!=0:
-        sys.exit(exit_code)
-
-    print("Finished " + os.path.basename(__file__) + " without errors")
-    sys.exit(0)
+except Exception as exception:
+    write_exception_to_stderr_with_traceback(exception, traceback)
 
 finally:
-    os.chdir(start_directory)
+    os.chdir(original_directory)
