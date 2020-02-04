@@ -84,27 +84,19 @@ def string_to_boolean(value:str):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeoutInSeconds=120, write_output_to_console=True):
-    exit_code=execute(program, arguments, workingdirectory, timeoutInSeconds, write_output_to_console)
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120, verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    exit_code=execute(program, arguments, workingdirectory, timeoutInSeconds, verbose, addLogOverhead, title, print_errors_as_information, log_file)
     if exit_code!=0:
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
 
-def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds=120, write_output_to_console=True):
-    result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds)
-    if write_output_to_console:
-        write_message_to_stdout(result[1])
-        write_message_to_stderr(result[2])
-        exit_code_message=f"Exitcode was {str(result[0])}"
-        if result[0]==0:
-            write_message_to_stdout(exit_code_message)
-        else:
-            write_message_to_stderr(exit_code_message)
+def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbose, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]
 
-def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds=120):
-    return execute_full(program,arguments,workingdirectory,timeoutInSeconds)
+def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    return execute_full(program,arguments,workingdirectory,print_errors_as_information,log_file,timeoutInSeconds, verbose, addLogOverhead, title)
 
-def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbose:bool=True, addLogOverhead:bool=True, title:str=None):
+def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None):
     if string_is_none_or_whitespace(title):
         message=f"Start executing {workingdirectory}>{program} {arguments}"
     else:
@@ -298,7 +290,7 @@ def write_exception_to_stderr_with_traceback(exception:Exception, traceback, ext
 def string_is_none_or_empty(string:str):
     if string is None:
         return True
-    if type(test_string) == str:
+    if type(string) == str:
         string == ""
     else:
         raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was "+str(type(test_string)))

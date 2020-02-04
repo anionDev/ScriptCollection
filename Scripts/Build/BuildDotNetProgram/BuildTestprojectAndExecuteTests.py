@@ -65,7 +65,7 @@ try:
     argument=argument+" --folder_for_nuget_restore "+args.folder_for_nuget_restore
     argument=argument+" --msbuild_verbosity "+args.msbuild_verbosity
     argument=argument+" --clear_output_directory "+str_none_safe(args.clear_output_directory)
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument,"", 120,  True,False, "Build project")
     
     #build testproject
     argument=""
@@ -77,10 +77,10 @@ try:
     argument=argument+" --folder_for_nuget_restore "+args.folder_for_nuget_restore
     argument=argument+" --msbuild_verbosity "+args.msbuild_verbosity
     argument=argument+" --clear_output_directory "+str_none_safe(args.clear_output_directory)
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument,"", 120,  True,False, "Build testproject")
     
     #execute testcases
-    #execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console.exe", args.test_dll_file+" "+str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file))
+    #execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console.exe", args.test_dll_file+" "+str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file), 120, True, True,False, "vstest.console")
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

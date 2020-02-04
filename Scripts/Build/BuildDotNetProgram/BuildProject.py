@@ -45,7 +45,7 @@ try:
     write_message_to_stdout("clear_output_directory:"+str(args.clear_output_directory))
 
     #nuget restore
-    execute_and_raise_exception_if_exit_code_is_not_zero("nuget", "restore", args.folder_for_nuget_restore)
+    execute_and_raise_exception_if_exit_code_is_not_zero("nuget", "restore", args.folder_for_nuget_restore, 120,  True,False, "Nuget restore")
 
     #clear output-directory if desired
     if os.path.isdir(args.output_directory) and args.clear_output_directory:
@@ -54,7 +54,7 @@ try:
     ensure_directory_exists(args.output_directory)
 
     #run msbuild
-    execute_and_raise_exception_if_exit_code_is_not_zero("msbuild", f'{args.csproj_filename} /t:Rebuild /verbosity:{args.msbuild_verbosity} /p:Configuration={args.buildconfiguration} /p:Platform=AnyCPU /p:OutputPath="{args.output_directory}" {str_none_safe(args.additional_msbuild_arguments)}', args.folder_of_csproj_file)
+    execute_and_raise_exception_if_exit_code_is_not_zero("msbuild", f'{args.csproj_filename} /t:Rebuild /verbosity:{args.msbuild_verbosity} /p:Configuration={args.buildconfiguration} /p:Platform=AnyCPU /p:OutputPath="{args.output_directory}" {str_none_safe(args.additional_msbuild_arguments)}', args.folder_of_csproj_file, 120,  True,False, "MSBuild")
     
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
