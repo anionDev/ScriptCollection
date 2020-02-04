@@ -31,7 +31,18 @@ try:
     parser.add_argument('--folder_for_nuget_restore', help='Specifies folder where nuget should be executed to restore the required nuget-packages')
     parser.add_argument('--msbuild_verbosity', default="normal", help='Specifies verbosity-argument for msbuild')
     parser.add_argument('--clear_output_directory', type=string_to_boolean, nargs='?', const=True, default=False,help='If true then the output directory will be cleared before compiling the program')
+    
     args = parser.parse_args()
+    
+    write_message_to_stdout("arguments:")    
+    write_message_to_stdout("folder_of_csproj_file:"+args.folder_of_csproj_file)
+    write_message_to_stdout("csproj_filename:"+args.csproj_filename)
+    write_message_to_stdout("buildconfiguration:"+args.buildconfiguration)
+    write_message_to_stdout("additional_msbuild_arguments:"+args.additional_msbuild_arguments)
+    write_message_to_stdout("output_directory:"+args.output_directory)
+    write_message_to_stdout("folder_for_nuget_restore:"+args.folder_for_nuget_restore)
+    write_message_to_stdout("msbuild_verbosity:"+args.msbuild_verbosity)
+    write_message_to_stdout("clear_output_directory:"+str(args.clear_output_directory))
 
     #nuget restore
     execute_and_raise_exception_if_exit_code_is_not_zero("nuget", "restore", args.folder_for_nuget_restore)
