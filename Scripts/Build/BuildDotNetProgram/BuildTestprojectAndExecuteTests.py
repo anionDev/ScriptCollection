@@ -29,7 +29,8 @@ try:
     #parameter for testproject 
     parser.add_argument('--folder_of_test_csproj_file', help='Specifies the folder where the test-csproj-file is located')
     parser.add_argument('--test_csproj_filename', help='Specifies the test-csproj-file-name which should be compiled')
-    parser.add_argument('--test_dll_file', help='Specifies the resulting Test.dll-file')
+    parser.add_argument('--test_dll_filename', help='Specifies the resulting Test.dll-file')
+    parser.add_argument('--test_output_directory', help='Specifies output directory for the compiled test-dll')
     parser.add_argument('--additional_vstest_arguments', default="", help='Specifies arbitrary arguments which are passed to vstest')
     
     #parameter for project and testproject
@@ -45,9 +46,10 @@ try:
     write_message_to_stdout("folder_of_csproj_file:"+args.folder_of_csproj_file)
     write_message_to_stdout("csproj_filename:"+args.csproj_filename)
     write_message_to_stdout("output_directory:"+args.output_directory)
+    write_message_to_stdout("test_output_directory:"+args.test_output_directory)
     write_message_to_stdout("folder_of_test_csproj_file:"+args.folder_of_test_csproj_file)
     write_message_to_stdout("test_csproj_filename:"+args.test_csproj_filename)
-    write_message_to_stdout("test_dll_file:"+args.test_dll_file)
+    write_message_to_stdout("test_dll_filename:"+args.test_dll_filename)
     write_message_to_stdout("additional_vstest_arguments:"+args.additional_vstest_arguments)
     write_message_to_stdout("buildconfiguration:"+args.buildconfiguration)
     write_message_to_stdout("folder_for_nuget_restore:"+args.folder_for_nuget_restore)
@@ -73,14 +75,14 @@ try:
     argument=argument+" --csproj_filename "+args.test_csproj_filename
     argument=argument+" --buildconfiguration "+args.buildconfiguration
     argument=argument+" --additional_msbuild_arguments "+f'"{str_none_safe(args.additional_msbuild_arguments)}"'
-    argument=argument+" --output_directory "+args.output_directory
+    argument=argument+" --output_directory "+args.test_output_directory
     argument=argument+" --folder_for_nuget_restore "+args.folder_for_nuget_restore
     argument=argument+" --msbuild_verbosity "+args.msbuild_verbosity
     argument=argument+" --clear_output_directory "+str_none_safe(args.clear_output_directory)
     execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument,"", 120,  True,False, "Build testproject")
     
     #execute testcases
-    execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console.exe", args.test_dll_file+" "+str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file), 120, True,False, "vstest.console")
+    execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console", args.test_dll_filename+" "+str_none_safe(args.additional_vstest_arguments), args.test_output_directory, 120, True,False, "vstest.console")
 
 finally:
     os.chdir(original_directory)

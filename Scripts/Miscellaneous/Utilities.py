@@ -125,18 +125,21 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
     argument=argument+";~"+output_file_for_stderr
     
     base64argument=base64.b64encode(argument.encode('utf-8'))
-    process = Popen(["ExternalProgramExecutionWrapper", base64argument])
+    process = Popen(["epew", base64argument])
     exit_code = process.wait()
-    
-    with io.open(output_file_for_stdout, 'r', encoding="utf-8") as f:
-        stdout = f.read()
-    os.remove(output_file_for_stdout)
-    with io.open(output_file_for_stderr, 'r', encoding="utf-8") as f:
-        stderr = f.read()
-    os.remove(output_file_for_stderr)
-    
+    stdout=private_load_text(output_file_for_stdout)
+    stderr=private_load_text(output_file_for_stderr)
     return (exit_code, stdout, stderr)
     
+def private_load_text(file:str):
+    if os.path.isfile(file):
+        with io.open(file, mode='r', encoding="utf-8") as f:
+            content = f.read()
+        os.remove(file)
+        return content
+    else:
+        return ""
+
 def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
         os.makedirs(path)
