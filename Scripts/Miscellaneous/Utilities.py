@@ -98,9 +98,9 @@ def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSec
 
 def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None):
     if string_is_none_or_whitespace(title):
-        message=f"Start executing {workingdirectory}>{program} {arguments}"
+        message=f"Start executing epew ('{workingdirectory}>{program} {arguments}')"
     else:
-        message=f"Start executing {title} ({workingdirectory}>{program} {arguments})"
+        message=f"Start executing epew for task '{title}' ('{workingdirectory}>{program} {arguments}')"
     print(message)
     
     if workingdirectory=="":
