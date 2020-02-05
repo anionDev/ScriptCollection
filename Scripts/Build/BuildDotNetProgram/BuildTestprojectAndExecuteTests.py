@@ -80,10 +80,7 @@ try:
     execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py "+argument,"", 120,  True,False, "Build testproject")
     
     #execute testcases
-    #execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console.exe", args.test_dll_file+" "+str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file), 120, True, True,False, "vstest.console")
-
-except Exception as exception:
-    write_exception_to_stderr_with_traceback(exception, traceback)
+    execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console.exe", args.test_dll_file+" "+str_none_safe(args.additional_vstest_arguments), os.path.dirname(args.test_dll_file), 120, True,False, "vstest.console")
 
 finally:
     os.chdir(original_directory)
