@@ -85,10 +85,10 @@ def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120, verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
-    exit_code=execute(program, arguments, workingdirectory, timeoutInSeconds, verbose, addLogOverhead, title, print_errors_as_information, log_file)
-    if exit_code!=0:
-        raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
-
+    result=execute_full(program, arguments, workingdirectory,print_errors_as_information, log_file, timeoutInSeconds, verbose, addLogOverhead, title)
+    if result[0]!=0:
+        raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
+    return result
 def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbose, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]

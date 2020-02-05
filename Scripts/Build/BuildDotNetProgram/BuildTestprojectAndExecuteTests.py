@@ -19,11 +19,13 @@ try:
 
     import argparse
     import time
+    from distutils.dir_util import copy_tree
     parser = argparse.ArgumentParser(description='Builds a program using msbuild and execute the defined testcases')
 
     #parameter for project
     parser.add_argument('--folder_of_csproj_file', help='Specifies the folder where the csproj-file is located')
     parser.add_argument('--csproj_filename', help='Specifies the csproj-file-name which should be compiled')
+    parser.add_argument('--publish_directory', help='Specifies release-target-directory for the compiled program when the compile-process was successful.')
     parser.add_argument('--output_directory', help='Specifies output directory for the compiled program')
    
     #parameter for testproject 
@@ -83,6 +85,10 @@ try:
     
     #execute testcases
     execute_and_raise_exception_if_exit_code_is_not_zero("vstest.console", args.test_dll_filename+" "+str_none_safe(args.additional_vstest_arguments), args.test_output_directory, 120, True,False, "vstest.console")
+
+    #export program
+    ensure_directory_exists(args.publish_directory)
+    copy_tree(args.output_directory, args.publish_directory)
 
 finally:
     os.chdir(original_directory)
