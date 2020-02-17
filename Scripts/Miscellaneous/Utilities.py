@@ -101,7 +101,7 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
         message=f"Start executing epew ('{workingdirectory}>{program} {arguments}')"
     else:
         message=f"Start executing epew for task '{title}' ('{workingdirectory}>{program} {arguments}')"
-    print(message)
+    write_message_to_stdout(message)
     
     if workingdirectory=="":
         workingdirectory=os.getcwd()
@@ -123,8 +123,7 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
     argument=argument+";~"+str(addLogOverhead)
     argument=argument+";~"+output_file_for_stdout
     argument=argument+";~"+output_file_for_stderr
-    
-    base64argument=base64.b64encode(argument.encode('utf-8'))
+    base64argument=base64.b64encode(argument.encode('utf-8')).decode('utf-8')
     process = Popen(["epew", base64argument])
     exit_code = process.wait()
     stdout=private_load_text(output_file_for_stdout)
