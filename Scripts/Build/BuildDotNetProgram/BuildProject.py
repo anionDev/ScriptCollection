@@ -31,9 +31,9 @@ try:
     parser.add_argument('--folder_for_nuget_restore', help='Specifies folder where nuget should be executed to restore the required nuget-packages')
     parser.add_argument('--msbuild_verbosity', default="normal", help='Specifies verbosity-argument for msbuild')
     parser.add_argument('--clear_output_directory', type=string_to_boolean, nargs='?', const=True, default=False,help='If true then the output directory will be cleared before compiling the program')
-    
+
     args = parser.parse_args()
-    
+
     write_message_to_stdout("arguments:")    
     write_message_to_stdout("folder_of_csproj_file:"+args.folder_of_csproj_file)
     write_message_to_stdout("csproj_filename:"+args.csproj_filename)
