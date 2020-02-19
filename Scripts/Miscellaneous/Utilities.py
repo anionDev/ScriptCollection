@@ -1,8 +1,10 @@
+import base64
 import os
 from subprocess import Popen, PIPE
 import hashlib
 import time
 import shutil
+import io
 import uuid
 from pathlib import Path
 import codecs
@@ -82,49 +84,60 @@ def string_to_boolean(value:str):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute(program:str, arguments:str, workingdirectory:str="",timeout=120, shell=False, write_output_to_console=True):
-    result = execute_get_output(program, arguments, workingdirectory, timeout, shell)
-    if write_output_to_console:
-        write_message_to_stdout(result[1])
-        write_message_to_stderr(result[2])
-        exit_code_message=f"Exitcode was {str(result[0])}"
-        if result[0]==0:
-            write_message_to_stdout(exit_code_message)
-        else:
-            write_message_to_stderr(exit_code_message)
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120, verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    result=execute_full(program, arguments, workingdirectory,print_errors_as_information, log_file, timeoutInSeconds, verbose, addLogOverhead, title)
+    if result[0]!=0:
+        raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
+    return result
+def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbose, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
-    exit_code=execute(program, arguments, workingdirectory, timeout, shell)
-    if exit_code!=0:
-        raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {exit_code}")
+def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    return execute_full(program,arguments,workingdirectory,print_errors_as_information,log_file,timeoutInSeconds, verbose, addLogOverhead, title)
 
-def execute_get_output(program:str, arguments:str, workingdirectory:str="",timeout=120, shell=False):
-    program_and_arguments=arguments.split()
-    program_and_arguments=[program]
-    program_and_arguments.extend(arguments.split())
-    return execute_raw(program_and_arguments,workingdirectory,timeout,shell)
-
-def execute_get_output_by_argument_array(program:str, arguments, workingdirectory:str="",timeout=120, shell=False):
-    program_and_arguments=[program]
-    program_and_arguments.extend(arguments)
-    return execute_raw(program_and_arguments,workingdirectory,timeout,shell)
-
-def bytes_to_string(bytes):
-    return bytes.decode(encoding='unicode_escape',errors='ignore')
-
-def execute_raw(program_and_arguments, workingdirectory:str="",timeout=120, shell=False):
-    print(f"{workingdirectory}>{' '.join(program_and_arguments)}")
+def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None):
+    if string_is_none_or_whitespace(title):
+        message=f"Start executing epew ('{workingdirectory}>{program} {arguments}')"
+    else:
+        message=f"Start executing epew for task '{title}' ('{workingdirectory}>{program} {arguments}')"
+    write_message_to_stdout(message)
+    
     if workingdirectory=="":
         workingdirectory=os.getcwd()
     else:
         if not os.path.isabs(workingdirectory):
             workingdirectory=os.path.abspath(workingdirectory)
-    program_and_argument_as_string=" ".join(program_and_arguments)
-    process = Popen(program_and_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory,shell=shell)
-    stdout, stderr = process.communicate()
-    exit_code = process.wait()#TODO implement timeout-usage
-    return (exit_code, bytes_to_string(stdout), bytes_to_string(stderr))
+    
+    output_file_for_stdout=os.getcwd() + os.path.sep+str(uuid.uuid4()) + ".log"
+    output_file_for_stderr=os.getcwd() + os.path.sep+str(uuid.uuid4()) + ".log"
+
+    argument=program
+    argument=argument+";~"+arguments
+    argument=argument+";~"+workingdirectory
+    argument=argument+";~"+str_none_safe(title)
+    argument=argument+";~"+str(print_errors_as_information)
+    argument=argument+";~"+str_none_safe(log_file)
+    argument=argument+";~"+str(timeoutInSeconds*1000)
+    argument=argument+";~"+str(verbose)
+    argument=argument+";~"+str(addLogOverhead)
+    argument=argument+";~"+output_file_for_stdout
+    argument=argument+";~"+output_file_for_stderr
+    base64argument=base64.b64encode(argument.encode('utf-8')).decode('utf-8')
+    process = Popen(["epew", base64argument])
+    exit_code = process.wait()
+    stdout=private_load_text(output_file_for_stdout)
+    stderr=private_load_text(output_file_for_stderr)
+    return (exit_code, stdout, stderr)
+    
+def private_load_text(file:str):
+    if os.path.isfile(file):
+        with io.open(file, mode='r', encoding="utf-8") as f:
+            content = f.read()
+        os.remove(file)
+        return content
+    else:
+        return ""
 
 def ensure_directory_exists(path:str):
     if(not os.path.isdir(path)):
@@ -259,15 +272,33 @@ def write_message_to_stderr(message:str):
     sys.stderr.write(message+"\n")
     sys.stderr.flush()
 
-def write_exception_to_stderr_with_traceback(exception:Exception, traceback):
+def write_exception_to_stderr(exception: Exception, extra_message=None):
     write_message_to_stderr("Exception(")
     write_message_to_stderr("Type: "+str(type(exception)))
     write_message_to_stderr("Message: "+str(exception))
-    write_message_to_stderr("Traceback: {"+traceback)
+    if str is not None:
+        write_message_to_stderr("Extra-message: "+str(extra_message))
     write_message_to_stderr(")")
 
-def write_exception_to_stderr(exception:Exception):
+def write_exception_to_stderr_with_traceback(exception:Exception, traceback, extra_message=None):
     write_message_to_stderr("Exception(")
     write_message_to_stderr("Type: "+str(type(exception)))
     write_message_to_stderr("Message: "+str(exception))
+    if str is not None:
+        write_message_to_stderr("Extra-message: "+str(extra_message))
+    write_message_to_stderr("Traceback: "+traceback.format_exc())
     write_message_to_stderr(")")
+
+def string_is_none_or_empty(string:str):
+    if string is None:
+        return True
+    if type(string) == str:
+        string == ""
+    else:
+        raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was "+str(type(test_string)))
+
+def string_is_none_or_whitespace(string:str):
+    if string_is_none_or_empty(string):
+        return True 
+    else:
+        return string.strip()=="" 
