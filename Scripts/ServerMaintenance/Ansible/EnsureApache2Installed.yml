@@ -1,0 +1,11 @@
+---
+
+- name: EnsureApache2Installed
+  hosts: myhostslist
+  remote_user: user
+  become: yes
+  become_user: root
+  become_method: sudo
+  tasks:
+    - name: Install Apache2
+      apt: name=apache2 update_cache=yes state=latest
