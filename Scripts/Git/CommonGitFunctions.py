@@ -53,8 +53,8 @@ def commit(directory:str, message:str):
         print(f"Warning: 'git {argument}' results in exitcode "+str(exitcode)+". This means that probably either there were no changes to commit or an error occurred while commiting")
 
     argument=f'log --format="%H" -n 1'
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, directory)[0]
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, directory)
     if not (result[0]==0):
-        raise ValueError(f"'git {argument}' results in exitcode "+str(result[0]))
+        raise ValueError(f"'git {argument}' results in exitcode "+str(exitcode))
 
     return result[1].replace('\r','').replace('\n','')
