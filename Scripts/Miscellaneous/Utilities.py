@@ -302,3 +302,6 @@ def string_is_none_or_whitespace(string:str):
         return True 
     else:
         return string.strip()=="" 
+
+def strip_new_lines_at_begin_and_end(string:str):
+    return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')

@@ -54,22 +54,20 @@ try:
     #clear output-directory if desired
     if os.path.isdir(args.output_directory) and args.clear_output_directory:
         shutil.rmtree(args.output_directory)
-        os.makedirs(args.output_directory)
     ensure_directory_exists(args.output_directory)
 
-    argument = "build"
-    argument = argument + f'"{args.csproj_filename}"'
+    argument = f'"{args.csproj_filename}"'
     argument = argument + f' --no-incremental'
     argument = argument + f' --verbosity {args.verbosity}'
-    argument = argument + f' --configuration {buildconfiguration}'
-    argument = argument + f' --framework {framework}'
-    argument = argument + f' --runtime {runtimeid}'
+    argument = argument + f' --configuration {args.buildconfiguration}'
+    argument = argument + f' --framework {args.framework}'
+    argument = argument + f' --runtime {args.runtimeid}'
     if not string_is_none_or_whitespace(args.output_directory):
         argument = argument + f' --output "{args.output_directory}"'
-    argument = argument + " " + args.additional_build_arguments
+    argument = argument + f' {args.additional_build_arguments}'
 
     #run dotnet build
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {args.csproj_filename}', args.folder_of_csproj_file, 120,  True, False, "Build")
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', args.folder_of_csproj_file, 120,  True, False, "Build")
 
 finally:
     os.chdir(original_directory)
