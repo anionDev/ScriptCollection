@@ -26,23 +26,27 @@ try:
     parser.add_argument('--folder_of_csproj_file', help='Specifies the folder where the csproj-file is located')
     parser.add_argument('--csproj_filename', help='Specifies the csproj-file which should be compiled')
     parser.add_argument('--buildconfiguration', help='Specifies the Buildconfiguration (e.g. Debug or Release)')
-    parser.add_argument('--additional_msbuild_arguments', help='Specifies arbitrary arguments which are passed to msbuild')
+    parser.add_argument('--additional_build_arguments', help='Specifies arbitrary arguments which are passed to the build-process')
     parser.add_argument('--output_directory', help='Specifies output directory for the compiled program')
     parser.add_argument('--folder_for_nuget_restore', help='Specifies folder where nuget should be executed to restore the required nuget-packages')
-    parser.add_argument('--msbuild_verbosity', default="normal", help='Specifies verbosity-argument for msbuild')
     parser.add_argument('--clear_output_directory', type=string_to_boolean, nargs='?', const=True, default=False,help='If true then the output directory will be cleared before compiling the program')
-
+    parser.add_argument('--runtimeid', default="win10-x64", help='Specifies runtime-id-argument for build-process')
+    parser.add_argument('--verbosity', default="minimal", help='Specifies verbosity for build-process')
+    parser.add_argument('--framework', default="netstandard2.1", help='Specifies targetframework')
+    
     args = parser.parse_args()
 
     write_message_to_stdout("arguments:")    
     write_message_to_stdout("folder_of_csproj_file:"+args.folder_of_csproj_file)
     write_message_to_stdout("csproj_filename:"+args.csproj_filename)
     write_message_to_stdout("buildconfiguration:"+args.buildconfiguration)
-    write_message_to_stdout("additional_msbuild_arguments:"+args.additional_msbuild_arguments)
+    write_message_to_stdout("additional_build_arguments:"+args.additional_build_arguments)
     write_message_to_stdout("output_directory:"+args.output_directory)
     write_message_to_stdout("folder_for_nuget_restore:"+args.folder_for_nuget_restore)
-    write_message_to_stdout("msbuild_verbosity:"+args.msbuild_verbosity)
     write_message_to_stdout("clear_output_directory:"+str(args.clear_output_directory))
+    write_message_to_stdout("runtimeid:"+str(args.runtimeid))
+    write_message_to_stdout("verbosity:"+str(args.verbosity))
+    write_message_to_stdout("framework:"+str(args.framework))
 
     #nuget restore
     execute_and_raise_exception_if_exit_code_is_not_zero("nuget", "restore", args.folder_for_nuget_restore, 120,  True,False, "Nuget restore")
@@ -53,8 +57,19 @@ try:
         os.makedirs(args.output_directory)
     ensure_directory_exists(args.output_directory)
 
-    #run msbuild
-    execute_and_raise_exception_if_exit_code_is_not_zero("msbuild", f'{args.csproj_filename} /t:Rebuild /verbosity:{args.msbuild_verbosity} /p:Configuration={args.buildconfiguration} /p:Platform=AnyCPU /p:OutputPath="{args.output_directory}" {str_none_safe(args.additional_msbuild_arguments)}', args.folder_of_csproj_file, 120,  True,False, "MSBuild")
+    argument = "build"
+    argument = argument + f'"{args.csproj_filename}"'
+    argument = argument + f' --no-incremental'
+    argument = argument + f' --verbosity {args.verbosity}'
+    argument = argument + f' --configuration {buildconfiguration}'
+    argument = argument + f' --framework {framework}'
+    argument = argument + f' --runtime {runtimeid}'
+    if not string_is_none_or_whitespace(args.output_directory):
+        argument = argument + f' --output "{args.output_directory}"'
+    argument = argument + " " + args.additional_build_arguments
+
+    #run dotnet build
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {args.csproj_filename}', args.folder_of_csproj_file, 120,  True, False, "Build")
 
 finally:
     os.chdir(original_directory)
