@@ -12,7 +12,7 @@ os.chdir(current_directory)
 
 try:
 
-    script_folder=f"..{os.path.sep}..{os.path.sep}Miscellaneous"
+    script_folder=f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Miscellaneous"
     sys.path.append(abspath(os.path.join(current_directory,f"{script_folder}")))
     from Utilities import *
     write_message_to_stdout("Start " + os.path.basename(__file__))
@@ -38,7 +38,7 @@ try:
     parser.add_argument('--test_output_directory', help='Specifies output directory for the compiled test-dll')
     parser.add_argument('--additional_test_arguments', default="", help='Specifies arbitrary arguments which are passed to vstest')
     parser.add_argument('--test_runtimeid', default="win10-x64", help='Specifies runtime-id-argument for build-process of the testproject')
-    parser.add_argument('--test_framework', default="netstandard2.1", help='Specifies targetframework of the testproject')
+    parser.add_argument('--test_framework', default="netcoreapp3.1", help='Specifies targetframework of the testproject')
    
     #parameter for build project and testproject
     parser.add_argument('--buildconfiguration', help='Specifies the Buildconfiguration (e.g. Debug or Release)')

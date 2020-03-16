@@ -26,10 +26,10 @@ try:
     configparser=ConfigParser()
     configparser.read(configurationfile)
 
-    #commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'))
-    version=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable semVer",configparser.get('general','repository'))[1])#dirty hack because gitversion seems to have problems recognizing the branch ("Multiple branch configurations match the current branch branchName of 'development'. Using the first matching configuration, 'others'. Matching configurations include:..."). Executing gitversion twice seems to be a workaround (while a simple sleep-call does not seem to be a workaround).
+    commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'))
+    version=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable semVer",configparser.get('general','repository'))[1])#double executing gitversion is a dirty hack because gitversion seems to have problems recognizing the branch ("Multiple branch configurations match the current branch branchName of 'development'. Using the first matching configuration, 'others'. Matching configurations include:..."). Executing gitversion twice seems to be a workaround (while a simple sleep-call does not seem to work as workaround).
     version=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable semVer",configparser.get('general','repository'))[1])
-    #create_tag(configparser.get('general','repository'), commit_id, configparser.get('prepare','gittagprefix')+ version)
+    create_tag(configparser.get('general','repository'), commit_id, configparser.get('prepare','gittagprefix')+ version)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

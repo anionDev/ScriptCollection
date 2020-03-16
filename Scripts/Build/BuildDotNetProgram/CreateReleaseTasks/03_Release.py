@@ -23,30 +23,23 @@ try:
     args=parser.parse_args()
     configurationfile=args.configurationfile
     write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
-    
+
     configparser=ConfigParser()
     configparser.read(configurationfile)
-    sys.exit(0)
-    
+
     #build nupkg
-    repositoryfolder=abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}"))
-    os.chdir(repositoryfolder)
-    repository_folder=configparser.get('build','repositoryfolder')
+    repository_folder=configparser.get('general','repository')
     latest_version = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion","/showVariable semver",repository_folder)[1])
     commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD",repository_folder)[1])
     year = str(datetime.datetime.now().year)
     nuspecfilename=configparser.get('general','productname')+".nuspec"
-    copyfile(configparser.get('release','nuespectemplatefile'), os.path.join(configparser.get('general','publishdirectory'),latest_version,nuspecfilename))
-    os.chdir(os.path.join(configparser.get('general','publishdirectory'),latest_version))
+    copyfile(configparser.get('release','nuespectemplatefile'), os.path.join(configparser.get('build','publishdirectory'),latest_version,nuspecfilename))
+    os.chdir(os.path.join(configparser.get('build','publishdirectory'),latest_version))
     with open(nuspecfilename, encoding="utf-8", mode="r") as f:
       nuspec_content=f.read().replace('__version__', latest_version).replace('__commitid__', commit_id).replace('__year__', year)
     with open(nuspecfilename, encoding="utf-8", mode="w") as f:
       f.write(nuspec_content)
     execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}")
-    commit_message = f"Added {configparser.get('general','productname')} v{latest_version}"
-    commit(repositoryfolder, commit_message)
-    nupkg_file = f"{configparser.get('general','productname')}.{latest_version}.nupkg"
-
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

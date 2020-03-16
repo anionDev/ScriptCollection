@@ -12,7 +12,7 @@ os.chdir(current_directory)
 
 try:
 
-    script_folder=f"..{os.path.sep}..{os.path.sep}Miscellaneous"
+    script_folder=f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Miscellaneous"
     sys.path.append(abspath(os.path.join(current_directory,f"{script_folder}")))
     from Utilities import *
     write_message_to_stdout("Start " + os.path.basename(__file__))
@@ -32,7 +32,7 @@ try:
     parser.add_argument('--clear_output_directory', type=string_to_boolean, nargs='?', const=True, default=False,help='If true then the output directory will be cleared before compiling the program')
     parser.add_argument('--runtimeid', default="win10-x64", help='Specifies runtime-id-argument for build-process')
     parser.add_argument('--verbosity', default="minimal", help='Specifies verbosity for build-process')
-    parser.add_argument('--framework', default="netstandard2.1", help='Specifies targetframework')
+    parser.add_argument('--framework', default="netcoreapp3.1", help='Specifies targetframework')
     
     args = parser.parse_args()
 

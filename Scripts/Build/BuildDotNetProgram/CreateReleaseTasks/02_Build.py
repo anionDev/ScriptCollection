@@ -23,20 +23,19 @@ try:
     configparser=ConfigParser()
     configparser.read(configurationfile)
     
-    sys.exit(0)
-    
+    productname=configparser.get('general','productname')
     build_tools_folder=abspath(f"..{os.path.sep}GeneralTasks")
+    repository_folder=configparser.get('general','repository')
     version=execute_and_raise_exception_if_exit_code_is_not_zero("gitversion","/showVariable semVer",repository_folder,120,False,False,"Gitversion",False, None )[1].replace("\r","").replace("\n","")
-    repository_folder=configparser.get('build','repositoryfolder')
-    publish_directory=configparser.get('build','publishdirectory')
+    publish_directory=f"{configparser.get('build','publishdirectory')}{os.path.sep}{version}{os.path.sep}Binary"
     
     argument=""
 
     #parameter for project
     argument=argument + ' --folder_of_csproj_file "' +configparser.get('build','folderofcsprojfile')+'"'
     argument=argument + ' --csproj_filename "' +configparser.get('build','csprojfilename')+'"'
-    argument=argument + " --publish_directory " + f'"{publish_directory}"'
-    argument=argument + ' --output_directory "' +configparser.get('build','buildoutputdirectory')+'"
+    argument=argument + " --publish_directory " + '"'+publish_directory+'"'
+    argument=argument + ' --output_directory "' +configparser.get('build','buildoutputdirectory')+'"'
 
     #parameter for testproject
     argument=argument + ' --folder_of_test_csproj_file "' +configparser.get('build','folderoftestcsprojfile')+'"'
@@ -51,7 +50,7 @@ try:
     argument=argument + ' --buildconfiguration "' +configparser.get('build','buildconfiguration')+'"'
     argument=argument + " --folder_for_nuget_restore " + f'"{repository_folder}"'
     #argument=argument + " --additional_build_arguments " + ""
-    argument=argument + " --clear_output_directory " +f"true"  
+    argument=argument + " --clear_output_directory " +"true"  
 
     #execute testcases
     execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 120,  False, False, configparser.get('general','productname')+"Build")
@@ -60,7 +59,8 @@ try:
     #todo
     
     #sign assembly
-    execute_and_raise_exception_if_exit_code_is_not_zero("python",f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory}\\{configparser.get('general','productname')}.dll" --snkfile "{configparser.get('build','snkfile')}"',os.getcwd(), 120,  False, False, configparser.get('general','productname')+"Sign")
+    snkfile=configparser.get('build','snkfile')
+    execute_and_raise_exception_if_exit_code_is_not_zero("python",f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory}{os.path.sep}{productname}.dll" --snkfile "{snkfile}"',os.getcwd(), 120,  False, False, configparser.get('general','productname')+"Sign")
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

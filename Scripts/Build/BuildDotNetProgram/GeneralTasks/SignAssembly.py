@@ -8,7 +8,7 @@ os.chdir(current_directory)
 
 try:
 
-    script_folder=f"..{os.path.sep}..{os.path.sep}Miscellaneous"
+    script_folder=f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Miscellaneous"
     sys.path.append(abspath(os.path.join(current_directory,f"{script_folder}")))
     from Utilities import *
     write_message_to_stdout("Start " + os.path.basename(__file__))
