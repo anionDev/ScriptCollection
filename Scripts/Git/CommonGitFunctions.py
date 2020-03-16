@@ -15,9 +15,7 @@ def repository_has_uncommitted_changes(repository_folder:str):
 
 def get_current_commit_id(repository_folder:str):
     argument="rev-parse --verify HEAD"
-    result=execute_and_raise_exception_if_exit_code_is_not_zero("git",argument, repository_folder)
-    if not (result[0]==0):
-        raise ValueError(f"'git {argument}' results in exitcode "+str(exitcode))
+    result=execute_and_raise_exception_if_exit_code_is_not_zero("git","rev-parse --verify HEAD", repository_folder)
     return result[1].replace('\r','').replace('\n','')
 
 def push(folder:str, remotename:str, localbranchname:str, remotebranchname:str):
@@ -42,19 +40,24 @@ def clone_if_not_already_done(folder:str, link:str):
     return exit_code
 
 def commit(directory:str, message:str):
-    argument="add -A"
-    exitcode=execute_and_raise_exception_if_exit_code_is_not_zero("git",argument, directory, 3600)[0]
-    if not (exitcode==0):
-        raise ValueError(f"'git {argument}' results in exitcode "+str(exitcode))
+    
+    execute_and_raise_exception_if_exit_code_is_not_zero("git","add -A", directory, 3600)[0]
 
     argument=f'commit -m "{message}"'
-    exitcode=execute_and_raise_exception_if_exit_code_is_not_zero("git",argument, directory, 600)[0]
+    exitcode=execute_full("git",argument, directory, 600)[0]
     if not (exitcode==0):
         print(f"Warning: 'git {argument}' results in exitcode "+str(exitcode)+". This means that probably either there were no changes to commit or an error occurred while commiting")
 
-    argument=f'log --format="%H" -n 1'
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, directory)
-    if not (result[0]==0):
-        raise ValueError(f"'git {argument}' results in exitcode "+str(exitcode))
+    return get_current_commit_id(directory)
 
-    return result[1].replace('\r','').replace('\n','')
+def create_tag(directory:str, target_for_tag:str, tag:str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git",f"tag {tag} {target_for_tag}", directory, 3600)
+
+def checkout(directory:str, branch:str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git","checkout "+branch, directory, 3600)
+
+def merge(directory:str, sourcebranch:str, targetbranch:str):
+    checkout(directory, targetbranch)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git","merge --no-commit --no-ff "+sourcebranch, directory, 3600)
+    commit_id = commit(directory,f"Merge branch '{sourcebranch}' into '{targetbranch}'")
+    return commit_id
