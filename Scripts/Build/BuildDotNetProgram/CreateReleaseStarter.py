@@ -7,24 +7,23 @@ error_occurred=False
 original_directory=os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
-def execute_task(name:str, configurationfile:str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"{name}.py {configurationfile}",os.getcwd(), 200,  True, False, f"Run {name}.py")
-
 try:
     sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}Miscellaneous")))
     from Utilities import *
-    
+    from datetime import datetime
+    from configparser import ConfigParser
+
     parser=argparse.ArgumentParser()
     parser.add_argument("configurationfile")
     args=parser.parse_args()
     configurationfile=args.configurationfile
     write_message_to_stdout(f"Run generic releasescript with configurationfile '{configurationfile}'")
-    
-    os.chdir(f"{current_directory}{os.path.sep}CreateReleaseTasks")
-    
-    execute_task("01_Prepare",configurationfile)
-    execute_task("02_Build",configurationfile)
-    execute_task("03_Release",configurationfile)
+
+    configparser=ConfigParser()
+    configparser.read(configurationfile)
+
+    logfile=configparser.get('general','logfilefolder')+os.path.sep+str(datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"CreateRelease.py {configurationfile}", current_directory,3600,True,True,"CreateRelease of "+configparser.get('general','productname') ,False,logfile)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
@@ -33,10 +32,7 @@ except Exception as exception:
 finally:
     os.chdir(original_directory)
 
-message="CreateRelease exits with exitcode "
 if(error_occurred):
-    write_message_to_stderr(message+"1")
     sys.exit(1)
 else:
-    write_message_to_stdout(message+"0")
     sys.exit(0)
