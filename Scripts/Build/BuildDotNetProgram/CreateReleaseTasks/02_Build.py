@@ -28,6 +28,7 @@ try:
     repository_folder=configparser.get('general','repository')
     version=execute_and_raise_exception_if_exit_code_is_not_zero("gitversion","/showVariable semVer",repository_folder,120,False,False,"Gitversion",False, None )[1].replace("\r","").replace("\n","")
     publish_directory=f"{configparser.get('build','publishdirectory')}{os.path.sep}{version}{os.path.sep}Binary"
+    code_coverage_folder=configparser.get('build','publishdirectory')+os.path.sep+version
     
     argument=""
 
@@ -40,17 +41,17 @@ try:
     #parameter for testproject
     argument=argument + ' --folder_of_test_csproj_file "' +configparser.get('build','folderoftestcsprojfile')+'"'
     argument=argument + ' --test_csproj_filename "' +configparser.get('build','testcsprojfilename')+'"'
-    argument=argument + ' --test_dll_filename "' +configparser.get('build','testdllfile')+'"'
     argument=argument + ' --test_output_directory "' +configparser.get('build','testoutputfolder')+'"'
     #argument=argument + " --additional_test_arguments " + ""
     #argument=argument + " --test_runtimeid " + ""
     argument=argument + " --test_framework " + "netcoreapp3.1"
+    argument=argument + ' --code_coverage_folder "' +code_coverage_folder+'"'
  
     #parameter for project and testproject
     argument=argument + ' --buildconfiguration "' +configparser.get('build','buildconfiguration')+'"'
     argument=argument + " --folder_for_nuget_restore " + f'"{repository_folder}"'
     #argument=argument + " --additional_build_arguments " + ""
-    argument=argument + " --clear_output_directory " +"true"  
+    argument=argument + " --clear_output_directory " +"true"
 
     #execute testcases
     execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 120,  False, False, configparser.get('general','productname')+"Build")
