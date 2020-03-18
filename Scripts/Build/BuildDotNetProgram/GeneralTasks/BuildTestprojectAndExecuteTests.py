@@ -106,7 +106,7 @@ try:
     
     copy_tree(args.output_directory, args.publish_directory)
     if args.publish_coverage:
-        shutil.copy(args.folder_of_test_csproj_file+os.path.sep+testcoveragefilename,args.publish_directory)
+        shutil.copy(args.folder_of_test_csproj_file+os.path.sep+testcoveragefilename,args.code_coverage_folder)
     
 finally:
     os.chdir(original_directory)

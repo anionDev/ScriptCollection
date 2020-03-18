@@ -45,12 +45,11 @@ try:
     #argument=argument + " --additional_test_arguments " + ""
     #argument=argument + " --test_runtimeid " + ""
     argument=argument + " --test_framework " + "netcoreapp3.1"
-    argument=argument + ' --code_coverage_folder "' +code_coverage_folder+'"'
     argument=argument+" --publish_coverage " +"true"
+    argument=argument + ' --code_coverage_folder "' +code_coverage_folder+'"'
  
     #parameter for project and testproject
     argument=argument + ' --buildconfiguration "' +configparser.get('build','buildconfiguration')+'"'
-    argument=argument + " --folder_for_nuget_restore " + f'"{repository_folder}"'
     #argument=argument + " --additional_build_arguments " + ""
     argument=argument + " --clear_output_directory " +"true"
     argument=argument+" --productname "+configparser.get('general','productname')

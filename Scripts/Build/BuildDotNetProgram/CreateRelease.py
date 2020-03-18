@@ -23,7 +23,7 @@ try:
     
     execute_task("01_Prepare",configurationfile)
     execute_task("02_Build",configurationfile)
-    #execute_task("03_Release",configurationfile)
+    execute_task("03_Release",configurationfile)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
