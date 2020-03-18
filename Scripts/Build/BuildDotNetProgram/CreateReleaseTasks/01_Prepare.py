@@ -27,8 +27,7 @@ try:
     configparser.read(configurationfile)
 
     commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'))
-    version=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable semVer",configparser.get('general','repository'))[1])#double executing gitversion is a dirty hack because gitversion seems to have problems recognizing the branch ("Multiple branch configurations match the current branch branchName of 'development'. Using the first matching configuration, 'others'. Matching configurations include:..."). Executing gitversion twice seems to be a workaround (while a simple sleep-call does not seem to work as workaround).
-    version=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable semVer",configparser.get('general','repository'))[1])
+    version=get_semver_version_from_gitversion(configparser.get('general','repository'))
     create_tag(configparser.get('general','repository'), commit_id, configparser.get('prepare','gittagprefix')+ version)
 
 except Exception as exception:

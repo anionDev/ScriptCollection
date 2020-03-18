@@ -23,7 +23,7 @@ try:
     configparser.read(configurationfile)
 
     logfile=configparser.get('general','logfilefolder')+os.path.sep+"Release_"+str(datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"CreateRelease.py {configurationfile}", current_directory,3600,True,True,"Create"+configparser.get('general','productname')+"Release" ,False,logfile)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"CreateRelease.py {configurationfile}", current_directory,3600,2,True,"Create"+configparser.get('general','productname')+"Release" ,False,logfile)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

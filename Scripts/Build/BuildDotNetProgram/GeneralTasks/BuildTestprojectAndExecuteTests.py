@@ -30,6 +30,7 @@ try:
     parser.add_argument('--output_directory', help='Specifies output directory for the compiled program')
     parser.add_argument('--runtimeid', default="win10-x64", help='Specifies runtime-id-argument for build-process')
     parser.add_argument('--framework', default="netstandard2.1", help='Specifies targetframework')
+    parser.add_argument('--publish_coverage', type = string_to_boolean, nargs = '?', const = True, default = False, help='Specifies whether the testcoverage-result should be copied to the publish-directory')
 
     #parameter for testproject 
     parser.add_argument('--folder_of_test_csproj_file', help='Specifies the folder where the test-csproj-file is located')
@@ -46,6 +47,8 @@ try:
     parser.add_argument('--additional_build_arguments', default="", help='Specifies arbitrary arguments which are passed to msbuild')
     parser.add_argument('--clear_output_directory', type = string_to_boolean, nargs = '?', const = True, default = False, help='If true then the output directory will be cleared before compiling the program')
     parser.add_argument('--verbosity', default="minimal", help='Specifies verbosity for build-process')
+    parser.add_argument('--productname', help='Specifies the name of the product')
+    
     args = parser.parse_args()
 
     write_message_to_stdout("arguments:")    
@@ -62,6 +65,7 @@ try:
     write_message_to_stdout("additional_build_arguments:"+args.additional_build_arguments)
     write_message_to_stdout("clear_output_directory:"+str(args.clear_output_directory))
     write_message_to_stdout("code_coverage_folder:"+str(args.code_coverage_folder))
+    write_message_to_stdout("publish_coverage:"+str(args.publish_coverage))
 
     #build project
     argument=""
@@ -91,15 +95,18 @@ try:
     execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py " + argument, "", 120, True, False, "Build testproject")
     
     #execute testcases
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+args.test_csproj_filename+" -c " +args.buildconfiguration +" --verbosity normal --no-build /p:CollectCoverage=true /p:CoverletOutput="+args.code_coverage_folder+os.path.sep+"\coverage /p:CoverletOutputFormat=opencover "+str_none_safe(args.additional_test_arguments),args.folder_of_test_csproj_file, 120, True, False, "Execute tests")
-    
+    testcoveragefilename=args.productname+".TestCoverage.opencover.xml"
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+args.test_csproj_filename+" -c " +args.buildconfiguration +" --verbosity normal --no-build /p:CollectCoverage=true /p:CoverletOutput="+testcoveragefilename+" /p:CoverletOutputFormat=opencover "+str_none_safe(args.additional_test_arguments),args.folder_of_test_csproj_file, 120, True, False, "Execute tests")
+   
     #export program
     #clear publish-directory if desired
-    
     if os.path.isdir(args.publish_directory) and args.clear_publish_directory:
         shutil.rmtree(args.publish_directory)
     ensure_directory_exists(args.publish_directory)
+    
     copy_tree(args.output_directory, args.publish_directory)
-
+    if args.publish_coverage:
+        shutil.copy(args.folder_of_test_csproj_file+os.path.sep+testcoveragefilename,args.publish_directory)
+    
 finally:
     os.chdir(original_directory)

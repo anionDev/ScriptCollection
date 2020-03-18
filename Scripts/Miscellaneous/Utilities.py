@@ -5,6 +5,7 @@ import hashlib
 import time
 import shutil
 import io
+import tempfile
 import uuid
 from pathlib import Path
 import codecs
@@ -84,19 +85,19 @@ def string_to_boolean(value:str):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120, verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
-    result=execute_full(program, arguments, workingdirectory,print_errors_as_information, log_file, timeoutInSeconds, verbose, addLogOverhead, title)
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    result=execute_full(program, arguments, workingdirectory,print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
     if result[0]!=0:
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
     return result
-def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
-    result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbose, addLogOverhead, title, print_errors_as_information, log_file)
+def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbosity, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]
 
-def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
-    return execute_full(program,arguments,workingdirectory,print_errors_as_information,log_file,timeoutInSeconds, verbose, addLogOverhead, title)
+def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+    return execute_full(program,arguments,workingdirectory,print_errors_as_information,log_file,timeoutInSeconds, verbosity, addLogOverhead, title)
 
-def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbose:bool=True, addLogOverhead:bool=False, title:str=None):
+def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbosity=1, addLogOverhead:bool=False, title:str=None):
     if string_is_none_or_whitespace(title):
         message=f"Start executing epew ('{workingdirectory}>{program} {arguments}')"
     else:
@@ -109,22 +110,28 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
         if not os.path.isabs(workingdirectory):
             workingdirectory=os.path.abspath(workingdirectory)
     
-    output_file_for_stdout=os.getcwd() + os.path.sep+str(uuid.uuid4()) + ".log"
-    output_file_for_stderr=os.getcwd() + os.path.sep+str(uuid.uuid4()) + ".log"
+    output_file_for_stdout=tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
+    output_file_for_stderr=tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
 
-    argument=program
-    argument=argument+";~"+arguments
-    argument=argument+";~"+workingdirectory
-    argument=argument+";~"+str_none_safe(title)
-    argument=argument+";~"+str(print_errors_as_information)
-    argument=argument+";~"+str_none_safe(log_file)
-    argument=argument+";~"+str(timeoutInSeconds*1000)
-    argument=argument+";~"+str(verbose)
-    argument=argument+";~"+str(addLogOverhead)
-    argument=argument+";~"+output_file_for_stdout
-    argument=argument+";~"+output_file_for_stderr
-    base64argument=base64.b64encode(argument.encode('utf-8')).decode('utf-8')
-    process = Popen(["epew", base64argument])
+    argument=" -p "+program
+    argument=argument+" -a "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
+    argument=argument+" -b "
+    argument=argument+" -w "+'"'+workingdirectory+'"'
+    if print_errors_as_information:
+        argument=argument+" -i"
+    if addLogOverhead:
+        argument=argument+" -h"
+    if verbosity==0:
+        argument=argument+" -v Quiet"
+    if verbosity==1:
+        argument=argument+" -v Normal"
+    if verbosity==2:
+        argument=argument+" -v Verbose"
+    argument=argument+" -o "+'"'+output_file_for_stdout+'"'
+    argument=argument+" -e "+'"'+output_file_for_stderr+'"'
+    argument=argument+" -d "+str(timeoutInSeconds*1000)
+    argument=argument+' -t "'+str_none_safe(title)+'"'
+    process = Popen("C:\\Dev\\Projects\\Common\\externalProgramExecutionWrapper\\ExternalProgramExecutionWrapper\\ExternalProgramExecutionWrapper\\bin\\Release\\netcoreapp3.1\\epew.exe "+argument)
     exit_code = process.wait()
     stdout=private_load_text(output_file_for_stdout)
     stderr=private_load_text(output_file_for_stderr)
@@ -305,3 +312,14 @@ def string_is_none_or_whitespace(string:str):
 
 def strip_new_lines_at_begin_and_end(string:str):
     return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')
+
+def get_semver_version_from_gitversion(folder:str):
+    return get_version_from_gitversion(folder,"semVer")
+
+def get_version_from_gitversion(folder:str, variable:str):
+    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder)[1])
+    import time
+    time.sleep(3) 
+    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder)[1])
+    #double executing gitversion is a dirty hack because gitversion seems to have problems recognizing the branch ("Multiple branch configurations match the current branch branchName of 'development'. Using the first matching configuration, 'others'. Matching configurations include:..."). Executing gitversion twice seems to be a workaround (while only a simple sleep-call does not seem to work as workaround).
+    return result

@@ -29,14 +29,14 @@ try:
 
     #build nupkg
     repository_folder=configparser.get('general','repository')
-    latest_version = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion","/showVariable semver",repository_folder)[1])
+    version=get_semver_version_from_gitversion(configparser.get('general','repository'))
     commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD",repository_folder)[1])
     year = str(datetime.datetime.now().year)
     nuspecfilename=configparser.get('general','productname')+".nuspec"
-    copyfile(configparser.get('release','nuespectemplatefile'), os.path.join(configparser.get('build','publishdirectory'),latest_version,nuspecfilename))
-    os.chdir(os.path.join(configparser.get('build','publishdirectory'),latest_version))
+    copyfile(configparser.get('release','nuespectemplatefile'), os.path.join(configparser.get('build','publishdirectory'),version,nuspecfilename))
+    os.chdir(os.path.join(configparser.get('build','publishdirectory'),version))
     with open(nuspecfilename, encoding="utf-8", mode="r") as f:
-      nuspec_content=f.read().replace('__version__', latest_version).replace('__commitid__', commit_id).replace('__year__', year)
+      nuspec_content=f.read().replace('__version__', version).replace('__commitid__', commit_id).replace('__year__', year)
     with open(nuspecfilename, encoding="utf-8", mode="w") as f:
       f.write(nuspec_content)
     execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}")
