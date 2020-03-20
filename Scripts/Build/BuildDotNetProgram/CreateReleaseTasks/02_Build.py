@@ -13,23 +13,23 @@ try:
     sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Miscellaneous")))
     from Utilities import *
     from configparser import ConfigParser
-    
+
     parser=argparse.ArgumentParser()
     parser.add_argument("configurationfile")
     args=parser.parse_args()
     configurationfile=args.configurationfile
     write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
-    
+
     configparser=ConfigParser()
     configparser.read(configurationfile)
-    
+
     productname=configparser.get('general','productname')
     build_tools_folder=abspath(f"..{os.path.sep}GeneralTasks")
     repository_folder=configparser.get('general','repository')
     version=get_semver_version_from_gitversion(configparser.get('general','repository'))
     publish_directory=f"{configparser.get('build','publishdirectory')}{os.path.sep}{version}{os.path.sep}Binary"
     code_coverage_folder=configparser.get('build','publishdirectory')+os.path.sep+version
-    
+
     argument=""
 
     #parameter for project
@@ -47,7 +47,7 @@ try:
     argument=argument + " --test_framework " + "netcoreapp3.1"
     argument=argument+" --publish_coverage " +"true"
     argument=argument + ' --code_coverage_folder "' +code_coverage_folder+'"'
- 
+
     #parameter for project and testproject
     argument=argument + ' --buildconfiguration "' +configparser.get('build','buildconfiguration')+'"'
     #argument=argument + " --additional_build_arguments " + ""
@@ -56,7 +56,7 @@ try:
 
     #execute testcases
     execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 120,  1, False, configparser.get('general','productname')+"Build")
-    
+
     #sign assembly
     snkfile=configparser.get('build','snkfile')
     execute_and_raise_exception_if_exit_code_is_not_zero("python",f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory}{os.path.sep}{productname}.dll" --snkfile "{snkfile}"',os.getcwd(), 120,  1, False, configparser.get('general','productname')+"Sign")

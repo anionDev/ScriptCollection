@@ -13,14 +13,14 @@ def execute_task(name:str, configurationfile:str):
 try:
     sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}Miscellaneous")))
     from Utilities import *
-    
+
     parser=argparse.ArgumentParser()
     parser.add_argument("configurationfile")
     args=parser.parse_args()
     configurationfile=args.configurationfile
     write_message_to_stdout(f"Run generic releasescript with configurationfile '{configurationfile}'")
     os.chdir(f"{current_directory}{os.path.sep}CreateReleaseTasks")
-    
+
     execute_task("01_Prepare",configurationfile)
     execute_task("02_Build",configurationfile)
     execute_task("03_Release",configurationfile)
