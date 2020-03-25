@@ -42,6 +42,7 @@ try:
       nuspec_content=nuspec_content.replace('__year__', year)
       nuspec_content=nuspec_content.replace('__productname__', configparser.get('general','productname'))
       nuspec_content=nuspec_content.replace('__author__', configparser.get('general','author'))
+      nuspec_content=nuspec_content.replace('__description__', configparser.get('general','description'))
     with open(nuspecfilename, encoding="utf-8", mode="w") as f:
       f.write(nuspec_content)
     execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}",os.path.join(configparser.get('build','publishdirectory'),version))
