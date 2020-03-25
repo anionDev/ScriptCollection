@@ -33,7 +33,7 @@ try:
     commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD",repository_folder)[1])
     year = str(datetime.datetime.now().year)
     nuspecfilename=configparser.get('general','productname')+".nuspec"
-    copyfile(configparser.get('release','nuespectemplatefile'), os.path.join(configparser.get('build','publishdirectory'),version,nuspecfilename))
+    copyfile(configparser.get('release','nuspectemplatefile'), os.path.join(configparser.get('build','publishdirectory'),version,nuspecfilename))
     os.chdir(os.path.join(configparser.get('build','publishdirectory'),version))
     with open(nuspecfilename, encoding="utf-8", mode="r") as f:
       nuspec_content=f.read().replace('__version__', version).replace('__commitid__', commit_id).replace('__year__', year)
