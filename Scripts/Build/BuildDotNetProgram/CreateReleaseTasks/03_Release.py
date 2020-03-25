@@ -36,7 +36,12 @@ try:
     copyfile(configparser.get('release','nuspectemplatefile'), os.path.join(configparser.get('build','publishdirectory'),version,nuspecfilename))
     os.chdir(os.path.join(configparser.get('build','publishdirectory'),version))
     with open(nuspecfilename, encoding="utf-8", mode="r") as f:
-      nuspec_content=f.read().replace('__version__', version).replace('__commitid__', commit_id).replace('__year__', year)
+      nuspec_content=f.read()
+      nuspec_content=nuspec_content.replace('__version__', version)
+      nuspec_content=nuspec_content.replace('__commitid__', commit_id)
+      nuspec_content=nuspec_content.replace('__year__', year)
+      nuspec_content=nuspec_content.replace('__productname__', configparser.get('general','productname'))
+      nuspec_content=nuspec_content.replace('__author__', configparser.get('general','author'))
     with open(nuspecfilename, encoding="utf-8", mode="w") as f:
       f.write(nuspec_content)
     execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}",os.path.join(configparser.get('build','publishdirectory'),version))
