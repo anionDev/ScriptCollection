@@ -90,6 +90,8 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:
     if result[0]==0:
         return result
     else:
+        for stderr_line in result[2]:
+            write_message_to_stderr(stderr_line)
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbosity, addLogOverhead, title, print_errors_as_information, log_file)
