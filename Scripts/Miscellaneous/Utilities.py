@@ -87,9 +87,10 @@ def file_is_empty(file:str):
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     result=execute_full(program, arguments, workingdirectory,print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
-    if result[0]!=0:
+    if result[0]==0:
+        return result
+    else:
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
-    return result
 def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbosity, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]
@@ -131,7 +132,7 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
     argument=argument+" -e "+'"'+output_file_for_stderr+'"'
     argument=argument+" -d "+str(timeoutInSeconds*1000)
     argument=argument+' -t "'+str_none_safe(title)+'"'
-    process = Popen("C:\\Dev\\Projects\\Common\\externalProgramExecutionWrapper\\ExternalProgramExecutionWrapper\\ExternalProgramExecutionWrapper\\bin\\Release\\netcoreapp3.1\\epew.exe "+argument)
+    process = Popen("epew "+argument)
     exit_code = process.wait()
     stdout=private_load_text(output_file_for_stdout)
     stderr=private_load_text(output_file_for_stderr)
