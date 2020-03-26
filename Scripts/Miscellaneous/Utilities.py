@@ -105,7 +105,8 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
     else:
         title_for_message=f"for task '{title}' "
     title_local=f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
-    write_message_to_stdout(f"Start executing {title_local}")
+    if verbosity==2:
+        write_message_to_stdout(f"Start executing {title_local}")
     
     if workingdirectory=="":
         workingdirectory=os.getcwd()
@@ -140,7 +141,8 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
     exit_code = process.wait()
     stdout=private_load_text(output_file_for_stdout)
     stderr=private_load_text(output_file_for_stderr)
-    write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
+    if verbosity==2:
+        write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
     return (exit_code, stdout, stderr)
     
 def private_load_text(file:str):
