@@ -101,10 +101,11 @@ def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSec
 
 def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbosity=1, addLogOverhead:bool=False, title:str=None):
     if string_is_none_or_whitespace(title):
-        message=f"Start executing epew ('{workingdirectory}>{program} {arguments}')"
+        title_for_message=""
     else:
-        message=f"Start executing epew for task '{title}' ('{workingdirectory}>{program} {arguments}')"
-    write_message_to_stdout(message)
+        title_for_message=f"for task '{title}' "
+    title_local=f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
+    write_message_to_stdout(f"Start executing {title_local}")
     
     if workingdirectory=="":
         workingdirectory=os.getcwd()
@@ -131,12 +132,15 @@ def execute_full(program:str, arguments:str, workingdirectory:str="", print_erro
         argument=argument+" -v Verbose"
     argument=argument+" -o "+'"'+output_file_for_stdout+'"'
     argument=argument+" -e "+'"'+output_file_for_stderr+'"'
+    if not string_is_none_or_whitespace(log_file):
+        argument=argument+" -l "+'"'+log_file+'"'
     argument=argument+" -d "+str(timeoutInSeconds*1000)
     argument=argument+' -t "'+str_none_safe(title)+'"'
     process = Popen("epew "+argument)
     exit_code = process.wait()
     stdout=private_load_text(output_file_for_stdout)
     stderr=private_load_text(output_file_for_stderr)
+    write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
     return (exit_code, stdout, stderr)
     
 def private_load_text(file:str):
@@ -319,9 +323,9 @@ def get_semver_version_from_gitversion(folder:str):
     return get_version_from_gitversion(folder,"semVer")
 
 def get_version_from_gitversion(folder:str, variable:str):
-    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder)[1])
+    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
     import time
     time.sleep(3) 
-    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder)[1])
+    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
     #double executing gitversion is a dirty hack because gitversion seems to have problems recognizing the branch ("Multiple branch configurations match the current branch branchName of 'development'. Using the first matching configuration, 'others'. Matching configurations include:..."). Executing gitversion twice seems to be a workaround (while only a simple sleep-call does not seem to work as workaround).
     return result

@@ -8,7 +8,7 @@ original_directory=os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}Miscellaneous")))
+    sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}Miscellaneous")))
     from Utilities import *
     from datetime import datetime
     from configparser import ConfigParser
@@ -22,8 +22,8 @@ try:
     configparser=ConfigParser()
     configparser.read(configurationfile)
 
-    logfile=configparser.get('general','logfilefolder')+os.path.sep+"Release_"+str(datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"CreateRelease.py {configurationfile}", current_directory,3600,2,True,"Create"+configparser.get('general','productname')+"Release" ,False,logfile)
+    logfile=configparser.get('general','logfilefolder')+os.path.sep+configparser.get('general','productname')+"_BuildAndPublish_"+str(datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"BuildAndPublish.py {configurationfile}", current_directory,3600,2,True,"Create"+configparser.get('general','productname')+"Release" ,False,logfile)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

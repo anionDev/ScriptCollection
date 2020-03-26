@@ -18,7 +18,7 @@ try:
     configuration_file=sys.argv[1]
 
     #create release
-    generic_createreleasescript_script=abspath(f"{script_folder}{os.path.sep}Build{os.path.sep}BuildDotNetProgram{os.path.sep}CreateReleaseStarter.py")
+    generic_createreleasescript_script=abspath(f"{script_folder}{os.path.sep}Build{os.path.sep}BuildDotNetProgram{os.path.sep}CreateRelease.py")
     execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{generic_createreleasescript_script} {configuration_file}")
     
     #overhead
