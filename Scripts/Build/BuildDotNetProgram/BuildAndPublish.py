@@ -9,7 +9,7 @@ error_occurred=False
 
 try:
 
-    script_folder=abspath(os.path.join(current_directory,f".."))
+    script_folder=abspath(os.path.join(current_directory,f"..{os.path.sep}.."))
     sys.path.append(f"{script_folder}{os.path.sep}Miscellaneous")
     from Utilities import *
     sys.path.append(f"{script_folder}{os.path.sep}Git")

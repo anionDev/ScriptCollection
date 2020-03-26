@@ -8,7 +8,7 @@ original_directory=os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}Miscellaneous")))
+    sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}Miscellaneous")))
     from Utilities import *
     from datetime import datetime
     from configparser import ConfigParser
