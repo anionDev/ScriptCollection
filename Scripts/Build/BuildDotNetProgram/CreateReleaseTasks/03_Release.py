@@ -25,7 +25,7 @@ try:
     write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
 
     configparser=ConfigParser()
-    configparser.read(configurationfile)
+    configparser.readfp(codecs.open(configurationfile, 'r','utf-8'))
 
     #build nupkg
     repository_folder=configparser.get('general','repository')

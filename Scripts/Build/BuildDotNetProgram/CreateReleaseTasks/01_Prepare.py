@@ -24,7 +24,7 @@ try:
     write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
     
     configparser=ConfigParser()
-    configparser.read(configurationfile)
+    configparser.readfp(codecs.open(configurationfile, 'r','utf-8'))
 
     commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'))
     version=get_semver_version_from_gitversion(configparser.get('general','repository'))

@@ -20,7 +20,7 @@ try:
     write_message_to_stdout(f"Run generic releasescript with configurationfile '{configurationfile}'")
 
     configparser=ConfigParser()
-    configparser.read(configurationfile)
+    configparser.readfp(codecs.open(configurationfile, 'r','utf-8'))
 
     logfile=configparser.get('general','logfilefolder')+os.path.sep+configparser.get('general','productname')+"_BuildAndPublish_"+str(datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
     execute_and_raise_exception_if_exit_code_is_not_zero("python", f"BuildAndPublish.py {configurationfile}", current_directory,3600,2,True,"Create"+configparser.get('general','productname')+"Release" ,False,logfile)
