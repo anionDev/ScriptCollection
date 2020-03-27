@@ -23,7 +23,7 @@ try:
     
     #overhead
     configparser=ConfigParser()
-    configparser.read(configuration_file)
+    configparser.readfp(codecs.open(configuration_file, 'r','utf-8'))
     version=get_semver_version_from_gitversion(configparser.get('general','repository'))
     latest_nupkg_folder=configparser.get('build','publishdirectory')+os.path.sep+version
     latest_nupkg_file=configparser.get('general','productname')+"."+version+".nupkg"
