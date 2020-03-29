@@ -33,6 +33,7 @@ try:
     parser.add_argument('--publish_coverage', type = string_to_boolean, nargs = '?', const = True, default = False, help='Specifies whether the testcoverage-result should be copied to the publish-directory')
 
     #parameter for testproject 
+    parser.add_argument('--has_test_project', type = string_to_boolean, nargs = '?', const = True, default = False, help='')
     parser.add_argument('--folder_of_test_csproj_file', help='Specifies the folder where the test-csproj-file is located')
     parser.add_argument('--test_csproj_filename', help='Specifies the test-csproj-file-name which should be compiled')
     parser.add_argument('--test_output_directory', help='Specifies output directory for the compiled test-dll')
