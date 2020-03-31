@@ -26,11 +26,12 @@ try:
 
     configparser=ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    repository_folder=configparser.get('general','repository')
+    version=get_semver_version_from_gitversion(repository_folder)
+    commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
 
     #build nugetpackage
     if configparser.getboolean('build','createnugetpackage'): 
-        repository_folder=configparser.get('general','repository')
-        version=get_semver_version_from_gitversion(repository_folder)
         commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD",repository_folder,30,0)[1])
         year = str(datetime.datetime.now().year)
         nuspecfilename=configparser.get('general','productname')+".nuspec"
@@ -50,7 +51,6 @@ try:
         
         latest_nupkg_folder=configparser.get('build','nugetpublishdirectory')+os.path.sep+version
         latest_nupkg_file=configparser.get('general','productname')+"."+version+".nupkg"
-        commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
         
         #publish to local nuget-feed
         localnugettarget=configparser.get('release','localnugettarget')
