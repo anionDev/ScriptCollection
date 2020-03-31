@@ -51,12 +51,13 @@ try:
         latest_nupkg_folder=configparser.get('build','nugetpublishdirectory')+os.path.sep+version
         latest_nupkg_file=configparser.get('general','productname')+"."+version+".nupkg"
         commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
-        commit(configparser.get('release','releaserepository'), commitmessage)
         
         #publish to local nuget-feed
         localnugettarget=configparser.get('release','localnugettarget')
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",latest_nupkg_folder)
         commit(configparser.get('release','localnugettargetrepository'), commitmessage)
+    
+    commit(configparser.get('release','releaserepository'), commitmessage)
     
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
