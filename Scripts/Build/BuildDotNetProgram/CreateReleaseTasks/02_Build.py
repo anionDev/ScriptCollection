@@ -30,7 +30,7 @@ try:
     repository_folder=configparser.get('general','repository')
     version=get_semver_version_from_gitversion(configparser.get('general','repository'))
     versionspecific_publish_directory=configparser.get('build','publishdirectory')+os.path.sep+version
-    publish_directory= versionspecific_publish_directory  +os.path.sep+"Binary"
+    publish_directory= configparser.get('build','publishdirectory')
     code_coverage_folder=versionspecific_publish_directory
 
     argument=""
@@ -61,7 +61,7 @@ try:
     execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 120,  1, False, "Build "+configparser.get('general','productname'))
 
     #sign assembly
-    if configparser.has_option('build','filestosign'):
+    if configparser.getboolean('build','signfiles'):
         for file_to_sign in configparser.get('build','filestosign').split(","):
             file_to_sign=file_to_sign.strip()
             snkfile=configparser.get('build','snkfile')
@@ -70,9 +70,6 @@ try:
     if configparser.has_option('build','publishtargetrepository'):
         commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
         commit(configparser.get('build','publishtargetrepository'), commitmessage)
-    
-   if configparser.has_option('build','releaserepository'):
-        commit(configparser.get('release','releaserepository'), "Updated submodule") 
     
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

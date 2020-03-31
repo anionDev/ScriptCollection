@@ -27,8 +27,7 @@ try:
     if configparser.getboolean('prepare','prepare'): 
         execute_task("01_Prepare",configurationfile)
     execute_task("02_Build",configurationfile)
-    if configparser.getboolean('release','createnugetpackage'): 
-        execute_task("03_Release",configurationfile)
+    execute_task("03_Release",configurationfile)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
