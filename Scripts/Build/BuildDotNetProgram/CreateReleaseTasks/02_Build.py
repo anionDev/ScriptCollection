@@ -71,6 +71,9 @@ try:
         commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
         commit(configparser.get('build','publishtargetrepository'), commitmessage)
     
+   if configparser.has_option('build','releaserepository'):
+        commit(configparser.get('release','releaserepository'), "Updated submodule") 
+    
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
     error_occurred=True
