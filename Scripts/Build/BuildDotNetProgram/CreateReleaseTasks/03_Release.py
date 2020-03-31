@@ -31,7 +31,7 @@ try:
     commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
 
     #build nugetpackage
-    if configparser.getboolean('build','createnugetpackage'): 
+    if configparser.getboolean('release','createnugetpackage'): 
         commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD",repository_folder,30,0)[1])
         year = str(datetime.datetime.now().year)
         nuspecfilename=configparser.get('general','productname')+".nuspec"
