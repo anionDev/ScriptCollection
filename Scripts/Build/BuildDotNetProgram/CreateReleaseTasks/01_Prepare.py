@@ -21,8 +21,7 @@ try:
     parser.add_argument("configurationfile")
     args=parser.parse_args()
     configurationfile=args.configurationfile
-    write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
-    
+    write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")    
     configparser=ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 

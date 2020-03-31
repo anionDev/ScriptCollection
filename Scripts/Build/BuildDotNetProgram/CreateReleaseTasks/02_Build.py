@@ -12,6 +12,8 @@ try:
 
     sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Miscellaneous")))
     from Utilities import *
+    sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Git")))
+    from CommonGitFunctions import *
     from configparser import ConfigParser
 
     parser=argparse.ArgumentParser()
@@ -27,42 +29,48 @@ try:
     build_tools_folder=abspath(f"..{os.path.sep}GeneralTasks")
     repository_folder=configparser.get('general','repository')
     version=get_semver_version_from_gitversion(configparser.get('general','repository'))
-    publish_directory=f"{configparser.get('build','publishdirectory')}{os.path.sep}{version}{os.path.sep}Binary"
-    code_coverage_folder=configparser.get('build','publishdirectory')+os.path.sep+version
+    versionspecific_publish_directory=configparser.get('build','publishdirectory')+os.path.sep+version
+    publish_directory= versionspecific_publish_directory  +os.path.sep+"Binary"
+    code_coverage_folder=versionspecific_publish_directory
 
     argument=""
 
     #parameter for project
-    argument=argument + ' --folder_of_csproj_file "' +configparser.get('build','folderofcsprojfile')+'"'
-    argument=argument + ' --csproj_filename "' +configparser.get('build','csprojfilename')+'"'
-    argument=argument + " --publish_directory " + '"'+publish_directory+'"'
-    argument=argument + ' --output_directory "' +configparser.get('build','buildoutputdirectory')+'"'
-
-    if configparser.get('build','buildoutputdirectory'):        
-        #parameter for testproject
-        argument=argument + ' --has_test_project "' +configparser.get('build','hastestproject')+'"'
-        argument=argument + ' --folder_of_test_csproj_file "' +configparser.get('build','folderoftestcsprojfile')+'"'
-        argument=argument + ' --test_csproj_filename "' +configparser.get('build','testcsprojfilename')+'"'
-        argument=argument + ' --test_output_directory "' +configparser.get('build','testoutputfolder')+'"'
-        argument=argument + " --test_framework " + "netcoreapp3.1"
-        argument=argument+" --publish_coverage " +"true"
-        argument=argument + ' --code_coverage_folder "' +code_coverage_folder+'"'
+    argument=argument + ' --folder_of_csproj_file '+encapsulate_with_quotes(configparser.get('build','folderofcsprojfile'))
+    argument=argument + ' --csproj_filename '+encapsulate_with_quotes(configparser.get('build','csprojfilename'))
+    argument=argument + ' --publish_directory '+encapsulate_with_quotes(publish_directory)
+    argument=argument + ' --output_directory '+encapsulate_with_quotes(configparser.get('build','buildoutputdirectory'))
+    argument=argument + ' --framework '+configparser.get('build','dotnetframework')
+       
+    #parameter for testproject
+    if configparser.getboolean('build','hastestproject'): 
+        argument=argument + ' --has_test_project'
+        argument=argument + ' --folder_of_test_csproj_file '+encapsulate_with_quotes(configparser.get('build','folderoftestcsprojfile'))
+        argument=argument + ' --test_csproj_filename '+encapsulate_with_quotes(configparser.get('build','testcsprojfilename'))
+        argument=argument + ' --test_output_directory '+encapsulate_with_quotes(configparser.get('build','testoutputfolder'))
+        argument=argument + ' --test_framework '+encapsulate_with_quotes(configparser.get('build','test_dotnetframework'))
+        argument=argument + ' --publish_coverage '+str(True)
+        argument=argument + ' --code_coverage_folder '+encapsulate_with_quotes(code_coverage_folder)
 
     #parameter for project and testproject
-    argument=argument + ' --buildconfiguration "' +configparser.get('build','buildconfiguration')+'"'
-    #argument=argument + " --additional_build_arguments " + ""
-    argument=argument + " --clear_output_directory " +"true"
-    argument=argument+" --productname "+configparser.get('general','productname')
+    argument=argument + f' --clear_output_directory {str(True)}'
+    argument=argument + f' --productname "'+configparser.get('general','productname')+'"'
+    argument=argument + f' --buildconfiguration "' +configparser.get('build','buildconfiguration')+'"'
 
-    #execute testcases
-    execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 120,  1, False, configparser.get('general','productname')+"Build")
+    #build and execute testcases
+    execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 120,  1, False, "Build "+configparser.get('general','productname'))
 
+    #sign assembly
     if configparser.has_option('build','filestosign'):
-        for file_to_sign in 
-        #sign assembly
-        snkfile=configparser.get('build','snkfile')
-        execute_and_raise_exception_if_exit_code_is_not_zero("python",f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory}{os.path.sep}{productname}.dll" --snkfile "{snkfile}"',os.getcwd(), 120,  1, False, configparser.get('general','productname')+"Sign")
+        for file_to_sign in configparser.get('build','filestosign').split(","):
+            file_to_sign=file_to_sign.strip()
+            snkfile=configparser.get('build','snkfile')
+            execute_and_raise_exception_if_exit_code_is_not_zero("python",f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory}{os.path.sep}{file_to_sign}" --snkfile "{snkfile}"',os.getcwd(), 120,  1, False, "Sign "+file_to_sign)
 
+    if configparser.has_option('build','publishtargetrepository'):
+        commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
+        commit(configparser.get('build','publishtargetrepository'), commitmessage)
+    
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
     error_occurred=True

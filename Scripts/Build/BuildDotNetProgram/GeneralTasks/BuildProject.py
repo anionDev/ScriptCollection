@@ -36,17 +36,6 @@ try:
     
     args = parser.parse_args()
 
-    write_message_to_stdout("arguments:")    
-    write_message_to_stdout("folder_of_csproj_file:"+args.folder_of_csproj_file)
-    write_message_to_stdout("csproj_filename:"+args.csproj_filename)
-    write_message_to_stdout("buildconfiguration:"+args.buildconfiguration)
-    write_message_to_stdout("additional_build_arguments:"+args.additional_build_arguments)
-    write_message_to_stdout("output_directory:"+args.output_directory)
-    write_message_to_stdout("clear_output_directory:"+str(args.clear_output_directory))
-    write_message_to_stdout("runtimeid:"+str(args.runtimeid))
-    write_message_to_stdout("verbosity:"+str(args.verbosity))
-    write_message_to_stdout("framework:"+str(args.framework))
-
     #clear output-directory if desired
     if os.path.isdir(args.output_directory) and args.clear_output_directory:
         shutil.rmtree(args.output_directory)
