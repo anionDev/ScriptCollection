@@ -35,8 +35,8 @@ try:
         commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD",repository_folder,30,0)[1])
         year = str(datetime.datetime.now().year)
         nuspecfilename=configparser.get('general','productname')+".nuspec"
-        copyfile(configparser.get('release','nuspectemplatefile'), os.path.join(configparser.get('build','nugetpublishdirectory'),version,nuspecfilename))
-        os.chdir(os.path.join(configparser.get('build','nugetpublishdirectory'),version))
+        copyfile(configparser.get('release','nuspectemplatefile'), os.path.join(configparser.get('release','nugetpublishdirectory'),version,nuspecfilename))
+        os.chdir(os.path.join(configparser.get('release','nugetpublishdirectory'),version))
         with open(nuspecfilename, encoding="utf-8", mode="r") as f:
           nuspec_content=f.read()
           nuspec_content=nuspec_content.replace('__version__', version)
@@ -47,9 +47,9 @@ try:
           nuspec_content=nuspec_content.replace('__description__', configparser.get('general','description'))
         with open(nuspecfilename, encoding="utf-8", mode="w") as f:
           f.write(nuspec_content)
-        execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}",os.path.join(configparser.get('build','nugetpublishdirectory'),version))
+        execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}",os.path.join(configparser.get('release','nugetpublishdirectory'),version))
         
-        latest_nupkg_folder=configparser.get('build','nugetpublishdirectory')+os.path.sep+version
+        latest_nupkg_folder=configparser.get('release','nugetpublishdirectory')+os.path.sep+version
         latest_nupkg_file=configparser.get('general','productname')+"."+version+".nupkg"
         
         #publish to local nuget-feed
