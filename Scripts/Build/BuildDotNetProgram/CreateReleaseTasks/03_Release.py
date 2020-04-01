@@ -35,7 +35,10 @@ try:
         commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD",repository_folder,30,0)[1])
         year = str(datetime.datetime.now().year)
         nuspecfilename=configparser.get('general','productname')+".nuspec"
-        copyfile(configparser.get('release','nuspectemplatefile'), os.path.join(configparser.get('release','nugetpublishdirectory'),version,nuspecfilename))
+        ensure_directory_exists(os.path.join(configparser.get('release','nugetpublishdirectory'),version))
+        nuspecfolder=os.path.join(configparser.get('release','nugetpublishdirectory'),version)
+        nuspecfullfilename = os.path.join(nuspecfolder,nuspecfilename)
+        copyfile(configparser.get('release','nuspectemplatefile'),nuspecfullfilename)
         os.chdir(os.path.join(configparser.get('release','nugetpublishdirectory'),version))
         with open(nuspecfilename, encoding="utf-8", mode="r") as f:
           nuspec_content=f.read()
@@ -47,14 +50,13 @@ try:
           nuspec_content=nuspec_content.replace('__description__', configparser.get('general','description'))
         with open(nuspecfilename, encoding="utf-8", mode="w") as f:
           f.write(nuspec_content)
-        execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}",os.path.join(configparser.get('release','nugetpublishdirectory'),version))
+        execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}",nuspecfolder)
         
-        latest_nupkg_folder=configparser.get('release','nugetpublishdirectory')+os.path.sep+version
         latest_nupkg_file=configparser.get('general','productname')+"."+version+".nupkg"
         
         #publish to local nuget-feed
         localnugettarget=configparser.get('release','localnugettarget')
-        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",latest_nupkg_folder)
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",nuspecfolder)
         commit(configparser.get('release','localnugettargetrepository'), commitmessage)
     
     commit(configparser.get('release','releaserepository'), commitmessage)
