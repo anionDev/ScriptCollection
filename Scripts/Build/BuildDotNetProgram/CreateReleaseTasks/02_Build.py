@@ -8,6 +8,12 @@ original_directory=os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_directory)
 
+def get_publishdirectory(configparser, version:str):
+    result=configparser.get('build','publishdirectory')
+    result=result.replace("__version__",version)
+    ensure_directory_exists(result)
+    return result
+
 try:
 
     sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Miscellaneous")))
@@ -28,10 +34,9 @@ try:
     productname=configparser.get('general','productname')
     build_tools_folder=abspath(f"..{os.path.sep}GeneralTasks")
     repository_folder=configparser.get('general','repository')
-    version=get_semver_version_from_gitversion(configparser.get('general','repository'))
-    versionspecific_publish_directory=configparser.get('build','publishdirectory')+os.path.sep+version
-    publish_directory= configparser.get('build','publishdirectory')
-    code_coverage_folder=versionspecific_publish_directory
+    version=get_semver_version_from_gitversion(repository_folder)
+    publish_directory    = get_publishdirectory(configparser,version)
+    code_coverage_folder = get_publishdirectory(configparser,version)
 
     argument=""
 

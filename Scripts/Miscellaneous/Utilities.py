@@ -335,3 +335,11 @@ def get_version_from_gitversion(folder:str, variable:str):
 
 def encapsulate_with_quotes(value:str):
     return '"'+value+'"'
+
+def move_content_of_folder(srcDir, dstDir):
+   srcDirFull=resolve_relative_path_from_current_working_directory(srcDir)
+   dstDirFull=resolve_relative_path_from_current_working_directory(dstDir)
+   for file in get_direct_files_of_folder(srcDirFull):
+       shutil.move(file,dstDirFull)
+   for sub_folder in get_direct_folders_of_folder(srcDirFull):
+       shutil.move(sub_folder,dstDirFull)
