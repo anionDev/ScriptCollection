@@ -8,9 +8,9 @@ def repository_has_new_untracked_files(repository_folder:str):
     return repository_has_uncommitted_changes_helper(repository_folder,"ls-files --exclude-standard --others")  
 
 def repository_has_unstaged_changes(repository_folder:str):
-    if(repository_has_uncommitted_changes_helper(repository_folder,"diff"))
+    if(repository_has_uncommitted_changes_helper(repository_folder,"diff")):
         return True
-    if(repository_has_new_untracked_files(repository_folder))
+    if(repository_has_new_untracked_files(repository_folder)):
         return True
     return false
 
