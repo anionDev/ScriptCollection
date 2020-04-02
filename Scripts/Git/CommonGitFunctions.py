@@ -12,7 +12,7 @@ def repository_has_unstaged_changes(repository_folder:str):
         return True
     if(repository_has_new_untracked_files(repository_folder)):
         return True
-    return false
+    return False
 
 def repository_has_staged_changes(repository_folder:str):
     return repository_has_uncommitted_changes_helper(repository_folder,"diff --cached")  
