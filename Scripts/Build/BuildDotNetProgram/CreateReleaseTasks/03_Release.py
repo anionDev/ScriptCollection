@@ -55,6 +55,8 @@ try:
         newtarget=os.path.join(get_publishdirectory(configparser,version),"Binary")
         ensure_directory_exists(newtarget)
         move_content_of_folder(tempdir,newtarget)
+        if configparser.getboolean('build','hastestproject'): 
+            shutil.move(os.path.join(newtarget,configparser.get('general','productname')+".TestCoverage.opencover.xml"),get_publishdirectory(configparser,version))
         os.chdir(get_publishdirectory(configparser,version))
         with open(nuspecfilename, encoding="utf-8", mode="r") as f:
           nuspec_content=f.read()
