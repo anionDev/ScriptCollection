@@ -5,10 +5,10 @@ sys.path.append(str(pathlib.Path(str(pathlib.Path(__file__).parent.absolute())+o
 from Utilities import *
 
 def repository_has_unstaged_changes(repository_folder:str):
-    return repository_has_uncommitted_changes_helper(repository_folder,"diff --exit-code --quiet")  
+    return repository_has_uncommitted_changes_helper(repository_folder,"diff")  
 
 def repository_has_staged_changes(repository_folder:str):
-    return repository_has_uncommitted_changes_helper(repository_folder,"diff --exit-code --quiet --cached")  
+    return repository_has_uncommitted_changes_helper(repository_folder,"diff --cached")  
 
 def repository_has_uncommitted_changes(repository_folder:str):
     if(repository_has_unstaged_changes(repository_folder)):
@@ -18,12 +18,7 @@ def repository_has_uncommitted_changes(repository_folder:str):
     return False
 
 def repository_has_uncommitted_changes_helper(repository_folder:str,argument:str):
-    exit_code = execute_full("git",argument, repository_folder,False,None,600,0)[0]
-    if exit_code==0:
-        return False
-    if exit_code==1:
-        return True
-    raise ValueError(f"'git {argument}' results in exitcode "+str(exitcode))
+    return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git",argument, repository_folder,3600,0)[1])
 
 def get_current_commit_id(repository_folder:str):
     argument="rev-parse --verify HEAD"
