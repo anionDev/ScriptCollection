@@ -1,6 +1,7 @@
 import sys
 import os
 import pathlib
+import time
 sys.path.append(str(pathlib.Path(str(pathlib.Path(__file__).parent.absolute())+os.path.sep+".."+os.path.sep+"Miscellaneous").resolve()))
 from Utilities import *
 
@@ -11,6 +12,7 @@ def repository_has_staged_changes(repository_folder:str):
     return repository_has_uncommitted_changes_helper(repository_folder,"diff --exit-code --quiet --cached")  
 
 def repository_has_uncommitted_changes(repository_folder:str):
+    time.sleep(2)
     if(repository_has_unstaged_changes(repository_folder)):
         return True
     if(repository_has_staged_changes(repository_folder)):
