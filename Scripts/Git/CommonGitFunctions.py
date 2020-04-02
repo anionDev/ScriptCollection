@@ -6,7 +6,7 @@ from Utilities import *
 
 def repository_has_uncommitted_changes(repository_folder:str):
     argument="diff --exit-code --quiet"
-    exit_code = execute_and_raise_exception_if_exit_code_is_not_zero("git",argument, repository_folder)[0]
+    exit_code = execute_full("git",argument, repository_folder)[0]
     if exit_code==0:
         return False
     if exit_code==1:
@@ -15,7 +15,7 @@ def repository_has_uncommitted_changes(repository_folder:str):
 
 def get_current_commit_id(repository_folder:str):
     argument="rev-parse --verify HEAD"
-    result=execute_and_raise_exception_if_exit_code_is_not_zero("git","rev-parse --verify HEAD", repository_folder)
+    result=execute_and_raise_exception_if_exit_code_is_not_zero("git","rev-parse --verify HEAD", repository_folder,30,0)
     return result[1].replace('\r','').replace('\n','')
 
 def push(folder:str, remotename:str, localbranchname:str, remotebranchname:str):
@@ -40,14 +40,12 @@ def clone_if_not_already_done(folder:str, link:str):
     return exit_code
 
 def commit(directory:str, message:str):
-    
-    execute_and_raise_exception_if_exit_code_is_not_zero("git","add -A", directory, 3600)[0]
-
-    argument=f'commit -m "{message}"'
-    exitcode=execute_full("git",argument, directory, 600)[0]
-    if not (exitcode==0):
-        print(f"Warning: 'git {argument}' results in exitcode "+str(exitcode)+". This means that probably either there were no changes to commit or an error occurred while commiting")
-
+    if (repository_has_uncommitted_changes(directory)):
+        write_message_to_stdout(f"Committing all changes in {directory}...")
+        execute_and_raise_exception_if_exit_code_is_not_zero("git","add -A", directory, 3600)[0]
+        execute_and_raise_exception_if_exit_code_is_not_zero("git",f'commit -m "{message}"', directory, 600)[0]     
+    else:
+        write_message_to_stdout(f"There are not changes to commit in {directory}")
     return get_current_commit_id(directory)
 
 def create_tag(directory:str, target_for_tag:str, tag:str):
