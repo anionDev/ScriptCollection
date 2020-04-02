@@ -4,9 +4,21 @@ import pathlib
 sys.path.append(str(pathlib.Path(str(pathlib.Path(__file__).parent.absolute())+os.path.sep+".."+os.path.sep+"Miscellaneous").resolve()))
 from Utilities import *
 
+def repository_has_unstaged_changes(repository_folder:str):
+    return repository_has_uncommitted_changes_helper(repository_folder,"diff --exit-code --quiet")  
+
+def repository_has_staged_changes(repository_folder:str):
+    return repository_has_uncommitted_changes_helper(repository_folder,"diff --exit-code --quiet --cached")  
+
 def repository_has_uncommitted_changes(repository_folder:str):
-    argument="diff --exit-code --quiet"
-    exit_code = execute_full("git",argument, repository_folder)[0]
+    if(repository_has_unstaged_changes(repository_folder)):
+        return True
+    if(repository_has_staged_changes(repository_folder)):
+        return True
+    return False
+
+def repository_has_uncommitted_changes_helper(repository_folder:str,argument:str):
+    exit_code = execute_full("git",argument, repository_folder,False,None,600,0)[0]
     if exit_code==0:
         return False
     if exit_code==1:
@@ -45,7 +57,7 @@ def commit(directory:str, message:str):
         execute_and_raise_exception_if_exit_code_is_not_zero("git","add -A", directory, 3600)[0]
         execute_and_raise_exception_if_exit_code_is_not_zero("git",f'commit -m "{message}"', directory, 600)[0]     
     else:
-        write_message_to_stdout(f"There are not changes to commit in {directory}")
+        write_message_to_stdout(f"There are no changes to commit in {directory}")
     return get_current_commit_id(directory)
 
 def create_tag(directory:str, target_for_tag:str, tag:str):
