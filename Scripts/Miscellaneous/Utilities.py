@@ -326,12 +326,7 @@ def get_semver_version_from_gitversion(folder:str):
     return get_version_from_gitversion(folder,"semVer")
 
 def get_version_from_gitversion(folder:str, variable:str):
-    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
-    import time
-    time.sleep(3) 
-    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
-    #double executing gitversion is a dirty hack because gitversion seems to have problems recognizing the branch ("Multiple branch configurations match the current branch branchName of 'development'. Using the first matching configuration, 'others'. Matching configurations include:..."). Executing gitversion twice seems to be a workaround (while only a simple sleep-call does not seem to work as workaround).
-    return result
+    return strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
 
 def encapsulate_with_quotes(value:str):
     return '"'+value+'"'
