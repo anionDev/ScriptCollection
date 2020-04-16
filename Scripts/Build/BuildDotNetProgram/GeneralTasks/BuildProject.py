@@ -52,7 +52,7 @@ try:
     argument = argument + f' {args.additional_build_arguments}'
 
     #run dotnet build
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', args.folder_of_csproj_file, 120,  True, False, "Build")
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', args.folder_of_csproj_file, 3600, True, False, "Build")
 
 finally:
     os.chdir(original_directory)

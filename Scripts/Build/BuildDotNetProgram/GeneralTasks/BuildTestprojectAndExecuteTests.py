@@ -62,7 +62,7 @@ try:
     argument=argument+" --runtimeid "+args.runtimeid
     argument=argument+" --verbosity "+args.verbosity
     argument=argument+" --framework "+args.framework
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py " + argument, "", 120, True, False, "Build project")
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py " + argument, "", 3600, True, False, "Build project")
 
     #testproject
     if args.has_test_project:
@@ -76,11 +76,11 @@ try:
         testargument = testargument+" --runtimeid "+args.test_runtimeid
         testargument = testargument+" --verbosity "+args.verbosity
         testargument = testargument+" --framework "+args.test_framework
-        execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py " + testargument, "", 120, True, False, "Build testproject")
+        execute_and_raise_exception_if_exit_code_is_not_zero("python", current_directory+os.path.sep+"BuildProject.py " + testargument, "", 3600, True, False, "Build testproject")
 
         #execute testcases
         testcoveragefilename=args.productname+".TestCoverage.opencover.xml"
-        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+args.test_csproj_filename+" -c " +args.buildconfiguration +" --verbosity normal --no-build /p:CollectCoverage=true /p:CoverletOutput="+testcoveragefilename+" /p:CoverletOutputFormat=opencover "+str_none_safe(args.additional_test_arguments),args.folder_of_test_csproj_file, 120, True, False, "Execute tests")
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+args.test_csproj_filename+" -c " +args.buildconfiguration +" --verbosity normal --no-build /p:CollectCoverage=true /p:CoverletOutput="+testcoveragefilename+" /p:CoverletOutputFormat=opencover "+str_none_safe(args.additional_test_arguments),args.folder_of_test_csproj_file, 3600, True, False, "Execute tests")
 
     #clear publish-directory if desired
     if os.path.isdir(args.publish_directory) and args.clear_publish_directory:
