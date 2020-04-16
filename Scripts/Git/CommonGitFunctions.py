@@ -6,12 +6,7 @@ sys.path.append(str(pathlib.Path(str(pathlib.Path(__file__).parent.absolute())+o
 from Utilities import *
 
 def repository_has_new_untracked_files(repository_folder:str):
-    try:
-        return repository_has_uncommitted_changes_helper(repository_folder,"ls-files --exclude-standard --others")
-    except Exception as exception:
-        write_message_to_stdout(">>>>>>>>>>>>>>>>>> y 1")
-        write_exception_to_stderr_with_traceback(exception, traceback)
-        return False
+    return repository_has_uncommitted_changes_helper(repository_folder,"ls-files --exclude-standard --others")
 def repository_has_unstaged_changes(repository_folder:str):
     if(repository_has_uncommitted_changes_helper(repository_folder,"diff")):
         return True
@@ -59,23 +54,13 @@ def clone_if_not_already_done(folder:str, link:str):
     return exit_code
 
 def commit(directory:str, message:str):
-    try:
-        write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 1")
-        if (repository_has_uncommitted_changes(directory)):
-            write_message_to_stdout(f"Committing all changes in {directory}...")
-            execute_and_raise_exception_if_exit_code_is_not_zero("git","add -A", directory, 3600)[0]
-            write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 2")
-            execute_and_raise_exception_if_exit_code_is_not_zero("git",f'commit -m "{message}"', directory, 600)[0]
-            write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 3")
-        else:
-            write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 4")
-            write_message_to_stdout(f"There are no changes to commit in {directory}")
-        write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 9")
-        return get_current_commit_id(directory)
-    except Exception as exception:
-        write_message_to_stdout(">>>>>>>>>>>>>>>>>> y 1")
-        write_exception_to_stderr_with_traceback(exception, traceback)
-        return "00000"
+    if (repository_has_uncommitted_changes(directory)):
+        write_message_to_stdout(f"Committing all changes in {directory}...")
+        execute_and_raise_exception_if_exit_code_is_not_zero("git","add -A", directory, 3600)[0]
+        execute_and_raise_exception_if_exit_code_is_not_zero("git",f'commit -m "{message}"', directory, 600)[0]
+    else:
+        write_message_to_stdout(f"There are no changes to commit in {directory}")
+    return get_current_commit_id(directory)
 
 def create_tag(directory:str, target_for_tag:str, tag:str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git",f"tag {tag} {target_for_tag}", directory, 3600)

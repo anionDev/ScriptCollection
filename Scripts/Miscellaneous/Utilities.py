@@ -85,7 +85,7 @@ def string_to_boolean(value:str):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None,write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero:bool=False):
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=3600,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None,write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero:bool=False):
     result=execute_full(program, arguments, workingdirectory,print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
     if result[0]==0:
         return result
@@ -93,14 +93,14 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:
         if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
             write_message_to_stderr(result[2])
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
-def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=3600,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbosity, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]
 
-def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=3600,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     return execute_full(program,arguments,workingdirectory,print_errors_as_information,log_file,timeoutInSeconds, verbosity, addLogOverhead, title)
 
-def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbosity=1, addLogOverhead:bool=False, title:str=None):
+def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=3600,verbosity=1, addLogOverhead:bool=False, title:str=None):
     if string_is_none_or_whitespace(title):
         title_for_message=""
     else:
