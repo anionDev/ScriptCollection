@@ -54,12 +54,17 @@ def clone_if_not_already_done(folder:str, link:str):
     return exit_code
 
 def commit(directory:str, message:str):
+    write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 1")
     if (repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
         execute_and_raise_exception_if_exit_code_is_not_zero("git","add -A", directory, 3600)[0]
-        execute_and_raise_exception_if_exit_code_is_not_zero("git",f'commit -m "{message}"', directory, 600)[0]     
+        write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 2")
+        execute_and_raise_exception_if_exit_code_is_not_zero("git",f'commit -m "{message}"', directory, 600)[0]
+        write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 3")
     else:
+        write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 4")
         write_message_to_stdout(f"There are no changes to commit in {directory}")
+    write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 9")
     return get_current_commit_id(directory)
 
 def create_tag(directory:str, target_for_tag:str, tag:str):

@@ -79,7 +79,9 @@ try:
         commit(configparser.get('release','localnugettargetrepository'), commitmessage)
     
     commit(configparser.get('build','publishtargetrepository'), commitmessage)
+    write_message_to_stdout(">>>>>>>>>>>>>>>>>> 4")
     commit(configparser.get('release','releaserepository'), commitmessage)
+    write_message_to_stdout(">>>>>>>>>>>>>>>>>> 5")
      
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)

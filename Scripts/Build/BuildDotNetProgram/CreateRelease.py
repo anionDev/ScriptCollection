@@ -24,10 +24,12 @@ try:
     configparser=ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
-    if configparser.getboolean('prepare','prepare'): 
+    if configparser.getboolean('prepare','prepare'):
         execute_task("01_Prepare",configurationfile)
     execute_task("02_Build",configurationfile)
+    write_message_to_stdout(">>>>>>>>>>>>>>>>>>b")
     execute_task("03_Release",configurationfile)
+    write_message_to_stdout(">>>>>>>>>>>>>>>>>>e")
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
