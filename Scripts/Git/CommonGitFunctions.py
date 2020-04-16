@@ -9,7 +9,7 @@ def repository_has_new_untracked_files(repository_folder:str):
     try:
         return repository_has_uncommitted_changes_helper(repository_folder,"ls-files --exclude-standard --others")
     except Exception as exception:
-    write_message_to_stdout(">>>>>>>>>>>>>>>>>> y 1")
+        write_message_to_stdout(">>>>>>>>>>>>>>>>>> y 1")
         write_exception_to_stderr_with_traceback(exception, traceback)
         return False
 def repository_has_unstaged_changes(repository_folder:str):
@@ -73,7 +73,7 @@ def commit(directory:str, message:str):
         write_message_to_stdout(">>>>>>>>>>>>>>>>>> x 9")
         return get_current_commit_id(directory)
     except Exception as exception:
-    write_message_to_stdout(">>>>>>>>>>>>>>>>>> y 1")
+        write_message_to_stdout(">>>>>>>>>>>>>>>>>> y 1")
         write_exception_to_stderr_with_traceback(exception, traceback)
         return "00000"
 
