@@ -338,3 +338,15 @@ def move_content_of_folder(srcDir, dstDir):
        shutil.move(file,dstDirFull)
    for sub_folder in get_direct_folders_of_folder(srcDirFull):
        shutil.move(sub_folder,dstDirFull)
+
+def replace_xmltag_in_file(file, tag:str, new_value:str):
+    with open(file, encoding="utf-8", mode="r") as f:
+      content=f.read()
+      content=re.sub(f"<{tag}>.*<\/{tag}>",f"<{tag}>{new_value}</{tag}>", content)
+    with open(file, encoding="utf-8", mode="w") as f:
+      f.write(content)
+
+def update_version_in_csproj_file(file:str, version:str):
+    replace_xmltag_in_file(file, "Version", version)
+    replace_xmltag_in_file(file, "AssemblyVersion", version + ".0")
+    replace_xmltag_in_file(file, "FileVersion", version + ".0")
