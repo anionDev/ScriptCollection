@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>6e944684-3c5d-42d9-928d-0a34699ce5c3</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Miscellaneous\SearchInFiles.py</StartupFile>
+    <StartupFile>Build\BuildDotNetProgram\BuildAndPublishStarter.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -12,9 +12,9 @@
     <Name>DebugHelper</Name>
     <RootNamespace>DebugHelper</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>Global|PythonCore|3.7</InterpreterId>
+    <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>myarguments</CommandLineArguments>
+    <CommandLineArguments>myargument</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -26,29 +26,145 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.7" />
+  </ItemGroup>
+  <ItemGroup>
     <Folder Include="Bitcoin\" />
     <Folder Include="Build\" />
     <Folder Include="Build\BuildDotNetProgram\" />
+    <Folder Include="Build\BuildDotNetProgram\CreateReleaseTasks\" />
+    <Folder Include="Build\BuildDotNetProgram\GeneralTasks\" />
     <Folder Include="ExecutableFileObfuscation\" />
+    <Folder Include="Git\" />
+    <Folder Include="Git\__pycache__\" />
     <Folder Include="Miscellaneous\" />
-    <Folder Include="Tex\" />
+    <Folder Include="Miscellaneous\GenerateOverviewGraphicsHelper\" />
+    <Folder Include="Miscellaneous\GenerateOverviewGraphicsHelper\Examples\" />
+    <Folder Include="Miscellaneous\GenerateOverviewGraphicsHelper\Examples\SimpleDemo\" />
+    <Folder Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\" />
+    <Folder Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\ObjectTemplates\" />
+    <Folder Include="Miscellaneous\__pycache__\" />
+    <Folder Include="MSSQLServer\" />
+    <Folder Include="ServerMaintenance\" />
+    <Folder Include="ServerMaintenance\Ansible\" />
+    <Folder Include="ServerMaintenance\Manually\" />
+    <Folder Include="VMWare\" />
+    <Folder Include="VMWare\CreateVirtualMachineHelper\" />
+    <Folder Include="WindowsSpecific\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bitcoin\CalculateBlockHeaderHash.py" />
-    <Compile Include="Build\BuildDotNetProgram\BuildProject.py" />
-    <Compile Include="Build\BuildDotNetProgram\BuildTestprojectAndExecuteTests.py" />
-    <Compile Include="Build\BuildDotNetProgram\RestoreNugetPackages.py" />
-    <Compile Include="Build\BuildDotNetProgram\utilities.py" />
+    <Compile Include="Build\BuildDotNetProgram\BuildAndPublish.py" />
+    <Compile Include="Build\BuildDotNetProgram\BuildAndPublishStarter.py" />
+    <Compile Include="Build\BuildDotNetProgram\CreateRelease.py" />
+    <Compile Include="Build\BuildDotNetProgram\CreateReleaseTasks\01_Prepare.py" />
+    <Compile Include="Build\BuildDotNetProgram\CreateReleaseTasks\02_Build.py" />
+    <Compile Include="Build\BuildDotNetProgram\CreateReleaseTasks\03_Release.py" />
+    <Compile Include="Build\BuildDotNetProgram\GeneralTasks\BuildProject.py" />
+    <Compile Include="Build\BuildDotNetProgram\GeneralTasks\BuildTestprojectAndExecuteTests.py" />
+    <Compile Include="Build\BuildDotNetProgram\GeneralTasks\SignAssembly.py" />
     <Compile Include="ExecutableFileObfuscation\ChangeHashOfProgram.py" />
     <Compile Include="ExecutableFileObfuscation\CreateISOFileWithObfuscatedFiles.py" />
     <Compile Include="ExecutableFileObfuscation\FilenameObfuscator.py" />
     <Compile Include="ExecutableFileObfuscation\internal_utilities.py" />
     <Compile Include="ExecutableFileObfuscation\ObfuscateFilesFolder.py" />
+    <Compile Include="Git\CommonGitFunctions.py" />
+    <Compile Include="Miscellaneous\AddSimpleGoogleCalendarEntry.py" />
+    <Compile Include="Miscellaneous\CloneRepository.py" />
+    <Compile Include="Miscellaneous\CreateEmptyFileWithSpecificSize.py" />
+    <Compile Include="Miscellaneous\CreateHashOfAllFiles.py" />
+    <Compile Include="Miscellaneous\GenerateOverviewGraphics.py" />
+    <Compile Include="Miscellaneous\GenerateOverviewGraphicsHelper\Examples\SimpleDemo\BasicExampleConfiguration.py" />
+    <Compile Include="Miscellaneous\GenerateSnkFiles.py" />
+    <Compile Include="Miscellaneous\KeyboardDiagnosis.py" />
+    <Compile Include="Miscellaneous\MergePDFs.py" />
+    <Compile Include="Miscellaneous\OrganizeLinesInFile.py" />
+    <Compile Include="Miscellaneous\ReplaceSubstringsInFilenames.py" />
     <Compile Include="Miscellaneous\SearchInFiles.py" />
-    <Compile Include="Tex\Build.py" />
+    <Compile Include="Miscellaneous\Show2FAAsQRCode.py" />
+    <Compile Include="Miscellaneous\ShowHexDumpOfFile.py" />
+    <Compile Include="Miscellaneous\ShowMissingFiles.py" />
+    <Compile Include="Miscellaneous\UpdateAllPipPackages.py" />
+    <Compile Include="Miscellaneous\Utilities.py" />
+    <Compile Include="Miscellaneous\WipeDisk.py" />
+    <Compile Include="VMWare\CreateVirtualMachine.py" />
+    <Compile Include="VMWare\InstallOperatingSystem.py" />
+    <Compile Include="VMWare\Utilities.py" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|PythonCore|3.7" />
+    <Content Include="Bitcoin\CalculateBlockHeaderHash.py.example" />
+    <Content Include="Build\BuildDotNetProgram\.nuspec.template" />
+    <Content Include="Git\Aliases.gitconfig" />
+    <Content Include="Git\ChangeCommitMessageOfLastCommit" />
+    <Content Include="Git\CommonGitFunctions.ps1" />
+    <Content Include="Git\DetermineWhetherRepositoryHasUncomittedChanges" />
+    <Content Include="Git\EmptyRepositoryOnExtraBranch" />
+    <Content Include="Git\RemoveAllRemotes" />
+    <Content Include="Git\SquashCommits" />
+    <Content Include="Git\TidyUp" />
+    <Content Include="Git\UndoAllChanges" />
+    <Content Include="Git\UndoLastCommitAndDiscardItsChanges" />
+    <Content Include="Git\__pycache__\CommonGitFunctions.cpython-38.pyc" />
+    <Content Include="Miscellaneous\ExecuteCommandForEachDirectSubfolderOfFolder.ps1.template" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Examples\SimpleDemo\Data.json" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Examples\SimpleDemo\Usage" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\Global.svg" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\ObjectTemplates\Array.svg" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\ObjectTemplates\Bool.svg" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\ObjectTemplates\Dictionary.svg" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\ObjectTemplates\Int.svg" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\ObjectTemplates\Null.svg" />
+    <Content Include="Miscellaneous\GenerateOverviewGraphicsHelper\Templates\ObjectTemplates\String.svg" />
+    <Content Include="Miscellaneous\ShowUserGroups.ps1" />
+    <Content Include="Miscellaneous\__pycache__\Utilities.cpython-38.pyc" />
+    <Content Include="MSSQLServer\DisableAllConstraints.sql" />
+    <Content Include="MSSQLServer\EnableAllConstraints.sql" />
+    <Content Include="MSSQLServer\ShowUncomittedChanges.sql" />
+    <Content Include="ServerMaintenance\Ansible\EnsureApache2AndDatabaseAndPHPInstalled.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsureApache2Hardened.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsureApache2Installed.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsureApache2MadeAnonymousViaTor.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsureDatabaseInstalled.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsurePHPBBInstalled.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsurePHPBBWithDependenciesInstalled.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsurePHPInstalled.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsureServerHardened.yml" />
+    <Content Include="ServerMaintenance\Ansible\EnsureTorInstalled.yml" />
+    <Content Include="ServerMaintenance\Ansible\MakeAnonymousForum.sh" />
+    <Content Include="ServerMaintenance\Ansible\MakeAnonymousForum.yml" />
+    <Content Include="ServerMaintenance\Manually\InstallApache.sh" />
+    <Content Include="ServerMaintenance\Manually\InstallIWordpress.sh" />
+    <Content Include="ServerMaintenance\Manually\InstallMariadb.sh" />
+    <Content Include="ServerMaintenance\Manually\InstallPHP.sh" />
+    <Content Include="ServerMaintenance\Manually\InstallPHPBB.sh" />
+    <Content Include="ServerMaintenance\Manually\InstallPHPMAdmin.sh" />
+    <Content Include="ServerMaintenance\Manually\InstallPHPWithWordpressWithRequirements.sh" />
+    <Content Include="ServerMaintenance\Manually\Preparation.sh" />
+    <Content Include="VMWare\CreateVirtualMachineHelper\Template.vmsd" />
+    <Content Include="VMWare\CreateVirtualMachineHelper\Template.vmx" />
+    <Content Include="VMWare\CreateVirtualMachineHelper\Template.vmxf" />
+    <Content Include="WindowsSpecific\AllowRDP.bat" />
+    <Content Include="WindowsSpecific\CreateTarGzFileFromFolder.bat" />
+    <Content Include="WindowsSpecific\DisableQuickStart.bat" />
+    <Content Include="WindowsSpecific\DisableThumbnailCache.reg" />
+    <Content Include="WindowsSpecific\SetEncodingOfConsoleToUTF8.bat" />
+    <Content Include="WindowsSpecific\ShowFileExtensionsInExplorer.bat" />
+    <Content Include="WindowsSpecific\ShowSecondsInSystemClock.bat" />
+    <Content Include="WindowsSpecific\StartCMDAsSystem.bat" />
+    <Content Include="WindowsSpecific\SystemProxyToggle.vbs" />
+    <Content Include="WindowsSpecific\SystemProxyTurnOff.bat" />
+    <Content Include="WindowsSpecific\SystemProxyTurnOn.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="env\">
+      <Id>env</Id>
+      <Version>3.8</Version>
+      <Description>env (Python 3.8 (32-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X86</Architecture>
+    </Interpreter>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

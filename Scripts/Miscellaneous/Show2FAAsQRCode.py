@@ -12,9 +12,9 @@ Then the qr-codes will be displayed in the console and you can scan them on your
 This script does not saving the any data anywhere.
 
 The structure of the csv-file can be viewd here:
-Website;Email-address;Displayname;Secret;Period;
-Amazon.de;myemailaddress@example.com;Amazon;QWERTY;30;
-Google.de;myemailaddress@example.com;Google;ASDFGH;30;
+Displayname;Website;Email-address;Secret;Period;
+Amazon;Amazon.de;myemailaddress@example.com;QWERTY;30;
+Google;Google.de;myemailaddress@example.com;ASDFGH;30;
 
 Hints:
 -Since the first line of the csv-file contains headlines the first line will always be ignored
@@ -33,9 +33,9 @@ with open(args.csvfile) as f:
 lines = [line.rstrip('\n') for line in lines]
 def print_qr_code_by_csv_line(line:str):
     splitted=line.split(";")
-    website=splitted[0]
-    emailaddress=splitted[1]
-    displayname=splitted[2]
+    displayname=splitted[0]
+    website=splitted[1]
+    emailaddress=splitted[2]
     key=splitted[3]    
     period=splitted[4]
     qrcode_content=f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"

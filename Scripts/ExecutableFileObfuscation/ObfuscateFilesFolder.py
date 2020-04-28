@@ -27,7 +27,7 @@ def extension_matchs(file:str,obfuscate_file_extensions):
 obfuscate_all_files=args.extensions=="*"
 if(not obfuscate_all_files):
     if "," in args.extensions:
-	    obfuscate_file_extensions=args.extensions.split(",")
+        obfuscate_file_extensions=args.extensions.split(",")
     else:
         obfuscate_file_extensions=[args.extensions]
 d=internal_utilities.normalize_path(args.inputfolder)

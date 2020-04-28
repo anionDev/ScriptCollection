@@ -8,7 +8,7 @@ os.chdir(current_directory)
 
 try:
 
-    script_folder=f"..{os.path.sep}..{os.path.sep}Miscellaneous"
+    script_folder=f"..{os.path.sep}..{os.path.sep}..{os.path.sep}Miscellaneous"
     sys.path.append(abspath(os.path.join(current_directory,f"{script_folder}")))
     from Utilities import *
     write_message_to_stdout("Start " + os.path.basename(__file__))
@@ -35,7 +35,7 @@ try:
         extension="exe"
     else:
         raise Exception("Only .dll-files and .exe-files can be signed")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /out="{filename}.il" "{filename}.{extension}"', directory, 120,  True, False, "ildasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 120,  True, False, "ildasm")
     execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{args.snkfile}" "{filename}.il"', directory, 120,  True, False, "ilasm")
     os.remove(directory+os.path.sep+filename+".il")
     os.remove(directory+os.path.sep+filename+".res")
