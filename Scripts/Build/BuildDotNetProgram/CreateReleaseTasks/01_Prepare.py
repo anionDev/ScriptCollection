@@ -28,7 +28,7 @@ try:
     checkout(configparser.get('general','repository'),configparser.get('prepare','developmentbranchname'))
     version=get_semver_version_from_gitversion(configparser.get('general','repository'))
     if(configparser.getboolean('prepare','updateversionsincsprojfile')):
-        csproj_file_with_path=configparser.get('build','folderoftestcsprojfile')+os.path.sep+configparser.get('build','csprojfilename')
+        csproj_file_with_path=configparser.get('build','folderofcsprojfile')+os.path.sep+configparser.get('build','csprojfilename')
         update_version_in_csproj_file(csproj_file_with_path,version)
     
     commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'),False)
