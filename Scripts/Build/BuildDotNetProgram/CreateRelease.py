@@ -8,7 +8,7 @@ original_directory=os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 def execute_task(name:str, configurationfile:str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"{name}.py {configurationfile}",os.getcwd(), 200,  1, False, f"Run {name}.py")
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"{name}.py {configurationfile}",os.getcwd(), 3600, 1, False, f"Run {name}.py")
 
 try:
     sys.path.append(abspath(os.path.join(current_directory,f"..{os.path.sep}..{os.path.sep}Miscellaneous")))
@@ -24,7 +24,7 @@ try:
     configparser=ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
-    if configparser.getboolean('prepare','prepare'): 
+    if configparser.getboolean('prepare','prepare'):
         execute_task("01_Prepare",configurationfile)
     execute_task("02_Build",configurationfile)
     execute_task("03_Release",configurationfile)

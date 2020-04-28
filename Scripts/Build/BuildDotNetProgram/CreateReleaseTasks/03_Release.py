@@ -78,8 +78,9 @@ try:
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",get_publishdirectory(configparser,version))
         commit(configparser.get('release','localnugettargetrepository'), commitmessage)
     
+    commit(configparser.get('build','publishtargetrepository'), commitmessage)
     commit(configparser.get('release','releaserepository'), commitmessage)
-    
+     
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
     error_occurred=True

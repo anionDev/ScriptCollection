@@ -1,3 +1,4 @@
+import re
 import base64
 import os
 from subprocess import Popen, PIPE
@@ -85,7 +86,7 @@ def string_to_boolean(value:str):
 def file_is_empty(file:str):
     return os.stat(file).st_size == 0
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None,write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero:bool=False):
+def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=3600,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None,write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero:bool=False):
     result=execute_full(program, arguments, workingdirectory,print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
     if result[0]==0:
         return result
@@ -93,14 +94,14 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program:str, arguments:
         if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
             write_message_to_stderr(result[2])
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
-def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+def execute(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=3600,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     result = execute_raw(program, arguments, workingdirectory, timeoutInSeconds, verbosity, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]
 
-def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=120,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
+def execute_raw(program:str, arguments:str, workingdirectory:str="",timeoutInSeconds:int=3600,verbosity=1, addLogOverhead:bool=False, title:str=None, print_errors_as_information:bool=False, log_file:str=None):
     return execute_full(program,arguments,workingdirectory,print_errors_as_information,log_file,timeoutInSeconds, verbosity, addLogOverhead, title)
 
-def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=120,verbosity=1, addLogOverhead:bool=False, title:str=None):
+def execute_full(program:str, arguments:str, workingdirectory:str="", print_errors_as_information:bool=False, log_file:str=None,timeoutInSeconds=3600,verbosity=1, addLogOverhead:bool=False, title:str=None):
     if string_is_none_or_whitespace(title):
         title_for_message=""
     else:
@@ -311,7 +312,7 @@ def string_is_none_or_empty(string:str):
     if type(string) == str:
         string == ""
     else:
-        raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was "+str(type(test_string)))
+        raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was 'str'")
 
 def string_is_none_or_whitespace(string:str):
     if string_is_none_or_empty(string):
@@ -323,15 +324,10 @@ def strip_new_lines_at_begin_and_end(string:str):
     return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')
 
 def get_semver_version_from_gitversion(folder:str):
-    return get_version_from_gitversion(folder,"semVer")
+    return get_version_from_gitversion(folder,"MajorMinorPatch")
 
 def get_version_from_gitversion(folder:str, variable:str):
-    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
-    import time
-    time.sleep(3) 
-    result=strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
-    #double executing gitversion is a dirty hack because gitversion seems to have problems recognizing the branch ("Multiple branch configurations match the current branch branchName of 'development'. Using the first matching configuration, 'others'. Matching configurations include:..."). Executing gitversion twice seems to be a workaround (while only a simple sleep-call does not seem to work as workaround).
-    return result
+    return strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
 
 def encapsulate_with_quotes(value:str):
     return '"'+value+'"'
@@ -343,3 +339,15 @@ def move_content_of_folder(srcDir, dstDir):
        shutil.move(file,dstDirFull)
    for sub_folder in get_direct_folders_of_folder(srcDirFull):
        shutil.move(sub_folder,dstDirFull)
+
+def replace_xmltag_in_file(file, tag:str, new_value:str):
+    with open(file, encoding="utf-8", mode="r") as f:
+      content=f.read()
+      content=re.sub(f"<{tag}>.*<\/{tag}>",f"<{tag}>{new_value}</{tag}>", content)
+    with open(file, encoding="utf-8", mode="w") as f:
+      f.write(content)
+
+def update_version_in_csproj_file(file:str, version:str):
+    replace_xmltag_in_file(file, "Version", version)
+    replace_xmltag_in_file(file, "AssemblyVersion", version + ".0")
+    replace_xmltag_in_file(file, "FileVersion", version + ".0")

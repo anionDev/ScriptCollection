@@ -63,19 +63,15 @@ try:
     argument=argument + f' --buildconfiguration "' +configparser.get('build','buildconfiguration')+'"'
 
     #build and execute testcases
-    execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 120,  1, False, "Build "+configparser.get('general','productname'))
+    execute_and_raise_exception_if_exit_code_is_not_zero("python",f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}",os.getcwd(), 3600, 1, False, "Build "+configparser.get('general','productname'))
 
     #sign assembly
     if configparser.getboolean('build','signfiles'):
         for file_to_sign in configparser.get('build','filestosign').split(","):
             file_to_sign=file_to_sign.strip()
             snkfile=configparser.get('build','snkfile')
-            execute_and_raise_exception_if_exit_code_is_not_zero("python",f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory}{os.path.sep}{file_to_sign}" --snkfile "{snkfile}"',os.getcwd(), 120,  1, False, "Sign "+file_to_sign)
+            execute_and_raise_exception_if_exit_code_is_not_zero("python",f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory}{os.path.sep}{file_to_sign}" --snkfile "{snkfile}"',os.getcwd(), 3600, 1, False, "Sign "+file_to_sign)
 
-    if configparser.has_option('build','publishtargetrepository'):
-        commitmessage=f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
-        commit(configparser.get('build','publishtargetrepository'), commitmessage)
-    
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
     error_occurred=True
