@@ -38,17 +38,20 @@ try:
     publishdirectory=get_publishdirectory(configparser,version)
     opencoverreportfile=publishdirectory+os.path.sep+configparser.get('general','productname')+".TestCoverage.opencover.xml"
     
-    #execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+opencoverreportfile+'" -targetdir:"'+configparser.get('reference','coveragereportfolder')+'"')
+    execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+opencoverreportfile+'" -targetdir:"'+configparser.get('reference','coveragereportfolder')+'"')
     
     docfx_file_with_path=configparser.get('reference','docfxfile')
     docfxfolder=os.path.dirname(docfx_file_with_path)
     docfxfile=os.path.basename(docfx_file_with_path)
     execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfxfile, docfxfolder)
-    
+
     commitmessage="Updated reference"
-    #commit(configparser.get('reference','referencerepository'), commitmessage)
-    #commit(configparser.get('release','releaserepository'), commitmessage)
-     
+    commit(configparser.get('reference','referencerepository'), commitmessage)
+    commit(configparser.get('release','releaserepository'), commitmessage)
+
+    if configparser.getboolean('reference','exportreference'):
+        execute_and_raise_exception_if_exit_code_is_not_zero(configparser.get('reference','exportreferencescriptfile'))
+        
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
     error_occurred=True
