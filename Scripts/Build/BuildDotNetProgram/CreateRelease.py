@@ -25,9 +25,11 @@ try:
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
     if configparser.getboolean('prepare','prepare'):
-        execute_task("01_Prepare",configurationfile)
-    execute_task("02_Build",configurationfile)
-    execute_task("03_Release",configurationfile)
+        execute_task("01_Prepare", configurationfile)
+    execute_task("02_Build", configurationfile)
+    execute_task("03_Release", configurationfile)
+    if configparser.getboolean('reference','generatereference'):
+        execute_task("04_Reference", configurationfile)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
