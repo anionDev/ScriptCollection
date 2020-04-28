@@ -72,7 +72,7 @@ def merge(directory:str, sourcebranch:str, targetbranch:str, fastforward:bool=Tr
     checkout(directory, targetbranch)
     if(fastforward):
         ff=""
-    else 
+    else:
         ff="--no-ff "
     execute_and_raise_exception_if_exit_code_is_not_zero("git","merge --no-commit "+ff+sourcebranch, directory, 3600)
     commit_id = commit(directory,f"Merge branch '{sourcebranch}' into '{targetbranch}'")

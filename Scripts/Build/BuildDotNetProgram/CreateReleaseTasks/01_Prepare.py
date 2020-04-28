@@ -25,10 +25,10 @@ try:
     configparser=ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
-    commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'),True)
+    commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'),False)
     version=get_semver_version_from_gitversion(configparser.get('general','repository'))
     create_tag(configparser.get('general','repository'), commit_id, configparser.get('prepare','gittagprefix')+ version)
-    commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','masterbranchname'), configparser.get('prepare','developmentbranchname'),False)
+    commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','masterbranchname'), configparser.get('prepare','developmentbranchname'),True)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
