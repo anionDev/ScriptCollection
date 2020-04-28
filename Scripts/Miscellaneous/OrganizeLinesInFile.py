@@ -14,37 +14,60 @@ parser.add_argument('--encoding', default="utf-8", help='Encoding for the file w
 parser.add_argument("--sort", type=string_to_boolean, nargs='?', const=True, default=False, help="Sort lines")
 parser.add_argument("--remove_duplicated_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Remove duplicate lines")
 parser.add_argument("--ignore_first_line", type=string_to_boolean, nargs='?', const=True, default=False, help="Ignores the first line in the file")
+parser.add_argument("--remove_empty_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Removes lines which are empty or contains only whitespaces")
 
 args = parser.parse_args()
 
 if os.path.isfile(args.file):
+
+    #read file
     with open(args.file, 'r', encoding=args.encoding) as f:
         content=f.read()
     lines=content.splitlines()
-    raw_lines=[]
+    
+    #remove trailing newlines
+    temp=[]
     for line in lines:
-     raw_lines.append(line.replace('\r','').replace('\n',''))
-    lines=raw_lines
-    if len(lines) > 0 and args.ignore_first_line:
-        firstLine=lines[0]
-        del lines[0]
-    if len(lines) > 0 and args.ignore_first_line:
-        if args.remove_duplicated_lines:
-            lines=remove_duplicates(lines)
-        if args.sort:
-            lines.sort()
-        is_first_line=True
-        result=""
-        if args.ignore_first_line:
-            lines.insert(0, firstLine)
-        for line in lines:
-            if(is_first_line):
-                is_first_line=False
-            else:
-                result=result+"\n"
-            result=result+line
-        with open(args.file, 'w', encoding=args.encoding) as f:
-            f.write(result)
+        temp.append(line.rstrip())
+    lines=temp
+    
+    #store first line if desired
+    if(len(lines) > 0 and args.ignore_first_line):
+        first_line=lines.pop(0)
+
+    #remove empty lines if desired
+    if args.remove_empty_lines and False:
+        temp=lines
+        lines=[]
+        for line in temp:
+            if(not (string_is_none_or_whitespace(line))):
+                lines.append(line)
+
+    #remove duplicated lines if desired
+    if args.remove_duplicated_lines:
+        lines=remove_duplicates(lines)
+
+    #sort lines if desired
+    if args.sort:
+        lines.sort()
+
+    #reinsert first line
+    if args.ignore_first_line:
+        lines.insert(0, first_line)
+
+    #concat lines separated by newline
+    result=""
+    is_first_line=True
+    for line in lines:
+        if(is_first_line):
+            result=line
+            is_first_line=False
+        else:
+            result=result+'\n'+line
+
+    #write result to file
+    with open(args.file, 'w', encoding=args.encoding) as f:
+        f.write(result)
 else:
     print(f"File '{args.file}' does not exist")
     sys.exit(1)
