@@ -324,7 +324,7 @@ def strip_new_lines_at_begin_and_end(string:str):
     return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')
 
 def get_semver_version_from_gitversion(folder:str):
-    return get_version_from_gitversion(folder,"semVer")
+    return get_version_from_gitversion(folder,"MajorMinorPatch")
 
 def get_version_from_gitversion(folder:str, variable:str):
     return strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable,folder,30,0)[1])
