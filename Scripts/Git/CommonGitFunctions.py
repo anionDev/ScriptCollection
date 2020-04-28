@@ -68,8 +68,12 @@ def create_tag(directory:str, target_for_tag:str, tag:str):
 def checkout(directory:str, branch:str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git","checkout "+branch, directory, 3600)
 
-def merge(directory:str, sourcebranch:str, targetbranch:str):
+def merge(directory:str, sourcebranch:str, targetbranch:str, fastforward:bool=True):
     checkout(directory, targetbranch)
-    execute_and_raise_exception_if_exit_code_is_not_zero("git","merge --no-commit --no-ff "+sourcebranch, directory, 3600)
+    if(fastforward):
+        ff=""
+    else 
+        ff="--no-ff "
+    execute_and_raise_exception_if_exit_code_is_not_zero("git","merge --no-commit "+ff+sourcebranch, directory, 3600)
     commit_id = commit(directory,f"Merge branch '{sourcebranch}' into '{targetbranch}'")
     return commit_id
