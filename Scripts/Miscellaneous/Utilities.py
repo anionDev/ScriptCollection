@@ -1,3 +1,4 @@
+import re
 import base64
 import os
 from subprocess import Popen, PIPE
