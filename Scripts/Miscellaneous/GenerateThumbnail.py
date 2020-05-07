@@ -30,8 +30,8 @@ def create_thumbnails(file:str,length_in_seconds:float,amount_of_images:int,wd:s
 
 def create_thumbnail(outputfilename:str,wd:str,length_in_seconds:float):
     duration=datetime.timedelta(seconds=length_in_seconds)
-    info=f"Duration: {timedelta_to_simple_string(duration)}"
-    argument='-title "'+outputfilename+"\\n"+info+'" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
+    info=timedelta_to_simple_string(duration)
+    argument='-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
     execute_and_raise_exception_if_exit_code_is_not_zero("montage",argument,wd)
 
 amount_of_images=16
