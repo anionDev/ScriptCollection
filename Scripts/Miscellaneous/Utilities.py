@@ -240,6 +240,10 @@ def get_internet_time():
 def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta):
     return abs(datetime.datetime.now() - get_internet_time()) < maximal_tolerance_difference
 
+def timedelta_to_simple_string(delta):
+    return (datetime.datetime(1970,1,1,0,0,0)+delta).strftime('%H:%M:%S')
+    #return str(delta).split(".")[0]
+
 def resolve_relative_path_from_current_working_directory(path:str):
     return resolve_relative_path(path, os.getcwd())
 
