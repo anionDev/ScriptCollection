@@ -53,7 +53,7 @@ try:
         argument=argument + ' --folder_of_test_csproj_file '+encapsulate_with_quotes(configparser.get('build','folderoftestcsprojfile'))
         argument=argument + ' --test_csproj_filename '+encapsulate_with_quotes(configparser.get('build','testcsprojfilename'))
         argument=argument + ' --test_output_directory '+encapsulate_with_quotes(configparser.get('build','testoutputfolder'))
-        argument=argument + ' --test_framework '+encapsulate_with_quotes(configparser.get('build','test_dotnetframework'))
+        argument=argument + ' --test_framework '+encapsulate_with_quotes(configparser.get('build','testdotnetframework'))
         argument=argument + ' --publish_coverage '+str(True)
         argument=argument + ' --code_coverage_folder '+encapsulate_with_quotes(code_coverage_folder)
 
