@@ -1,1 +1,0 @@
-cscript.exe SystemProxyToggle.vbs "on"
