@@ -31,10 +31,10 @@ try:
         csproj_file_with_path=configparser.get('build','folderofcsprojfile')+os.path.sep+configparser.get('build','csprojfilename')
         update_version_in_csproj_file(csproj_file_with_path,version)
         commit(configparser.get('general','repository'), "Updated version in '"+configparser.get('build','csprojfilename')+"'")
-    
+
     commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','developmentbranchname'), configparser.get('prepare','masterbranchname'),False)
     create_tag(configparser.get('general','repository'), commit_id, configparser.get('prepare','gittagprefix')+ version)
-    commit_id=merge(configparser.get('general','repository'), configparser.get('prepare','masterbranchname'), configparser.get('prepare','developmentbranchname'),True)
+    merge(configparser.get('general','repository'), configparser.get('prepare','masterbranchname'), configparser.get('prepare','developmentbranchname'),True)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
