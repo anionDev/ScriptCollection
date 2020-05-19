@@ -56,6 +56,7 @@ try:
         argument=argument + ' --publish_directory '+encapsulate_with_quotes(publish_directory_for_runtime)
         argument=argument + ' --output_directory '+encapsulate_with_quotes(configparser.get('build','buildoutputdirectory'))
         argument=argument + ' --framework '+configparser.get('build','dotnetframework')
+        argument=argument + ' --runtimeid '+runtime
            
         #parameter for testproject
         if configparser.getboolean('build','hastestproject') and runtime_for_tests==runtime: 
