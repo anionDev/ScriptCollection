@@ -1,6 +1,6 @@
 Copyright © 2020 Marius Göcke
 
-The ScriptCollection is licensed under the terms of the MIT-license (see appendix 1).
+ScriptCollection is licensed under the terms of the MIT-license (see appendix 1).
 ScriptCollection uses dependencies which are released under their own license.
 
 ----------------------------------------------------------------------

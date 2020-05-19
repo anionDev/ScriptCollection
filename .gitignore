@@ -3,3 +3,4 @@ gitignored/
 .vs
 *.user
 Scripts/Miscellaneous/GenerateOverviewGraphicsHelper/Examples/SimpleDemo/Result.svg
+Scripts/scriptcollection/scriptcollection.egg-info
