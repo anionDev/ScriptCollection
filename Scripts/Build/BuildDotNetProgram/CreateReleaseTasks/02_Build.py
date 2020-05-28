@@ -41,8 +41,8 @@ try:
     build_tools_folder=abspath(f"..{os.path.sep}GeneralTasks")
     repository_folder=configparser.get('general','repository')
     version=get_semver_version_from_gitversion(repository_folder)
-    publish_directory    = get_publishdirectory(configparser,version)
-    code_coverage_folder = get_publishdirectory(configparser,version)
+    publish_directory = get_publishdirectory(configparser,version)
+    code_coverage_folder = publish_directory
     runtime_for_tests=configparser.get('build','testruntime')
     
     for runtime in get_target_runtimes(configparser):     
