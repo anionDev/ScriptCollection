@@ -1,5 +1,7 @@
 import os
 import sys
+print("test: hello from SCdotnetCreateRelease")
+sys.exit(0)
 from os.path import abspath
 import traceback
 import argparse

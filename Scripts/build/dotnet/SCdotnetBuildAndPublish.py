@@ -1,5 +1,7 @@
 import os
 import sys
+print("test: hello from SCdotnetBuildAndPublish")
+sys.exit(0)
 from os.path import abspath
 import traceback
 import argparse
@@ -23,7 +25,7 @@ try:
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
     logfile=configparser.get('general','logfilefolder')+os.path.sep+configparser.get('general','productname')+"_BuildAndPublish_"+str(datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"BuildAndPublish.py {configurationfile}", current_directory,3600,2,True,"Create"+configparser.get('general','productname')+"Release" ,False,logfile)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", f"SCdotnetCreateRelease.py {configurationfile}", current_directory,3600,2,True,"Create"+configparser.get('general','productname')+"Release" ,False,logfile)
 
 except Exception as exception:
     write_exception_to_stderr_with_traceback(exception, traceback)
