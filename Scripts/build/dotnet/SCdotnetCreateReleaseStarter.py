@@ -1,6 +1,6 @@
 import os
 import sys
-print("test: hello from SCdotnetBuildAndPublish")
+print("test: hello from SCdotnetCreateReleaseStarter")
 sys.exit(0)
 from os.path import abspath
 import traceback
