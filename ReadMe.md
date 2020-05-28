@@ -20,7 +20,7 @@ pip3 install scriptcollection
 
 ## Download sourcecode using git
 
-You can simply git-clone the ScriptCollection and then use the code under the provided license.
+You can simply git-clone the ScriptCollection and then use the scripts under the provided license.
 
 '''
 git clone https://github.com/anionDev/scriptcollection
