@@ -49,7 +49,7 @@ if os.path.isfile(args.file):
 
     #sort lines if desired
     if args.sort:
-        lines.sort()
+        lines=sorted(lines, key=str.casefold)
 
     #reinsert first line
     if args.ignore_first_line:
