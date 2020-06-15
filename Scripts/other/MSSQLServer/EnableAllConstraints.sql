@@ -1,0 +1,1 @@
+EXEC sp_MSforeachtable @command1="ALTER TABLE ? ENABLE TRIGGER ALL"; EXEC sp_MSforeachtable @command1="ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL"; 
