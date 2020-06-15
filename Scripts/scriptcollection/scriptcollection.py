@@ -1,3 +1,4 @@
+scriptcollection_version="0.1.1"
 import re
 import base64
 import os
