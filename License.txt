@@ -1,6 +1,6 @@
 Copyright © 2020 Marius Göcke
 
-ScriptCollection is licensed under the terms of the MIT-license (see appendix 1).
+ScriptCollection itself is licensed under the terms of the MIT-license (see appendix 1).
 ScriptCollection uses dependencies which are released under their own license:
 -keyboard is licensed under the terms of the MIT-license (see appendix 1)
 -PyPDF2 is licensed under the terms of its own license (see appendix 2)
