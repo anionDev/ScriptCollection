@@ -2,8 +2,8 @@ import sys
 import os
 import traceback
 import pathlib
-sys.path.append(str(pathlib.Path(str(pathlib.Path(__file__).parent.absolute())+os.path.sep+".."+os.path.sep+"Miscellaneous").resolve()))
-from Utilities import *
+sys.path.append(str(pathlib.Path(str(pathlib.Path(__file__).parent.absolute())+os.path.sep+".."+os.path.sep+".."+os.path.sep+"scriptcollection").resolve()))
+from scriptcollection import *
 
 def repository_has_new_untracked_files(repository_folder:str):
     return repository_has_uncommitted_changes_helper(repository_folder,"ls-files --exclude-standard --others")
