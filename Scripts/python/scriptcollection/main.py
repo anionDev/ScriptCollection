@@ -27,21 +27,11 @@ from os import listdir
 import datetime
 scriptcollection_version = "1.0.0"
 
-# <console_scripts>
-
-# <SCDotNetCreateReleaseBuildGeneral_cli>
+# <SCDotNetCreateReleaseBuildGeneral>
 
 
-def SCDotNetCreateReleaseBuildGeneral():
-    pass  # todo
-
-
-def SCDotNetCreateReleaseBuildGeneral_cli():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    configurationfile = args.configurationfile
+def SCDotNetCreateReleaseBuildGeneral(configurationfile: str):
+    configurationfile = configurationfile
     write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
 
     configparser = ConfigParser()
@@ -91,11 +81,19 @@ def SCDotNetCreateReleaseBuildGeneral_cli():
             for file_to_sign in configparser.get('build', 'filestosign').split(","):
                 file_to_sign = file_to_sign.strip()
                 snkfile = configparser.get('build', 'snkfile')
-                execute_and_raise_exception_if_exit_code_is_not_zero("python", f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory_for_runtime}{os.path.sep}{file_to_sign}" --snkfile "{snkfile}"', os.getcwd(), 3600, 1, False, "Sign "+file_to_sign)
+                SCDotNetCreateReleaseSignAssembly(publish_directory_for_runtime+os.path.sep+file_to_sign, snkfile)
 
-# </SCDotNetCreateReleaseBuildGeneral_cli>
 
-# <SCDotNetCreateReleaseBuildProject_cli>
+def SCDotNetCreateReleaseBuildGeneral_cli():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    SCDotNetCreateReleaseBuildGeneral(args.configurationfile)
+
+# </SCDotNetCreateReleaseBuildGeneral>
+
+# <SCDotNetCreateReleaseBuildProject>
 
 
 def SCDotNetCreateReleaseBuildProject():
@@ -136,9 +134,9 @@ def SCDotNetCreateReleaseBuildProject_cli():
     # run dotnet build
     execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', args.folder_of_csproj_file, 3600, True, False, "Build")
 
-# </SCDotNetCreateReleaseBuildProject_cli>
+# </SCDotNetCreateReleaseBuildProject>
 
-# <SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli>
+# <SCDotNetCreateReleaseBuildTestprojectAndExecuteTests>
 
 
 def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests():
@@ -219,51 +217,36 @@ def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli():
     if args.publish_coverage and args.has_test_project:
         shutil.copy(args.folder_of_test_csproj_file+os.path.sep+testcoveragefilename, args.code_coverage_folder)
 
-# </SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli>
+# </SCDotNetCreateReleaseBuildTestprojectAndExecuteTests>
 
-# <SCdotnetCreateReleaseGeneral_cli>
-
-
-def SCdotnetCreateReleaseGeneral():
-    pass  # todo
+# <SCdotnetCreateReleaseGeneral>
 
 
-def SCdotnetCreateReleaseGeneral_cli():
-
-    def execute_task(name: str, configurationfile: str):
-        execute_and_raise_exception_if_exit_code_is_not_zero(name, configurationfile, os.getcwd(), 3600, 1, False, f"Run {name}.py")
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    configurationfile = args.configurationfile
-    write_message_to_stdout(f"Run generic releasescript with configurationfile '{configurationfile}'")
+def SCdotnetCreateReleaseGeneral(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
     if configparser.getboolean('prepare', 'prepare'):
-        execute_task("SCDotNetCreateBuildBuildProjectPrepare", configurationfile)
-    execute_task("SCDotNetCreateBuildBuildProjectBuild", configurationfile)
-    execute_task("SCDotNetCreateBuildBuildProjectRelease", configurationfile)
+        SCDotNetCreateReleasePrepare(configurationfile)
+    SCDotNetCreateReleaseBuildGeneral(configurationfile)
+    SCDotNetCreateReleaseRelease(configurationfile)
     if configparser.getboolean('reference', 'generatereference'):
-        execute_task("SCDotNetCreateBuildBuildProjectReference", configurationfile)
-
-# </SCdotnetCreateReleaseGeneral_cli>
-
-# <SCDotNetCreateReleasePrepare_cli>
+        SCDotNetCreateReleaseReference(configurationfile)
 
 
-def SCDotNetCreateReleasePrepare():
-    pass  # todo
-
-
-def SCDotNetCreateReleasePrepare_cli():
-
+def SCdotnetCreateReleaseGeneral_cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    configurationfile = args.configurationfile
-    write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
+    SCdotnetCreateReleaseGeneral(args.configurationfile)
+
+
+# </SCdotnetCreateReleaseGeneral>
+
+# <SCDotNetCreateReleasePrepare>
+
+
+def SCDotNetCreateReleasePrepare(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
@@ -278,23 +261,19 @@ def SCDotNetCreateReleasePrepare_cli():
     git_create_tag(configparser.get('general', 'repository'), commit_id, configparser.get('prepare', 'gittagprefix') + version)
     git_merge(configparser.get('general', 'repository'), configparser.get('prepare', 'masterbranchname'), configparser.get('prepare', 'developmentbranchname'), True)
 
-# </SCDotNetCreateReleasePrepare_cli>
 
-# <SCDotNetCreateReleaseReference_cli>
-
-
-def SCDotNetCreateReleaseReference():
-    pass  # todo
-
-
-def SCDotNetCreateReleaseReference_cli():
-
+def SCDotNetCreateReleasePrepare_cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    configurationfile = args.configurationfile
-    write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
+    SCDotNetCreateReleasePrepare(args.configurationfile)
 
+# </SCDotNetCreateReleasePrepare>
+
+# <SCDotNetCreateReleaseReference>
+
+
+def SCDotNetCreateReleaseReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
@@ -318,23 +297,19 @@ def SCDotNetCreateReleaseReference_cli():
     if configparser.getboolean('reference', 'exportreference'):
         execute_and_raise_exception_if_exit_code_is_not_zero(configparser.get('reference', 'exportreferencescriptfile'))
 
-# </SCDotNetCreateReleaseReference_cli>
 
-# <SCDotNetCreateReleaseRelease_cli>
-
-
-def SCDotNetCreateReleaseRelease():
-    pass  # todo
-
-
-def SCDotNetCreateReleaseRelease_cli():
-
+def SCDotNetCreateReleaseReference_cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    configurationfile = args.configurationfile
-    write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
+    SCDotNetCreateReleaseReference(args.configurationfile)
 
+# </SCDotNetCreateReleaseReference>
+
+# <SCDotNetCreateReleaseRelease>
+
+
+def SCDotNetCreateReleaseRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     repository_folder = configparser.get('general', 'repository')
@@ -384,27 +359,24 @@ def SCDotNetCreateReleaseRelease_cli():
     git_commit(configparser.get('build', 'publishtargetrepository'), commitmessage)
     git_commit(configparser.get('release', 'releaserepository'), commitmessage)
 
-# </SCDotNetCreateReleaseRelease_cli>
 
-# <SCDotNetCreateReleaseSignAssembly_cli>
-
-
-def SCDotNetCreateReleaseSignAssembly():
-    pass  # todo
-
-
-def SCDotNetCreateReleaseSignAssembly_cli():
-
-    parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download required nuget-packages.')
-    parser.add_argument('--dllfile', help='Specifies the dllfile which should be signed')
-    parser.add_argument('--snkfile', help='Specifies the .snk-file which should be used')
-
+def SCDotNetCreateReleaseRelease_cli(configurationfile: str):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("configurationfile")
     args = parser.parse_args()
-    snk_file = resolve_relative_path_from_current_working_directory(args.snkfile)
+    SCDotNetCreateReleaseRelease(args.configurationfile)
+
+# </SCDotNetCreateReleaseRelease>
+
+# <SCDotNetCreateReleaseSignAssembly>
+
+
+def SCDotNetCreateReleaseSignAssembly(dllfile: str, snkfile: str):
+    snk_file = resolve_relative_path_from_current_working_directory(snkfile)
     if(os.path.isfile(snk_file)):
-        file = resolve_relative_path_from_current_working_directory(args.dllfile)
-        directory = os.path.dirname(file)
-        filename = os.path.basename(file)
+        dllfile = resolve_relative_path_from_current_working_directory(dllfile)
+        directory = os.path.dirname(dllfile)
+        filename = os.path.basename(dllfile)
         if filename.lower().endswith(".dll"):
             filename = filename[:-4]
             extension = "dll"
@@ -420,32 +392,36 @@ def SCDotNetCreateReleaseSignAssembly_cli():
     else:
         raise Exception(f".snk-file '{snk_file}' does not exist")
 
-# </SCDotNetCreateReleaseSignAssembly_cli>
 
-# <SCdotnetCreateReleaseStarter_cli>
-
-
-def SCdotnetCreateReleaseStarter():
-    pass  # todo
-
-
-def SCdotnetCreateReleaseStarter_cli():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("configurationfile")
+def SCDotNetCreateReleaseSignAssembly_cli():
+    parser = argparse.ArgumentParser(description='Signs a dll-file')
+    parser.add_argument('--dllfile', help='Specifies the dllfile which should be signed')
+    parser.add_argument('--snkfile', help='Specifies the .snk-file which should be used')
     args = parser.parse_args()
-    configurationfile = args.configurationfile
-    write_message_to_stdout(f"Run generic releasescript with configurationfile '{configurationfile}'")
+    SCDotNetCreateReleaseSignAssembly(args.dllfile, args.snkfile)
 
+# </SCDotNetCreateReleaseSignAssembly>
+
+# <SCdotnetCreateReleaseStarter>
+
+
+def SCdotnetCreateReleaseStarter(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
     logfile = configparser.get('general', 'logfilefolder')+os.path.sep+configparser.get('general', 'productname')+"_BuildAndPublish_"+str(datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
     execute_and_raise_exception_if_exit_code_is_not_zero("SCdotnetCreateRelease.py", configurationfile, "", 3600, 2, True, "Create"+configparser.get('general', 'productname')+"Release", False, logfile)
 
-# </SCdotnetCreateReleaseStarter_cli>
 
-# <SCGenerateThumbnail_cli>
+def SCdotnetCreateReleaseStarter_cli():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    SCdotnetCreateReleaseStarter(args.configurationfile)
+
+# </SCdotnetCreateReleaseStarter>
+
+# <SCGenerateThumbnail>
 
 
 def calculate_lengh_in_seconds(file: str, wd: str):
@@ -466,19 +442,10 @@ def create_thumbnail(outputfilename: str, wd: str, length_in_seconds: float, tem
     execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, wd)
 
 
-def SCGenerateThumbnail():
-    pass  # todo
-
-
-def SCGenerateThumbnail_cli():
-    parser = argparse.ArgumentParser(description='Generate thumpnails for video-files')
-    parser.add_argument('file', help='Input-videofile for thumbnail-generation')
-
-    args = parser.parse_args()
+def SCGenerateThumbnail(file: str):
     tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
     amount_of_images = 16
-    file = args.file
     filename = os.path.basename(file)
     folder = os.path.dirname(file)
     filename_without_extension = Path(file).stem
@@ -492,9 +459,16 @@ def SCGenerateThumbnail_cli():
             file = str(thumbnail_to_delete)
             os.remove(file)
 
-# </SCGenerateThumbnail_cli>
 
-# <SCKeyboardDiagnosis_cli>
+def SCGenerateThumbnail_cli():
+    parser = argparse.ArgumentParser(description='Generate thumpnails for video-files')
+    parser.add_argument('file', help='Input-videofile for thumbnail-generation')
+    args = parser.parse_args()
+    SCGenerateThumbnail(args.file)
+
+# </SCGenerateThumbnail>
+
+# <SCKeyboardDiagnosis>
 
 
 def private_keyhook(event):
@@ -506,55 +480,37 @@ def SCKeyboardDiagnosis_cli():
     while True:
         time.sleep(10)
 
-# </SCKeyboardDiagnosis_cli>
+# </SCKeyboardDiagnosis>
 
-# <SCMergePDFs_cli>
+# <SCMergePDFs>
 
 
-def SCMergePDFs():
-    pass  # todo
+def SCMergePDFs(files, outputfile: str):
+    # TODO add wildcard-option
+    pdfFileMerger = PdfFileMerger()
+    for file in files:
+        pdfFileMerger.append(file.strip())
+    pdfFileMerger.write(outputfile)
+    pdfFileMerger.close()
 
 
 def SCMergePDFs_cli():
-
     parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"')
     parser.add_argument('files', help='Comma-separated filenames')
     parser.add_argument('outputfile', help='File for the resulting pdf-document')
     args = parser.parse_args()
+    SCMergePDFs(args.files.split(','), args.outputfile)
 
-    # TODO add wildcard-option
-    files = args.files.split(',')
-    pdfFileMerger = PdfFileMerger()
-    for file in files:
-        pdfFileMerger.append(file)
-    pdfFileMerger.write(args.outputfile)
-    pdfFileMerger.close()
+# </SCMergePDFs>
 
-# </SCMergePDFs_cli>
-
-# <SCOrganizeLinesInFile_cli>
+# <SCOrganizeLinesInFile>
 
 
-def SCOrganizeLinesInFile():
-    pass  # todo
-
-
-def SCOrganizeLinesInFile_cli():
-    parser = argparse.ArgumentParser(description='Processes the lines of a file with the given commands')
-
-    parser.add_argument('file', help='File which should be transformed')
-    parser.add_argument('--encoding', default="utf-8", help='Encoding for the file which should be transformed')
-    parser.add_argument("--sort", type=string_to_boolean, nargs='?', const=True, default=False, help="Sort lines")
-    parser.add_argument("--remove_duplicated_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Remove duplicate lines")
-    parser.add_argument("--ignore_first_line", type=string_to_boolean, nargs='?', const=True, default=False, help="Ignores the first line in the file")
-    parser.add_argument("--remove_empty_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Removes lines which are empty or contains only whitespaces")
-
-    args = parser.parse_args()
-
-    if os.path.isfile(args.file):
+def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False, remove_empty_lines: bool = True):
+    if os.path.isfile(file):
 
         # read file
-        with open(args.file, 'r', encoding=args.encoding) as f:
+        with open(file, 'r', encoding=encoding) as f:
             content = f.read()
         lines = content.splitlines()
 
@@ -565,11 +521,11 @@ def SCOrganizeLinesInFile_cli():
         lines = temp
 
         # store first line if desired
-        if(len(lines) > 0 and args.ignore_first_line):
+        if(len(lines) > 0 and ignore_first_line):
             first_line = lines.pop(0)
 
         # remove empty lines if desired
-        if args.remove_empty_lines and False:
+        if remove_empty_lines and False:
             temp = lines
             lines = []
             for line in temp:
@@ -577,15 +533,15 @@ def SCOrganizeLinesInFile_cli():
                     lines.append(line)
 
         # remove duplicated lines if desired
-        if args.remove_duplicated_lines:
+        if remove_duplicated_lines:
             lines = remove_duplicates(lines)
 
         # sort lines if desired
-        if args.sort:
+        if sort:
             lines = sorted(lines, key=str.casefold)
 
         # reinsert first line
-        if args.ignore_first_line:
+        if ignore_first_line:
             lines.insert(0, first_line)
 
         # concat lines separated by newline
@@ -599,27 +555,42 @@ def SCOrganizeLinesInFile_cli():
                 result = result+'\n'+line
 
         # write result to file
-        with open(args.file, 'w', encoding=args.encoding) as f:
+        with open(file, 'w', encoding=encoding) as f:
             f.write(result)
     else:
-        print(f"File '{args.file}' does not exist")
-        sys.exit(1)
-
-# </SCOrganizeLinesInFile_cli>
-
-# <SCPythonCreateRelease_cli>
+        print(f"File '{file}' does not exist")
 
 
-def SCPythonCreateRelease():
+def SCOrganizeLinesInFile_cli():
+    parser = argparse.ArgumentParser(description='Processes the lines of a file with the given commands')
+
+    parser.add_argument('file', help='File which should be transformed')
+    parser.add_argument('--encoding', default="utf-8", help='Encoding for the file which should be transformed')
+    parser.add_argument("--sort", type=string_to_boolean, nargs='?', const=True, default=False, help="Sort lines")
+    parser.add_argument("--remove_duplicated_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Remove duplicate lines")
+    parser.add_argument("--ignore_first_line", type=string_to_boolean, nargs='?', const=True, default=False, help="Ignores the first line in the file")
+    parser.add_argument("--remove_empty_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Removes lines which are empty or contains only whitespaces")
+
+    args = parser.parse_args()
+    SCOrganizeLinesInFile(args.file, args.encoding, args.sort, args.remove_duplicated_lines, args.ignore_first_line, args.remove_empty_lines)
+
+
+# </SCOrganizeLinesInFile>
+
+# <SCPythonCreateRelease>
+
+
+def SCPythonCreateRelease(configurationfile: str):
     pass  # todo
 
 
 def SCPythonCreateRelease_cli():
-    pass  # todo
+    parser = argparse.ArgumentParser()
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    SCPythonCreateRelease(args.configurationfile)
 
-# </SCPythonCreateRelease_cli>
-
-# </console_scripts>
+# </SCPythonCreateRelease>
 
 # <miscellaneous>
 
