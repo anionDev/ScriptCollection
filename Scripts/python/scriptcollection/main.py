@@ -32,6 +32,10 @@ scriptcollection_version = "1.0.0"
 # <SCDotNetCreateReleaseBuildGeneral_cli>
 
 
+def SCDotNetCreateReleaseBuildGeneral():
+    pass  # todo
+
+
 def SCDotNetCreateReleaseBuildGeneral_cli():
 
     parser = argparse.ArgumentParser()
@@ -94,6 +98,10 @@ def SCDotNetCreateReleaseBuildGeneral_cli():
 # <SCDotNetCreateReleaseBuildProject_cli>
 
 
+def SCDotNetCreateReleaseBuildProject():
+    pass  # todo
+
+
 def SCDotNetCreateReleaseBuildProject_cli():
 
     parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download required nuget-packages.')
@@ -131,6 +139,10 @@ def SCDotNetCreateReleaseBuildProject_cli():
 # </SCDotNetCreateReleaseBuildProject_cli>
 
 # <SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli>
+
+
+def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests():
+    pass  # todo
 
 
 def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli():
@@ -212,6 +224,10 @@ def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli():
 # <SCdotnetCreateReleaseGeneral_cli>
 
 
+def SCdotnetCreateReleaseGeneral():
+    pass  # todo
+
+
 def SCdotnetCreateReleaseGeneral_cli():
 
     def execute_task(name: str, configurationfile: str):
@@ -235,6 +251,10 @@ def SCdotnetCreateReleaseGeneral_cli():
 # </SCdotnetCreateReleaseGeneral_cli>
 
 # <SCDotNetCreateReleasePrepare_cli>
+
+
+def SCDotNetCreateReleasePrepare():
+    pass  # todo
 
 
 def SCDotNetCreateReleasePrepare_cli():
@@ -261,6 +281,10 @@ def SCDotNetCreateReleasePrepare_cli():
 # </SCDotNetCreateReleasePrepare_cli>
 
 # <SCDotNetCreateReleaseReference_cli>
+
+
+def SCDotNetCreateReleaseReference():
+    pass  # todo
 
 
 def SCDotNetCreateReleaseReference_cli():
@@ -297,6 +321,10 @@ def SCDotNetCreateReleaseReference_cli():
 # </SCDotNetCreateReleaseReference_cli>
 
 # <SCDotNetCreateReleaseRelease_cli>
+
+
+def SCDotNetCreateReleaseRelease():
+    pass  # todo
 
 
 def SCDotNetCreateReleaseRelease_cli():
@@ -361,6 +389,10 @@ def SCDotNetCreateReleaseRelease_cli():
 # <SCDotNetCreateReleaseSignAssembly_cli>
 
 
+def SCDotNetCreateReleaseSignAssembly():
+    pass  # todo
+
+
 def SCDotNetCreateReleaseSignAssembly_cli():
 
     parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download required nuget-packages.')
@@ -391,6 +423,10 @@ def SCDotNetCreateReleaseSignAssembly_cli():
 # </SCDotNetCreateReleaseSignAssembly_cli>
 
 # <SCdotnetCreateReleaseStarter_cli>
+
+
+def SCdotnetCreateReleaseStarter():
+    pass  # todo
 
 
 def SCdotnetCreateReleaseStarter_cli():
@@ -428,6 +464,10 @@ def create_thumbnail(outputfilename: str, wd: str, length_in_seconds: float, tem
     info = timedelta_to_simple_string(duration)
     argument = '-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
     execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, wd)
+
+
+def SCGenerateThumbnail():
+    pass  # todo
 
 
 def SCGenerateThumbnail_cli():
@@ -471,6 +511,10 @@ def SCKeyboardDiagnosis_cli():
 # <SCMergePDFs_cli>
 
 
+def SCMergePDFs():
+    pass  # todo
+
+
 def SCMergePDFs_cli():
 
     parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"')
@@ -489,6 +533,10 @@ def SCMergePDFs_cli():
 # </SCMergePDFs_cli>
 
 # <SCOrganizeLinesInFile_cli>
+
+
+def SCOrganizeLinesInFile():
+    pass  # todo
 
 
 def SCOrganizeLinesInFile_cli():
@@ -560,6 +608,10 @@ def SCOrganizeLinesInFile_cli():
 # </SCOrganizeLinesInFile_cli>
 
 # <SCPythonCreateRelease_cli>
+
+
+def SCPythonCreateRelease():
+    pass  # todo
 
 
 def SCPythonCreateRelease_cli():
