@@ -773,9 +773,9 @@ def extract_archive_with_7z(unzip_file: str, file: str, password: str, output_di
     file_folder = os.path.dirname(file)
     argument = "x"
     if password_set:
-        argument = argument+" -p\""+password+"\""
-    argument = argument+" -o"+output_directory
-    argument = argument+" "+file_name
+        argument = f"{argument} -p\"{password}\""
+    argument = f"{argument} -o {output_directory}"
+    argument = f"{argument} {file_name}"
     return execute(unzip_file, argument, file_folder)
 
 
@@ -790,7 +790,6 @@ def system_time_equals_internet_time(maximal_tolerance_difference: datetime.time
 
 def timedelta_to_simple_string(delta):
     return (datetime.datetime(1970, 1, 1, 0, 0, 0)+delta).strftime('%H:%M:%S')
-    # return str(delta).split(".")[0]
 
 
 def resolve_relative_path_from_current_working_directory(path: str):
@@ -997,7 +996,7 @@ def git_clone_if_not_already_done(folder: str, link: str):
             argument = f"clone {link} --recurse-submodules --remote-submodules"
             execute_exit_code = execute_and_raise_exception_if_exit_code_is_not_zero(f"git {argument}", argument, original_cwd)[0]
             if execute_exit_code != 0:
-                print(f"'git {argument}' had exitcode "+str(execute_exit_code))
+                print(f"'git {argument}' had exitcode {str(execute_exit_code)}")
                 exit_code = execute_exit_code
     finally:
         os.chdir(original_cwd)
