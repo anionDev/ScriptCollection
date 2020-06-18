@@ -27,6 +27,7 @@ from os import listdir
 import datetime
 scriptcollection_version = "1.0.0"
 
+# <console_scripts>
 
 # <SCDotNetCreateReleaseBuildGeneral_cli>
 
@@ -88,10 +89,11 @@ def SCDotNetCreateReleaseBuildGeneral_cli():
                 snkfile = configparser.get('build', 'snkfile')
                 execute_and_raise_exception_if_exit_code_is_not_zero("python", f'{build_tools_folder}{os.path.sep}SignAssembly.py --dllfile "{publish_directory_for_runtime}{os.path.sep}{file_to_sign}" --snkfile "{snkfile}"', os.getcwd(), 3600, 1, False, "Sign "+file_to_sign)
 
-
 # </SCDotNetCreateReleaseBuildGeneral_cli>
 
 # <SCDotNetCreateReleaseBuildProject_cli>
+
+
 def SCDotNetCreateReleaseBuildProject_cli():
 
     parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download required nuget-packages.')
@@ -126,9 +128,11 @@ def SCDotNetCreateReleaseBuildProject_cli():
     # run dotnet build
     execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', args.folder_of_csproj_file, 3600, True, False, "Build")
 
-
 # </SCDotNetCreateReleaseBuildProject_cli>
+
 # <SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli>
+
+
 def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli():
 
     parser = argparse.ArgumentParser(description='Builds a program using msbuild and execute the defined testcases')
@@ -203,9 +207,11 @@ def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli():
     if args.publish_coverage and args.has_test_project:
         shutil.copy(args.folder_of_test_csproj_file+os.path.sep+testcoveragefilename, args.code_coverage_folder)
 
-
 # </SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli>
+
 # <SCdotnetCreateReleaseGeneral_cli>
+
+
 def SCdotnetCreateReleaseGeneral_cli():
 
     def execute_task(name: str, configurationfile: str):
@@ -226,9 +232,11 @@ def SCdotnetCreateReleaseGeneral_cli():
     if configparser.getboolean('reference', 'generatereference'):
         execute_task("SCDotNetCreateBuildBuildProjectReference", configurationfile)
 
-
 # </SCdotnetCreateReleaseGeneral_cli>
+
 # <SCDotNetCreateReleasePrepare_cli>
+
+
 def SCDotNetCreateReleasePrepare_cli():
 
     parser = argparse.ArgumentParser()
@@ -239,18 +247,19 @@ def SCDotNetCreateReleasePrepare_cli():
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
 
-    checkout(configparser.get('general', 'repository'), configparser.get('prepare', 'developmentbranchname'))
+    git_checkout(configparser.get('general', 'repository'), configparser.get('prepare', 'developmentbranchname'))
     version = get_semver_version_from_gitversion(configparser.get('general', 'repository'))
     if(configparser.getboolean('prepare', 'updateversionsincsprojfile')):
         csproj_file_with_path = configparser.get('build', 'folderofcsprojfile')+os.path.sep+configparser.get('build', 'csprojfilename')
         update_version_in_csproj_file(csproj_file_with_path, version)
-        commit(configparser.get('general', 'repository'), "Updated version in '"+configparser.get('build', 'csprojfilename')+"'")
+        git_commit(configparser.get('general', 'repository'), "Updated version in '"+configparser.get('build', 'csprojfilename')+"'")
 
-    commit_id = merge(configparser.get('general', 'repository'), configparser.get('prepare', 'developmentbranchname'), configparser.get('prepare', 'masterbranchname'), False)
-    create_tag(configparser.get('general', 'repository'), commit_id, configparser.get('prepare', 'gittagprefix') + version)
-    merge(configparser.get('general', 'repository'), configparser.get('prepare', 'masterbranchname'), configparser.get('prepare', 'developmentbranchname'), True)
+    commit_id = git_merge(configparser.get('general', 'repository'), configparser.get('prepare', 'developmentbranchname'), configparser.get('prepare', 'masterbranchname'), False)
+    git_create_tag(configparser.get('general', 'repository'), commit_id, configparser.get('prepare', 'gittagprefix') + version)
+    git_merge(configparser.get('general', 'repository'), configparser.get('prepare', 'masterbranchname'), configparser.get('prepare', 'developmentbranchname'), True)
 
 # </SCDotNetCreateReleasePrepare_cli>
+
 # <SCDotNetCreateReleaseReference_cli>
 
 
@@ -279,15 +288,17 @@ def SCDotNetCreateReleaseReference_cli():
     execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfxfile, docfxfolder)
 
     commitmessage = "Updated reference"
-    commit(configparser.get('reference', 'referencerepository'), commitmessage)
-    commit(configparser.get('release', 'releaserepository'), commitmessage)
+    git_commit(configparser.get('reference', 'referencerepository'), commitmessage)
+    git_commit(configparser.get('release', 'releaserepository'), commitmessage)
 
     if configparser.getboolean('reference', 'exportreference'):
         execute_and_raise_exception_if_exit_code_is_not_zero(configparser.get('reference', 'exportreferencescriptfile'))
 
-
 # </SCDotNetCreateReleaseReference_cli>
+
 # <SCDotNetCreateReleaseRelease_cli>
+
+
 def SCDotNetCreateReleaseRelease_cli():
 
     parser = argparse.ArgumentParser()
@@ -340,14 +351,16 @@ def SCDotNetCreateReleaseRelease_cli():
         # publish to local nuget-feed
         localnugettarget = configparser.get('release', 'localnugettarget')
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", get_publishdirectory(configparser, version))
-        commit(configparser.get('release', 'localnugettargetrepository'), commitmessage)
+        git_commit(configparser.get('release', 'localnugettargetrepository'), commitmessage)
 
-    commit(configparser.get('build', 'publishtargetrepository'), commitmessage)
-    commit(configparser.get('release', 'releaserepository'), commitmessage)
-
+    git_commit(configparser.get('build', 'publishtargetrepository'), commitmessage)
+    git_commit(configparser.get('release', 'releaserepository'), commitmessage)
 
 # </SCDotNetCreateReleaseRelease_cli>
+
 # <SCDotNetCreateReleaseSignAssembly_cli>
+
+
 def SCDotNetCreateReleaseSignAssembly_cli():
 
     parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download required nuget-packages.')
@@ -376,6 +389,7 @@ def SCDotNetCreateReleaseSignAssembly_cli():
         raise Exception(f".snk-file '{snk_file}' does not exist")
 
 # </SCDotNetCreateReleaseSignAssembly_cli>
+
 # <SCdotnetCreateReleaseStarter_cli>
 
 
@@ -394,6 +408,7 @@ def SCdotnetCreateReleaseStarter_cli():
     execute_and_raise_exception_if_exit_code_is_not_zero("SCdotnetCreateRelease.py", configurationfile, "", 3600, 2, True, "Create"+configparser.get('general', 'productname')+"Release", False, logfile)
 
 # </SCdotnetCreateReleaseStarter_cli>
+
 # <SCGenerateThumbnail_cli>
 
 
@@ -436,20 +451,23 @@ def SCGenerateThumbnail_cli():
         for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
             file = str(thumbnail_to_delete)
             os.remove(file)
+
 # </SCGenerateThumbnail_cli>
 
-
 # <SCKeyboardDiagnosis_cli>
-def keyhook_helper(event):
+
+
+def private_keyhook(event):
     print(str(event.name)+" "+event.event_type)
 
 
 def SCKeyboardDiagnosis_cli():
-    keyboard.hook(keyhook_helper)
+    keyboard.hook(private_keyhook)
     while True:
         time.sleep(10)
 
 # </SCKeyboardDiagnosis_cli>
+
 # <SCMergePDFs_cli>
 
 
@@ -469,6 +487,7 @@ def SCMergePDFs_cli():
     pdfFileMerger.close()
 
 # </SCMergePDFs_cli>
+
 # <SCOrganizeLinesInFile_cli>
 
 
@@ -537,6 +556,7 @@ def SCOrganizeLinesInFile_cli():
     else:
         print(f"File '{args.file}' does not exist")
         sys.exit(1)
+
 # </SCOrganizeLinesInFile_cli>
 
 # <SCPythonCreateRelease_cli>
@@ -546,6 +566,8 @@ def SCPythonCreateRelease_cli():
     pass  # todo
 
 # </SCPythonCreateRelease_cli>
+
+# </console_scripts>
 
 # <miscellaneous>
 
@@ -570,19 +592,19 @@ def get_direct_folders_of_folder(folder: str):
 
 def replace_in_filename(file: str, replace_from: str, replace_to: str, replace_only_full_match=False):
     filename = Path(file).name
-    if(should_get_replaced_helper(filename, replace_from, replace_only_full_match)):
+    if(private_should_get_replaced(filename, replace_from, replace_only_full_match)):
         folder_of_file = os.path.dirname(file)
         os.rename(file, os.path.join(folder_of_file, filename.replace(replace_from, replace_to)))
 
 
 def replace_in_foldername(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
     foldername = Path(folder).name
-    if(should_get_replaced_helper(foldername, replace_from, replace_only_full_match)):
+    if(private_should_get_replaced(foldername, replace_from, replace_only_full_match)):
         folder_of_folder = os.path.dirname(folder)
         os.rename(folder, os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to)))
 
 
-def should_get_replaced_helper(input_text, search_text, replace_only_full_match):
+def private_should_get_replaced(input_text, search_text, replace_only_full_match):
     if replace_only_full_match:
         return input_text == search_text
     else:
@@ -591,8 +613,8 @@ def should_get_replaced_helper(input_text, search_text, replace_only_full_match)
 
 def absolute_file_paths(directory: str):
     for dirpath, _, filenames in os.walk(directory):
-        for f in filenames:
-            yield os.path.abspath(os.path.join(dirpath, f))
+        for filename in filenames:
+            yield os.path.abspath(os.path.join(dirpath, filename))
 
 
 def str_none_safe(variable):
@@ -890,11 +912,11 @@ def move_content_of_folder(srcDir, dstDir):
         shutil.move(sub_folder, dstDirFull)
 
 
-def replace_xmltag_in_file(file, tag: str, new_value: str):
-    with open(file, encoding="utf-8", mode="r") as f:
+def replace_xmltag_in_file(file, tag: str, new_value: str, encoding="utf-8"):
+    with open(file, encoding=encoding, mode="r") as f:
         content = f.read()
         content = re.sub(f"<{tag}>.*</{tag}>", f"<{tag}>{new_value}</{tag}>", content)
-    with open(file, encoding="utf-8", mode="w") as f:
+    with open(file, encoding=encoding, mode="w") as f:
         f.write(content)
 
 
@@ -904,52 +926,15 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
 
 
-def repository_has_new_untracked_files(repository_folder: str):
-    return repository_has_uncommitted_changes_helper(repository_folder, "ls-files --exclude-standard --others")
-
-
-def repository_has_unstaged_changes(repository_folder: str):
-    if(repository_has_uncommitted_changes_helper(repository_folder, "diff")):
-        return True
-    if(repository_has_new_untracked_files(repository_folder)):
-        return True
-    return False
-
-
-def repository_has_staged_changes(repository_folder: str):
-    return repository_has_uncommitted_changes_helper(repository_folder, "diff --cached")
-
-
-def repository_has_uncommitted_changes(repository_folder: str):
-    if(repository_has_unstaged_changes(repository_folder)):
-        return True
-    if(repository_has_staged_changes(repository_folder)):
-        return True
-    return False
-
-
-def repository_has_uncommitted_changes_helper(repository_folder: str, argument: str):
-    return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
-
-
-def get_current_commit_id(repository_folder: str):
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse --verify HEAD", repository_folder, 30, 0)
-    return result[1].replace('\r', '').replace('\n', '')
-
-
-def push(folder: str, remotename: str, localbranchname: str, remotebranchname: str):
-    argument = f"push {remotename} {localbranchname}:{remotebranchname}"
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder)
-    if not (result[0] == 0):
-        raise ValueError(f"'git {argument}' results in exitcode "+str(result[0]))
-    return result[1].replace('\r', '').replace('\n', '')
-
-
 def get_publishdirectory(configparser, version: str):
     result = configparser.get('build', 'publishdirectory')
     result = result.replace("__version__", version)
     ensure_directory_exists(result)
     return result
+
+
+def get_scriptcollection_version():
+    return scriptcollection_version
 
 
 def get_target_runtimes(configparser):
@@ -958,8 +943,53 @@ def get_target_runtimes(configparser):
         result.append(runtime.strip())
     return result
 
+# </miscellaneous>
 
-def clone_if_not_already_done(folder: str, link: str):
+# <git>
+
+
+def git_repository_has_new_untracked_files(repository_folder: str):
+    return private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
+
+
+def git_repository_has_unstaged_changes(repository_folder: str):
+    if(private_git_repository_has_uncommitted_changes(repository_folder, "diff")):
+        return True
+    if(git_repository_has_new_untracked_files(repository_folder)):
+        return True
+    return False
+
+
+def git_repository_has_staged_changes(repository_folder: str):
+    return private_git_repository_has_uncommitted_changes(repository_folder, "diff --cached")
+
+
+def git_repository_has_uncommitted_changes(repository_folder: str):
+    if(git_repository_has_unstaged_changes(repository_folder)):
+        return True
+    if(git_repository_has_staged_changes(repository_folder)):
+        return True
+    return False
+
+
+def private_git_repository_has_uncommitted_changes(repository_folder: str, argument: str):
+    return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
+
+
+def git_get_current_commit_id(repository_folder: str):
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse --verify HEAD", repository_folder, 30, 0)
+    return result[1].replace('\r', '').replace('\n', '')
+
+
+def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str):
+    argument = f"push {remotename} {localbranchname}:{remotebranchname}"
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder)
+    if not (result[0] == 0):
+        raise ValueError(f"'git {argument}' results in exitcode "+str(result[0]))
+    return result[1].replace('\r', '').replace('\n', '')
+
+
+def git_clone_if_not_already_done(folder: str, link: str):
     exit_code = -1
     original_cwd = os.getcwd()
     try:
@@ -974,36 +1004,32 @@ def clone_if_not_already_done(folder: str, link: str):
     return exit_code
 
 
-def commit(directory: str, message: str):
-    if (repository_has_uncommitted_changes(directory)):
+def git_commit(directory: str, message: str):
+    if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
         execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600)[0]
         execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit -m "{message}"', directory, 600)[0]
     else:
         write_message_to_stdout(f"There are no changes to commit in {directory}")
-    return get_current_commit_id(directory)
+    return git_get_current_commit_id(directory)
 
 
-def create_tag(directory: str, target_for_tag: str, tag: str):
+def git_create_tag(directory: str, target_for_tag: str, tag: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600)
 
 
-def checkout(directory: str, branch: str):
+def git_checkout(directory: str, branch: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600)
 
 
-def merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True):
-    checkout(directory, targetbranch)
+def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True):
+    git_checkout(directory, targetbranch)
     if(fastforward):
         ff = ""
     else:
         ff = "--no-ff "
     execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+ff+sourcebranch, directory, 3600)
-    commit_id = commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
+    commit_id = git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
     return commit_id
 
-
-def get_scriptcollection_version():
-    return scriptcollection_version
-
-# </miscellaneous>
+# </git>
