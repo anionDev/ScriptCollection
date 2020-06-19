@@ -42,16 +42,16 @@ scriptcollection_version = "1.0.0"
 # SCDotNet:
 # SCDotNetCreateExecutableRelease: does: <prepare>;calls: SCDotNetBuildExecutableAndRunTests,SCDotNetReference,SCDotNetReleaseExecutable
 # SCDotNetBuildExecutableAndRunTests: calls: SCDotNetBuild,SCDotNetRunTests,SCDotNetsign
-# SCDotNetReleaseExecutable: does: <Release>
+# SCDotNetReleaseExecutable: does: <Release, upload>
 # SCDotNetReference: does: <call docfx>
 # SCDotNetBuild: does:<Build>
 # SCDotNetRunTests: does:<RunTests>
 # SCDotNetsign: does:<sign>
 
 # SCPython:
-# SCPythonCreateRelease: does: <prepare>;calls: SCPythonRunTests,SCPythonRelease
+# SCPythonCreateWheelRelease: does: <prepare>;calls: SCPythonRunTests,SCPythonReleaseWheel
 # SCPythonRunTests: does: <call pyTest-script>
-# SCPythonRelease: does: <Release>
+# SCPythonReleaseWheel: does: <Release, upload>
 
 # <SCDotNetReleaseExecutable>
 
@@ -202,20 +202,20 @@ def SCDotNetsign_cli():
 
 # </SCDotNetsign>
 
-# <SCPythonCreateRelease>
+# <SCPythonCreateWheelRelease>
 
 
-def SCPythonCreateRelease(configurationfile: str):
+def SCPythonCreateWheelRelease(configurationfile: str):
     pass  # TODO
 
 
-def SCPythonCreateRelease_cli():
+def SCPythonCreateWheelRelease_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCPythonCreateRelease(args.configurationfile)
+    SCPythonCreateWheelRelease(args.configurationfile)
 
-# </SCPythonCreateRelease>
+# </SCPythonCreateWheelRelease>
 
 # <SCPythonRunTests>
 
@@ -232,20 +232,20 @@ def SCPythonRunTests_cli():
 
 # </SCPythonRunTests>
 
-# <SCPythonRelease>
+# <SCPythonReleaseWheel>
 
 
-def SCPythonRelease(configurationfile: str):
+def SCPythonReleaseWheel(configurationfile: str):
     pass  # TODO
 
 
-def SCPythonRelease_cli():
+def SCPythonReleaseWheel_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCPythonRelease(args.configurationfile)
+    SCPythonReleaseWheel(args.configurationfile)
 
-# </SCPythonRelease>
+# </SCPythonReleaseWheel>
 
 # <SCGenerateThumbnail>
 
