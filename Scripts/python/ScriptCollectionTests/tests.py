@@ -1,5 +1,5 @@
 import pytest
-from ScriptCollection.main import get_scriptcollection_version
+from ScriptCollection.core import get_scriptcollection_version
 
 
 def test_version():
