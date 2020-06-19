@@ -30,384 +30,222 @@ scriptcollection_version = "1.0.0"
 
 # idea for new structure:
 
-# dotnet:
-# createdotnetrelease: does: <prepare>;calls: dotnetbuildandexecutetests,dotnetreference,dotnetrelease
-# dotnetbuildandexecutetests: calls: dotnetbuild,dotnetruntests,dotnetsign
-# dotnetrelease: does: <release>
-# dotnetreference: does: <call docfx>
-# dotnetbuild: does:<build>
-# dotnetruntests: does:<runtests>
-# dotnetsign: does:<sign>
+# SCDotNet:
+# SCDotNetCreateNugetRelease: does: <prepare>;calls: SCDotNetBuildNugetAndRunTests,SCDotNetReference,SCDotNetReleaseNuget
+# SCDotNetBuildNugetAndRunTests: calls: SCDotNetBuild,SCDotNetRunTests,SCDotNetsign
+# SCDotNetReleaseNuget: does: <Release>
+# SCDotNetReference: does: <call docfx>
+# SCDotNetBuild: does:<Build>
+# SCDotNetRunTests: does:<RunTests>
+# SCDotNetsign: does:<sign>
 
-# python:
-# createpythonrelease: does: <prepare>;calls: pythonexecutetests,pythonrelease
-# pythonexecutetests: does: <call pytest-script>
-# pythonrelease: does: <release>
+# SCDotNet:
+# SCDotNetCreateExecutableRelease: does: <prepare>;calls: SCDotNetBuildExecutableAndRunTests,SCDotNetReference,SCDotNetReleaseExecutable
+# SCDotNetBuildExecutableAndRunTests: calls: SCDotNetBuild,SCDotNetRunTests,SCDotNetsign
+# SCDotNetReleaseExecutable: does: <Release>
+# SCDotNetReference: does: <call docfx>
+# SCDotNetBuild: does:<Build>
+# SCDotNetRunTests: does:<RunTests>
+# SCDotNetsign: does:<sign>
 
+# SCPython:
+# SCPythonCreateRelease: does: <prepare>;calls: SCPythonRunTests,SCPythonRelease
+# SCPythonRunTests: does: <call pyTest-script>
+# SCPythonRelease: does: <Release>
 
-# <SCDotNetCreateReleaseBuildGeneral>
+# <SCDotNetReleaseExecutable>
 
-
-def SCDotNetCreateReleaseBuildGeneral(configurationfile: str):
-    configurationfile = configurationfile
-    write_message_to_stdout(f"Run generic releasescript-part '{os.path.basename(__file__)}' with configurationfile '{configurationfile}'")
-
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-
-    build_tools_folder = abspath(f"..{os.path.sep}GeneralTasks")
-    repository_folder = configparser.get('general', 'repository')
-    version = get_semver_version_from_gitversion(repository_folder)
-    publish_directory = get_publishdirectory(configparser, version)
-    code_coverage_folder = publish_directory
-    runtime_for_tests = configparser.get('build', 'testruntime')
-
-    for runtime in get_target_runtimes(configparser):
-        publish_directory_for_runtime = os.path.join(publish_directory, runtime)
-        ensure_directory_exists(publish_directory_for_runtime)
-        argument = ""
-
-        # parameter for project
-        argument = argument + ' --folder_of_csproj_file '+encapsulate_with_quotes(configparser.get('build', 'folderofcsprojfile'))
-        argument = argument + ' --csproj_filename '+encapsulate_with_quotes(configparser.get('build', 'csprojfilename'))
-        argument = argument + ' --publish_directory '+encapsulate_with_quotes(publish_directory_for_runtime)
-        argument = argument + ' --output_directory '+encapsulate_with_quotes(configparser.get('build', 'buildoutputdirectory'))
-        argument = argument + ' --framework '+configparser.get('build', 'dotnetframework')
-        argument = argument + ' --runtimeid '+runtime
-
-        # parameter for testproject
-        if configparser.getboolean('build', 'hastestproject') and runtime_for_tests == runtime:
-            argument = argument + ' --has_test_project'
-            argument = argument + ' --folder_of_test_csproj_file '+encapsulate_with_quotes(configparser.get('build', 'folderoftestcsprojfile'))
-            argument = argument + ' --test_csproj_filename '+encapsulate_with_quotes(configparser.get('build', 'testcsprojfilename'))
-            argument = argument + ' --test_output_directory '+encapsulate_with_quotes(configparser.get('build', 'testoutputfolder'))
-            argument = argument + ' --test_framework '+encapsulate_with_quotes(configparser.get('build', 'testdotnetframework'))
-            argument = argument + ' --test_runtimeid '+encapsulate_with_quotes(runtime_for_tests)
-            argument = argument + ' --publish_coverage '+str(True)
-            argument = argument + ' --code_coverage_folder '+encapsulate_with_quotes(code_coverage_folder)
-
-        # parameter for project and testproject
-        argument = argument + f' --clear_output_directory {str(True)}'
-        argument = argument + f' --productname "'+configparser.get('general', 'productname')+'"'
-        argument = argument + f' --buildconfiguration "' + configparser.get('build', 'buildconfiguration')+'"'
-
-        # build and execute testcases
-        execute_and_raise_exception_if_exit_code_is_not_zero("python", f"{build_tools_folder}{os.path.sep}BuildTestprojectAndExecuteTests.py {argument}", os.getcwd(), 3600, 1, False, "Build "+configparser.get('general', 'productname'))
-
-        # sign assembly
-        if configparser.getboolean('build', 'signfiles'):
-            for file_to_sign in configparser.get('build', 'filestosign').split(","):
-                file_to_sign = file_to_sign.strip()
-                snkfile = configparser.get('build', 'snkfile')
-                SCDotNetCreateReleaseSignAssembly(publish_directory_for_runtime+os.path.sep+file_to_sign, snkfile)
+def SCDotNetReleaseExecutable(configurationfile: str):
+    pass  # TODO
 
 
-def SCDotNetCreateReleaseBuildGeneral_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetReleaseExecutable_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateReleaseBuildGeneral(args.configurationfile)
+    SCDotNetReleaseExecutable(args.configurationfile)
 
-# </SCDotNetCreateReleaseBuildGeneral>
+# </SCDotNetReleaseExecutable>
 
-# <SCDotNetCreateReleaseBuildProject>
-
-
-def SCDotNetCreateReleaseBuildProject(configurationfile: str):
-    parser = argparse.ArgumentParser(description='Compiles a csproj-file. This scripts also download required nuget-packages.')
-    parser.add_argument('--folder_of_csproj_file', help='Specifies the folder where the csproj-file is located')
-    parser.add_argument('--csproj_filename', help='Specifies the csproj-file which should be compiled')
-    parser.add_argument('--buildconfiguration', help='Specifies the Buildconfiguration (e.g. Debug or Release)')
-    parser.add_argument('--additional_build_arguments', help='Specifies arbitrary arguments which are passed to the build-process')
-    parser.add_argument('--output_directory', help='Specifies output directory for the compiled program')
-    parser.add_argument('--folder_for_nuget_restore', help='Specifies folder where nuget should be executed to restore the required nuget-packages')
-    parser.add_argument('--clear_output_directory', type=string_to_boolean, nargs='?', const=True, default=False, help='If true then the output directory will be cleared before compiling the program')
-    parser.add_argument('--runtimeid', default="win10-x64", help='Specifies runtime-id-argument for build-process')
-    parser.add_argument('--verbosity', default="minimal", help='Specifies verbosity for build-process')
-    parser.add_argument('--framework', default="netcoreapp3.1", help='Specifies targetframework')
-
-    args = parser.parse_args()
-
-    # clear output-directory if desired
-    if os.path.isdir(args.output_directory) and args.clear_output_directory:
-        shutil.rmtree(args.output_directory)
-    ensure_directory_exists(args.output_directory)
-
-    argument = f'"{args.csproj_filename}"'
-    argument = argument + f' --no-incremental'
-    argument = argument + f' --verbosity {args.verbosity}'
-    argument = argument + f' --configuration {args.buildconfiguration}'
-    argument = argument + f' --framework {args.framework}'
-    argument = argument + f' --runtime {args.runtimeid}'
-    if not string_is_none_or_whitespace(args.output_directory):
-        argument = argument + f' --output "{args.output_directory}"'
-    argument = argument + f' {args.additional_build_arguments}'
-
-    # run dotnet build
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', args.folder_of_csproj_file, 3600, True, False, "Build")
+# <SCDotNetBuildExecutableAndRunTests>
 
 
-def SCDotNetCreateReleaseBuildProject_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
+    pass  # TODO
+
+
+def SCDotNetBuildExecutableAndRunTests_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateReleaseBuildProject(args.configurationfile)
+    SCDotNetBuildExecutableAndRunTests(args.configurationfile)
+
+# </SCDotNetBuildExecutableAndRunTests>
+
+# <SCDotNetCreateExecutableRelease>
 
 
-# </SCDotNetCreateReleaseBuildProject>
-
-# <SCDotNetCreateReleaseBuildTestprojectAndExecuteTests>
-
-
-def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    SCDotNetCreateReleaseBuildProject(configurationfile)
-
-    # testproject
-    if configparser.getboolean("todo", "has_test_project"):
-        SCDotNetCreateReleaseExecuteTests(configurationfile)
-
-    # clear publish-directory if desired
-    # if os.path.isdir(args.publish_directory) and args.clear_publish_directory:
-    #    shutil.rmtree(args.publish_directory)
-    # ensure_directory_exists(args.publish_directory)
-
-    # export program
-    #copytree(args.output_directory, args.publish_directory)
-    # if args.publish_coverage and args.has_test_project:
-    #    shutil.copy(args.folder_of_test_csproj_file+os.path.sep+testcoveragefilename, args.code_coverage_folder)
+def SCDotNetCreateExecutableRelease(configurationfile: str):
+    pass  # TODO
 
 
-def SCDotNetCreateReleaseBuildTestprojectAndExecuteTests_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetCreateExecutableRelease_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateReleaseBuildTestprojectAndExecuteTests(args.configurationfile)
+    SCDotNetCreateExecutableRelease(args.configurationfile)
 
-# </SCDotNetCreateReleaseBuildTestprojectAndExecuteTests>
+# </SCDotNetCreateExecutableRelease>
 
-# <SCDotNetCreateReleaseExecuteTests>
+# <SCDotNetCreateNugetRelease>
 
 
-def SCDotNetCreateReleaseExecuteTests_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetCreateNugetRelease(configurationfile: str):
+    pass  # TODO
+
+
+def SCDotNetCreateNugetRelease_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateReleaseExecuteTests(args.configurationfile)
+    SCDotNetCreateNugetRelease(args.configurationfile)
+
+# </SCDotNetCreateNugetRelease>
+
+# <SCDotNetBuildNugetAndRunTests>
 
 
-def SCDotNetCreateReleaseExecuteTests(configurationfile: str):
-    pass
-    # execute_and_raise_exception_if_exit_code_is_not_zero("SCDotNetBuildProjectGeneral", testargument, "", 3600, True, False, "Build testproject")  # todo testproject must be used
-
-    # execute testcases
-    #testcoveragefilename = args.productname+".TestCoverage.opencover.xml"
-    #execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+args.test_csproj_filename+" -c " + args.buildconfiguration + " --verbosity normal --no-build /p:CollectCoverage=true /p:CoverletOutput="+testcoveragefilename+" /p:CoverletOutputFormat=opencover "+str_none_safe(args.additional_test_arguments), args.folder_of_test_csproj_file, 3600, True, False, "Execute tests")
-
-    # </SCDotNetCreateReleaseBuildTestprojectAndExecuteTests>
-
-    # <SCdotnetCreateReleaseGeneral>
+def SCDotNetBuildNugetAndRunTests(configurationfile: str):
+    pass  # TODO
 
 
-def SCdotnetCreateReleaseGeneral(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-
-    if configparser.getboolean('prepare', 'prepare'):
-        SCDotNetCreateReleasePrepare(configurationfile)
-    SCDotNetCreateReleaseBuildGeneral(configurationfile)
-    SCDotNetCreateReleaseRelease(configurationfile)
-    if configparser.getboolean('reference', 'generatereference'):
-        SCDotNetCreateReleaseReference(configurationfile)
-
-
-def SCdotnetCreateReleaseGeneral_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetBuildNugetAndRunTests_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCdotnetCreateReleaseGeneral(args.configurationfile)
+    SCDotNetBuildNugetAndRunTests(args.configurationfile)
+
+# </SCDotNetBuildNugetAndRunTests>
+
+# <SCDotNetReleaseNuget>
 
 
-# </SCdotnetCreateReleaseGeneral>
-
-# <SCDotNetCreateReleasePrepare>
-
-
-def SCDotNetCreateReleasePrepare(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-
-    git_checkout(configparser.get('general', 'repository'), configparser.get('prepare', 'developmentbranchname'))
-    version = get_semver_version_from_gitversion(configparser.get('general', 'repository'))
-    if(configparser.getboolean('prepare', 'updateversionsincsprojfile')):
-        csproj_file_with_path = configparser.get('build', 'folderofcsprojfile')+os.path.sep+configparser.get('build', 'csprojfilename')
-        update_version_in_csproj_file(csproj_file_with_path, version)
-        git_commit(configparser.get('general', 'repository'), "Updated version in '"+configparser.get('build', 'csprojfilename')+"'")
-
-    commit_id = git_merge(configparser.get('general', 'repository'), configparser.get('prepare', 'developmentbranchname'), configparser.get('prepare', 'masterbranchname'), False)
-    git_create_tag(configparser.get('general', 'repository'), commit_id, configparser.get('prepare', 'gittagprefix') + version)
-    git_merge(configparser.get('general', 'repository'), configparser.get('prepare', 'masterbranchname'), configparser.get('prepare', 'developmentbranchname'), True)
+def SCDotNetReleaseNuget(configurationfile: str):
+    pass  # TODO
 
 
-def SCDotNetCreateReleasePrepare_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetReleaseNuget_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateReleasePrepare(args.configurationfile)
+    SCDotNetReleaseNuget(args.configurationfile)
 
-# </SCDotNetCreateReleasePrepare>
+# </SCDotNetReleaseNuget>
 
-# <SCDotNetCreateReleaseReference>
-
-
-def SCDotNetCreateReleaseReference(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-
-    repository_folder = configparser.get('general', 'repository')
-    version = get_semver_version_from_gitversion(repository_folder)
-
-    publishdirectory = get_publishdirectory(configparser, version)
-    opencoverreportfile = publishdirectory+os.path.sep+configparser.get('general', 'productname')+".TestCoverage.opencover.xml"
-
-    execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+opencoverreportfile+'" -targetdir:"'+configparser.get('reference', 'coveragereportfolder')+'"')
-
-    docfx_file_with_path = configparser.get('reference', 'docfxfile')
-    docfxfolder = os.path.dirname(docfx_file_with_path)
-    docfxfile = os.path.basename(docfx_file_with_path)
-    execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfxfile, docfxfolder)
-
-    commitmessage = "Updated reference"
-    git_commit(configparser.get('reference', 'referencerepository'), commitmessage)
-    git_commit(configparser.get('release', 'releaserepository'), commitmessage)
-
-    if configparser.getboolean('reference', 'exportreference'):
-        execute_and_raise_exception_if_exit_code_is_not_zero(configparser.get('reference', 'exportreferencescriptfile'))
+# <SCDotNetReference>
 
 
-def SCDotNetCreateReleaseReference_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetReference(configurationfile: str):
+    pass  # TODO
+
+
+def SCDotNetReference_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateReleaseReference(args.configurationfile)
+    SCDotNetReference(args.configurationfile)
 
-# </SCDotNetCreateReleaseReference>
+# </SCDotNetReference>
 
-# <SCDotNetCreateReleaseRelease>
-
-
-def SCDotNetCreateReleaseRelease(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    repository_folder = configparser.get('general', 'repository')
-    version = get_semver_version_from_gitversion(repository_folder)
-    commitmessage = f"Added {configparser.get('general','productname')} {configparser.get('prepare','gittagprefix')}{version}"
-
-    # build nugetpackage
-    if configparser.getboolean('release', 'createnugetpackage'):
-        commit_id = strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse HEAD", repository_folder, 30, 0)[1])
-        year = str(datetime.datetime.now().year)
-
-        # todo move to new folder and then to versionbinarysubfolder
-        tempdir = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4())
-        ensure_directory_exists(tempdir)
-        move_content_of_folder(get_publishdirectory(configparser, version), tempdir)
-        nuspecfilename = configparser.get('general', 'productname')+".nuspec"
-        nuspecfolder = os.path.join(get_publishdirectory(configparser, version))
-        ensure_directory_exists(nuspecfolder)
-        nuspecfile = os.path.join(nuspecfolder, nuspecfilename)
-        copyfile(configparser.get('release', 'nuspectemplatefile'), nuspecfile)
-        newtarget = os.path.join(get_publishdirectory(configparser, version), "Binary")
-        ensure_directory_exists(newtarget)
-        move_content_of_folder(tempdir, newtarget)
-        if configparser.getboolean('build', 'hastestproject'):
-            shutil.move(os.path.join(newtarget, configparser.get('general', 'productname')+".TestCoverage.opencover.xml"), get_publishdirectory(configparser, version))
-        os.chdir(get_publishdirectory(configparser, version))
-        with open(nuspecfilename, encoding="utf-8", mode="r") as f:
-            nuspec_content = f.read()
-            nuspec_content = nuspec_content.replace('__version__', version)
-            nuspec_content = nuspec_content.replace('__commitid__', commit_id)
-            nuspec_content = nuspec_content.replace('__year__', year)
-            nuspec_content = nuspec_content.replace('__productname__', configparser.get('general', 'productname'))
-            nuspec_content = nuspec_content.replace('__author__', configparser.get('general', 'author'))
-            nuspec_content = nuspec_content.replace('__description__', configparser.get('general', 'description'))
-        with open(nuspecfilename, encoding="utf-8", mode="w") as f:
-            f.write(nuspec_content)
-        execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", get_publishdirectory(configparser, version))
-
-        latest_nupkg_file = configparser.get('general', 'productname')+"."+version+".nupkg"
-        ensure_directory_does_not_exist(tempdir)
-
-        # publish to local nuget-feed
-        localnugettarget = configparser.get('release', 'localnugettarget')
-        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", get_publishdirectory(configparser, version))
-        git_commit(configparser.get('release', 'localnugettargetrepository'), commitmessage)
-
-    git_commit(configparser.get('build', 'publishtargetrepository'), commitmessage)
-    git_commit(configparser.get('release', 'releaserepository'), commitmessage)
+# <SCDotNetBuild>
 
 
-def SCDotNetCreateReleaseRelease_cli(configurationfile: str):
-    parser = argparse.ArgumentParser()
+def SCDotNetBuild(configurationfile: str):
+    pass  # TODO
+
+
+def SCDotNetBuild_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateReleaseRelease(args.configurationfile)
+    SCDotNetBuild(args.configurationfile)
 
-# </SCDotNetCreateReleaseRelease>
+# </SCDotNetBuild>
 
-# <SCDotNetCreateReleaseSignAssembly>
-
-
-def SCDotNetCreateReleaseSignAssembly(dllfile: str, snkfile: str):
-    snk_file = resolve_relative_path_from_current_working_directory(snkfile)
-    if(os.path.isfile(snk_file)):
-        dllfile = resolve_relative_path_from_current_working_directory(dllfile)
-        directory = os.path.dirname(dllfile)
-        filename = os.path.basename(dllfile)
-        if filename.lower().endswith(".dll"):
-            filename = filename[:-4]
-            extension = "dll"
-        elif filename.lower().endswith(".exe"):
-            filename = filename[:-4]
-            extension = "exe"
-        else:
-            raise Exception("Only .dll-files and .exe-files can be signed")
-        execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, True, False, "ildasm")
-        execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snk_file}" "{filename}.il"', directory, 3600, True, False, "ilasm")
-        os.remove(directory+os.path.sep+filename+".il")
-        os.remove(directory+os.path.sep+filename+".res")
-    else:
-        raise Exception(f".snk-file '{snk_file}' does not exist")
+# <SCDotNetRunTests>
 
 
-def SCDotNetCreateReleaseSignAssembly_cli():
-    parser = argparse.ArgumentParser(description='Signs a dll-file')
-    parser.add_argument('--dllfile', help='Specifies the dllfile which should be signed')
-    parser.add_argument('--snkfile', help='Specifies the .snk-file which should be used')
-    args = parser.parse_args()
-    SCDotNetCreateReleaseSignAssembly(args.dllfile, args.snkfile)
-
-# </SCDotNetCreateReleaseSignAssembly>
-
-# <SCdotnetCreateReleaseStarter>
+def SCDotNetRunTests(configurationfile: str):
+    pass  # TODO
 
 
-def SCdotnetCreateReleaseStarter(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-
-    logfile = configparser.get('general', 'logfilefolder')+os.path.sep+configparser.get('general', 'productname')+"_BuildAndPublish_"+str(datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))+".log"
-    execute_and_raise_exception_if_exit_code_is_not_zero("SCdotnetCreateRelease.py", configurationfile, "", 3600, 2, True, "Create"+configparser.get('general', 'productname')+"Release", False, logfile)
-
-
-def SCdotnetCreateReleaseStarter_cli():
-    parser = argparse.ArgumentParser()
+def SCDotNetRunTests_cli():
+    parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCdotnetCreateReleaseStarter(args.configurationfile)
+    SCDotNetRunTests(args.configurationfile)
 
-# </SCdotnetCreateReleaseStarter>
+# </SCDotNetRunTests>
+
+# <SCDotNetsign>
+
+
+def SCDotNetsign(configurationfile: str):
+    pass  # TODO
+
+
+def SCDotNetsign_cli():
+    parser = argparse.ArgumentParser(description='TODO')
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    SCDotNetsign(args.configurationfile)
+
+# </SCDotNetsign>
+
+# <SCPythonCreateRelease>
+
+
+def SCPythonCreateRelease(configurationfile: str):
+    pass  # TODO
+
+
+def SCPythonCreateRelease_cli():
+    parser = argparse.ArgumentParser(description='TODO')
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    SCPythonCreateRelease(args.configurationfile)
+
+# </SCPythonCreateRelease>
+
+# <SCPythonRunTests>
+
+
+def SCPythonRunTests(configurationfile: str):
+    pass  # TODO
+
+
+def SCPythonRunTests_cli():
+    parser = argparse.ArgumentParser(description='TODO')
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    SCPythonRunTests(args.configurationfile)
+
+# </SCPythonRunTests>
+
+# <SCPythonRelease>
+
+
+def SCPythonRelease(configurationfile: str):
+    pass  # TODO
+
+
+def SCPythonRelease_cli():
+    parser = argparse.ArgumentParser(description='TODO')
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    SCPythonRelease(args.configurationfile)
+
+# </SCPythonRelease>
 
 # <SCGenerateThumbnail>
 
@@ -564,21 +402,6 @@ def SCOrganizeLinesInFile_cli():
 
 
 # </SCOrganizeLinesInFile>
-
-# <SCPythonCreateRelease>
-
-
-def SCPythonCreateRelease(configurationfile: str):
-    pass  # todo
-
-
-def SCPythonCreateRelease_cli():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    SCPythonCreateRelease(args.configurationfile)
-
-# </SCPythonCreateRelease>
 
 # <miscellaneous>
 
