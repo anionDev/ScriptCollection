@@ -1,3 +1,5 @@
+from distutils.dir_util import copy_tree
+from functools import lru_cache
 import keyboard
 import re
 import ntplib
@@ -35,8 +37,6 @@ scriptcollection_version = "1.0.0"
 # SCDotNetBuildNugetAndRunTests: calls: SCDotNetBuild,SCDotNetRunTests,SCDotNetsign
 # SCDotNetReleaseNuget: does: <Release>
 # SCDotNetReference: does: <call docfx>
-# SCDotNetBuild: does:<Build>
-# SCDotNetRunTests: does:<RunTests>
 # SCDotNetsign: does:<sign>
 
 # SCDotNet:
@@ -53,17 +53,21 @@ scriptcollection_version = "1.0.0"
 # SCPythonRunTests: does: <call pyTest-script>
 # SCPythonReleaseWheel: does: <Release, upload>
 
+# <Build>
+
 # <SCDotNetReleaseExecutable>
 
 def SCDotNetReleaseExecutable(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0  # TODO
 
 
 def SCDotNetReleaseExecutable_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetReleaseExecutable(args.configurationfile)
+    return SCDotNetReleaseExecutable(args.configurationfile)
 
 # </SCDotNetReleaseExecutable>
 
@@ -71,14 +75,16 @@ def SCDotNetReleaseExecutable_cli():
 
 
 def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0  # TODO
 
 
 def SCDotNetBuildExecutableAndRunTests_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetBuildExecutableAndRunTests(args.configurationfile)
+    return SCDotNetBuildExecutableAndRunTests(args.configurationfile)
 
 # </SCDotNetBuildExecutableAndRunTests>
 
@@ -86,14 +92,16 @@ def SCDotNetBuildExecutableAndRunTests_cli():
 
 
 def SCDotNetCreateExecutableRelease(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0  # TODO
 
 
 def SCDotNetCreateExecutableRelease_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateExecutableRelease(args.configurationfile)
+    return SCDotNetCreateExecutableRelease(args.configurationfile)
 
 # </SCDotNetCreateExecutableRelease>
 
@@ -101,29 +109,103 @@ def SCDotNetCreateExecutableRelease_cli():
 
 
 def SCDotNetCreateNugetRelease(configurationfile: str):
-    pass  # TODO
-
-
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    version=_private_get_version(configparser)
+    if(configparser.getboolean('prepare','prepare')):
+        git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
+        if(configparser.getboolean('prepare','updateversionsincsprojfile')):
+            csproj_file_with_path=_private_get_config_item(configparser,'build','folderofcsprojfile')+os.path.sep+_private_get_config_item(configparser,'build','csprojfilename')
+            update_version_in_csproj_file(csproj_file_with_path, version)
+            git_commit(configparser.get('general','repository'), "Updated version in '"+_private_get_config_item(configparser,'build','csprojfilename')+"'")
+        git_merge(_private_get_config_item(configparser,'general','repository'), _private_get_config_item(configparser,'prepare','developmentbranchname'), _private_get_config_item(configparser,'prepare','masterbranchname'),False, False)
+    try:
+        build_was_successful= SCDotNetBuildNugetAndRunTests(configurationfile)==0
+    except:
+        build_was_successful=False
+    if configparser.getboolean('prepare','prepare'):
+        if build_was_successful:
+            commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merged")
+            git_create_tag(_private_get_config_item(configparser,'general','repository'), commit_id, version)
+            git_merge(_private_get_config_item(configparser,'general','repository'), _private_get_config_item(configparser,'prepare','masterbranchname'), _private_get_config_item(configparser,'prepare','developmentbranchname'),True)
+        else:
+            git_merge_abort(_private_get_config_item(configparser,'general','repository'))
+            git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
+            write_message_to_stderr("Building and executing testcases was not successful")
+            return 1
+    if configparser.getboolean('reference','generatereference'):
+        docfx_file=_private_get_config_item(configparser,'reference','docfxfile')
+        docfx_filename=os.path.basename(docfx_file)
+        docfx_filefolder=os.path.dirname(docfx_file)
+        write_message_to_stdout(docfx_filefolder)
+        write_message_to_stdout(docfx_filename)
+        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
+    
+    # TODO calls: SCDotNetReference,SCDotNetReleaseNuget
+    return 0
 def SCDotNetCreateNugetRelease_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetCreateNugetRelease(args.configurationfile)
+    return SCDotNetCreateNugetRelease(args.configurationfile)
 
 # </SCDotNetCreateNugetRelease>
 
 # <SCDotNetBuildNugetAndRunTests>
 
 
-def SCDotNetBuildNugetAndRunTests(configurationfile: str):
-    pass  # TODO
+nuget_template_file_content = r"""<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+  <metadata minClientVersion="2.12">
+    <id>__productname__</id>
+    <version>__version__</version>
+    <title>__productname__</title>
+    <authors>__author__</authors>
+    <owners>__author__</owners>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <copyright>Copyright © __year__ by __author__</copyright>
+    <description>__description__</description>
+    <summary>__description__</summary>
+    <license type="file">lib/__dotnetframework__/__productname__.License.txt</license>
+    <dependencies>
+      <group targetFramework="__dotnetframework__" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="Binary/__productname__.dll" target="lib/__dotnetframework__" />
+    <file src="Binary/__productname__.License.txt" target="lib/__dotnetframework__" />
+  </files>
+</package>"""
 
+
+def SCDotNetBuildNugetAndRunTests(configurationfile: str):
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    if configparser.getboolean('build', 'hastestproject'):
+        SCDotNetRunTests(configurationfile)
+    for runtime in _private_get_config_items(configparser, 'build', 'runtimes'):
+        custom_replacement={'runtime':runtime}
+        SCDotNetBuild(_private_get_config_item(configparser, 'build', 'folderofcsprojfile'), _private_get_config_item(configparser, 'build', 'csprojfilename'), _private_get_config_item(configparser, 'build', 'buildoutputdirectory',custom_replacement), _private_get_config_item(configparser, 'build', 'buildconfiguration'), runtime, _private_get_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  _private_get_config_item(configparser, 'build', 'filestosign'), _private_get_config_item(configparser, 'build', 'snkfile'))
+    publishdirectory = _private_get_config_item(configparser, 'build', 'publishdirectory')
+    publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
+    ensure_directory_does_not_exist(publishdirectory)
+    ensure_directory_exists(publishdirectory_binary)
+    copy_tree(_private_get_config_item(configparser, 'build', 'buildoutputdirectory'), publishdirectory_binary)
+
+    nuspec_content = _private_replace_underscores(nuget_template_file_content, configparser)
+    nuspecfilename = configparser.get('general', 'productname')+".nuspec"
+    nuspecfile = os.path.join(publishdirectory, nuspecfilename)
+    with open(nuspecfile, encoding="utf-8", mode="w") as f:
+        f.write(nuspec_content)
+    execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory)
+    shutil.copyfile(_private_get_config_item(configparser, 'build', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser),publishdirectory+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
+    return 0
 
 def SCDotNetBuildNugetAndRunTests_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetBuildNugetAndRunTests(args.configurationfile)
+    return SCDotNetBuildNugetAndRunTests(args.configurationfile)
 
 # </SCDotNetBuildNugetAndRunTests>
 
@@ -131,14 +213,24 @@ def SCDotNetBuildNugetAndRunTests_cli():
 
 
 def SCDotNetReleaseNuget(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    version = _private_get_version(configparser)
+    commitmessage = f"Added {_private_get_config_item(configparser,'general','productname')} {_private_get_config_item(configparser,'prepare','gittagprefix')}{version}"
+
+    publishdirectory = _private_get_config_item(configparser, 'build', 'publishdirectory')
+    latest_nupkg_file = configparser.get('general', 'productname')+"."+version+".nupkg"
+    localnugettarget = configparser.get('release', 'localnugettarget')
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
+    git_commit(configparser.get('release', 'localnugettargetrepository'), commitmessage)
+    return 0
 
 
 def SCDotNetReleaseNuget_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetReleaseNuget(args.configurationfile)
+    return SCDotNetReleaseNuget(args.configurationfile)
 
 # </SCDotNetReleaseNuget>
 
@@ -146,29 +238,54 @@ def SCDotNetReleaseNuget_cli():
 
 
 def SCDotNetReference(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0  # TODO
 
 
 def SCDotNetReference_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetReference(args.configurationfile)
+    return SCDotNetReference(args.configurationfile)
 
 # </SCDotNetReference>
 
 # <SCDotNetBuild>
 
 
-def SCDotNetBuild(configurationfile: str):
-    pass  # TODO
+def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotNetFramework: str, clearOutputDirectoryBeforeBuild: bool = True, verbosity="normal", outputFilenameToSign: str = None, keyToSignForOutputfile: str = None):
+    if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
+        shutil.rmtree(outputDirectory)
+    ensure_directory_exists(outputDirectory)
+
+    argument = csprojFilename
+    argument = argument + f' --no-incremental'
+    argument = argument + f' --configuration {buildConfiguration}'
+    argument = argument + f' --framework {dotNetFramework}'
+    argument = argument + f' --runtime {runtimeId}'
+    argument = argument + f' --verbosity {verbosity}'
+    argument = argument + f' --output "{outputDirectory}"'
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, True, False, "Build")
+    if(outputFilenameToSign is not None):
+        SCDotNetsign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile)
+    return 0
 
 
 def SCDotNetBuild_cli():
-    parser = argparse.ArgumentParser(description='TODO')
-    parser.add_argument("configurationfile")
+    parser = argparse.ArgumentParser(description='Builds a DotNet-project by a given C#-project. Requires dotnet as available commandline-command.')
+    parser.add_argument("folderOfCsprojFile")
+    parser.add_argument("csprojFilename")
+    parser.add_argument("outputDirectory")
+    parser.add_argument("buildConfiguration")
+    parser.add_argument("runtimeId")
+    parser.add_argument("dotnetframework")
+    parser.add_argument("clearOutputDirectoryBeforeBuild", type=string_to_boolean, nargs='?', const=True, default=False)
+    parser.add_argument("verbosity")
+    parser.add_argument("outputFilenameToSign")
+    parser.add_argument("keyToSignForOutputfile")
     args = parser.parse_args()
-    SCDotNetBuild(args.configurationfile)
+    return SCDotNetBuild(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework, args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile)
 
 # </SCDotNetBuild>
 
@@ -176,29 +293,52 @@ def SCDotNetBuild_cli():
 
 
 def SCDotNetRunTests(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    runtime=_private_get_config_item(configparser, 'build', 'testruntime')
+    custom_replacement={'runtime':runtime}
+    SCDotNetBuild(_private_get_config_item(configparser, 'build', 'folderoftestcsprojfile'), _private_get_config_item(configparser, 'build', 'testcsprojfilename'), _private_get_config_item(configparser, 'build', 'testoutputfolder',custom_replacement), _private_get_config_item(configparser, 'build', 'buildconfiguration'), runtime, _private_get_config_item(configparser, 'build', 'testdotnetframework'), True, "normal", None,None)
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_config_item(configparser, 'build', 'testcsprojfilename')+" --no-build -c " + _private_get_config_item(configparser, 'build', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" + _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_config_item(configparser, 'build', 'folderoftestcsprojfile'), 3600, True, False, "Execute tests")
+    return 0  # TODO
 
 
 def SCDotNetRunTests_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCDotNetRunTests(args.configurationfile)
+    return SCDotNetRunTests(args.configurationfile)
 
 # </SCDotNetRunTests>
 
 # <SCDotNetsign>
 
 
-def SCDotNetsign(configurationfile: str):
-    pass  # TODO
+def SCDotNetsign(dllOrExefile: str, snkfile: str):
+    dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
+    snkfile = resolve_relative_path_from_current_working_directory(snkfile)
+    directory = os.path.dirname(dllOrExeFile)
+    filename = os.path.basename(dllOrExeFile)
+    if filename.lower().endswith(".dll"):
+        filename = filename[:-4]
+        extension = "dll"
+    elif filename.lower().endswith(".exe"):
+        filename = filename[:-4]
+        extension = "exe"
+    else:
+        raise Exception("Only .dll-files and .exe-files can be signed")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, True, False, "Sign: ildasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, True, False, "Sign: ilasm")
+    os.remove(directory+os.path.sep+filename+".il")
+    os.remove(directory+os.path.sep+filename+".res")
+    return 0
 
 
 def SCDotNetsign_cli():
-    parser = argparse.ArgumentParser(description='TODO')
-    parser.add_argument("configurationfile")
+    parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
+    parser.add_argument("dllOrExefile")
+    parser.add_argument("snkfile")
     args = parser.parse_args()
-    SCDotNetsign(args.configurationfile)
+    return SCDotNetsign(args.dllOrExefile, args.snkfile)
 
 # </SCDotNetsign>
 
@@ -206,14 +346,16 @@ def SCDotNetsign_cli():
 
 
 def SCPythonCreateWheelRelease(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0  # TODO
 
 
 def SCPythonCreateWheelRelease_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCPythonCreateWheelRelease(args.configurationfile)
+    return SCPythonCreateWheelRelease(args.configurationfile)
 
 # </SCPythonCreateWheelRelease>
 
@@ -221,14 +363,16 @@ def SCPythonCreateWheelRelease_cli():
 
 
 def SCPythonRunTests(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0  # TODO
 
 
 def SCPythonRunTests_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCPythonRunTests(args.configurationfile)
+    return SCPythonRunTests(args.configurationfile)
 
 # </SCPythonRunTests>
 
@@ -236,32 +380,83 @@ def SCPythonRunTests_cli():
 
 
 def SCPythonReleaseWheel(configurationfile: str):
-    pass  # TODO
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0  # TODO
 
 
 def SCPythonReleaseWheel_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    SCPythonReleaseWheel(args.configurationfile)
+    return SCPythonReleaseWheel(args.configurationfile)
 
 # </SCPythonReleaseWheel>
+
+# <Helper>
+
+
+def _private_get_config_item(configparser: ConfigParser, section: str, propertyname: str,custom_replacements:dict={}):
+    return _private_replace_underscores(configparser.get(section, propertyname), configparser,custom_replacements)
+
+def _private_get_config_items(configparser: ConfigParser, section: str, propertyname: str,custom_replacements:dict={}):
+    itemlist_as_string =_private_replace_underscores(configparser.get(section, propertyname), configparser,custom_replacements)
+    if ',' in itemlist_as_string:
+        return [item.strip() for item in itemlist_as_string.split(',')]
+    else:
+        return [itemlist_as_string.strip()]
+
+
+def _private_get_coverage_filename(configparser: ConfigParser):
+    return configparser.get("general", "productname")+".TestCoverage.opencover.xml"
+
+
+def _private_get_version(configparser: ConfigParser):
+    return _private_get_version_helper(configparser.get('general', 'repository'))
+
+@lru_cache(maxsize=None)
+def _private_get_version_helper(folder:str):
+    return get_semver_version_from_gitversion(folder)
+
+def _private_get_publishdirectory(configparser):
+    result = _private_get_config_item(configparser, 'build', 'publishdirectory')
+    ensure_directory_exists(result)
+    return result
+
+
+def _private_replace_underscores(string: str, configparser: ConfigParser,replacements:dict={}):
+    replacements["productname"]=configparser.get('general', 'productname')
+    replacements["version"]= _private_get_version(configparser)
+    replacements["author"]=configparser.get('general', 'author')
+    replacements["description"]=configparser.get('general', 'description')
+    replacements["developmentbranchname"]=configparser.get('prepare', 'developmentbranchname')
+    replacements["masterbranchname"]=configparser.get('prepare', 'masterbranchname')
+    replacements["year"]=str(datetime.datetime.now().year)
+    replacements["dotnetframework"]= configparser.get('build', 'dotnetframework')
+    replacements["buildconfiguration"]=configparser.get('build', 'buildconfiguration')
+    for key, value in replacements.items():
+        string = string.replace(f"__{key}__", value)
+    return string
+
+# </Helper>
+
+# </Build>
 
 # <SCGenerateThumbnail>
 
 
-def calculate_lengh_in_seconds(file: str, wd: str):
+def _private_calculate_lengh_in_seconds(file: str, wd: str):
     argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+file+'"'
     return float(execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, wd)[1])
 
 
-def create_thumbnails(file: str, length_in_seconds: float, amount_of_images: int, wd: str, tempname_for_thumbnails):
+def _private_create_thumbnails(file: str, length_in_seconds: float, amount_of_images: int, wd: str, tempname_for_thumbnails):
     rrp = length_in_seconds/(amount_of_images-2)
     argument = '-i "'+file+'" -r 1/'+str(rrp)+' -vf scale=-1:120 -vcodec png '+tempname_for_thumbnails+'-%002d.png'
     execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, wd)
 
 
-def create_thumbnail(outputfilename: str, wd: str, length_in_seconds: float, tempname_for_thumbnails):
+def _private_create_thumbnail(outputfilename: str, wd: str, length_in_seconds: float, tempname_for_thumbnails):
     duration = datetime.timedelta(seconds=length_in_seconds)
     info = timedelta_to_simple_string(duration)
     argument = '-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
@@ -277,9 +472,9 @@ def SCGenerateThumbnail(file: str):
     filename_without_extension = Path(file).stem
 
     try:
-        length_in_seconds = calculate_lengh_in_seconds(filename, folder)
-        create_thumbnails(filename, length_in_seconds, amount_of_images, folder, tempname_for_thumbnails)
-        create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails)
+        length_in_seconds = _private_calculate_lengh_in_seconds(filename, folder)
+        _private_create_thumbnails(filename, length_in_seconds, amount_of_images, folder, tempname_for_thumbnails)
+        _private_create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails)
     finally:
         for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
             file = str(thumbnail_to_delete)
@@ -297,12 +492,12 @@ def SCGenerateThumbnail_cli():
 # <SCKeyboardDiagnosis>
 
 
-def private_keyhook(event):
+def _private_keyhook(event):
     print(str(event.name)+" "+event.event_type)
 
 
 def SCKeyboardDiagnosis_cli():
-    keyboard.hook(private_keyhook)
+    keyboard.hook(_private_keyhook)
     while True:
         time.sleep(10)
 
@@ -384,7 +579,7 @@ def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_d
         with open(file, 'w', encoding=encoding) as f:
             f.write(result)
     else:
-        print(f"File '{file}' does not exist")
+        write_message_to_stdout(f"File '{file}' does not exist")
 
 
 def SCOrganizeLinesInFile_cli():
@@ -515,7 +710,7 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
     if verbosity == 2:
         write_message_to_stdout(f"Start executing {title_local}")
-
+    write_message_to_stdout(f"Start executing {title_local}")
     if workingdirectory == "":
         workingdirectory = os.getcwd()
     else:
@@ -732,10 +927,6 @@ def get_version_from_gitversion(folder: str, variable: str):
     return strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
 
 
-def encapsulate_with_quotes(value: str):
-    return '"'+value+'"'
-
-
 def move_content_of_folder(srcDir, dstDir):
     srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
     dstDirFull = resolve_relative_path_from_current_working_directory(dstDir)
@@ -759,7 +950,7 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
 
 
-def get_publishdirectory(configparser, version: str):
+def _private_get_publishdirectory(configparser, version: str):
     result = configparser.get('build', 'publishdirectory')
     result = result.replace("__version__", version)
     ensure_directory_exists(result)
@@ -830,7 +1021,7 @@ def git_clone_if_not_already_done(folder: str, link: str):
             argument = f"clone {link} --recurse-submodules --remote-submodules"
             execute_exit_code = execute_and_raise_exception_if_exit_code_is_not_zero(f"git {argument}", argument, original_cwd)[0]
             if execute_exit_code != 0:
-                print(f"'git {argument}' had exitcode {str(execute_exit_code)}")
+                write_message_to_stdout(f"'git {argument}' had exitcode {str(execute_exit_code)}")
                 exit_code = execute_exit_code
     finally:
         os.chdir(original_cwd)
@@ -855,14 +1046,20 @@ def git_checkout(directory: str, branch: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600)
 
 
-def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True):
+def git_merge_abort(directory: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600)
+
+
+def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit:bool=True):
     git_checkout(directory, targetbranch)
     if(fastforward):
         ff = ""
     else:
         ff = "--no-ff "
     execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+ff+sourcebranch, directory, 3600)
-    commit_id = git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
-    return commit_id
+    if commit:
+        return git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
+    else:
+        git_get_current_commit_id(directory)
 
 # </git>
