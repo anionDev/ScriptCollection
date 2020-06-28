@@ -113,7 +113,7 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
         write_exception_to_stderr(exception,"Building nuget and running testcases resulted in an error")
     if configparser.getboolean('prepare','prepare'):
         if build_was_successful:
-            commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merged branch '"+ _private_get_config_item(configparser,'prepare','developmentbranchname')+"' into branch '"+_private_get_config_item(configparser,'prepare','masterbranchname')+"'")
+            commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merge branch '"+ _private_get_config_item(configparser,'prepare','developmentbranchname')+"' into '"+_private_get_config_item(configparser,'prepare','masterbranchname')+"'")
             git_create_tag(_private_get_config_item(configparser,'general','repository'), commit_id, version)
             git_merge(_private_get_config_item(configparser,'general','repository'), _private_get_config_item(configparser,'prepare','masterbranchname'), _private_get_config_item(configparser,'prepare','developmentbranchname'),True)
         else:
