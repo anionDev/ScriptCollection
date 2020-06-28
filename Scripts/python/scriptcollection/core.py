@@ -230,9 +230,8 @@ def SCDotNetReference(configurationfile: str):
         shutil.copyfile(_private_get_config_item(configparser, 'build', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser),_private_get_config_item(configparser,'reference','coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+configparser.get('reference','coveragereportfolder')+'"',_private_get_config_item(configparser,'reference','coveragefolder'))
         git_commit(_private_get_config_item(configparser,'reference','referencerepository'),"Updated reference")
-        if configparser.getboolean('reference','generatereference'):
+        if configparser.getboolean('reference','exportreference'):
             git_push(_private_get_config_item(configparser, 'reference', 'referencerepository'),_private_get_config_item(configparser, 'reference', 'exportreferenceremotename'),"master","master")
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     return 0
 
 
