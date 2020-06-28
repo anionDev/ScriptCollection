@@ -32,22 +32,6 @@ scriptcollection_version = "1.0.0"
 
 # idea for new structure:
 
-# SCDotNet:
-# SCDotNetCreateNugetRelease: does: <prepare>;calls: SCDotNetBuildNugetAndRunTests,SCDotNetReference,SCDotNetReleaseNuget
-# SCDotNetBuildNugetAndRunTests: calls: SCDotNetBuild,SCDotNetRunTests,SCDotNetsign
-# SCDotNetReleaseNuget: does: <Release>
-# SCDotNetReference: does: <call docfx>
-# SCDotNetsign: does:<sign>
-
-# SCDotNet:
-# SCDotNetCreateExecutableRelease: does: <prepare>;calls: SCDotNetBuildExecutableAndRunTests,SCDotNetReference,SCDotNetReleaseExecutable
-# SCDotNetBuildExecutableAndRunTests: calls: SCDotNetBuild,SCDotNetRunTests,SCDotNetsign
-# SCDotNetReleaseExecutable: does: <Release, upload>
-# SCDotNetReference: does: <call docfx>
-# SCDotNetBuild: does:<Build>
-# SCDotNetRunTests: does:<RunTests>
-# SCDotNetsign: does:<sign>
-
 # SCPython:
 # SCPythonCreateWheelRelease: does: <prepare>;calls: SCPythonRunTests,SCPythonReleaseWheel
 # SCPythonRunTests: does: <call pyTest-script>
@@ -117,15 +101,19 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
         if(configparser.getboolean('prepare','updateversionsincsprojfile')):
             csproj_file_with_path=_private_get_config_item(configparser,'build','folderofcsprojfile')+os.path.sep+_private_get_config_item(configparser,'build','csprojfilename')
             update_version_in_csproj_file(csproj_file_with_path, version)
-            git_commit(configparser.get('general','repository'), "Updated version in '"+_private_get_config_item(configparser,'build','csprojfilename')+"'")
+            git_commit(configparser.get('general','repository'), "Updated version in '"+_private_get_config_item(configparser,'build','csprojfilename')+"' to "+version)
         git_merge(_private_get_config_item(configparser,'general','repository'), _private_get_config_item(configparser,'prepare','developmentbranchname'), _private_get_config_item(configparser,'prepare','masterbranchname'),False, False)
     try:
-        build_was_successful= SCDotNetBuildNugetAndRunTests(configurationfile)==0
-    except:
+        exitcode=SCDotNetBuildNugetAndRunTests(configurationfile)
+        build_was_successful= exitcode==0
+        if not build_was_successful:
+            write_exception_to_stderr("Building nuget and running testcases resulted in exitcode "+exitcode)
+    except Exception as exception:
         build_was_successful=False
+        write_exception_to_stderr(exception,"Building nuget and running testcases resulted in an error")
     if configparser.getboolean('prepare','prepare'):
         if build_was_successful:
-            commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merged")
+            commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merged branch '"+ _private_get_config_item(configparser,'prepare','developmentbranchname')+"' into branch '"+_private_get_config_item(configparser,'prepare','masterbranchname')+"'")
             git_create_tag(_private_get_config_item(configparser,'general','repository'), commit_id, version)
             git_merge(_private_get_config_item(configparser,'general','repository'), _private_get_config_item(configparser,'prepare','masterbranchname'), _private_get_config_item(configparser,'prepare','developmentbranchname'),True)
         else:
@@ -133,16 +121,11 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
             git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
             write_message_to_stderr("Building and executing testcases was not successful")
             return 1
-    if configparser.getboolean('reference','generatereference'):
-        docfx_file=_private_get_config_item(configparser,'reference','docfxfile')
-        docfx_filename=os.path.basename(docfx_file)
-        docfx_filefolder=os.path.dirname(docfx_file)
-        write_message_to_stdout(docfx_filefolder)
-        write_message_to_stdout(docfx_filename)
-        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-    
-    # TODO calls: SCDotNetReference,SCDotNetReleaseNuget
+    SCDotNetReference(configurationfile)
+    SCDotNetReleaseNuget(configurationfile)
+    git_commit(configparser.get('release','releaserepository'), "Added "+_private_get_config_item(configparser,'general','productname')+" "+_private_get_config_item(configparser,'prepare','gittagprefix')+" "+version)
     return 0
+
 def SCDotNetCreateNugetRelease_cli():
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument("configurationfile")
@@ -198,7 +181,6 @@ def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     with open(nuspecfile, encoding="utf-8", mode="w") as f:
         f.write(nuspec_content)
     execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory)
-    shutil.copyfile(_private_get_config_item(configparser, 'build', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser),publishdirectory+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
     return 0
 
 def SCDotNetBuildNugetAndRunTests_cli():
@@ -216,15 +198,14 @@ def SCDotNetReleaseNuget(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = _private_get_version(configparser)
-    commitmessage = f"Added {_private_get_config_item(configparser,'general','productname')} {_private_get_config_item(configparser,'prepare','gittagprefix')}{version}"
-
     publishdirectory = _private_get_config_item(configparser, 'build', 'publishdirectory')
     latest_nupkg_file = configparser.get('general', 'productname')+"."+version+".nupkg"
-    localnugettarget = configparser.get('release', 'localnugettarget')
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
-    git_commit(configparser.get('release', 'localnugettargetrepository'), commitmessage)
+    for localnugettarget in _private_get_config_items(configparser,'release', 'localnugettargets'):
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
+    commitmessage = f"Added {_private_get_config_item(configparser,'general','productname')} {_private_get_config_item(configparser,'prepare','gittagprefix')}{version}"
+    for localnugettargetrepository in _private_get_config_items(configparser,'release', 'localnugettargetrepositories'):
+        git_commit(localnugettargetrepository, commitmessage)
     return 0
-
 
 def SCDotNetReleaseNuget_cli():
     parser = argparse.ArgumentParser(description='TODO')
@@ -240,7 +221,19 @@ def SCDotNetReleaseNuget_cli():
 def SCDotNetReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO
+    if configparser.getboolean('reference','generatereference'):
+        docfx_file=_private_get_config_item(configparser,'reference','docfxfile')
+        docfx_filename=os.path.basename(docfx_file)
+        docfx_filefolder=os.path.dirname(docfx_file)
+        _private_replace_underscore_in_file(_private_get_config_item(configparser, 'reference', 'referencerepositoryindexfile'),configparser)
+        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
+        shutil.copyfile(_private_get_config_item(configparser, 'build', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser),_private_get_config_item(configparser,'reference','coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+configparser.get('reference','coveragereportfolder')+'"',_private_get_config_item(configparser,'reference','coveragefolder'))
+        git_commit(_private_get_config_item(configparser,'reference','referencerepository'),"Updated reference")
+        if configparser.getboolean('reference','generatereference'):
+            git_push(_private_get_config_item(configparser, 'reference', 'referencerepository'),_private_get_config_item(configparser, 'reference', 'exportreferenceremotename'),"master","master")
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    return 0
 
 
 def SCDotNetReference_cli():
@@ -423,6 +416,12 @@ def _private_get_publishdirectory(configparser):
     ensure_directory_exists(result)
     return result
 
+def _private_replace_underscore_in_file(file:str,configparser: ConfigParser,replacements:dict={},encoding="utf-8"):
+    with codecs.open(file, 'r', encoding=encoding) as f:
+        text = f.read()
+    text = _private_replace_underscores(text,configparser,replacements)
+    with codecs.open(file, 'w', encoding=encoding) as f:
+        f.write(text)
 
 def _private_replace_underscores(string: str, configparser: ConfigParser,replacements:dict={}):
     replacements["productname"]=configparser.get('general', 'productname')
