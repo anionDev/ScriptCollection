@@ -41,7 +41,12 @@ def SCDotNetReleaseExecutable(configurationfile: str):
 
 
 def SCDotNetReleaseExecutable_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetReleaseExecutable_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetReleaseExecutable(args.configurationfile)
@@ -65,7 +70,12 @@ def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
 
 
 def SCDotNetBuildExecutableAndRunTests_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetBuildExecutableAndRunTests_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetBuildExecutableAndRunTests(args.configurationfile)
@@ -79,7 +89,7 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version=_private_get_version(configparser)
-    if(configparser.getboolean('prepare','prepare')):
+    if(configparser.getboolean('prepare','dotnetprepare')):
         git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
         if(configparser.getboolean('prepare','updateversionsincsprojfile')):
             csproj_file_with_path=_private_get_config_item(configparser,'build','folderofcsprojfile')+os.path.sep+_private_get_config_item(configparser,'build','csprojfilename')
@@ -94,7 +104,7 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     except Exception as exception:
         build_was_successful=False
         write_exception_to_stderr(exception,"Building executable and running testcases resulted in an error")
-    if configparser.getboolean('prepare','prepare'):
+    if configparser.getboolean('prepare','dotnetprepare'):
         if build_was_successful:
             commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merge branch '"+ _private_get_config_item(configparser,'prepare','developmentbranchname')+"' into '"+_private_get_config_item(configparser,'prepare','masterbranchname')+"'")
             git_create_tag(_private_get_config_item(configparser,'general','repository'), commit_id,_private_get_config_item(configparser,'prepare','gittagprefix')+ version)
@@ -111,7 +121,12 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
 
 
 def SCDotNetCreateExecutableRelease_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetCreateExecutableRelease_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetCreateExecutableRelease(args.configurationfile)
@@ -125,7 +140,7 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version=_private_get_version(configparser)
-    if(configparser.getboolean('prepare','prepare')):
+    if(configparser.getboolean('prepare','dotnetprepare')):
         git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
         if(configparser.getboolean('prepare','updateversionsincsprojfile')):
             csproj_file_with_path=_private_get_config_item(configparser,'build','folderofcsprojfile')+os.path.sep+_private_get_config_item(configparser,'build','csprojfilename')
@@ -140,7 +155,7 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     except Exception as exception:
         build_was_successful=False
         write_exception_to_stderr(exception,"Building nuget and running testcases resulted in an error")
-    if configparser.getboolean('prepare','prepare'):
+    if configparser.getboolean('prepare','dotnetprepare'):
         if build_was_successful:
             commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merge branch '"+ _private_get_config_item(configparser,'prepare','developmentbranchname')+"' into '"+_private_get_config_item(configparser,'prepare','masterbranchname')+"'")
             git_create_tag(_private_get_config_item(configparser,'general','repository'), commit_id,_private_get_config_item(configparser,'prepare','gittagprefix')+ version)
@@ -148,7 +163,7 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
         else:
             git_merge_abort(_private_get_config_item(configparser,'general','repository'))
             git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
-            write_message_to_stderr("Building and executing testcases was not successful")
+            write_message_to_stderr("Building nuget and running testcases was not successful")
             return 1
     SCDotNetReference(configurationfile)
     SCDotNetReleaseNuget(configurationfile)
@@ -157,7 +172,12 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     return 0
 
 def SCDotNetCreateNugetRelease_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetCreateNugetRelease_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetCreateNugetRelease(args.configurationfile)
@@ -212,7 +232,12 @@ def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     return 0
 
 def SCDotNetBuildNugetAndRunTests_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetBuildNugetAndRunTests_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetBuildNugetAndRunTests(args.configurationfile)
@@ -230,13 +255,17 @@ def SCDotNetReleaseNuget(configurationfile: str):
     latest_nupkg_file = _private_get_config_item(configparser,'general', 'productname')+"."+version+".nupkg"
     for localnugettarget in _private_get_config_items(configparser,'release', 'localnugettargets'):
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
-    commitmessage = f"Added {_private_get_config_item(configparser,'general','productname')} {_private_get_config_item(configparser,'prepare','gittagprefix')}{version}"
     for localnugettargetrepository in _private_get_config_items(configparser,'release', 'localnugettargetrepositories'):
-        git_commit(localnugettargetrepository, commitmessage)
+        git_commit(localnugettargetrepository,  f"Added {_private_get_config_item(configparser,'general','productname')} .NET-release {_private_get_config_item(configparser,'prepare','gittagprefix')}{version}")
     return 0
 
 def SCDotNetReleaseNuget_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetReleaseNuget_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetReleaseNuget(args.configurationfile)
@@ -264,7 +293,12 @@ def SCDotNetReference(configurationfile: str):
 
 
 def SCDotNetReference_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetReference_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetReference(args.configurationfile)
@@ -322,7 +356,12 @@ def SCDotNetRunTests(configurationfile: str):
 
 
 def SCDotNetRunTests_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCDotNetRunTests_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetRunTests(args.configurationfile)
@@ -367,28 +406,119 @@ def SCDotNetsign_cli():
 def SCPythonCreateWheelRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO does: <prepare>;calls: SCPythonRunTests,SCPythonReleaseWheel
+    version=_private_get_version(configparser)
+    if(configparser.getboolean('prepare','whlprepare')):
+        git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
+        git_merge(_private_get_config_item(configparser,'general','repository'), _private_get_config_item(configparser,'prepare','developmentbranchname'), _private_get_config_item(configparser,'prepare','masterbranchname'),False, False)
+    try:
+        exitcode=SCPythonBuildWheelAndRunTests(configurationfile)
+        tests_were_successful= exitcode==0
+        if not tests_were_successful:
+            write_exception_to_stderr("Running testcases resulted in exitcode "+exitcode)
+    except Exception as exception:
+        tests_were_successful=False
+        write_exception_to_stderr(exception,"Running testcases resulted in an error")
+    if configparser.getboolean('prepare','whlprepare'):
+        if tests_were_successful:
+            commit_id=git_commit( _private_get_config_item(configparser,'general','repository'),"Merge branch '"+ _private_get_config_item(configparser,'prepare','developmentbranchname')+"' into '"+_private_get_config_item(configparser,'prepare','masterbranchname')+"'")
+            git_create_tag(_private_get_config_item(configparser,'general','repository'), commit_id,_private_get_config_item(configparser,'prepare','gittagprefix')+ version)
+            git_merge(_private_get_config_item(configparser,'general','repository'), _private_get_config_item(configparser,'prepare','masterbranchname'), _private_get_config_item(configparser,'prepare','developmentbranchname'),True)
+        else:
+            git_merge_abort(_private_get_config_item(configparser,'general','repository'))
+            git_checkout(_private_get_config_item(configparser,'general','repository'),_private_get_config_item(configparser,'prepare','developmentbranchname'))
+            write_message_to_stderr("Running testcases was not successful")
+            return 1
+    SCPythonReleaseWheel(configurationfile)
+    git_commit(_private_get_config_item(configparser,'release','releaserepository'), "Added "+_private_get_config_item(configparser,'general','productname')+" "+_private_get_config_item(configparser,'prepare','gittagprefix')+version)
+    git_commit(_private_get_config_item(configparser,'release','publishtargetrepository'), "Added "+_private_get_config_item(configparser,'general','productname')+" "+_private_get_config_item(configparser,'prepare','gittagprefix')+version)
+    return 0
 
 
 def SCPythonCreateWheelRelease_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCPythonCreateWheelRelease_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonCreateWheelRelease(args.configurationfile)
 
 # </SCPythonCreateWheelRelease>
 
+# <SCPythonBuildWheelAndRunTests>
+
+
+def SCPythonBuildWheelAndRunTests(configurationfile: str):
+    SCPythonRunTests(configurationfile)
+    SCPythonBuild(configurationfile)
+    return 0
+
+
+def SCPythonBuildWheelAndRunTests_cli():
+    parser = argparse.ArgumentParser(description="""SCPythonBuildWheelAndRunTests_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    return SCPythonBuildWheelAndRunTests(args.configurationfile)
+
+# </SCPythonBuildWheelAndRunTests>
+
+# <SCPythonBuild>
+
+
+def SCPythonBuild(configurationfile: str):
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    for folder in _private_get_config_items(configparser,"release", "egginfofolders"):
+        ensure_directory_does_not_exist(folder)
+    setuppyfile=_private_get_config_item(configparser,"build","pythonsetuppyfile")
+    setuppyfilename=os.path.basename(setuppyfile)
+    setuppyfilefolder=os.path.dirname(setuppyfile)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+_private_get_config_item(configparser,"build","publishdirectoryforwhlfile"),setuppyfilefolder)
+    version=_private_get_version(configparser)
+    git_commit(_private_get_config_item(configparser,'release','releaserepository'),  f"Added {_private_get_config_item(configparser,'general','productname')} Python-release {_private_get_config_item(configparser,'prepare','gittagprefix')}{version}")
+    return 0
+
+
+def SCPythonBuild_cli():
+    parser = argparse.ArgumentParser(description="""SCPythonBuild_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    return SCPythonBuild(args.configurationfile)
+
+# </SCPythonBuild>
 # <SCPythonRunTests>
 
 
 def SCPythonRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO does: <call pyTest-script>
+    if configparser.getboolean('build', 'hastestproject'):
+        pythontestfile=_private_get_config_item(configparser,'release','pythontestfile')
+        pythontestfilename=os.path.basename(pythontestfile)
+        pythontestfilefolder=os.path.dirname(pythontestfile)
+        execute_and_raise_exception_if_exit_code_is_not_zero("pytest",pythontestfilename, pythontestfilefolder, 3600, True, False, "Pytest")
+    return 0
 
 
 def SCPythonRunTests_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCPythonRunTests_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonRunTests(args.configurationfile)
@@ -401,11 +531,24 @@ def SCPythonRunTests_cli():
 def SCPythonReleaseWheel(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO does: <Release, upload>
+    if configparser.getboolean('build', 'publishwhlfile'):
+        with open(_private_get_config_item(configparser,'release','pypiapikeyfile'), 'r',encoding='utf-8') as apikeyfile:
+            api_key = apikeyfile.read()
+        gpgidentity=_private_get_config_item(configparser,'other','gpgidentity')
+        version=_private_get_version(configparser)
+        twine_argument= f"upload --sign --identity {gpgidentity} --non-interactive epew-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
+        write_message_to_stdout(f"xxx: {_private_get_config_item(configparser,'build','publishdirectoryforwhlfile')}>twine {twine_argument}")
+        #execute_and_raise_exception_if_exit_code_is_not_zero("twine",twine_argument,_private_get_config_item(configparser,"build","publishdirectoryforwhlfile"))
+    return 0
 
 
 def SCPythonReleaseWheel_cli():
-    parser = argparse.ArgumentParser(description='TODO')
+    parser = argparse.ArgumentParser(description="""SCPythonReleaseWheel_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""",formatter_class=RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonReleaseWheel(args.configurationfile)
@@ -493,6 +636,8 @@ def _private_replace_underscores(string: str, configparser: ConfigParser,replace
         replacements["coveragefolder"]=configparser.get('build', 'coveragefolder')
     if configparser.has_option('build', 'coveragereportfolder'):
         replacements["coveragereportfolder"]=configparser.get('build', 'coveragereportfolder')
+    if configparser.has_option('release', 'egginfofolders'):
+        replacements["egginfofolders"]=configparser.get('release', 'egginfofolders')
     
     changed=True
     result=string
