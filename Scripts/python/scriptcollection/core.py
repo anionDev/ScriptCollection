@@ -30,13 +30,6 @@ import datetime
 scriptcollection_version = "1.0.0"
 
 
-# idea for new structure:
-
-# SCPython:
-# SCPythonCreateWheelRelease: does: <prepare>;calls: SCPythonRunTests,SCPythonReleaseWheel
-# SCPythonRunTests: does: <call pyTest-script>
-# SCPythonReleaseWheel: does: <Release, upload>
-
 # <Build>
 
 # <SCDotNetReleaseExecutable>
@@ -325,7 +318,7 @@ def SCDotNetRunTests(configurationfile: str):
     runtime=_private_get_config_item(configparser, 'build', 'testruntime')
     SCDotNetBuild(_private_get_config_item(configparser, 'build', 'folderoftestcsprojfile'), _private_get_config_item(configparser, 'build', 'testcsprojfilename'), _private_get_config_item(configparser, 'build', 'testoutputfolder'), _private_get_config_item(configparser, 'build', 'buildconfiguration'), runtime, _private_get_config_item(configparser, 'build', 'testdotnetframework'), True, "normal", None,None)
     execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_config_item(configparser, 'build', 'testcsprojfilename')+" --no-build -c " + _private_get_config_item(configparser, 'build', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" + _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_config_item(configparser, 'build', 'folderoftestcsprojfile'), 3600, True, False, "Execute tests")
-    return 0  # TODO
+    return 0
 
 
 def SCDotNetRunTests_cli():
@@ -374,7 +367,7 @@ def SCDotNetsign_cli():
 def SCPythonCreateWheelRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO
+    return 0  # TODO does: <prepare>;calls: SCPythonRunTests,SCPythonReleaseWheel
 
 
 def SCPythonCreateWheelRelease_cli():
@@ -391,7 +384,7 @@ def SCPythonCreateWheelRelease_cli():
 def SCPythonRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO
+    return 0  # TODO does: <call pyTest-script>
 
 
 def SCPythonRunTests_cli():
@@ -408,7 +401,7 @@ def SCPythonRunTests_cli():
 def SCPythonReleaseWheel(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO
+    return 0  # TODO does: <Release, upload>
 
 
 def SCPythonReleaseWheel_cli():
