@@ -540,7 +540,7 @@ def SCPythonReleaseWheel(configurationfile: str):
             api_key = apikeyfile.read()
         gpgidentity=get_buildscript_config_item(configparser,'other','gpgidentity')
         version=get_version_for_buildscripts(configparser)
-        twine_argument= f"upload --sign --identity {gpgidentity} --non-interactive epew-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
+        twine_argument= f"upload --sign --identity {gpgidentity} --non-interactive get_buildscript_config_item(configparser,'genereal','productname')-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
         write_message_to_stdout(f"xxx: {get_buildscript_config_item(configparser,'build','publishdirectoryforwhlfile')}>twine {twine_argument}")
         #execute_and_raise_exception_if_exit_code_is_not_zero("twine",twine_argument,get_buildscript_config_item(configparser,"build","publishdirectoryforwhlfile"))
     return 0
