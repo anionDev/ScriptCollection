@@ -540,9 +540,9 @@ def SCPythonReleaseWheel(configurationfile: str):
             api_key = apikeyfile.read()
         gpgidentity=get_buildscript_config_item(configparser,'other','gpgidentity')
         version=get_version_for_buildscripts(configparser)
-        twine_argument= f"upload --sign --identity {gpgidentity} --non-interactive get_buildscript_config_item(configparser,'genereal','productname')-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
-        write_message_to_stdout(f"xxx: {get_buildscript_config_item(configparser,'build','publishdirectoryforwhlfile')}>twine {twine_argument}")
-        #execute_and_raise_exception_if_exit_code_is_not_zero("twine",twine_argument,get_buildscript_config_item(configparser,"build","publishdirectoryforwhlfile"))
+        productname=get_buildscript_config_item(configparser,'general','productname')
+        twine_argument= f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
+        execute_and_raise_exception_if_exit_code_is_not_zero("twine",twine_argument,get_buildscript_config_item(configparser,"build","publishdirectoryforwhlfile"))
     return 0
 
 
@@ -898,6 +898,8 @@ def string_to_boolean(value: str):
 def file_is_empty(file: str):
     return os.stat(file).st_size == 0
 
+def get_time_based_logfile_by_folder(folder: str,name:str="Log"):
+        return os.path.join(folder,name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = False):
     result = execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
