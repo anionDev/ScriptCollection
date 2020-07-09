@@ -1,3 +1,4 @@
+import filecmp
 from distutils.dir_util import copy_tree
 from functools import lru_cache
 import keyboard
@@ -8,6 +9,7 @@ import os
 from shutil import copytree
 from subprocess import Popen, PIPE
 import hashlib
+import send2trash
 import time
 import shutil
 import ctypes
@@ -145,7 +147,7 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
         if(configparser.getboolean('prepare','updateversionsincsprojfile')):
             csproj_file_with_path=get_buildscript_config_item(configparser,'build','folderofcsprojfile')+os.path.sep+get_buildscript_config_item(configparser,'build','csprojfilename')
             update_version_in_csproj_file(csproj_file_with_path, version)
-            git_commit(configparser.get('general','repository'), "Updated version in '"+get_buildscript_config_item(configparser,'build','csprojfilename')+"' to "+version)
+            git_commit(get_buildscript_config_item(configparser,'general','repository'), "Updated version in '"+get_buildscript_config_item(configparser,'build','csprojfilename')+"' to "+version)
         git_merge(get_buildscript_config_item(configparser,'general','repository'), get_buildscript_config_item(configparser,'prepare','developmentbranchname'), get_buildscript_config_item(configparser,'prepare','masterbranchname'),False, False)
     try:
         exitcode=SCDotNetBuildNugetAndRunTests(configurationfile)
@@ -813,6 +815,170 @@ def SCOrganizeLinesInFile_cli():
 
 
 # </SCOrganizeLinesInFile>
+
+# <SCGenerateSnkFiles>
+
+
+def SCGenerateSnkFiles(outputfolder, keysize=4096,amountofkeys=10):
+    ensure_directory_exists(outputfolder)
+    for number in range(amountofkeys):
+        file=os.path.join(outputfolder,str(uuid.uuid4())+".snk")
+        argument=f"-k {keysize} {file}"
+        execute("sn", argument, outputfolder)
+
+
+def SCGenerateSnkFiles_cli():
+    parser = argparse.ArgumentParser(description='Generate multiple .snk-files')
+    parser.add_argument('outputfolder', help='Folder where the files are stored which should be hashed')
+    parser.add_argument('--keysize', default='4096')
+    parser.add_argument('--amountofkeys', default='10')
+
+    args = parser.parse_args()
+    SCGenerateSnkFiles(args.outputfolder,args.keysize,args.amountofkeys)
+    
+# </SCGenerateSnkFiles>
+
+
+# <SCReplaceSubstringsInFilenames>
+
+    def _private_absolute_file_paths(directory:str):
+       for dirpath,_,filenames in os.walk(directory):
+           for filename in filenames:
+               yield os.path.abspath(os.path.join(dirpath, filename))
+
+
+    def _private_merge_files(sourcefile:str, targetfile:str):
+        with open(sourcefile, "rb") as f:
+            source_data = f.read()
+        fout = open(targetfile, "ab")
+        merge_separator=[0x0A]
+        fout.write(bytes(merge_separator))
+        fout.write(source_data)
+        fout.close()
+
+    def _private_process_file(file:str,substringInFilename:str,newSubstringInFilename:str,conflictResolveMode:str):
+        new_filename=os.path.join(os.path.dirname(file),os.path.basename(file).replace(args.substringInFilename, args.newSubstringInFilename))
+        if file != new_filename:
+            if os.path.isfile(new_filename):
+                if(filecmp.cmp(file, new_filename)):
+                    send2trash.send2trash(file)
+                else:
+                    if(args.conflictResolveMode=="ignore"):
+                        pass
+                    elif(args.conflictResolveMode=="preservenewest"):
+                        if(os.path.getmtime(file) - os.path.getmtime(new_filename) > 0):
+                            send2trash.send2trash(file)
+                        else:
+                            send2trash.send2trash(new_filename)
+                            os.rename(file, new_filename)
+                    elif(args.conflictResolveMode=="merge"):
+                        _private_merge_files(file, new_filename)
+                        send2trash.send2trash(file)
+                    else:
+                        raise Exception('Unknown conflict resolve mode')
+            else:
+                os.rename(file, new_filename)
+
+def SCReplaceSubstringsInFilenames(folder:str,substringInFilename:str,newSubstringInFilename:str,conflictResolveMode:str):
+    for file in _private_absolute_file_paths(args.folder):
+        _private_process_file(file, substringInFilename, newSubstringInFilename, conflictResolveMode)
+
+def SCReplaceSubstringsInFilenames_cli():
+    parser = argparse.ArgumentParser(description='Replaces certain substrings in filenames. This program requires "pip install Send2Trash" in certain cases.')
+
+    parser.add_argument('folder', help='Folder where the files are stored which should be renamed')
+    parser.add_argument('substringInFilename', help='String to be replaced')
+    parser.add_argument('newSubstringInFilename', help='new string value for filename')
+    parser.add_argument('conflictResolveMode', help='Set a method how to handle cases where a file with the new filename already exits and the files have not the same content. Possible values are: ignore, preservenewest, merge')
+
+    args = parser.parse_args()
+    
+    SCReplaceSubstringsInFilenames(args.folder,args.substringInFilename,args.newSubstringInFilename,args.conflictResolveMode,)
+
+# </SCReplaceSubstringsInFilenames>
+
+
+# <SCSearchInFiles>
+
+
+    def _private_check_file(file:str):
+        bytes_ascii = bytes(args.searchstring,"ascii")
+        bytes_utf16 = bytes(args.searchstring,"utf-16")#often called "unicode-encoding"
+        bytes_utf8 = bytes(args.searchstring,"utf-8")
+        with open(file, mode='rb') as file:
+            content=file.read()
+            if bytes_ascii in content:
+                write_message_to_stdout(file)
+            elif bytes_utf16 in content:
+                write_message_to_stdout(file)
+            elif bytes_utf8 in content:
+                write_message_to_stdout(file)
+            
+def SCSearchInFiles(folder:str, searchstring:str):
+    for file in absolute_file_paths(args.folder):
+        _private_check_file(file)
+
+
+def SCSearchInFiles_cli():
+    parser = argparse.ArgumentParser(description='Searchs for the given searchstrings in the content of all files in the given folder. This program prints all files where the given searchstring was found to the console')
+
+    parser.add_argument('folder', help='Folder for search')
+    parser.add_argument('searchstring', help = 'string to look for')
+
+    args = parser.parse_args()
+    SCSearchInFiles(args.folder, args.searchstring)
+
+# </SCSearchInFiles>
+
+# <SCShow2FAAsQRCode>
+
+def _private_print_qr_code_by_csv_line(line:str):
+    splitted=line.split(";")
+    displayname=splitted[0]
+    website=splitted[1]
+    emailaddress=splitted[2]
+    key=splitted[3]    
+    period=splitted[4]
+    qrcode_content=f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
+    print(f"{displayname} ({emailaddress}):")
+    print(qrcode_content)
+    subprocess.call(["qr", qrcode_content])
+
+def SCShow2FAAsQRCode(csvfile:str):
+    separator_line="--------------------------------------------------------"
+    with open(args.csvfile) as f:
+        lines = f.readlines()
+    lines = [line.rstrip('\n') for line in lines]
+    itertor = iter(lines)
+    next(itertor)
+    for line in itertor:
+        write_message_to_stdout(separator_line)
+        _private_print_qr_code_by_csv_line(line)
+    write_message_to_stdout(separator_line)
+
+
+def SCShow2FAAsQRCode_cli():
+    
+    parser = argparse.ArgumentParser(description="""Always when you use 2-factor-authentication you have the problem: Where to backup the secret-key so that it is easy to re-setup them when you have a new phone?
+Using this script is a solution. Always when you setup a 2fa you copy and store the secret in a csv-file.
+It should be obviously that this csv-file must be stored encrypted!
+Now if you want to move your 2fa-codes to a new phone you simply call "SCShow2FAAsQRCode 2FA.csv"
+Then the qr-codes will be displayed in the console and you can scan them on your new phone.
+This script does not saving the any data anywhere.
+
+The structure of the csv-file can be viewd here:
+Displayname;Website;Email-address;Secret;Period;
+Amazon;Amazon.de;myemailaddress@example.com;QWERTY;30;
+Google;Google.de;myemailaddress@example.com;ASDFGH;30;
+
+Hints:
+-Since the first line of the csv-file contains headlines the first line will always be ignored
+-30 is the commonly used value for the period""")
+    parser.add_argument('csvfile', help='File where the 2fa-codes are stored')
+    args = parser.parse_args()
+    SCShow2FAAsQRCode(args.csvfile)
+
+# </SCShow2FAAsQRCode>
 
 # <miscellaneous>
 
