@@ -33,7 +33,7 @@ setup(
         "keyboard>=0.13.5",
         "ntplib>=0.3.4",
         "PyPDF2>=1.26.0",
-        "qrcode>=6.1"
+        "qrcode>=6.1",
         "send2trash>=1.5.0",
     ],
     entry_points={
