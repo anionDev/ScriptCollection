@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-scriptcollection_version = "1.0.0"
+version = "1.0.1"
 
 
 # <Build>
@@ -1336,7 +1336,7 @@ def update_version_in_csproj_file(file: str, version: str):
 
 
 def get_scriptcollection_version():
-    return scriptcollection_version
+    return version
 
 
 # </miscellaneous>
