@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 productname = "scriptCollection"
-version="1.0.3"
+version="1.0.4"
 packages= [package for package in find_packages() if not package.endswith("Tests")]
 
 with open("..\\..\\ReadMe.md", "r", encoding='utf-8') as f:
@@ -33,12 +33,12 @@ setup(
         "keyboard>=0.13.5",
         "ntplib>=0.3.4",
         "PyPDF2>=1.26.0",
-        "qrcode>=6.1"
+        "qrcode>=6.1",
         "send2trash>=1.5.0",
     ],
     entry_points={
         'console_scripts': [
-            f"SCOrganizeLinesInFile_cli = core:SCDotNetReleaseExecutable_cli",
+            f"SCDotNetReleaseExecutable = core:SCDotNetReleaseExecutable_cli",
             f"SCDotNetBuildExecutableAndRunTests = core:SCDotNetBuildExecutableAndRunTests_cli",
             f"SCDotNetCreateExecutableRelease = core:SCDotNetCreateExecutableRelease_cli",
             f"SCDotNetCreateNugetRelease = core:SCDotNetCreateNugetRelease_cli",
