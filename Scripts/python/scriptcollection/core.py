@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.0.1"
+version = "1.0.2"
 
 
 # <Build>
@@ -511,7 +511,7 @@ def SCPythonRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('build', 'hastestproject'):
-        pythontestfile=get_buildscript_config_item(configparser,'release','pythontestfile')
+        pythontestfile=get_buildscript_config_item(configparser,'build','pythontestfile')
         pythontestfilename=os.path.basename(pythontestfile)
         pythontestfilefolder=os.path.dirname(pythontestfile)
         execute_and_raise_exception_if_exit_code_is_not_zero("pytest",pythontestfilename, pythontestfilefolder, 3600, True, False, "Pytest")
