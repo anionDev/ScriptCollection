@@ -38,7 +38,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            f"SCOrganizeLinesInFile_cli = core:SCDotNetReleaseExecutable_cli",
+            f"SCDotNetReleaseExecutable = core:SCDotNetReleaseExecutable_cli",
             f"SCDotNetBuildExecutableAndRunTests = core:SCDotNetBuildExecutableAndRunTests_cli",
             f"SCDotNetCreateExecutableRelease = core:SCDotNetCreateExecutableRelease_cli",
             f"SCDotNetCreateNugetRelease = core:SCDotNetCreateNugetRelease_cli",
