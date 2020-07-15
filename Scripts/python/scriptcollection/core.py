@@ -529,7 +529,7 @@ def SCPythonRunTests(configurationfile: str):
 
 def SCPythonRunTests_cli():
     parser = argparse.ArgumentParser(description="""SCPythonRunTests_cli:
-Description: TODO
+Description: Executes python-unit-tests.
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
