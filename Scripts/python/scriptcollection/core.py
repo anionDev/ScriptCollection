@@ -64,8 +64,7 @@ def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
     if configparser.getboolean('build', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
     for runtime in get_buildscript_config_items(configparser, 'build', 'runtimes'):
-        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build',
-                                                                                                                                                                                                                                                            'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
+        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
     publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
     ensure_directory_does_not_exist(publishdirectory)
     copy_tree(get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory'), publishdirectory)
@@ -423,7 +422,7 @@ def SCPythonCreateWheelRelease(configurationfile: str):
         if(configparser.getboolean('whlprepare', 'updateversion')):
             for file in get_buildscript_config_items(configparser, 'whlprepare', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+version+'"\n')
-                git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Updated version in '"+os.path.basename(file)+"' to "+version)
+            git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Updated version to "+version)
         git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
     try:
         exitcode = SCPythonBuildWheelAndRunTests(configurationfile)
