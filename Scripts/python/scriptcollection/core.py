@@ -7,7 +7,7 @@ import ntplib
 import base64
 import os
 from shutil import copytree
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, call
 import hashlib
 import send2trash
 import time
@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.0.11"
+version = "1.0.12"
 
 
 # <Build>
@@ -48,7 +48,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetReleaseExecutable(args.configurationfile)
@@ -64,7 +64,8 @@ def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
     if configparser.getboolean('build', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
     for runtime in get_buildscript_config_items(configparser, 'build', 'runtimes'):
-        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
+        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build',
+                                                                                                                                                                                                                                                            'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
     publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
     ensure_directory_does_not_exist(publishdirectory)
     copy_tree(get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory'), publishdirectory)
@@ -77,7 +78,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetBuildExecutableAndRunTests(args.configurationfile)
@@ -128,7 +129,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetCreateExecutableRelease(args.configurationfile)
@@ -182,7 +183,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetCreateNugetRelease(args.configurationfile)
@@ -244,7 +245,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetBuildNugetAndRunTests(args.configurationfile)
@@ -273,7 +274,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetReleaseNuget(args.configurationfile)
@@ -288,7 +289,6 @@ def SCDotNetReference(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('reference', 'generatereference'):
         docfx_file = get_buildscript_config_item(configparser, 'reference', 'docfxfile')
-        docfx_filename = os.path.basename(docfx_file)
         docfx_filefolder = os.path.dirname(docfx_file)
         _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'reference', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
@@ -306,7 +306,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetReference(args.configurationfile)
@@ -371,7 +371,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCDotNetRunTests(args.configurationfile)
@@ -456,7 +456,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonCreateWheelRelease(args.configurationfile)
@@ -478,7 +478,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonBuildWheelAndRunTests(args.configurationfile)
@@ -497,7 +497,6 @@ def SCPythonBuild(configurationfile: str):
     setuppyfilename = os.path.basename(setuppyfile)
     setuppyfilefolder = os.path.dirname(setuppyfile)
     execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "build", "publishdirectoryforwhlfile"), setuppyfilefolder)
-    version = get_version_for_buildscripts(configparser)
     return 0
 
 
@@ -507,7 +506,7 @@ Description: TODO
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonBuild(args.configurationfile)
@@ -533,7 +532,7 @@ Description: Executes python-unit-tests.
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonRunTests(args.configurationfile)
@@ -563,7 +562,7 @@ Description: Uploads a .whl-file using twine.
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
-""", formatter_class=RawTextHelpFormatter)
+""", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return SCPythonReleaseWheel(args.configurationfile)
@@ -838,7 +837,7 @@ def SCOrganizeLinesInFile_cli():
 
 def SCGenerateSnkFiles(outputfolder, keysize=4096, amountofkeys=10):
     ensure_directory_exists(outputfolder)
-    for number in range(amountofkeys):
+    for _ in range(amountofkeys):
         file = os.path.join(outputfolder, str(uuid.uuid4())+".snk")
         argument = f"-k {keysize} {file}"
         execute("sn", argument, outputfolder)
@@ -859,46 +858,48 @@ def SCGenerateSnkFiles_cli():
 # <SCReplaceSubstringsInFilenames>
 
 
-    def _private_absolute_file_paths(directory: str):
-        for dirpath, _, filenames in os.walk(directory):
-            for filename in filenames:
-                yield os.path.abspath(os.path.join(dirpath, filename))
+def _private_absolute_file_paths(directory: str):
+    for dirpath, _, filenames in os.walk(directory):
+        for filename in filenames:
+            yield os.path.abspath(os.path.join(dirpath, filename))
 
-    def _private_merge_files(sourcefile: str, targetfile: str):
-        with open(sourcefile, "rb") as f:
-            source_data = f.read()
-        fout = open(targetfile, "ab")
-        merge_separator = [0x0A]
-        fout.write(bytes(merge_separator))
-        fout.write(source_data)
-        fout.close()
 
-    def _private_process_file(file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str):
-        new_filename = os.path.join(os.path.dirname(file), os.path.basename(file).replace(args.substringInFilename, args.newSubstringInFilename))
-        if file != new_filename:
-            if os.path.isfile(new_filename):
-                if(filecmp.cmp(file, new_filename)):
-                    send2trash.send2trash(file)
-                else:
-                    if(args.conflictResolveMode == "ignore"):
-                        pass
-                    elif(args.conflictResolveMode == "preservenewest"):
-                        if(os.path.getmtime(file) - os.path.getmtime(new_filename) > 0):
-                            send2trash.send2trash(file)
-                        else:
-                            send2trash.send2trash(new_filename)
-                            os.rename(file, new_filename)
-                    elif(args.conflictResolveMode == "merge"):
-                        _private_merge_files(file, new_filename)
+def _private_merge_files(sourcefile: str, targetfile: str):
+    with open(sourcefile, "rb") as f:
+        source_data = f.read()
+    fout = open(targetfile, "ab")
+    merge_separator = [0x0A]
+    fout.write(bytes(merge_separator))
+    fout.write(source_data)
+    fout.close()
+
+
+def _private_process_file(file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str):
+    new_filename = os.path.join(os.path.dirname(file), os.path.basename(file).replace(substringInFilename, newSubstringInFilename))
+    if file != new_filename:
+        if os.path.isfile(new_filename):
+            if(filecmp.cmp(file, new_filename)):
+                send2trash.send2trash(file)
+            else:
+                if(conflictResolveMode == "ignore"):
+                    pass
+                elif(conflictResolveMode == "preservenewest"):
+                    if(os.path.getmtime(file) - os.path.getmtime(new_filename) > 0):
                         send2trash.send2trash(file)
                     else:
-                        raise Exception('Unknown conflict resolve mode')
-            else:
-                os.rename(file, new_filename)
+                        send2trash.send2trash(new_filename)
+                        os.rename(file, new_filename)
+                elif(conflictResolveMode == "merge"):
+                    _private_merge_files(file, new_filename)
+                    send2trash.send2trash(file)
+                else:
+                    raise Exception('Unknown conflict resolve mode')
+        else:
+            os.rename(file, new_filename)
 
 
 def SCReplaceSubstringsInFilenames(folder: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str):
-    for file in _private_absolute_file_paths(args.folder):
+    for file in _private_absolute_file_paths(folder):
         _private_process_file(file, substringInFilename, newSubstringInFilename, conflictResolveMode)
 
 
@@ -919,23 +920,23 @@ def SCReplaceSubstringsInFilenames_cli():
 
 # <SCSearchInFiles>
 
-    def _private_check_file(file: str):
-        bytes_ascii = bytes(args.searchstring, "ascii")
-        bytes_utf16 = bytes(args.searchstring, "utf-16")  # often called "unicode-encoding"
-        bytes_utf8 = bytes(args.searchstring, "utf-8")
-        with open(file, mode='rb') as file:
-            content = file.read()
-            if bytes_ascii in content:
-                write_message_to_stdout(file)
-            elif bytes_utf16 in content:
-                write_message_to_stdout(file)
-            elif bytes_utf8 in content:
-                write_message_to_stdout(file)
+def _private_check_file(file: str, searchstring: str):
+    bytes_ascii = bytes(searchstring, "ascii")
+    bytes_utf16 = bytes(searchstring, "utf-16")  # often called "unicode-encoding"
+    bytes_utf8 = bytes(searchstring, "utf-8")
+    with open(file, mode='rb') as file:
+        content = file.read()
+        if bytes_ascii in content:
+            write_message_to_stdout(file)
+        elif bytes_utf16 in content:
+            write_message_to_stdout(file)
+        elif bytes_utf8 in content:
+            write_message_to_stdout(file)
 
 
 def SCSearchInFiles(folder: str, searchstring: str):
-    for file in absolute_file_paths(args.folder):
-        _private_check_file(file)
+    for file in absolute_file_paths(folder):
+        _private_check_file(file, searchstring)
 
 
 def SCSearchInFiles_cli():
@@ -962,12 +963,12 @@ def _private_print_qr_code_by_csv_line(line: str):
     qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
     print(f"{displayname} ({emailaddress}):")
     print(qrcode_content)
-    subprocess.call(["qr", qrcode_content])
+    call(["qr", qrcode_content])
 
 
 def SCShow2FAAsQRCode(csvfile: str):
     separator_line = "--------------------------------------------------------"
-    with open(args.csvfile) as f:
+    with open(csvfile) as f:
         lines = f.readlines()
     lines = [line.rstrip('\n') for line in lines]
     itertor = iter(lines)
@@ -1198,7 +1199,7 @@ def format_xml_file(file: str, encoding: str):
 def get_clusters_and_sectors_of_disk(diskpath: str):
     sectorsPerCluster = ctypes.c_ulonglong(0)
     bytesPerSector = ctypes.c_ulonglong(0)
-    rootPathName = ctypes.c_wchar_p(dispath)
+    rootPathName = ctypes.c_wchar_p(diskpath)
     ctypes.windll.kernel32.GetDiskFreeSpaceW(rootPathName, ctypes.pointer(sectorsPerCluster), ctypes.pointer(bytesPerSector), None, None)
     return (sectorsPerCluster.value, bytesPerSector.value)
 
