@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.1.0"
+version = "1.1.1"
 
 
 # <Build>
@@ -1379,7 +1379,7 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
 
 
-def get_scriptcollection_version():
+def get_scriptCollection_version():
     return version
 
 
