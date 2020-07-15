@@ -3,4 +3,4 @@ from scriptCollection.core import get_scriptCollection_version
 
 
 def test_version():
-    pass#assert get_scriptCollection_version().startswith("1.0.")#TODO
+    assert get_scriptCollection_version().startswith("1.1.")#TODO
