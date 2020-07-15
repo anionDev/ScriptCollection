@@ -1427,10 +1427,10 @@ def git_merge_abort(directory: str):
 def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit:bool=True):
     git_checkout(directory, targetbranch)
     if(fastforward):
-        ff = ""
+        fastforward_argument = ""
     else:
-        ff = "--no-ff "
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+ff+sourcebranch, directory, 3600)
+        fastforward_argument = "--no-ff "
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600)
     if commit:
         return git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
     else:
