@@ -335,7 +335,11 @@ def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory:
 
 
 def SCDotNetBuild_cli():
-    parser = argparse.ArgumentParser(description='Builds a DotNet-project by a given C#-project. Requires dotnet as available commandline-command.')
+    parser = argparse.ArgumentParser(description="""SCDotNetRunTests_cli:
+Description: Builds a DotNet-project by a given .csproj-file.
+Required commandline-commands: dotnet
+Required configuration-items: TODO
+Requires the requirements of: TODO""")
     parser.add_argument("folderOfCsprojFile")
     parser.add_argument("csprojFilename")
     parser.add_argument("outputDirectory")
