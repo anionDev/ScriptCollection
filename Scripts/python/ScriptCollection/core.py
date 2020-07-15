@@ -1379,7 +1379,7 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
 
 
-def get_scriptCollection_version():
+def get_ScriptCollection_version():
     return version
 
 

@@ -1,5 +1,5 @@
 import pytest
-#from scriptCollection.core import get_scriptCollection_version
+#from ScriptCollection.core import get_ScriptCollection_version
 
 
 def test_strip_new_lines_at_begin_and_end():
