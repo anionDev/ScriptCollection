@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.0.8"
+version = "1.0.9"
 
 
 # <Build>
@@ -498,7 +498,6 @@ def SCPythonBuild(configurationfile: str):
     setuppyfilefolder = os.path.dirname(setuppyfile)
     execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "build", "publishdirectoryforwhlfile"), setuppyfilefolder)
     version = get_version_for_buildscripts(configparser)
-    git_commit(get_buildscript_config_item(configparser, 'release', 'releaserepository'),  f"Added {get_buildscript_config_item(configparser,'general','productname')} Python-release {get_buildscript_config_item(configparser,'prepare','gittagprefix')}{version}")
     return 0
 
 
