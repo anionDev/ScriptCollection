@@ -411,8 +411,12 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version=get_version_for_buildscripts(configparser)
-    if(configparser.getboolean('prepare','whlprepare')):
+    if(configparser.getboolean('whlprepare','whlprepare')):
         git_checkout(get_buildscript_config_item(configparser,'general','repository'),get_buildscript_config_item(configparser,'prepare','developmentbranchname'))
+        if(configparser.getboolean('whlprepare','updateversion')):
+            for file in get_buildscript_config_items(configparser,'whlprepare','filesforupdatingversion'):
+                replace_regex_each_line_of_file(file,'^version = ".+$"','version = "'+os.path.basename(file)+'"')
+                git_commit(get_buildscript_config_item(configparser,'general','repository'), "Updated version in '"+file+"' to "+version)
         git_merge(get_buildscript_config_item(configparser,'general','repository'), get_buildscript_config_item(configparser,'prepare','developmentbranchname'), get_buildscript_config_item(configparser,'prepare','masterbranchname'),False, False)
     try:
         exitcode=SCPythonBuildWheelAndRunTests(configurationfile)
@@ -422,7 +426,7 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     except Exception as exception:
         build_and_tests_were_successful=False
         write_exception_to_stderr(exception,"Building wheel and running testcases resulted in an error")
-    if configparser.getboolean('prepare','whlprepare'):
+    if configparser.getboolean('whlprepare','whlprepare'):
         if build_and_tests_were_successful:
             commit_id=git_commit( get_buildscript_config_item(configparser,'general','repository'),"Merge branch '"+ get_buildscript_config_item(configparser,'prepare','developmentbranchname')+"' into '"+get_buildscript_config_item(configparser,'prepare','masterbranchname')+"'")
             git_create_tag(get_buildscript_config_item(configparser,'general','repository'), commit_id,get_buildscript_config_item(configparser,'prepare','gittagprefix')+ version)
@@ -939,7 +943,7 @@ def _private_print_qr_code_by_csv_line(line:str):
     displayname=splitted[0]
     website=splitted[1]
     emailaddress=splitted[2]
-    key=splitted[3]    
+    key=splitted[3]
     period=splitted[4]
     qrcode_content=f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
     print(f"{displayname} ({emailaddress}):")
@@ -1174,7 +1178,7 @@ def format_xml_file(file: str, encoding: str):
         f.write(text)
 
 
-def get_clusters_and_sectors(dispath: str):
+def get_clusters_and_sectors_of_disk(diskpath: str):
     sectorsPerCluster = ctypes.c_ulonglong(0)
     bytesPerSector = ctypes.c_ulonglong(0)
     rootPathName = ctypes.c_wchar_p(dispath)
@@ -1321,14 +1325,25 @@ def move_content_of_folder(srcDir, dstDir):
     for sub_folder in get_direct_folders_of_folder(srcDirFull):
         shutil.move(sub_folder, dstDirFull)
 
+def replace_regex_each_line_of_file(file:str, replace_from: str, replace_to: str, encoding="utf-8"):
+    with open(file, encoding=encoding, mode="r") as f:
+        lines = f.readlines()
+        replaced_lines=[]
+        for line in lines:
+            replaced_lines.append(re.sub(replace_from, replace_to, line))
+    with open(file, encoding=encoding, mode="w") as f:
+        f.writelines(replaced_lines)
 
-def replace_xmltag_in_file(file, tag: str, new_value: str, encoding="utf-8"):
+def replace_regex_in_file(file:str, replace_from: str, replace_to: str, encoding="utf-8"):
     with open(file, encoding=encoding, mode="r") as f:
         content = f.read()
-        content = re.sub(f"<{tag}>.*</{tag}>", f"<{tag}>{new_value}</{tag}>", content)
+        content = re.sub(replace_from, replace_to, content)
     with open(file, encoding=encoding, mode="w") as f:
         f.write(content)
 
+
+def replace_xmltag_in_file(file:str, tag: str, new_value: str, encoding="utf-8"):
+    replace_regex_in_file(file,f"<{tag}>.*</{tag}>",f"<{tag}>{new_value}</{tag}>",encoding)
 
 def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "Version", version)
