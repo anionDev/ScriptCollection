@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
-version = "1.1.3"
+version = "1.2.0"
 
-productname = "scriptCollection"
+productname = "ScriptCollection"
 packages= [package for package in find_packages() if not package.endswith("Tests")]
 
 with open("..\\..\\ReadMe.md", "r", encoding='utf-8') as f:
@@ -14,7 +14,7 @@ setup(
     packages=packages,
     author='Marius Göcke',
     author_email='marius.goecke@gmail.com',
-    url='https://github.com/anionDev/scriptCollection',
+    url='https://github.com/anionDev/ScriptCollection',
     license='MIT',
     classifiers=[
         "Programming Language :: Python :: 3.8",
