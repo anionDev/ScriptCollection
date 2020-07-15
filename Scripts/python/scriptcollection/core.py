@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.0.9"
+version = "1.0.10"
 
 
 # <Build>
@@ -559,7 +559,7 @@ def SCPythonReleaseWheel(configurationfile: str):
 
 def SCPythonReleaseWheel_cli():
     parser = argparse.ArgumentParser(description="""SCPythonReleaseWheel_cli:
-Description: TODO
+Description: Uploads a .whl-file using twine.
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
