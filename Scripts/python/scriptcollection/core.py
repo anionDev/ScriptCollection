@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.0.10"
+version = "1.0.11"
 
 
 # <Build>
@@ -529,7 +529,7 @@ def SCPythonRunTests(configurationfile: str):
 
 def SCPythonRunTests_cli():
     parser = argparse.ArgumentParser(description="""SCPythonRunTests_cli:
-Description: TODO
+Description: Executes python-unit-tests.
 Required commandline-commands: TODO
 Required configuration-items: TODO
 Requires the requirements of: TODO
