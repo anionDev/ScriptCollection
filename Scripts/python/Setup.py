@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
+version = "1.0.8"
 
 productname = "scriptCollection"
-version="1.0.4"
 packages= [package for package in find_packages() if not package.endswith("Tests")]
 
 with open("..\\..\\ReadMe.md", "r", encoding='utf-8') as f:
