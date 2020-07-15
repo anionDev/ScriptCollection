@@ -1095,7 +1095,7 @@ def get_time_based_logfile_by_folder(folder: str, name: str = "Log"):
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = False):
+def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
     result = execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
     if result[0] == 0:
         return result
@@ -1110,19 +1110,12 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def execute_raw(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None):
-    return execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
-
-
 def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
         title_for_message = f"for task '{title}' "
     title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
-    if verbosity == 2:
-        write_message_to_stdout(f"Start executing {title_local}")
-    write_message_to_stdout(f"Start executing {title_local}")
     if workingdirectory == "":
         workingdirectory = os.getcwd()
     else:
