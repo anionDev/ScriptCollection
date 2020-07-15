@@ -610,6 +610,8 @@ def _private_replace_underscores(string: str, configparser: ConfigParser,replace
         replacements["author"]=configparser.get('general', 'author')
     if configparser.has_option('general', 'description'):
         replacements["description"]=configparser.get('general', 'description')
+    if configparser.has_option('prepare', 'gittagprefix'):
+        replacements["gittagprefix"]=configparser.get('prepare', 'gittagprefix')
     if configparser.has_option('prepare', 'developmentbranchname'):
         replacements["developmentbranchname"]=configparser.get('prepare', 'developmentbranchname')
     if configparser.has_option('prepare', 'masterbranchname'):
