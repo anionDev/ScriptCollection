@@ -1143,7 +1143,7 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     if not string_is_none_or_whitespace(log_file):
         argument = argument+" -l "+'"'+log_file+'"'
     argument = argument+" -d "+str(timeoutInSeconds*1000)
-    argument = argument+' -t "'+str_none_safe(title_local)+'"'
+    argument = argument+' -t "'+program+'"'
     process = Popen("epew"+argument)
     exit_code = process.wait()
     stdout = private_load_text(output_file_for_stdout)
