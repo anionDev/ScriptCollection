@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.2.4"
+version = "1.2.5"
 
 
 # <Build>
