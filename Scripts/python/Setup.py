@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-version = "1.2.6"
+version = "1.3.0"
 
 productname = "ScriptCollection"
 packages= [package for package in find_packages() if not package.endswith("Tests")]
@@ -29,7 +29,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
-        "epew>=3.3.5",
+        "epew>=3.4.0",
         "keyboard>=0.13.5",
         "ntplib>=0.3.4",
         "PyPDF2>=1.26.0",
@@ -38,7 +38,6 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            f"SCDotNetReleaseExecutable = ScriptCollection.core:SCDotNetReleaseExecutable_cli",
             f"SCDotNetBuildExecutableAndRunTests = ScriptCollection.core:SCDotNetBuildExecutableAndRunTests_cli",
             f"SCDotNetCreateExecutableRelease = ScriptCollection.core:SCDotNetCreateExecutableRelease_cli",
             f"SCDotNetCreateNugetRelease = ScriptCollection.core:SCDotNetCreateNugetRelease_cli",
