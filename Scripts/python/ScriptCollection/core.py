@@ -706,7 +706,7 @@ def SCGenerateThumbnail(file: str):
 
     amount_of_images = 16
     filename = os.path.basename(file)
-    folder = os.path.dirname(file)
+    folder = resolve_relative_path_from_current_working_directory(file)
     filename_without_extension = Path(file).stem
 
     try:
