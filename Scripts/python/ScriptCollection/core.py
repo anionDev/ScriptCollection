@@ -1110,21 +1110,20 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None):
+def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=2, addLogOverhead: bool = False, title: str = None):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
         title_for_message = f"for task '{title}' "
-    title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
     if workingdirectory == "":
         workingdirectory = os.getcwd()
     else:
-        if not os.path.isabs(workingdirectory):
-            workingdirectory = os.path.abspath(workingdirectory)
-
+        workingdirectory = resolve_relative_path_from_current_working_directory(workingdirectory)
+    title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
     output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
     output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
-
+    if verbosity == 2:
+        write_message_to_stdout(f"Start executing {title_local} with exitcode "+str(exit_code))
     argument = " -p "+program
     argument = argument+" -a "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
     argument = argument+" -b "
