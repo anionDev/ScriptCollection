@@ -38,7 +38,6 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            f"SCDotNetReleaseExecutable = ScriptCollection.core:SCDotNetReleaseExecutable_cli",
             f"SCDotNetBuildExecutableAndRunTests = ScriptCollection.core:SCDotNetBuildExecutableAndRunTests_cli",
             f"SCDotNetCreateExecutableRelease = ScriptCollection.core:SCDotNetCreateExecutableRelease_cli",
             f"SCDotNetCreateNugetRelease = ScriptCollection.core:SCDotNetCreateNugetRelease_cli",

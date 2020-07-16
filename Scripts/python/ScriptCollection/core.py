@@ -34,27 +34,6 @@ version = "1.2.6"
 
 # <Build>
 
-# <SCDotNetReleaseExecutable>
-
-def SCDotNetReleaseExecutable(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO
-
-
-def SCDotNetReleaseExecutable_cli():
-    parser = argparse.ArgumentParser(description="""SCDotNetReleaseExecutable_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return SCDotNetReleaseExecutable(args.configurationfile)
-
-# </SCDotNetReleaseExecutable>
-
 # <SCDotNetBuildExecutableAndRunTests>
 
 
@@ -1439,23 +1418,22 @@ def git_clone_if_not_already_done(folder: str, link: str):
 def git_commit(directory: str, message: str):
     if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600)[0]
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit -m "{message}"', directory, 600)[0]
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600,1,False,"Add",False)[0]
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit -m "{message}"', directory, 600,1,False,"Commit",False)[0]
     else:
         write_message_to_stdout(f"There are no changes to commit in {directory}")
     return git_get_current_commit_id(directory)
 
 
 def git_create_tag(directory: str, target_for_tag: str, tag: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600,1,False,"CreateTag",False)
 
 
 def git_checkout(directory: str, branch: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600)
-
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600,1,False,"Checkout",True)
 
 def git_merge_abort(directory: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600,1,False,"AbortMerge",False)
 
 
 def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True):
@@ -1464,7 +1442,7 @@ def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward:
         fastforward_argument = ""
     else:
         fastforward_argument = "--no-ff "
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600,1,False,"Merge",False)
     if commit:
         return git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
     else:
