@@ -1110,7 +1110,7 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=0, addLogOverhead: bool = False, title: str = None):
+def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
@@ -1144,7 +1144,6 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         argument = argument+" -l "+'"'+log_file+'"'
     argument = argument+" -d "+str(timeoutInSeconds*1000)
     argument = argument+' -t "'+str_none_safe(title_local)+'"'
-    write_message_to_stdout(f"Debug: epew"+argument)
     process = Popen("epew"+argument)
     exit_code = process.wait()
     stdout = private_load_text(output_file_for_stdout)
