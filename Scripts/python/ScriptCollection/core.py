@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.2.1"
+version = "1.2.2"
 
 
 # <Build>
@@ -1110,7 +1110,7 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=2, addLogOverhead: bool = False, title: str = None):
+def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=0, addLogOverhead: bool = False, title: str = None):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
@@ -1123,7 +1123,7 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
     output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
     if verbosity == 2:
-        write_message_to_stdout(f"Start executing {title_local} with exitcode "+str(exit_code))
+        write_message_to_stdout(f"Start executing {title_local}")
     argument = " -p "+program
     argument = argument+" -a "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
     argument = argument+" -b "
@@ -1143,8 +1143,9 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     if not string_is_none_or_whitespace(log_file):
         argument = argument+" -l "+'"'+log_file+'"'
     argument = argument+" -d "+str(timeoutInSeconds*1000)
-    argument = argument+' -t "'+str_none_safe(title)+'"'
-    process = Popen("epew "+argument)
+    argument = argument+' -t "'+str_none_safe(title_local)+'"'
+    write_message_to_stdout(f"Debug: epew"+argument)
+    process = Popen("epew"+argument)
     exit_code = process.wait()
     stdout = private_load_text(output_file_for_stdout)
     stderr = private_load_text(output_file_for_stderr)
