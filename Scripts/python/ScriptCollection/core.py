@@ -805,10 +805,10 @@ def SCOrganizeLinesInFile_cli():
 
     parser.add_argument('file', help='File which should be transformed')
     parser.add_argument('--encoding', default="utf-8", help='Encoding for the file which should be transformed')
-    parser.add_argument("--sort", type=string_to_boolean, nargs='?', const=True, default=False, help="Sort lines")
-    parser.add_argument("--remove_duplicated_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Remove duplicate lines")
-    parser.add_argument("--ignore_first_line", type=string_to_boolean, nargs='?', const=True, default=False, help="Ignores the first line in the file")
-    parser.add_argument("--remove_empty_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Removes lines which are empty or contains only whitespaces")
+    parser.add_argument("--sort", help="Sort lines", action='store_true')
+    parser.add_argument("--remove_duplicated_lines", help="Remove duplicate lines", action='store_true')
+    parser.add_argument("--ignore_first_line", help="Ignores the first line in the file", action='store_true')
+    parser.add_argument("--remove_empty_lines",help="Removes lines which are empty or contains only whitespaces", action='store_true')
 
     args = parser.parse_args()
     SCOrganizeLinesInFile(args.file, args.encoding, args.sort, args.remove_duplicated_lines, args.ignore_first_line, args.remove_empty_lines)
