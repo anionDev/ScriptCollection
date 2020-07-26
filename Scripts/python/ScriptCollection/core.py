@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.3.2"
+version = "1.3.3"
 
 
 # <Build>
@@ -734,8 +734,8 @@ def SCMergePDFs(files, outputfile: str):
 
 
 def SCMergePDFs_cli():
-    parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"')
     parser.add_argument('files', help='Comma-separated filenames')
+    parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"')
     parser.add_argument('outputfile', help='File for the resulting pdf-document')
     args = parser.parse_args()
     SCMergePDFs(args.files.split(','), args.outputfile)
@@ -749,22 +749,16 @@ def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_d
     if os.path.isfile(file):
 
         # read file
-        with open(file, 'r', encoding=encoding) as f:
-            content = f.read()
-        lines = content.splitlines()
-
-        # remove trailing newlines
-        temp = []
-        for line in lines:
-            temp.append(line.rstrip())
-        lines = temp
+        lines = read_lines_from_file(file,encoding)
+        if(len(lines) == 0):
+            return 0
 
         # store first line if desired
-        if(len(lines) > 0 and ignore_first_line):
+        if(ignore_first_line):
             first_line = lines.pop(0)
 
         # remove empty lines if desired
-        if remove_empty_lines and False:
+        if remove_empty_lines:
             temp = lines
             lines = []
             for line in temp:
@@ -783,21 +777,13 @@ def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_d
         if ignore_first_line:
             lines.insert(0, first_line)
 
-        # concat lines separated by newline
-        result = ""
-        is_first_line = True
-        for line in lines:
-            if(is_first_line):
-                result = line
-                is_first_line = False
-            else:
-                result = result+'\n'+line
-
         # write result to file
-        with open(file, 'w', encoding=encoding) as f:
-            f.write(result)
+        write_lines_to_file(file,lines,encoding)
+        
+        return 0
     else:
         write_message_to_stdout(f"File '{file}' does not exist")
+        return 1
 
 
 def SCOrganizeLinesInFile_cli():
@@ -988,6 +974,26 @@ Hints:
 
 # <miscellaneous>
 
+
+def write_lines_to_file(file:str,lines:list,encoding="utf-8"):
+    write_text_to_file(file, os.linesep.join(lines), encoding)
+
+def write_text_to_file(file:str,content:str,encoding="utf-8"):
+    write_binary_to_file(file,bytearray(content,encoding))
+
+def write_binary_to_file(file:str,content:bytearray):
+    with open(file, "wb") as file_object:
+        file_object.write(content)
+
+def read_lines_from_file(file:str,encoding="utf-8"):
+    return read_text_from_file(file,encoding).split(os.linesep)
+
+def read_text_from_file(file:str,encoding="utf-8"):
+    return read_binary_from_file(file).decode(encoding)
+
+def read_binary_from_file(file:str):
+    with open(file, "rb") as file_object:
+        return file_object.read()
 
 def rename_names_of_all_files_and_folders(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
     for file in get_direct_files_of_folder(folder):
@@ -1287,7 +1293,7 @@ def string_is_none_or_empty(string: str):
     if string is None:
         return True
     if type(string) == str:
-        string == ""
+        return string == ""
     else:
         raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was 'str'")
 
