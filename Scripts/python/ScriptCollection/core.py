@@ -1422,11 +1422,15 @@ def git_clone_if_not_already_done(folder: str, link: str):
     return exit_code
 
 
-def git_commit(directory: str, message: str):
+def git_commit(directory: str, message: str, author_name:str=None, author_email:str=None):
     if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600,1,False,"Add",False)[0]
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit -m "{message}"', directory, 600,1,False,"Commit",False)[0]
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600,1,False,"Add",False)
+        if(author_name is not None and author_email is not None):
+            author=f' --author="{author_name} <{author_email}>"'
+        else:
+            author=""
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}', directory, 600,1,False,"Commit",False)
     else:
         write_message_to_stdout(f"There are no changes to commit in {directory}")
     return git_get_current_commit_id(directory)
