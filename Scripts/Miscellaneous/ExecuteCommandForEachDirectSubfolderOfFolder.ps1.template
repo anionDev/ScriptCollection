@@ -1,7 +1,0 @@
-$dir = dir C:\MyFolder | ?{$_.PSISContainer}
-
-foreach ($subFolder in $dir){
-    cd $subFolder.FullName
-    Write-Host (Get-Item -Path ".\").FullName
-    # execute command
-}
