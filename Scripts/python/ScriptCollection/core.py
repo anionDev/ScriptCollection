@@ -29,31 +29,10 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.2.1"
+version = "1.3.3"
 
 
 # <Build>
-
-# <SCDotNetReleaseExecutable>
-
-def SCDotNetReleaseExecutable(configurationfile: str):
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    return 0  # TODO
-
-
-def SCDotNetReleaseExecutable_cli():
-    parser = argparse.ArgumentParser(description="""SCDotNetReleaseExecutable_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return SCDotNetReleaseExecutable(args.configurationfile)
-
-# </SCDotNetReleaseExecutable>
 
 # <SCDotNetBuildExecutableAndRunTests>
 
@@ -683,28 +662,29 @@ def _private_replace_underscores(string: str, configparser: ConfigParser, replac
 # <SCGenerateThumbnail>
 
 
-def _private_calculate_lengh_in_seconds(file: str, wd: str):
-    argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+file+'"'
-    return float(execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, wd)[1])
+def _private_calculate_lengh_in_seconds(filename: str, folder: str):
+    argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
+    return float(execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, folder)[1])
 
 
-def _private_create_thumbnails(file: str, length_in_seconds: float, amount_of_images: int, wd: str, tempname_for_thumbnails):
+def _private_create_thumbnails(filename: str, length_in_seconds: float, amount_of_images: int, folder: str, tempname_for_thumbnails):
     rrp = length_in_seconds/(amount_of_images-2)
-    argument = '-i "'+file+'" -r 1/'+str(rrp)+' -vf scale=-1:120 -vcodec png '+tempname_for_thumbnails+'-%002d.png'
-    execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, wd)
+    argument = '-i "'+filename+'" -r 1/'+str(rrp)+' -vf scale=-1:120 -vcodec png '+tempname_for_thumbnails+'-%002d.png'
+    execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, folder)
 
 
-def _private_create_thumbnail(outputfilename: str, wd: str, length_in_seconds: float, tempname_for_thumbnails):
+def _private_create_thumbnail(outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails):
     duration = datetime.timedelta(seconds=length_in_seconds)
     info = timedelta_to_simple_string(duration)
     argument = '-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
-    execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, wd)
+    execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
 
 def SCGenerateThumbnail(file: str):
     tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
     amount_of_images = 16
+    file = resolve_relative_path_from_current_working_directory(file)
     filename = os.path.basename(file)
     folder = os.path.dirname(file)
     filename_without_extension = Path(file).stem
@@ -754,8 +734,8 @@ def SCMergePDFs(files, outputfile: str):
 
 
 def SCMergePDFs_cli():
-    parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"')
     parser.add_argument('files', help='Comma-separated filenames')
+    parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"')
     parser.add_argument('outputfile', help='File for the resulting pdf-document')
     args = parser.parse_args()
     SCMergePDFs(args.files.split(','), args.outputfile)
@@ -769,22 +749,16 @@ def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_d
     if os.path.isfile(file):
 
         # read file
-        with open(file, 'r', encoding=encoding) as f:
-            content = f.read()
-        lines = content.splitlines()
-
-        # remove trailing newlines
-        temp = []
-        for line in lines:
-            temp.append(line.rstrip())
-        lines = temp
+        lines = read_lines_from_file(file,encoding)
+        if(len(lines) == 0):
+            return 0
 
         # store first line if desired
-        if(len(lines) > 0 and ignore_first_line):
+        if(ignore_first_line):
             first_line = lines.pop(0)
 
         # remove empty lines if desired
-        if remove_empty_lines and False:
+        if remove_empty_lines:
             temp = lines
             lines = []
             for line in temp:
@@ -803,21 +777,13 @@ def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_d
         if ignore_first_line:
             lines.insert(0, first_line)
 
-        # concat lines separated by newline
-        result = ""
-        is_first_line = True
-        for line in lines:
-            if(is_first_line):
-                result = line
-                is_first_line = False
-            else:
-                result = result+'\n'+line
-
         # write result to file
-        with open(file, 'w', encoding=encoding) as f:
-            f.write(result)
+        write_lines_to_file(file,lines,encoding)
+        
+        return 0
     else:
         write_message_to_stdout(f"File '{file}' does not exist")
+        return 1
 
 
 def SCOrganizeLinesInFile_cli():
@@ -825,10 +791,10 @@ def SCOrganizeLinesInFile_cli():
 
     parser.add_argument('file', help='File which should be transformed')
     parser.add_argument('--encoding', default="utf-8", help='Encoding for the file which should be transformed')
-    parser.add_argument("--sort", type=string_to_boolean, nargs='?', const=True, default=False, help="Sort lines")
-    parser.add_argument("--remove_duplicated_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Remove duplicate lines")
-    parser.add_argument("--ignore_first_line", type=string_to_boolean, nargs='?', const=True, default=False, help="Ignores the first line in the file")
-    parser.add_argument("--remove_empty_lines", type=string_to_boolean, nargs='?', const=True, default=False, help="Removes lines which are empty or contains only whitespaces")
+    parser.add_argument("--sort", help="Sort lines", action='store_true')
+    parser.add_argument("--remove_duplicated_lines", help="Remove duplicate lines", action='store_true')
+    parser.add_argument("--ignore_first_line", help="Ignores the first line in the file", action='store_true')
+    parser.add_argument("--remove_empty_lines",help="Removes lines which are empty or contains only whitespaces", action='store_true')
 
     args = parser.parse_args()
     SCOrganizeLinesInFile(args.file, args.encoding, args.sort, args.remove_duplicated_lines, args.ignore_first_line, args.remove_empty_lines)
@@ -1009,6 +975,26 @@ Hints:
 # <miscellaneous>
 
 
+def write_lines_to_file(file:str,lines:list,encoding="utf-8"):
+    write_text_to_file(file, os.linesep.join(lines), encoding)
+
+def write_text_to_file(file:str,content:str,encoding="utf-8"):
+    write_binary_to_file(file,bytearray(content,encoding))
+
+def write_binary_to_file(file:str,content:bytearray):
+    with open(file, "wb") as file_object:
+        file_object.write(content)
+
+def read_lines_from_file(file:str,encoding="utf-8"):
+    return read_text_from_file(file,encoding).split(os.linesep)
+
+def read_text_from_file(file:str,encoding="utf-8"):
+    return read_binary_from_file(file).decode(encoding)
+
+def read_binary_from_file(file:str):
+    with open(file, "rb") as file_object:
+        return file_object.read()
+
 def rename_names_of_all_files_and_folders(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
     for file in get_direct_files_of_folder(folder):
         replace_in_filename(file, replace_from, replace_to, replace_only_full_match)
@@ -1115,16 +1101,15 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         title_for_message = ""
     else:
         title_for_message = f"for task '{title}' "
-    title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
     if workingdirectory == "":
         workingdirectory = os.getcwd()
     else:
-        if not os.path.isabs(workingdirectory):
-            workingdirectory = os.path.abspath(workingdirectory)
-
+        workingdirectory = resolve_relative_path_from_current_working_directory(workingdirectory)
+    title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
     output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
     output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
-
+    if verbosity == 2:
+        write_message_to_stdout(f"Start executing {title_local}")
     argument = " -p "+program
     argument = argument+" -a "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
     argument = argument+" -b "
@@ -1144,8 +1129,9 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     if not string_is_none_or_whitespace(log_file):
         argument = argument+" -l "+'"'+log_file+'"'
     argument = argument+" -d "+str(timeoutInSeconds*1000)
-    argument = argument+' -t "'+str_none_safe(title)+'"'
-    process = Popen("epew "+argument)
+    argument = argument+' -t "'+program+'"'
+    argument = argument.replace('"','\\"')
+    process = Popen("epew"+argument)
     exit_code = process.wait()
     stdout = private_load_text(output_file_for_stdout)
     stderr = private_load_text(output_file_for_stderr)
@@ -1308,7 +1294,7 @@ def string_is_none_or_empty(string: str):
     if string is None:
         return True
     if type(string) == str:
-        string == ""
+        return string == ""
     else:
         raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was 'str'")
 
@@ -1437,26 +1423,29 @@ def git_clone_if_not_already_done(folder: str, link: str):
     return exit_code
 
 
-def git_commit(directory: str, message: str):
+def git_commit(directory: str, message: str, author_name:str=None, author_email:str=None):
     if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600)[0]
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit -m "{message}"', directory, 600)[0]
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600,1,False,"Add",False)
+        if(author_name is not None and author_email is not None):
+            author=f' --author="{author_name} <{author_email}>"'
+        else:
+            author=""
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}', directory, 600,1,False,"Commit",False)
     else:
         write_message_to_stdout(f"There are no changes to commit in {directory}")
     return git_get_current_commit_id(directory)
 
 
 def git_create_tag(directory: str, target_for_tag: str, tag: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600,1,False,"CreateTag",False)
 
 
 def git_checkout(directory: str, branch: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600)
-
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600,1,False,"Checkout",True)
 
 def git_merge_abort(directory: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600,1,False,"AbortMerge",False)
 
 
 def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True):
@@ -1465,7 +1454,7 @@ def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward:
         fastforward_argument = ""
     else:
         fastforward_argument = "--no-ff "
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600,1,False,"Merge",False)
     if commit:
         return git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
     else:
