@@ -29,7 +29,7 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.3.3"
+version = "1.3.4"
 
 
 # <Build>
@@ -662,22 +662,22 @@ def _private_replace_underscores(string: str, configparser: ConfigParser, replac
 # <SCGenerateThumbnail>
 
 
-def _private_calculate_lengh_in_seconds(file: str, wd: str):
-    argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+file+'"'
-    return float(execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, wd)[1])
+def _private_calculate_lengh_in_seconds(filename: str, folder: str):
+    argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
+    return float(execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, folder)[1])
 
 
-def _private_create_thumbnails(file: str, length_in_seconds: float, amount_of_images: int, wd: str, tempname_for_thumbnails):
+def _private_create_thumbnails(filename: str, length_in_seconds: float, amount_of_images: int, folder: str, tempname_for_thumbnails):
     rrp = length_in_seconds/(amount_of_images-2)
-    argument = '-i "'+file+'" -r 1/'+str(rrp)+' -vf scale=-1:120 -vcodec png '+tempname_for_thumbnails+'-%002d.png'
-    execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, wd)
+    argument = '-i "'+filename+'" -r 1/'+str(rrp)+' -vf scale=-1:120 -vcodec png '+tempname_for_thumbnails+'-%002d.png'
+    execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, folder)
 
 
-def _private_create_thumbnail(outputfilename: str, wd: str, length_in_seconds: float, tempname_for_thumbnails):
+def _private_create_thumbnail(outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails):
     duration = datetime.timedelta(seconds=length_in_seconds)
     info = timedelta_to_simple_string(duration)
     argument = '-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
-    execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, wd)
+    execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
 
 def SCGenerateThumbnail(file: str):
@@ -1130,6 +1130,7 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         argument = argument+" -l "+'"'+log_file+'"'
     argument = argument+" -d "+str(timeoutInSeconds*1000)
     argument = argument+' -t "'+program+'"'
+    argument = argument.replace('"','\\"')
     process = Popen("epew"+argument)
     exit_code = process.wait()
     stdout = private_load_text(output_file_for_stdout)
@@ -1422,11 +1423,15 @@ def git_clone_if_not_already_done(folder: str, link: str):
     return exit_code
 
 
-def git_commit(directory: str, message: str):
+def git_commit(directory: str, message: str, author_name:str=None, author_email:str=None):
     if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600,1,False,"Add",False)[0]
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit -m "{message}"', directory, 600,1,False,"Commit",False)[0]
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600,1,False,"Add",False)
+        if(author_name is not None and author_email is not None):
+            author=f' --author="{author_name} <{author_email}>"'
+        else:
+            author=""
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}', directory, 600,1,False,"Commit",False)
     else:
         write_message_to_stdout(f"There are no changes to commit in {directory}")
     return git_get_current_commit_id(directory)
