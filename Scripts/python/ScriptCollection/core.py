@@ -96,12 +96,11 @@ def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('build', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
-    for runtime in get_buildscript_config_items(configparser, 'build', 'runtimes'):
-        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build',
-                                                                                                                                                                                                                                                            'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
-    publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
+    for runtime in get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
+        SCDotNetBuild(get_buildscript_config_item(configparser, 'dotnet', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'dotnet', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
+    publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     ensure_directory_does_not_exist(publishdirectory)
-    copy_tree(get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory'), publishdirectory)
+    copy_tree(get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
     return 0
 
 
@@ -125,7 +124,8 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    update_version_in_csproj_file(csproj_file_with_path, version)
+    if configparser.getboolean('build', 'updateversionsincsprojfile'):
+        update_version_in_csproj_file(csproj_file_with_path, version)
     
     try:
         exitcode = SCDotNetBuildExecutableAndRunTests(configurationfile)
@@ -227,16 +227,15 @@ nuget_template_file_content = r"""<?xml version="1.0" encoding="utf-8"?>
 def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'hastestproject'):
+    if configparser.getboolean('other', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
-    for runtime in get_buildscript_config_items(configparser, 'build', 'runtimes'):
-        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build',
-                                                                                                                                                                                                                                                            'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
-    publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
+    for runtime in get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
+        SCDotNetBuild(get_buildscript_config_item(configparser, 'dotnet', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'dotnet', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
+    publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
     ensure_directory_does_not_exist(publishdirectory)
     ensure_directory_exists(publishdirectory_binary)
-    copy_tree(get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory'), publishdirectory_binary)
+    copy_tree(get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
     nuspec_content = _private_replace_underscores(nuget_template_file_content, configparser)
     nuspecfilename = get_buildscript_config_item(configparser, 'general', 'productname')+".nuspec"
     nuspecfile = os.path.join(publishdirectory, nuspecfilename)
@@ -266,11 +265,11 @@ def SCDotNetReleaseNuget(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
+    publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     latest_nupkg_file = get_buildscript_config_item(configparser, 'general', 'productname')+"."+version+".nupkg"
-    for localnugettarget in get_buildscript_config_items(configparser, 'release', 'localnugettargets'):
+    for localnugettarget in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargets'):
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
-    for localnugettargetrepository in get_buildscript_config_items(configparser, 'release', 'localnugettargetrepositories'):
+    for localnugettargetrepository in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
         git_commit(localnugettargetrepository,  f"Added {get_buildscript_config_item(configparser,'general','productname')} .NET-release {get_buildscript_config_item(configparser,'prepare','gittagprefix')}{version}")
     return 0
 
@@ -294,16 +293,16 @@ Requires the requirements of: TODO
 def SCDotNetReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('reference', 'generatereference'):
+    if configparser.getboolean('dotnet', 'generatereference'):
         docfx_file = get_buildscript_config_item(configparser, 'reference', 'docfxfile')
         docfx_filefolder = os.path.dirname(docfx_file)
         _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'reference', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-        shutil.copyfile(get_buildscript_config_item(configparser, 'build', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'reference', 'coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
+        shutil.copyfile(get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'reference', 'coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'reference', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'reference', 'coveragefolder'))
         git_commit(get_buildscript_config_item(configparser, 'reference', 'referencerepository'), "Updated reference")
-        if configparser.getboolean('reference', 'exportreference'):
-            git_push(get_buildscript_config_item(configparser, 'reference', 'referencerepository'), get_buildscript_config_item(configparser, 'reference', 'exportreferenceremotename'), "master", "master")
+        if configparser.getboolean('dotnet', 'exportreference'):
+            git_push(get_buildscript_config_item(configparser, 'reference', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master")
     return 0
 
 
@@ -368,11 +367,10 @@ Requires the requirements of: TODO""")
 def SCDotNetRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    runtime = get_buildscript_config_item(configparser, 'build', 'testruntime')
-    SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderoftestcsprojfile'), get_buildscript_config_item(configparser, 'build', 'testcsprojfilename'), get_buildscript_config_item(configparser, 'build',
-                                                                                                                                                                                                      'testoutputfolder'), get_buildscript_config_item(configparser, 'build', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'testdotnetframework'), True, "normal", None, None)
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+get_buildscript_config_item(configparser, 'build', 'testcsprojfilename')+" --no-build -c " + get_buildscript_config_item(configparser, 'build', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", get_buildscript_config_item(configparser, 'build', 'folderoftestcsprojfile'), 3600, True, False, "Execute tests")
+    runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
+    SCDotNetBuild(get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile'), get_buildscript_config_item(configparser, 'dotnet', 'testcsprojfilename'), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+get_buildscript_config_item(configparser, 'dotnet', 'testcsprojfilename')+" --no-build -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
+                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile'), 3600, True, False, "Execute tests")
     return 0
 
 
@@ -428,8 +426,8 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    if(configparser.getboolean('whlprepare', 'updateversion')):
-        for file in get_buildscript_config_items(configparser, 'whlprepare', 'filesforupdatingversion'):
+    if(configparser.getboolean('python', 'updateversion')):
+        for file in get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
             replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+version+'"\n')
     try:
         exitcode = SCPythonBuildWheelAndRunTests(configurationfile)
@@ -487,12 +485,12 @@ Requires the requirements of: TODO
 def SCPythonBuild(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    for folder in get_buildscript_config_items(configparser, "release", "deletefolderbeforcreatewheel"):
+    for folder in get_buildscript_config_items(configparser, "python", "deletefolderbeforcreatewheel"):
         ensure_directory_does_not_exist(folder)
-    setuppyfile = get_buildscript_config_item(configparser, "build", "pythonsetuppyfile")
+    setuppyfile = get_buildscript_config_item(configparser, "python", "pythonsetuppyfile")
     setuppyfilename = os.path.basename(setuppyfile)
     setuppyfilefolder = os.path.dirname(setuppyfile)
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "build", "publishdirectoryforwhlfile"), setuppyfilefolder)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), setuppyfilefolder)
     return 0
 
 
@@ -516,7 +514,7 @@ def SCPythonRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('build', 'hastestproject'):
-        pythontestfile = get_buildscript_config_item(configparser, 'build', 'pythontestfile')
+        pythontestfile = get_buildscript_config_item(configparser, 'python', 'pythontestfile')
         pythontestfilename = os.path.basename(pythontestfile)
         pythontestfilefolder = os.path.dirname(pythontestfile)
         execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, True, False, "Pytest")
@@ -542,14 +540,14 @@ Requires the requirements of: TODO
 def SCPythonReleaseWheel(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'publishwhlfile'):
-        with open(get_buildscript_config_item(configparser, 'release', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
+    if configparser.getboolean('python', 'publishwhlfile'):
+        with open(get_buildscript_config_item(configparser, 'python', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
             api_key = apikeyfile.read()
         gpgidentity = get_buildscript_config_item(configparser, 'other', 'gpgidentity')
         version = get_version_for_buildscripts(configparser)
         productname = get_buildscript_config_item(configparser, 'general', 'productname')
         twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
-        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "build", "publishdirectoryforwhlfile"))
+        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
     return 0
 
 
@@ -570,8 +568,8 @@ Requires the requirements of: TODO
 
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
-    result = get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory')
-    if configparser.getboolean('build', 'separatefolderforeachruntime'):
+    result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
+    if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
     return result
 
