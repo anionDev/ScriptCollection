@@ -94,7 +94,7 @@ Requires the requirements of: TODO
 def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'hastestproject'):
+    if configparser.getboolean('other', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
     for runtime in get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
         SCDotNetBuild(get_buildscript_config_item(configparser, 'dotnet', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'dotnet', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
@@ -124,7 +124,7 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    if configparser.getboolean('build', 'updateversionsincsprojfile'):
+    if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
         update_version_in_csproj_file(csproj_file_with_path, version)
     
     try:
@@ -138,8 +138,8 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
 
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
         return 0
     else:
         return 1
@@ -165,7 +165,9 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    update_version_in_csproj_file(csproj_file_with_path, version)
+    if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
+        update_version_in_csproj_file(csproj_file_with_path, version)
+        
     try:
         exitcode = SCDotNetBuildNugetAndRunTests(configurationfile)
         build_and_tests_were_successful = exitcode == 0
@@ -177,8 +179,8 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
         SCDotNetReleaseNuget(configurationfile)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
         return 0
     else:
         return 1
@@ -200,7 +202,7 @@ Requires the requirements of: TODO
 # <SCDotNetBuildNugetAndRunTests>
 
 
-nuget_template_file_content = r"""<?xml version="1.0" encoding="utf-8"?>
+_private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata minClientVersion="2.12">
     <id>__productname__</id>
@@ -236,7 +238,7 @@ def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     ensure_directory_does_not_exist(publishdirectory)
     ensure_directory_exists(publishdirectory_binary)
     copy_tree(get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
-    nuspec_content = _private_replace_underscores(nuget_template_file_content, configparser)
+    nuspec_content = _private_replace_underscores(_private_nuget_template, configparser)
     nuspecfilename = get_buildscript_config_item(configparser, 'general', 'productname')+".nuspec"
     nuspecfile = os.path.join(publishdirectory, nuspecfilename)
     with open(nuspecfile, encoding="utf-8", mode="w") as f:
@@ -294,15 +296,15 @@ def SCDotNetReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('dotnet', 'generatereference'):
-        docfx_file = get_buildscript_config_item(configparser, 'reference', 'docfxfile')
+        docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
         docfx_filefolder = os.path.dirname(docfx_file)
-        _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'reference', 'referencerepositoryindexfile'), configparser)
+        _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-        shutil.copyfile(get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'reference', 'coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
-        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'reference', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'reference', 'coveragefolder'))
-        git_commit(get_buildscript_config_item(configparser, 'reference', 'referencerepository'), "Updated reference")
+        shutil.copyfile(get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
+        git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
-            git_push(get_buildscript_config_item(configparser, 'reference', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master")
+            git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master")
     return 0
 
 
@@ -513,7 +515,7 @@ Requires the requirements of: TODO
 def SCPythonRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'hastestproject'):
+    if configparser.getboolean('other', 'hastestproject'):
         pythontestfile = get_buildscript_config_item(configparser, 'python', 'pythontestfile')
         pythontestfilename = os.path.basename(pythontestfile)
         pythontestfilefolder = os.path.dirname(pythontestfile)
