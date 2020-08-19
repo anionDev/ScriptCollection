@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-version = "1.3.4"
+version = "1.3.5"
 
 productname = "ScriptCollection"
 packages= [package for package in find_packages() if not package.endswith("Tests")]
@@ -38,6 +38,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
+            f"SCCreateRelease = ScriptCollection.core:SCCreateRelease_cli",
             f"SCDotNetBuildExecutableAndRunTests = ScriptCollection.core:SCDotNetBuildExecutableAndRunTests_cli",
             f"SCDotNetCreateExecutableRelease = ScriptCollection.core:SCDotNetCreateExecutableRelease_cli",
             f"SCDotNetCreateNugetRelease = ScriptCollection.core:SCDotNetCreateNugetRelease_cli",

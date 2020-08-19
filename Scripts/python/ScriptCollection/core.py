@@ -29,10 +29,64 @@ import traceback
 from os.path import isfile, join, isdir
 from os import listdir
 import datetime
-version = "1.3.4"
+
+
+version = "1.3.5"
 
 
 # <Build>
+
+# <CreateRelease>
+
+
+def SCCreateRelease(configurationfile: str):
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    error_occurred=False
+    prepare=configparser.getboolean('general', 'prepare')
+    
+    if prepare:
+        git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
+        git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+        
+    try:
+
+        if configparser.getboolean('general', 'createdotnetrelease') and not error_occurred:
+            error_occurred=createDotNetRelease(configurationfile)!=0
+            
+        if configparser.getboolean('general', 'createpythonrelease') and not error_occurred:
+            error_occurred=SCPythonCreateWheelRelease(configurationfile)!=0
+
+    except Exception as exception:
+        error_occurred = True
+        write_exception_to_stderr(exception, "Error occurred while creating release")
+    
+    if error_occurred:
+        if prepare:
+            git_merge_abort(get_buildscript_config_item(configparser, 'general', 'repository'))
+            git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
+        write_message_to_stderr("Building wheel and running testcases was not successful")
+        return 1
+    else:
+        if prepare:
+            commit_id = git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
+            git_create_tag(get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + version)
+            git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
+        write_message_to_stdout("Building wheel and running testcases was successful")
+        return 0
+
+def SCCreateRelease_cli():
+    parser = argparse.ArgumentParser(description="""SCCreateRelease_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""", formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    return SCCreateRelease(args.configurationfile)
+
+# </CreateRelease>
 
 # <SCDotNetBuildExecutableAndRunTests>
 
@@ -40,14 +94,13 @@ version = "1.3.4"
 def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'hastestproject'):
+    if configparser.getboolean('other', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
-    for runtime in get_buildscript_config_items(configparser, 'build', 'runtimes'):
-        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build',
-                                                                                                                                                                                                                                                            'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
-    publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
+    for runtime in get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
+        SCDotNetBuild(get_buildscript_config_item(configparser, 'dotnet', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'dotnet', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
+    publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     ensure_directory_does_not_exist(publishdirectory)
-    copy_tree(get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory'), publishdirectory)
+    copy_tree(get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
     return 0
 
 
@@ -71,13 +124,9 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    if(configparser.getboolean('prepare', 'dotnetprepare')):
-        git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        if(configparser.getboolean('prepare', 'updateversionsincsprojfile')):
-            csproj_file_with_path = get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile')+os.path.sep+get_buildscript_config_item(configparser, 'build', 'csprojfilename')
-            update_version_in_csproj_file(csproj_file_with_path, version)
-            git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Updated version in '"+get_buildscript_config_item(configparser, 'build', 'csprojfilename')+"' to "+version)
-        git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+    if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
+        update_version_in_csproj_file(csproj_file_with_path, version)
+    
     try:
         exitcode = SCDotNetBuildExecutableAndRunTests(configurationfile)
         build_was_successful = exitcode == 0
@@ -86,20 +135,14 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     except Exception as exception:
         build_was_successful = False
         write_exception_to_stderr(exception, "Building executable and running testcases resulted in an error")
-    if configparser.getboolean('prepare', 'dotnetprepare'):
-        if build_was_successful:
-            commit_id = git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
-            git_create_tag(get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + version)
-            git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
-        else:
-            git_merge_abort(get_buildscript_config_item(configparser, 'general', 'repository'))
-            git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-            write_message_to_stderr("Building and executing testcases was not successful")
-            return 1
-    SCDotNetReference(configurationfile)
-    git_commit(get_buildscript_config_item(configparser, 'release', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-    git_commit(get_buildscript_config_item(configparser, 'release', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-    return 0
+
+    if build_and_tests_were_successful:
+        SCDotNetReference(configurationfile)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        return 0
+    else:
+        return 1
 
 
 def SCDotNetCreateExecutableRelease_cli():
@@ -122,13 +165,9 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    if(configparser.getboolean('prepare', 'dotnetprepare')):
-        git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        if(configparser.getboolean('prepare', 'updateversionsincsprojfile')):
-            csproj_file_with_path = get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile')+os.path.sep+get_buildscript_config_item(configparser, 'build', 'csprojfilename')
-            update_version_in_csproj_file(csproj_file_with_path, version)
-            git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Updated version in '"+get_buildscript_config_item(configparser, 'build', 'csprojfilename')+"' to "+version)
-        git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+    if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
+        update_version_in_csproj_file(csproj_file_with_path, version)
+        
     try:
         exitcode = SCDotNetBuildNugetAndRunTests(configurationfile)
         build_and_tests_were_successful = exitcode == 0
@@ -137,23 +176,14 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     except Exception as exception:
         build_and_tests_were_successful = False
         write_exception_to_stderr(exception, "Building nuget and running testcases resulted in an error")
-    if configparser.getboolean('prepare', 'dotnetprepare'):
-        if build_and_tests_were_successful:
-            commit_id = git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
-            git_create_tag(get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + version)
-            git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
-        else:
-            git_merge_abort(get_buildscript_config_item(configparser, 'general', 'repository'))
-            git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
         SCDotNetReleaseNuget(configurationfile)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(get_buildscript_config_item(configparser, 'other', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        return 0
     else:
-        write_message_to_stderr("Building nuget and running testcases was not successful")
         return 1
-    return 0
 
 
 def SCDotNetCreateNugetRelease_cli():
@@ -172,7 +202,7 @@ Requires the requirements of: TODO
 # <SCDotNetBuildNugetAndRunTests>
 
 
-nuget_template_file_content = r"""<?xml version="1.0" encoding="utf-8"?>
+_private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata minClientVersion="2.12">
     <id>__productname__</id>
@@ -199,17 +229,16 @@ nuget_template_file_content = r"""<?xml version="1.0" encoding="utf-8"?>
 def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'hastestproject'):
+    if configparser.getboolean('other', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
-    for runtime in get_buildscript_config_items(configparser, 'build', 'runtimes'):
-        SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'build', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'build',
-                                                                                                                                                                                                                                                            'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'build', 'filestosign'), get_buildscript_config_item(configparser, 'build', 'snkfile'))
-    publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
+    for runtime in get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
+        SCDotNetBuild(get_buildscript_config_item(configparser, 'dotnet', 'folderofcsprojfile'), get_buildscript_config_item(configparser, 'dotnet', 'csprojfilename'), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal",  get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
+    publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
     ensure_directory_does_not_exist(publishdirectory)
     ensure_directory_exists(publishdirectory_binary)
-    copy_tree(get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory'), publishdirectory_binary)
-    nuspec_content = _private_replace_underscores(nuget_template_file_content, configparser)
+    copy_tree(get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
+    nuspec_content = _private_replace_underscores(_private_nuget_template, configparser)
     nuspecfilename = get_buildscript_config_item(configparser, 'general', 'productname')+".nuspec"
     nuspecfile = os.path.join(publishdirectory, nuspecfilename)
     with open(nuspecfile, encoding="utf-8", mode="w") as f:
@@ -238,11 +267,11 @@ def SCDotNetReleaseNuget(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    publishdirectory = get_buildscript_config_item(configparser, 'build', 'publishdirectory')
+    publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     latest_nupkg_file = get_buildscript_config_item(configparser, 'general', 'productname')+"."+version+".nupkg"
-    for localnugettarget in get_buildscript_config_items(configparser, 'release', 'localnugettargets'):
+    for localnugettarget in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargets'):
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
-    for localnugettargetrepository in get_buildscript_config_items(configparser, 'release', 'localnugettargetrepositories'):
+    for localnugettargetrepository in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
         git_commit(localnugettargetrepository,  f"Added {get_buildscript_config_item(configparser,'general','productname')} .NET-release {get_buildscript_config_item(configparser,'prepare','gittagprefix')}{version}")
     return 0
 
@@ -266,16 +295,16 @@ Requires the requirements of: TODO
 def SCDotNetReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('reference', 'generatereference'):
-        docfx_file = get_buildscript_config_item(configparser, 'reference', 'docfxfile')
+    if configparser.getboolean('dotnet', 'generatereference'):
+        docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
         docfx_filefolder = os.path.dirname(docfx_file)
-        _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'reference', 'referencerepositoryindexfile'), configparser)
+        _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-        shutil.copyfile(get_buildscript_config_item(configparser, 'build', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'reference', 'coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
-        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'reference', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'reference', 'coveragefolder'))
-        git_commit(get_buildscript_config_item(configparser, 'reference', 'referencerepository'), "Updated reference")
-        if configparser.getboolean('reference', 'exportreference'):
-            git_push(get_buildscript_config_item(configparser, 'reference', 'referencerepository'), get_buildscript_config_item(configparser, 'reference', 'exportreferenceremotename'), "master", "master")
+        shutil.copyfile(get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile')+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
+        git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
+        if configparser.getboolean('dotnet', 'exportreference'):
+            git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master")
     return 0
 
 
@@ -340,11 +369,10 @@ Requires the requirements of: TODO""")
 def SCDotNetRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    runtime = get_buildscript_config_item(configparser, 'build', 'testruntime')
-    SCDotNetBuild(get_buildscript_config_item(configparser, 'build', 'folderoftestcsprojfile'), get_buildscript_config_item(configparser, 'build', 'testcsprojfilename'), get_buildscript_config_item(configparser, 'build',
-                                                                                                                                                                                                      'testoutputfolder'), get_buildscript_config_item(configparser, 'build', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'build', 'testdotnetframework'), True, "normal", None, None)
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+get_buildscript_config_item(configparser, 'build', 'testcsprojfilename')+" --no-build -c " + get_buildscript_config_item(configparser, 'build', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", get_buildscript_config_item(configparser, 'build', 'folderoftestcsprojfile'), 3600, True, False, "Execute tests")
+    runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
+    SCDotNetBuild(get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile'), get_buildscript_config_item(configparser, 'dotnet', 'testcsprojfilename'), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+get_buildscript_config_item(configparser, 'dotnet', 'testcsprojfilename')+" --no-build -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
+                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", get_buildscript_config_item(configparser, 'dotnet', 'folderoftestcsprojfile'), 3600, True, False, "Execute tests")
     return 0
 
 
@@ -400,13 +428,9 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     version = get_version_for_buildscripts(configparser)
-    if(configparser.getboolean('whlprepare', 'whlprepare')):
-        git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        if(configparser.getboolean('whlprepare', 'updateversion')):
-            for file in get_buildscript_config_items(configparser, 'whlprepare', 'filesforupdatingversion'):
-                replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+version+'"\n')
-            git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Updated version to "+version)
-        git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+    if(configparser.getboolean('python', 'updateversion')):
+        for file in get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
+            replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+version+'"\n')
     try:
         exitcode = SCPythonBuildWheelAndRunTests(configurationfile)
         build_and_tests_were_successful = exitcode == 0
@@ -415,22 +439,11 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     except Exception as exception:
         build_and_tests_were_successful = False
         write_exception_to_stderr(exception, "Building wheel and running testcases resulted in an error")
-    if configparser.getboolean('whlprepare', 'whlprepare'):
-        if build_and_tests_were_successful:
-            commit_id = git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
-            git_create_tag(get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + version)
-            git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
-        else:
-            git_merge_abort(get_buildscript_config_item(configparser, 'general', 'repository'))
-            git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
     if build_and_tests_were_successful:
         SCPythonReleaseWheel(configurationfile)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-        git_commit(get_buildscript_config_item(configparser, 'release', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        return 0
     else:
-        write_message_to_stderr("Building wheel and running testcases was not successful")
         return 1
-    return 0
 
 
 def SCPythonCreateWheelRelease_cli():
@@ -474,12 +487,12 @@ Requires the requirements of: TODO
 def SCPythonBuild(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    for folder in get_buildscript_config_items(configparser, "release", "deletefolderbeforcreatewheel"):
+    for folder in get_buildscript_config_items(configparser, "python", "deletefolderbeforcreatewheel"):
         ensure_directory_does_not_exist(folder)
-    setuppyfile = get_buildscript_config_item(configparser, "build", "pythonsetuppyfile")
+    setuppyfile = get_buildscript_config_item(configparser, "python", "pythonsetuppyfile")
     setuppyfilename = os.path.basename(setuppyfile)
     setuppyfilefolder = os.path.dirname(setuppyfile)
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "build", "publishdirectoryforwhlfile"), setuppyfilefolder)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), setuppyfilefolder)
     return 0
 
 
@@ -495,14 +508,15 @@ Requires the requirements of: TODO
     return SCPythonBuild(args.configurationfile)
 
 # </SCPythonBuild>
+
 # <SCPythonRunTests>
 
 
 def SCPythonRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'hastestproject'):
-        pythontestfile = get_buildscript_config_item(configparser, 'build', 'pythontestfile')
+    if configparser.getboolean('other', 'hastestproject'):
+        pythontestfile = get_buildscript_config_item(configparser, 'python', 'pythontestfile')
         pythontestfilename = os.path.basename(pythontestfile)
         pythontestfilefolder = os.path.dirname(pythontestfile)
         execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, True, False, "Pytest")
@@ -528,14 +542,14 @@ Requires the requirements of: TODO
 def SCPythonReleaseWheel(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('build', 'publishwhlfile'):
-        with open(get_buildscript_config_item(configparser, 'release', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
+    if configparser.getboolean('python', 'publishwhlfile'):
+        with open(get_buildscript_config_item(configparser, 'python', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
             api_key = apikeyfile.read()
         gpgidentity = get_buildscript_config_item(configparser, 'other', 'gpgidentity')
         version = get_version_for_buildscripts(configparser)
         productname = get_buildscript_config_item(configparser, 'general', 'productname')
         twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
-        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "build", "publishdirectoryforwhlfile"))
+        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
     return 0
 
 
@@ -556,8 +570,8 @@ Requires the requirements of: TODO
 
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
-    result = get_buildscript_config_item(configparser, 'build', 'buildoutputdirectory')
-    if configparser.getboolean('build', 'separatefolderforeachruntime'):
+    result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
+    if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
     return result
 
@@ -599,51 +613,55 @@ def _private_replace_underscores(string: str, configparser: ConfigParser, replac
     replacements["year"] = str(datetime.datetime.now().year)
     if include_version:
         replacements["version"] = get_version_for_buildscripts(configparser)
-    if configparser.has_option('general', 'basefolder'):
-        replacements["basefolder"] = configparser.get('general', 'basefolder')
-    if configparser.has_option('general', 'productname'):
-        replacements["productname"] = configparser.get('general', 'productname')
-    if configparser.has_option('general', 'author'):
-        replacements["author"] = configparser.get('general', 'author')
-    if configparser.has_option('general', 'description'):
-        replacements["description"] = configparser.get('general', 'description')
-    if configparser.has_option('prepare', 'gittagprefix'):
-        replacements["gittagprefix"] = configparser.get('prepare', 'gittagprefix')
-    if configparser.has_option('prepare', 'developmentbranchname'):
-        replacements["developmentbranchname"] = configparser.get('prepare', 'developmentbranchname')
-    if configparser.has_option('prepare', 'masterbranchname'):
-        replacements["masterbranchname"] = configparser.get('prepare', 'masterbranchname')
-    if configparser.has_option('build', 'dotnetframework'):
-        replacements["dotnetframework"] = configparser.get('build', 'dotnetframework')
-    if configparser.has_option('build', 'buildconfiguration'):
-        replacements["buildconfiguration"] = configparser.get('build', 'buildconfiguration')
-    if configparser.has_option('build', 'folderofcsprojfile'):
-        replacements["folderofcsprojfile"] = configparser.get('build', 'folderofcsprojfile')
-    if configparser.has_option('build', 'buildoutputdirectory'):
-        replacements["buildoutputdirectory"] = configparser.get('build', 'buildoutputdirectory')
-    if configparser.has_option('build', 'publishdirectory'):
-        replacements["publishdirectory"] = configparser.get('build', 'publishdirectory')
-    if configparser.has_option('release', 'publishtargetrepository'):
-        replacements["publishtargetrepository"] = configparser.get('release', 'publishtargetrepository')
-    if configparser.has_option('build', 'testruntime'):
-        replacements["testruntime"] = configparser.get('build', 'testruntime')
-    if configparser.has_option('build', 'testdotnetframework'):
-        replacements["testdotnetframework"] = configparser.get('build', 'testdotnetframework')
-    if configparser.has_option('build', 'folderoftestcsprojfile'):
-        replacements["folderoftestcsprojfile"] = configparser.get('build', 'folderoftestcsprojfile')
-    if configparser.has_option('build', 'testcsprojfilename'):
-        replacements["testcsprojfilename"] = configparser.get('build', 'testcsprojfilename')
-    if configparser.has_option('build', 'testoutputfolder'):
-        replacements["testoutputfolder"] = configparser.get('build', 'testoutputfolder')
-    if configparser.has_option('build', 'releaserepository'):
-        replacements["releaserepository"] = configparser.get('build', 'releaserepository')
-    if configparser.has_option('build', 'coveragefolder'):
-        replacements["coveragefolder"] = configparser.get('build', 'coveragefolder')
-    if configparser.has_option('build', 'coveragereportfolder'):
-        replacements["coveragereportfolder"] = configparser.get('build', 'coveragereportfolder')
-    if configparser.has_option('release', 'egginfofolders'):
-        replacements["egginfofolders"] = configparser.get('release', 'egginfofolders')
-
+        
+    available_configuration_items=[]
+    
+    available_configuration_items.append(["general","productname"])
+    available_configuration_items.append(["general","basefolder"])
+    available_configuration_items.append(["general","logfilefolder"])
+    available_configuration_items.append(["general","repository"])
+    available_configuration_items.append(["general","author"])
+    available_configuration_items.append(["general","description"])
+    available_configuration_items.append(["prepare","developmentbranchname"])
+    available_configuration_items.append(["prepare","masterbranchname"])
+    available_configuration_items.append(["prepare","gittagprefix"])
+    available_configuration_items.append(["python","readmefile"])
+    available_configuration_items.append(["python","pythontestfile"])
+    available_configuration_items.append(["python","pythonsetuppyfile"])
+    available_configuration_items.append(["python","filesforupdatingversion"])
+    available_configuration_items.append(["python","pypiapikeyfile"])
+    available_configuration_items.append(["python","deletefolderbeforcreatewheel"])
+    available_configuration_items.append(["python","publishdirectoryforwhlfile"])
+    available_configuration_items.append(["dotnet","csprojfilename"])
+    available_configuration_items.append(["dotnet","folderofcsprojfile"])
+    available_configuration_items.append(["dotnet","buildoutputdirectory"])
+    available_configuration_items.append(["dotnet","publishdirectory"])
+    available_configuration_items.append(["dotnet","runtimes"])
+    available_configuration_items.append(["dotnet","dotnetframework"])
+    available_configuration_items.append(["dotnet","buildconfiguration"])
+    available_configuration_items.append(["dotnet","filestosign"])
+    available_configuration_items.append(["dotnet","snkfile"])
+    available_configuration_items.append(["dotnet","testruntime"])
+    available_configuration_items.append(["dotnet","testdotnetframework"])
+    available_configuration_items.append(["dotnet","folderoftestcsprojfile"])
+    available_configuration_items.append(["dotnet","testcsprojfilename"])
+    available_configuration_items.append(["dotnet","testoutputfolder"])
+    available_configuration_items.append(["dotnet","localnugettargets"])
+    available_configuration_items.append(["dotnet","localnugettargetrepositories"])
+    available_configuration_items.append(["dotnet","docfxfile"])
+    available_configuration_items.append(["dotnet","coveragefolder"])
+    available_configuration_items.append(["dotnet","coveragereportfolder"])
+    available_configuration_items.append(["dotnet","referencerepositoryindexfile"])
+    available_configuration_items.append(["dotnet","referencerepository"])
+    available_configuration_items.append(["dotnet","exportreferenceremotename"])
+    available_configuration_items.append(["other","releaserepository"])
+    available_configuration_items.append(["other","publishtargetrepository"])
+    available_configuration_items.append(["other","gpgidentity"])
+    
+    for item in available_configuration_items:
+        if configparser.has_option(item[0], item[1]):
+            replacements[item[1]] = configparser.get(item[0], item[1])
+        
     changed = True
     result = string
     while changed:
@@ -655,6 +673,16 @@ def _private_replace_underscores(string: str, configparser: ConfigParser, replac
                 changed = True
     return result
 
+
+def createDotNetRelease(configurationfile: str):
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    if configparser.getboolean('dotnet', 'createexe'):
+        return SCDotNetCreateExecutableRelease(configurationfile)
+    else:
+        return SCDotNetCreateNugetRelease(configurationfile)
+    
+    
 # </Helper>
 
 # </Build>

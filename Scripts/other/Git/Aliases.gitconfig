@@ -16,3 +16,4 @@
     showtrackedignored = ls-files -i --exclude-standard
     tree = log --graph --decorate --pretty=oneline --abbrev-commit
     verify = verify-commit HEAD
+    ;exec = !exec
