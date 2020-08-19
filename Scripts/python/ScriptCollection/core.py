@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.3.5"
+version = "1.3.6"
 
 
 # <Build>
@@ -1482,7 +1482,7 @@ def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward:
         fastforward_argument = ""
     else:
         fastforward_argument = "--no-ff "
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600,1,False,"Merge",False)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600,1,False,"Merge",True)
     if commit:
         return git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
     else:
