@@ -70,7 +70,8 @@ def SCCreateRelease(configurationfile: str):
     else:
         if prepare:
             commit_id = git_commit(_private_get_buildscript_config_item(configparser, 'general', 'repository'), "Merge branch '" + _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+_private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
-            git_create_tag(_private_get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, _private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + version)
+            repository_version = _private_get_version_for_buildscripts(configparser)
+            git_create_tag(_private_get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, _private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
             git_merge(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
             if configparser.getboolean('other', 'exportrepository'):
                 branch = _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
@@ -128,9 +129,9 @@ Requires the requirements of: TODO
 def SCDotNetCreateExecutableRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    version = _private_get_version_for_buildscripts(configparser)
+    repository_version = _private_get_version_for_buildscripts(configparser)
     if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
-        update_version_in_csproj_file(_private_get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), version)
+        update_version_in_csproj_file(_private_get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), repository_version)
 
     build_and_tests_were_successful = False
     try:
@@ -145,8 +146,8 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
 
-        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
+        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
         return 1
@@ -171,9 +172,9 @@ Requires the requirements of: TODO
 def SCDotNetCreateNugetRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    version = _private_get_version_for_buildscripts(configparser)
+    repository_version = _private_get_version_for_buildscripts(configparser)
     if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
-        update_version_in_csproj_file(_private_get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), version)
+        update_version_in_csproj_file(_private_get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), repository_version)
 
     build_and_tests_were_successful = False
     try:
@@ -188,8 +189,8 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
         SCDotNetReleaseNuget(configurationfile)
-        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
-        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+version)
+        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
+        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
         return 1
@@ -276,13 +277,13 @@ Requires the requirements of: TODO
 def SCDotNetReleaseNuget(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    version = _private_get_version_for_buildscripts(configparser)
+    repository_version = _private_get_version_for_buildscripts(configparser)
     publishdirectory = _private_get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
-    latest_nupkg_file = _private_get_buildscript_config_item(configparser, 'general', 'productname')+"."+version+".nupkg"
+    latest_nupkg_file = _private_get_buildscript_config_item(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
     for localnugettarget in _private_get_buildscript_config_items(configparser, 'dotnet', 'localnugettargets'):
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
     for localnugettargetrepository in _private_get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
-        git_commit(localnugettargetrepository,  f"Added {_private_get_buildscript_config_item(configparser,'general','productname')} .NET-release {_private_get_buildscript_config_item(configparser,'prepare','gittagprefix')}{version}")
+        git_commit(localnugettargetrepository,  f"Added {_private_get_buildscript_config_item(configparser,'general','productname')} .NET-release {_private_get_buildscript_config_item(configparser,'prepare','gittagprefix')}{repository_version}")
     return 0
 
 
@@ -438,10 +439,10 @@ def SCDotNetsign_cli():
 def SCPythonCreateWheelRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    version = _private_get_version_for_buildscripts(configparser)
+    repository_version = _private_get_version_for_buildscripts(configparser)
     if(configparser.getboolean('python', 'updateversion')):
         for file in _private_get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
-            replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+version+'"\n')
+            replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
     try:
         exitcode = SCPythonBuildWheelAndRunTests(configurationfile)
         build_and_tests_were_successful = exitcode == 0
@@ -557,9 +558,9 @@ def SCPythonReleaseWheel(configurationfile: str):
         with open(_private_get_buildscript_config_item(configparser, 'python', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
             api_key = apikeyfile.read()
         gpgidentity = _private_get_buildscript_config_item(configparser, 'other', 'gpgidentity')
-        version = _private_get_version_for_buildscripts(configparser)
+        repository_version = _private_get_version_for_buildscripts(configparser)
         productname = _private_get_buildscript_config_item(configparser, 'general', 'productname')
-        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
+        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
         execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, _private_get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
     return 0
 
