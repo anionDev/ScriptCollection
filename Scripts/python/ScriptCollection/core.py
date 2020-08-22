@@ -257,7 +257,7 @@ def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     ensure_directory_does_not_exist(publishdirectory)
     ensure_directory_exists(publishdirectory_binary)
     copy_tree(get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
-    nuspec_content = _private_replace_underscores(_private_nuget_template, configparser)
+    nuspec_content = _private_replace_underscores_for_buildconfiguration(_private_nuget_template, configparser)
     nuspecfilename = get_buildscript_config_item(configparser, 'general', 'productname')+".nuspec"
     nuspecfile = os.path.join(publishdirectory, nuspecfilename)
     with open(nuspecfile, encoding="utf-8", mode="w") as f:
@@ -322,7 +322,7 @@ def SCDotNetReference(configurationfile: str):
     if configparser.getboolean('dotnet', 'generatereference'):
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
         docfx_filefolder = os.path.dirname(docfx_file)
-        _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
+        _private_replace_underscore_in_file_for_buildconfiguration(get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+_private_get_coverage_filename(configparser))
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
@@ -591,6 +591,12 @@ Requires the requirements of: TODO
 
 # <Helper>
 
+def _private_verbose_check_for_not_available_item(result:list, section:str, propertyname:str):
+    for item in result:
+        if "<notavailable>" in item:
+            write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
+            print_stacktrace()
+
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
@@ -600,15 +606,19 @@ def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
 
 
 def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
-    return _private_replace_underscores(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    result= _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    _private_verbose_check_for_not_available_item([result], section, propertyname)
+    return result
 
 
 def get_buildscript_config_items(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
-    itemlist_as_string = _private_replace_underscores(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    itemlist_as_string = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
     if ',' in itemlist_as_string:
-        return [item.strip() for item in itemlist_as_string.split(',')]
+        result = [item.strip() for item in itemlist_as_string.split(',')]
     else:
-        return [itemlist_as_string.strip()]
+        result = [itemlist_as_string.strip()]
+    _private_verbose_check_for_not_available_item(result, section, propertyname)
+    return result
 
 
 def _private_get_csprojfile_filename(configparser: ConfigParser):
@@ -652,15 +662,15 @@ def get_version_for_buildscripts_helper(folder: str):
     return get_semver_version_from_gitversion(folder)
 
 
-def _private_replace_underscore_in_file(file: str, configparser: ConfigParser, replacements: dict = {}, encoding="utf-8"):
+def _private_replace_underscore_in_file_for_buildconfiguration(file: str, configparser: ConfigParser, replacements: dict = {}, encoding="utf-8"):
     with codecs.open(file, 'r', encoding=encoding) as f:
         text = f.read()
-    text = _private_replace_underscores(text, configparser, replacements)
+    text = _private_replace_underscores_for_buildconfiguration(text, configparser, replacements)
     with codecs.open(file, 'w', encoding=encoding) as f:
         f.write(text)
 
 
-def _private_replace_underscores(string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True):
+def _private_replace_underscores_for_buildconfiguration(string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True):
     replacements["year"] = str(datetime.datetime.now().year)
     if include_version:
         replacements["version"] = get_version_for_buildscripts(configparser)
@@ -1235,6 +1245,10 @@ def remove_duplicates(input):
         if not item in result:
             result.append(item)
     return result
+
+def print_stacktrace():
+        for line in traceback.format_stack():
+            write_message_to_stdout(line.strip())
 
 
 def string_to_boolean(value: str):
