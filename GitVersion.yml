@@ -7,7 +7,7 @@ patch-version-bump-message: '\+semver:\s?(patch)'
 tag-prefix: 'v'
 branches:
   others:
-    regex: 'development'
+    regex: '^(?!master).*$'
     mode: ContinuousDelivery
     source-branches: ['master']
 ignore:
