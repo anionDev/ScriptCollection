@@ -312,7 +312,7 @@ def SCDotNetReference(configurationfile: str):
         docfx_filefolder = os.path.dirname(docfx_file)
         _private_replace_underscore_in_file(_private_get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-        shutil.copyfile(_private_get_csprojfile_foldername(configparser)+os.path.sep+_private_get_coverage_filename(configparser), _private_get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+os.path.sep+_private_get_coverage_filename(configparser))
+        shutil.copyfile(_private_get_csprojfile_foldername(configparser)+os.path.sep+_private_get_coverage_filename(configparser), _private_get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+_private_get_coverage_filename(configparser))
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+_private_get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', _private_get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
         git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
@@ -384,8 +384,7 @@ def SCDotNetRunTests(configurationfile: str):
     runtime = _private_get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
     SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), _private_get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'),
                   _private_get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, _private_get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" --no-build -c " + _private_get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" --no-build -c " + _private_get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" + _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
     return 0
 
 
