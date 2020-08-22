@@ -5,5 +5,11 @@ major-version-bump-message: '\+semver:\s?(major)'
 minor-version-bump-message: '\+semver:\s?(minor)'
 patch-version-bump-message: '\+semver:\s?(patch)'
 tag-prefix: 'v'
+branches:
+  development:
+    regex: 'development'
+    increment: Patch
+    mode: ContinuousDelivery
+    source-branches: ['master']
 ignore:
   sha: []
