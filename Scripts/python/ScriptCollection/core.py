@@ -78,6 +78,7 @@ def SCCreateRelease(configurationfile: str):
             if configparser.getboolean('other', 'exportrepository'):
                 branch = _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
                 git_push(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch)
+            git_commit(_private_get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         write_message_to_stdout("Building wheel and running testcases was successful")
         return 0
 
@@ -148,7 +149,6 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
 
-        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
@@ -191,7 +191,6 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
         SCDotNetReleaseNuget(configurationfile)
-        git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
@@ -694,8 +693,8 @@ def _private_replace_underscores(string: str, configparser: ConfigParser, replac
     available_configuration_items.append(["dotnet", "referencerepositoryindexfile"])
     available_configuration_items.append(["dotnet", "referencerepository"])
     available_configuration_items.append(["dotnet", "exportreferenceremotename"])
-    available_configuration_items.append(["dotnet", "releaserepository"])
     available_configuration_items.append(["dotnet", "publishtargetrepository"])
+    available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
     available_configuration_items.append(["other", "exportrepositoryremotename"])
 
