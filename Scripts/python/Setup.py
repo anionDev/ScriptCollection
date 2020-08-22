@@ -59,7 +59,7 @@ setup(
             f"SCShowMissingFiles = ScriptCollection.core:SCShowMissingFiles_cli",
             f"SCCreateEmptyFileWithSpecificSize = ScriptCollection.core:SCCreateEmptyFileWithSpecificSize_cli",
             f"SCCreateHashOfAllFiles = ScriptCollection.core:SCCreateHashOfAllFiles_cli",
-            f"SCShowMissingFiles = ScriptCollection.core:SCShowMissingFiles_cli",
+            f"SCOrganizeLinesInFile = ScriptCollection.core:SCOrganizeLinesInFile_cli",
             f"SCGenerateSnkFiles = ScriptCollection.core:SCGenerateSnkFiles_cli",
             f"SCReplaceSubstringsInFilenames = ScriptCollection.core:SCReplaceSubstringsInFilenames_cli",
             f"SCSearchInFiles = ScriptCollection.core:SCSearchInFiles_cli",
