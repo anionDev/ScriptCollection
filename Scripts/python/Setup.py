@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-version = "1.11.0"
+version = "1.12.0"
 
 productname = "ScriptCollection"
 packages= [package for package in find_packages() if not package.endswith("Tests")]
@@ -56,10 +56,10 @@ setup(
             f"SCGenerateThumbnail = ScriptCollection.core:SCGenerateThumbnail_cli",
             f"SCKeyboardDiagnosis = ScriptCollection.core:SCKeyboardDiagnosis_cli",
             f"SCMergePDFs = ScriptCollection.core:SCMergePDFs_cli",
-            f"ShowMissingFiles = ScriptCollection.core:ShowMissingFiles_cli",
-            f"CreateEmptyFileWithSpecificSize = ScriptCollection.core:CreateEmptyFileWithSpecificSize_cli",
-            f"CreateEmptyFileWithSpecificSize = ScriptCollection.core:CreateEmptyFileWithSpecificSize_cli",
-            f"CreateHashOfAllFiles = ScriptCollection.core:CreateHashOfAllFiles_cli",
+            f"SCShowMissingFiles = ScriptCollection.core:SCShowMissingFiles_cli",
+            f"SCCreateEmptyFileWithSpecificSize = ScriptCollection.core:SCCreateEmptyFileWithSpecificSize_cli",
+            f"SCCreateHashOfAllFiles = ScriptCollection.core:SCCreateHashOfAllFiles_cli",
+            f"SCShowMissingFiles = ScriptCollection.core:SCShowMissingFiles_cli",
             f"SCGenerateSnkFiles = ScriptCollection.core:SCGenerateSnkFiles_cli",
             f"SCReplaceSubstringsInFilenames = ScriptCollection.core:SCReplaceSubstringsInFilenames_cli",
             f"SCSearchInFiles = ScriptCollection.core:SCSearchInFiles_cli",

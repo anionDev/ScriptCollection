@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.11.0"
+version = "1.12.0"
 
 
 # <Build>
@@ -811,24 +811,24 @@ def SCMergePDFs_cli():
 
 # </SCMergePDFs>
 
-# <ShowMissingFiles>
+# <SCShowMissingFiles>
 
-def ShowMissingFiles(folderA:str, folderB: str):
+def SCShowMissingFiles(folderA:str, folderB: str):
     for file in get_missing_files(folderA,folderB):
         write_message_to_stdout(file)
 
-def ShowMissingFiles_cli():
+def SCShowMissingFiles_cli():
     parser = argparse.ArgumentParser(description='Shows all files which are in folderA but not in folder B. This program does not do any content-comparisons.')
     parser.add_argument('folderA')
     parser.add_argument('folderB')
     args = parser.parse_args()
-    ShowMissingFiles(args.folderA, args.folderB)
+    SCShowMissingFiles(args.folderA, args.folderB)
 
-# </ShowMissingFiles>
+# </SCShowMissingFiles>
 
-# <CreateEmptyFileWithSpecificSize>
+# <SCCreateEmptyFileWithSpecificSize>
 
-def CreateEmptyFileWithSpecificSize(name:str,size_string:str):
+def SCCreateEmptyFileWithSpecificSize(name:str,size_string:str):
     size_string=size.lower()
     if size_string.isdigit():
         size=int(size_string)
@@ -856,30 +856,30 @@ def CreateEmptyFileWithSpecificSize(name:str,size_string:str):
         f.write(b"\0")
     return 0
 
-def CreateEmptyFileWithSpecificSize_cli():
+def SCCreateEmptyFileWithSpecificSize_cli():
     parser = argparse.ArgumentParser(description='Creates a file with a specific size')
     parser.add_argument('name', help='Specifies the name of the created file')
     parser.add_argument('size', help='Specifies the size of the created file')
     args = parser.parse_args()
-    CreateEmptyFileWithSpecificSize(args.name,args.size)
+    SCCreateEmptyFileWithSpecificSize(args.name,args.size)
 
-# </CreateEmptyFileWithSpecificSize>
+# </SCCreateEmptyFileWithSpecificSize>
 
-# <CreateHashOfAllFiles>
+# <SCCreateHashOfAllFiles>
 
-def CreateHashOfAllFiles(folder:str):
+def SCCreateHashOfAllFiles(folder:str):
     for file in absolute_file_paths(folder):
         with open(file+".sha256","w+") as f:
             f.write(get_sha256_of_file(file))
 
 
-def CreateHashOfAllFiles_cli():
+def SCCreateHashOfAllFiles_cli():
     parser = argparse.ArgumentParser(description='Calculates the SHA-256-value of all files in the given folder and stores the hash-value in a file next to the hashed file.')
     parser.add_argument('folder', help='Folder where the files are stored which should be hashed')
     args = parser.parse_args()
-    CreateHashOfAllFiles(args.folder)
+    SCCreateHashOfAllFiles(args.folder)
 
-# </CreateHashOfAllFiles>
+# </SCCreateHashOfAllFiles>
 
 # <SCOrganizeLinesInFile>
 
