@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.9.0"
+version = "1.10.0"
 
 
 # <Build>
@@ -1478,6 +1478,7 @@ def get_semver_version_from_gitversion(folder: str):
 
 
 def get_version_from_gitversion(folder: str, variable: str):
+    strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
     return strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
 
 
