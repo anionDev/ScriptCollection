@@ -445,7 +445,6 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     if(configparser.getboolean('python', 'updateversion')):
         for file in _private_get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
             replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
-    git_commit(_private_get_buildscript_config_items(configparser, 'general', 'repository'),"Updated version")
     try:
         exitcode = SCPythonBuildWheelAndRunTests(configurationfile)
         build_and_tests_were_successful = exitcode == 0
