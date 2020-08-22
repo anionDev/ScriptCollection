@@ -4,11 +4,6 @@ assembly-file-versioning-scheme: MajorMinorPatch
 major-version-bump-message: '\+semver:\s?(major)'
 minor-version-bump-message: '\+semver:\s?(minor)'
 patch-version-bump-message: '\+semver:\s?(patch)'
-tag-prefix: '[vV]'
-branches:
-  others:
-    regex: '[^(master)$]'
-    mode: ContinuousDelivery
-    source-branches: ['master']
+tag-prefix: 'v'
 ignore:
   sha: []
