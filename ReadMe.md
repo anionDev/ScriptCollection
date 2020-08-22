@@ -32,7 +32,7 @@ It may be more easy to pip-install the ScriptCollection but technically pip is n
 
 ## Troubleshooting
 
-It is recommended to always use only the newest version of the ScriptCollection. If you have an older version: Update it. If you still have problems, then feel free to create an [issue](https://github.com/anionDev/ScriptCollection/issues).
+It is recommended to always use only the newest version of the ScriptCollection. If you have an older version: Update it (e. g. using `pip install ScriptCollection --upgrade` if you installed the ScriptCollection via pip). If you still have problems, then feel free to create an [issue](https://github.com/anionDev/ScriptCollection/issues).
 
 If you have installed the ScriptCollection as pip-package you can simply check the version using Python with the following command:
 
