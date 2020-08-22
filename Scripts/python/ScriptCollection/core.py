@@ -312,7 +312,7 @@ def SCDotNetReference(configurationfile: str):
         docfx_filefolder = os.path.dirname(docfx_file)
         _private_replace_underscore_in_file(_private_get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-        shutil.copyfile(_private_get_csprojfile_foldername(configparser)+os.path.sep+_private_get_coverage_filename(configparser), _private_get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+_private_get_coverage_filename(configparser))
+        shutil.copyfile(_private_get_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), _private_get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+_private_get_coverage_filename(configparser))
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+_private_get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', _private_get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
         git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
