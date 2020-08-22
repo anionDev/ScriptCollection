@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.3.6"
+version = "1.3.8"
 
 
 # <Build>
@@ -44,14 +44,16 @@ def SCCreateRelease(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
     prepare = configparser.getboolean('general', 'prepare')
-
+    if(git_repository_has_uncommitted_changes(_private_get_buildscript_config_item(configparser, "general","repository"))):
+        write_message_to_stderr("'"+_private_get_buildscript_config_item(configparser, "general","repository")+"' contains uncommitted changes")
+        return 1
     if prepare:
         git_checkout(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
         git_merge(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
 
     try:
 
-        if configparser.getboolean('general', 'private_create_dotnet_release') and not error_occurred:
+        if configparser.getboolean('general', 'createdotnetrelease') and not error_occurred:
             error_occurred = private_create_dotnet_release(configurationfile) != 0
 
         if configparser.getboolean('general', 'createpythonrelease') and not error_occurred:

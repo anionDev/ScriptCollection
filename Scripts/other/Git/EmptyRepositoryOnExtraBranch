@@ -1,6 +1,0 @@
-git branch empty
-git checkout empty
-git rm -r *
-git add -A
-git commit -m "empty workingdirectory"
-git clean -f -d
