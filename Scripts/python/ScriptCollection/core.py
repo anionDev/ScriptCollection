@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.6.0"
+version = "1.7.0"
 
 
 # <Build>
@@ -826,6 +826,61 @@ def ShowMissingFiles_cli():
 
 # </ShowMissingFiles>
 
+# <CreateEmptyFileWithSpecificSize>
+
+def CreateEmptyFileWithSpecificSize(name:str,size_string:str):
+    size_string=size.lower()
+    if size_string.isdigit():
+        size=int(size_string)
+    else:
+        if len(size_string)>=3:
+            if(size_string.endswith("kb")):
+                size=int(size_string[:-2]) * pow(10, 3)
+            elif(size_string.endswith("mb")):
+                size=int(size_string[:-2]) * pow(10, 6)
+            elif(size_string.endswith("gb")):
+                size=int(size_string[:-2]) * pow(10, 9)
+            elif(size_string.endswith("kib")):
+                size=int(size_string[:-3]) * pow(2, 10)
+            elif(size_string.endswith("mib")):
+                size=int(size_string[:-3]) * pow(2, 20)
+            elif(size_string.endswith("gib")):
+                size=int(size_string[:-3]) * pow(2, 30)
+            else:
+                write_message_to_stderr("Wrong format")
+        else:
+            write_message_to_stderr("Wrong format")
+            return 1
+    with open(name, "wb") as f:
+        f.seek(size-1)
+        f.write(b"\0")
+    return 0
+
+def CreateEmptyFileWithSpecificSize_cli():
+    parser = argparse.ArgumentParser(description='Creates a file with a specific size')
+    parser.add_argument('name', help='Specifies the name of the created file')
+    parser.add_argument('size', help='Specifies the size of the created file')
+    args = parser.parse_args()
+    CreateEmptyFileWithSpecificSize(args.name,args.size)
+
+# </CreateEmptyFileWithSpecificSize>
+
+# <CreateHashOfAllFiles>
+
+def CreateHashOfAllFiles(folder:str):
+    for file in absolute_file_paths(folder):
+        with open(file+".sha256","w+") as f:
+            f.write(get_sha256_of_file(file))
+
+
+def CreateHashOfAllFiles_cli():
+    parser = argparse.ArgumentParser(description='Calculates the SHA-256-value of all files in the given folder and stores the hash-value in a file next to the hashed file.')
+    parser.add_argument('folder', help='Folder where the files are stored which should be hashed')
+    args = parser.parse_args()
+    CreateHashOfAllFiles(args.folder)
+
+# </CreateHashOfAllFiles>
+
 # <SCOrganizeLinesInFile>
 
 
@@ -912,7 +967,7 @@ def SCGenerateSnkFiles_cli():
 # <SCReplaceSubstringsInFilenames>
 
 
-def _private_absolute_file_paths(directory: str):
+def absolute_file_paths(directory: str):
     for dirpath, _, filenames in os.walk(directory):
         for filename in filenames:
             yield os.path.abspath(os.path.join(dirpath, filename))
@@ -953,7 +1008,7 @@ def _private_process_file(file: str, substringInFilename: str, newSubstringInFil
 
 
 def SCReplaceSubstringsInFilenames(folder: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str):
-    for file in _private_absolute_file_paths(folder):
+    for file in absolute_file_paths(folder):
         _private_process_file(file, substringInFilename, newSubstringInFilename, conflictResolveMode)
 
 
@@ -1062,7 +1117,7 @@ Hints:
 def get_missing_files(folderA:str, folderB: str):
     folderA_length=len(folderA)
     result=[]
-    for fileA in Utilities.absolute_file_paths(folderA):
+    for fileA in absolute_file_paths(folderA):
         file=fileA[folderA_length:]
         fileB=folderB+file
         if not os.path.isfile(fileB):
