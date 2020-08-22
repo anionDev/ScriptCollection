@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.4"
+version = "1.12.5"
 
 
 # <Build>
@@ -285,6 +285,11 @@ def SCDotNetReleaseNuget(configurationfile: str):
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
     for localnugettargetrepository in _private_get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
         git_commit(localnugettargetrepository,  f"Added {_private_get_buildscript_config_item(configparser,'general','productname')} .NET-release {_private_get_buildscript_config_item(configparser,'prepare','gittagprefix')}{repository_version}")
+    if (configparser.getboolean(configparser, 'dotnet', 'publishnugetfile')):
+        with open(_private_get_buildscript_config_item(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
+            api_key = apikeyfile.read()
+        nugetsource = _private_get_buildscript_config_item(configparser, 'dotnet', 'nugetsource')
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory)
     return 0
 
 
