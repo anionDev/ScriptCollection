@@ -77,7 +77,7 @@ def SCCreateRelease(configurationfile: str):
             git_merge(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
             if configparser.getboolean('other', 'exportrepository'):
                 branch = _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
-                git_push(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch)
+                git_push(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
             git_commit(_private_get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+_private_get_buildscript_config_item(configparser, 'general', 'productname')+" "+_private_get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         write_message_to_stdout("Building wheel and running testcases was successful")
         return 0
@@ -316,7 +316,7 @@ def SCDotNetReference(configurationfile: str):
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+_private_get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', _private_get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
         git_commit(_private_get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
-            git_push(_private_get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), _private_get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master")
+            git_push(_private_get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), _private_get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
     return 0
 
 
@@ -1556,10 +1556,12 @@ def git_get_current_commit_id(repository_folder: str):
     return result[1].replace('\r', '').replace('\n', '')
 
 
-def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False):
+def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags:bool=False):
     argument = f"push {remotename} {localbranchname}:{remotebranchname}"
     if (forcepush):
         argument = argument+" --force"
+    if (pushalltags):
+        argument = argument+" --tags"
     result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, 1, False, None, True)
     return result[1].replace('\r', '').replace('\n', '')
 
