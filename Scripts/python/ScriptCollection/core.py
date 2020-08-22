@@ -44,8 +44,8 @@ def SCCreateRelease(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
     prepare = configparser.getboolean('general', 'prepare')
-    if(git_repository_has_uncommitted_changes(_private_get_buildscript_config_items("general","repository"))):
-        write_message_to_stderr("'"+_private_get_buildscript_config_items("general","repository")+"' contains uncommitted changes")
+    if(git_repository_has_uncommitted_changes(_private_get_buildscript_config_item(configparser, "general","repository"))):
+        write_message_to_stderr("'"+_private_get_buildscript_config_item(configparser, "general","repository")+"' contains uncommitted changes")
         return 1
     if prepare:
         git_checkout(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
