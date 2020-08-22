@@ -44,12 +44,19 @@ def SCCreateRelease(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
     prepare = configparser.getboolean('general', 'prepare')
-    if(git_repository_has_uncommitted_changes(get_buildscript_config_item(configparser, "general","repository"))):
-        write_message_to_stderr("'"+get_buildscript_config_item(configparser, "general","repository")+"' contains uncommitted changes")
+    repository=get_buildscript_config_item(configparser, "general","repository")
+    if(git_repository_has_uncommitted_changes(repository)):
+        write_message_to_stderr(f"'{repository}' contains uncommitted changes")
         return 1
     if prepare:
-        git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+        devbranch=get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')
+        masterbranch=get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
+        commitid=git_get_current_commit_id(repository,masterbranch)
+        if(commitid==git_get_current_commit_id(repository,devbranch)):
+            write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit ({commitid})")
+            return 1
+        git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
+        git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
 
     try:
 
@@ -65,19 +72,19 @@ def SCCreateRelease(configurationfile: str):
 
     if error_occurred:
         if prepare:
-            git_merge_abort(get_buildscript_config_item(configparser, 'general', 'repository'))
-            git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
+            git_merge_abort(repository)
+            git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
         write_message_to_stderr("Building wheel and running testcases was not successful")
         return 1
     else:
         if prepare:
-            commit_id = git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
+            commit_id = git_commit(repository, "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
             repository_version = get_version_for_buildscripts(configparser)
-            git_create_tag(get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
-            git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
+            git_create_tag(repository, commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
+            git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
             if configparser.getboolean('other', 'exportrepository'):
                 branch = get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
-                git_push(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
+                git_push(repository, get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
             git_commit(get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         write_message_to_stdout("Building wheel and running testcases was successful")
         return 0
@@ -697,6 +704,7 @@ def _private_replace_underscores(string: str, configparser: ConfigParser, replac
     available_configuration_items.append(["dotnet", "referencerepository"])
     available_configuration_items.append(["dotnet", "exportreferenceremotename"])
     available_configuration_items.append(["dotnet", "publishtargetrepository"])
+    available_configuration_items.append(["dotnet", "nugetsource"])
     available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
     available_configuration_items.append(["other", "exportrepositoryremotename"])
@@ -1562,8 +1570,8 @@ def _private_git_repository_has_uncommitted_changes(repository_folder: str, argu
     return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
 
 
-def git_get_current_commit_id(repository_folder: str):
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse --verify HEAD", repository_folder, 30, 0)
+def git_get_current_commit_id(repository_folder: str, commit:str="HEAD"):
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
     return result[1].replace('\r', '').replace('\n', '')
 
 
