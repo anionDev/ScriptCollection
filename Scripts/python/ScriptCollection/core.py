@@ -44,7 +44,9 @@ def SCCreateRelease(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
     prepare = configparser.getboolean('general', 'prepare')
-
+    if(git_repository_has_uncommitted_changes(_private_get_buildscript_config_items("general","repository"))):
+        write_message_to_stderr("'"+_private_get_buildscript_config_items("general","repository")+"' contains uncommitted changes")
+        return 1
     if prepare:
         git_checkout(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
         git_merge(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
@@ -443,6 +445,7 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     if(configparser.getboolean('python', 'updateversion')):
         for file in _private_get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
             replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
+    git_commit(_private_get_buildscript_config_items(configparser, 'general', 'repository'),"Updated version")
     try:
         exitcode = SCPythonBuildWheelAndRunTests(configurationfile)
         build_and_tests_were_successful = exitcode == 0
