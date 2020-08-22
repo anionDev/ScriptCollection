@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.5.0"
+version = "1.4.0"
 
 
 # <Build>
@@ -811,6 +811,21 @@ def SCMergePDFs_cli():
 
 # </SCMergePDFs>
 
+# <ShowMissingFiles>
+
+def ShowMissingFiles(folderA:str, folderB: str):
+    for file in get_missing_files(folderA,folderB):
+        write_message_to_stdout(file)
+
+def ShowMissingFiles_cli():
+    parser = argparse.ArgumentParser(description='Shows all files which are in folderA but not in folder B. This program does not do any content-comparisons.')
+    parser.add_argument('folderA')
+    parser.add_argument('folderB')
+    args = parser.parse_args()
+    ShowMissingFiles(args.folderA, args.folderB)
+
+# </ShowMissingFiles>
+
 # <SCOrganizeLinesInFile>
 
 
@@ -1043,6 +1058,17 @@ Hints:
 
 # <miscellaneous>
 
+
+def get_missing_files(folderA:str, folderB: str):
+    folderA_length=len(folderA)
+    result=[]
+    for fileA in Utilities.absolute_file_paths(folderA):
+        file=fileA[folderA_length:]
+        fileB=folderB+file
+        if not os.path.isfile(fileB):
+            result.append(fileB)
+    return result
+	
 
 def write_lines_to_file(file: str, lines: list, encoding="utf-8"):
     write_text_to_file(file, os.linesep.join(lines), encoding)
