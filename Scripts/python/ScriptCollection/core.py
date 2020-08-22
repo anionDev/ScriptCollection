@@ -53,7 +53,7 @@ def SCCreateRelease(configurationfile: str):
 
     try:
 
-        if configparser.getboolean('general', 'private_create_dotnet_release') and not error_occurred:
+        if configparser.getboolean('general', 'createdotnetrelease') and not error_occurred:
             error_occurred = private_create_dotnet_release(configurationfile) != 0
 
         if configparser.getboolean('general', 'createpythonrelease') and not error_occurred:
