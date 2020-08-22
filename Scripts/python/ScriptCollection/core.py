@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.7"
+version = "1.12.8"
 
 
 # <Build>
@@ -44,12 +44,19 @@ def SCCreateRelease(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
     prepare = configparser.getboolean('general', 'prepare')
-    if(git_repository_has_uncommitted_changes(get_buildscript_config_item(configparser, "general","repository"))):
-        write_message_to_stderr("'"+get_buildscript_config_item(configparser, "general","repository")+"' contains uncommitted changes")
+    repository=get_buildscript_config_item(configparser, "general","repository")
+    if(git_repository_has_uncommitted_changes(repository)):
+        write_message_to_stderr(f"'{repository}' contains uncommitted changes")
         return 1
     if prepare:
-        git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+        devbranch=get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')
+        masterbranch=get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
+        commitid=git_get_current_commit_id(repository,masterbranch)
+        if(commitid==git_get_current_commit_id(repository,devbranch)):
+            write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit ({commitid})")
+            return 1
+        git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
+        git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
 
     try:
 
@@ -65,19 +72,19 @@ def SCCreateRelease(configurationfile: str):
 
     if error_occurred:
         if prepare:
-            git_merge_abort(get_buildscript_config_item(configparser, 'general', 'repository'))
-            git_checkout(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
+            git_merge_abort(repository)
+            git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
         write_message_to_stderr("Building wheel and running testcases was not successful")
         return 1
     else:
         if prepare:
-            commit_id = git_commit(get_buildscript_config_item(configparser, 'general', 'repository'), "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
+            commit_id = git_commit(repository, "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
             repository_version = get_version_for_buildscripts(configparser)
-            git_create_tag(get_buildscript_config_item(configparser, 'general', 'repository'), commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
-            git_merge(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
+            git_create_tag(repository, commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
+            git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
             if configparser.getboolean('other', 'exportrepository'):
                 branch = get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
-                git_push(get_buildscript_config_item(configparser, 'general', 'repository'), get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
+                git_push(repository, get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
             git_commit(get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         write_message_to_stdout("Building wheel and running testcases was successful")
         return 0
@@ -250,7 +257,7 @@ def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     ensure_directory_does_not_exist(publishdirectory)
     ensure_directory_exists(publishdirectory_binary)
     copy_tree(get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
-    nuspec_content = _private_replace_underscores(_private_nuget_template, configparser)
+    nuspec_content = _private_replace_underscores_for_buildconfiguration(_private_nuget_template, configparser)
     nuspecfilename = get_buildscript_config_item(configparser, 'general', 'productname')+".nuspec"
     nuspecfile = os.path.join(publishdirectory, nuspecfilename)
     with open(nuspecfile, encoding="utf-8", mode="w") as f:
@@ -315,7 +322,7 @@ def SCDotNetReference(configurationfile: str):
     if configparser.getboolean('dotnet', 'generatereference'):
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
         docfx_filefolder = os.path.dirname(docfx_file)
-        _private_replace_underscore_in_file(get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
+        _private_replace_underscore_in_file_for_buildconfiguration(get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+_private_get_coverage_filename(configparser))
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
@@ -584,6 +591,12 @@ Requires the requirements of: TODO
 
 # <Helper>
 
+def _private_verbose_check_for_not_available_item(result:list, section:str, propertyname:str):
+    for item in result:
+        if "<notavailable>" in item:
+            write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
+            print_stacktrace()
+
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
@@ -593,15 +606,19 @@ def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
 
 
 def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
-    return _private_replace_underscores(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    result= _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    _private_verbose_check_for_not_available_item([result], section, propertyname)
+    return result
 
 
 def get_buildscript_config_items(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
-    itemlist_as_string = _private_replace_underscores(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    itemlist_as_string = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
     if ',' in itemlist_as_string:
-        return [item.strip() for item in itemlist_as_string.split(',')]
+        result = [item.strip() for item in itemlist_as_string.split(',')]
     else:
-        return [itemlist_as_string.strip()]
+        result = [itemlist_as_string.strip()]
+    _private_verbose_check_for_not_available_item(result, section, propertyname)
+    return result
 
 
 def _private_get_csprojfile_filename(configparser: ConfigParser):
@@ -645,15 +662,15 @@ def get_version_for_buildscripts_helper(folder: str):
     return get_semver_version_from_gitversion(folder)
 
 
-def _private_replace_underscore_in_file(file: str, configparser: ConfigParser, replacements: dict = {}, encoding="utf-8"):
+def _private_replace_underscore_in_file_for_buildconfiguration(file: str, configparser: ConfigParser, replacements: dict = {}, encoding="utf-8"):
     with codecs.open(file, 'r', encoding=encoding) as f:
         text = f.read()
-    text = _private_replace_underscores(text, configparser, replacements)
+    text = _private_replace_underscores_for_buildconfiguration(text, configparser, replacements)
     with codecs.open(file, 'w', encoding=encoding) as f:
         f.write(text)
 
 
-def _private_replace_underscores(string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True):
+def _private_replace_underscores_for_buildconfiguration(string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True):
     replacements["year"] = str(datetime.datetime.now().year)
     if include_version:
         replacements["version"] = get_version_for_buildscripts(configparser)
@@ -697,6 +714,7 @@ def _private_replace_underscores(string: str, configparser: ConfigParser, replac
     available_configuration_items.append(["dotnet", "referencerepository"])
     available_configuration_items.append(["dotnet", "exportreferenceremotename"])
     available_configuration_items.append(["dotnet", "publishtargetrepository"])
+    available_configuration_items.append(["dotnet", "nugetsource"])
     available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
     available_configuration_items.append(["other", "exportrepositoryremotename"])
@@ -1228,6 +1246,10 @@ def remove_duplicates(input):
             result.append(item)
     return result
 
+def print_stacktrace():
+        for line in traceback.format_stack():
+            write_message_to_stdout(line.strip())
+
 
 def string_to_boolean(value: str):
     value = value.strip().lower()
@@ -1562,8 +1584,8 @@ def _private_git_repository_has_uncommitted_changes(repository_folder: str, argu
     return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
 
 
-def git_get_current_commit_id(repository_folder: str):
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", "rev-parse --verify HEAD", repository_folder, 30, 0)
+def git_get_current_commit_id(repository_folder: str, commit:str="HEAD"):
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
     return result[1].replace('\r', '').replace('\n', '')
 
 
