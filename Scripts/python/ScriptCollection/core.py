@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.8.0"
+version = "1.9.0"
 
 
 # <Build>
@@ -1113,6 +1113,13 @@ Hints:
 
 # <miscellaneous>
 
+def ensure_path_is_not_quoted(path:str):
+    if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
+        path = path[1:]
+        path = path[:-1]
+        return path
+    else:
+        return path
 
 def get_missing_files(folderA:str, folderB: str):
     folderA_length=len(folderA)
