@@ -77,7 +77,7 @@ def SCCreateRelease(configurationfile: str):
             git_merge(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), _private_get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
             if configparser.getboolean('other', 'exportrepository'):
                 branch = _private_get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
-                git_push(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), _private_get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), branch, branch)
+                git_push(_private_get_buildscript_config_item(configparser, 'general', 'repository'), _private_get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch)
         write_message_to_stdout("Building wheel and running testcases was successful")
         return 0
 
