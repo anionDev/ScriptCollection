@@ -591,23 +591,24 @@ Requires the requirements of: TODO
 
 # <Helper>
 
-def _private_verbose_check_for_not_available_item(result:list, section:str, propertyname:str):
-    for item in result:
-        if "<notavailable>" in item:
-            write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
-            print_stacktrace()
+def _private_verbose_check_for_not_available_item(configparser: ConfigParser, result:list, section:str, propertyname:str):
+    if configparser.getboolean('other', 'verbose'):
+        for item in result:
+            if "<notavailable>" in item:
+                write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
+                print_stacktrace()
 
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
-    if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
+    if configparser.getboolean(configparser, 'dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
     return result
 
 
 def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
     result= _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
-    _private_verbose_check_for_not_available_item([result], section, propertyname)
+    _private_verbose_check_for_not_available_item(configparser, [result], section, propertyname)
     return result
 
 
