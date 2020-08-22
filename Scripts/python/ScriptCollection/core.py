@@ -1480,7 +1480,7 @@ def git_push(folder: str, remotename: str, localbranchname: str, remotebranchnam
     argument = f"push {remotename} {localbranchname}:{remotebranchname}"
     if (forcepush):
         argument = argument+" --force"
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder)
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, 1, False, None, True)
     return result[1].replace('\r', '').replace('\n', '')
 
 
