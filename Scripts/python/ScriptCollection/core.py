@@ -324,9 +324,9 @@ def SCDotNetReference(configurationfile: str):
         docfx_filefolder = os.path.dirname(docfx_file)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
         coveragefolder=get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
-        coveragefile=+os.path.sep+_private_get_coverage_filename(configparser)
-        shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coveragefile)
-        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"',coveragefolder)
+        coverage_target_file=coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
+        shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"',coverage_target_file)
         git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
             git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
