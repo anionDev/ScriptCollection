@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.10"
+version = "1.12.11"
 
 
 # <Build>
@@ -44,15 +44,15 @@ def SCCreateRelease(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
     prepare = configparser.getboolean('general', 'prepare')
-    repository=get_buildscript_config_item(configparser, "general","repository")
+    repository = get_buildscript_config_item(configparser, "general", "repository")
     if(git_repository_has_uncommitted_changes(repository)):
         write_message_to_stderr(f"'{repository}' contains uncommitted changes")
         return 1
     if prepare:
-        devbranch=get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')
-        masterbranch=get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
-        commitid=git_get_current_commit_id(repository,masterbranch)
-        if(commitid==git_get_current_commit_id(repository,devbranch)):
+        devbranch = get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')
+        masterbranch = get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
+        commitid = git_get_current_commit_id(repository, masterbranch)
+        if(commitid == git_get_current_commit_id(repository, devbranch)):
             write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit ({commitid})")
             return 1
         git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
@@ -323,10 +323,10 @@ def SCDotNetReference(configurationfile: str):
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
         docfx_filefolder = os.path.dirname(docfx_file)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-        coveragefolder=get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
-        coverage_target_file=coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
+        coveragefolder = get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
+        coverage_target_file = coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
-        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"',coverage_target_file)
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"', coverage_target_file)
         git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
             git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
@@ -396,7 +396,8 @@ def SCDotNetRunTests(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
     SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" --no-build -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" + _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" --no-build -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
+                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
     return 0
 
 
@@ -592,7 +593,8 @@ Requires the requirements of: TODO
 
 # <Helper>
 
-def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items:list, section:str, propertyname:str):
+
+def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
     if configparser.getboolean('other', 'verbose'):
         for item in queried_items:
             if "<notavailable>" in item:
@@ -602,13 +604,13 @@ def _private_verbose_check_for_not_available_item(configparser: ConfigParser, qu
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
-    if configparser.getboolean(configparser, 'dotnet', 'separatefolderforeachruntime'):
+    if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
     return result
 
 
 def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
-    result= _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    result = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
     _private_verbose_check_for_not_available_item(configparser, [result], section, propertyname)
     return result
 
@@ -835,9 +837,11 @@ def SCMergePDFs_cli():
 
 # <SCShowMissingFiles>
 
-def SCShowMissingFiles(folderA:str, folderB: str):
-    for file in get_missing_files(folderA,folderB):
+
+def SCShowMissingFiles(folderA: str, folderB: str):
+    for file in get_missing_files(folderA, folderB):
         write_message_to_stdout(file)
+
 
 def SCShowMissingFiles_cli():
     parser = argparse.ArgumentParser(description='Shows all files which are in folderA but not in folder B. This program does not do any content-comparisons.')
@@ -850,24 +854,24 @@ def SCShowMissingFiles_cli():
 
 # <SCCreateEmptyFileWithSpecificSize>
 
-def SCCreateEmptyFileWithSpecificSize(name:str,size_string:str):
-    size_string=size.lower()
+
+def SCCreateEmptyFileWithSpecificSize(name: str, size_string: str):
     if size_string.isdigit():
-        size=int(size_string)
+        size = int(size_string)
     else:
-        if len(size_string)>=3:
+        if len(size_string) >= 3:
             if(size_string.endswith("kb")):
-                size=int(size_string[:-2]) * pow(10, 3)
+                size = int(size_string[:-2]) * pow(10, 3)
             elif(size_string.endswith("mb")):
-                size=int(size_string[:-2]) * pow(10, 6)
+                size = int(size_string[:-2]) * pow(10, 6)
             elif(size_string.endswith("gb")):
-                size=int(size_string[:-2]) * pow(10, 9)
+                size = int(size_string[:-2]) * pow(10, 9)
             elif(size_string.endswith("kib")):
-                size=int(size_string[:-3]) * pow(2, 10)
+                size = int(size_string[:-3]) * pow(2, 10)
             elif(size_string.endswith("mib")):
-                size=int(size_string[:-3]) * pow(2, 20)
+                size = int(size_string[:-3]) * pow(2, 20)
             elif(size_string.endswith("gib")):
-                size=int(size_string[:-3]) * pow(2, 30)
+                size = int(size_string[:-3]) * pow(2, 30)
             else:
                 write_message_to_stderr("Wrong format")
         else:
@@ -878,20 +882,22 @@ def SCCreateEmptyFileWithSpecificSize(name:str,size_string:str):
         f.write(b"\0")
     return 0
 
+
 def SCCreateEmptyFileWithSpecificSize_cli():
     parser = argparse.ArgumentParser(description='Creates a file with a specific size')
     parser.add_argument('name', help='Specifies the name of the created file')
     parser.add_argument('size', help='Specifies the size of the created file')
     args = parser.parse_args()
-    SCCreateEmptyFileWithSpecificSize(args.name,args.size)
+    SCCreateEmptyFileWithSpecificSize(args.name, args.size)
 
 # </SCCreateEmptyFileWithSpecificSize>
 
 # <SCCreateHashOfAllFiles>
 
-def SCCreateHashOfAllFiles(folder:str):
+
+def SCCreateHashOfAllFiles(folder: str):
     for file in absolute_file_paths(folder):
-        with open(file+".sha256","w+") as f:
+        with open(file+".sha256", "w+") as f:
             f.write(get_sha256_of_file(file))
 
 
@@ -1135,7 +1141,8 @@ Hints:
 
 # <miscellaneous>
 
-def ensure_path_is_not_quoted(path:str):
+
+def ensure_path_is_not_quoted(path: str):
     if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
         path = path[1:]
         path = path[:-1]
@@ -1143,16 +1150,17 @@ def ensure_path_is_not_quoted(path:str):
     else:
         return path
 
-def get_missing_files(folderA:str, folderB: str):
-    folderA_length=len(folderA)
-    result=[]
+
+def get_missing_files(folderA: str, folderB: str):
+    folderA_length = len(folderA)
+    result = []
     for fileA in absolute_file_paths(folderA):
-        file=fileA[folderA_length:]
-        fileB=folderB+file
+        file = fileA[folderA_length:]
+        fileB = folderB+file
         if not os.path.isfile(fileB):
             result.append(fileB)
     return result
-	
+
 
 def write_lines_to_file(file: str, lines: list, encoding="utf-8"):
     write_text_to_file(file, os.linesep.join(lines), encoding)
@@ -1219,12 +1227,6 @@ def _private_should_get_replaced(input_text, search_text, replace_only_full_matc
         return search_text in input_text
 
 
-def absolute_file_paths(directory: str):
-    for dirpath, _, filenames in os.walk(directory):
-        for filename in filenames:
-            yield os.path.abspath(os.path.join(dirpath, filename))
-
-
 def str_none_safe(variable):
     if variable is None:
         return ''
@@ -1247,9 +1249,10 @@ def remove_duplicates(input):
             result.append(item)
     return result
 
+
 def print_stacktrace():
-        for line in traceback.format_stack():
-            write_message_to_stdout(line.strip())
+    for line in traceback.format_stack():
+        write_message_to_stdout(line.strip())
 
 
 def string_to_boolean(value: str):
@@ -1585,12 +1588,12 @@ def _private_git_repository_has_uncommitted_changes(repository_folder: str, argu
     return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
 
 
-def git_get_current_commit_id(repository_folder: str, commit:str="HEAD"):
+def git_get_current_commit_id(repository_folder: str, commit: str = "HEAD"):
     result = execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
     return result[1].replace('\r', '').replace('\n', '')
 
 
-def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags:bool=False):
+def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False):
     argument = f"push {remotename} {localbranchname}:{remotebranchname}"
     if (forcepush):
         argument = argument+" --force"
