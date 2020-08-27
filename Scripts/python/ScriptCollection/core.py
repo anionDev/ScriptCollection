@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.8"
+version = "1.12.9"
 
 
 # <Build>
@@ -322,10 +322,11 @@ def SCDotNetReference(configurationfile: str):
     if configparser.getboolean('dotnet', 'generatereference'):
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
         docfx_filefolder = os.path.dirname(docfx_file)
-        _private_replace_underscore_in_file_for_buildconfiguration(get_buildscript_config_item(configparser, 'dotnet', 'referencerepositoryindexfile'), configparser)
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", docfx_file, docfx_filefolder)
-        shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')+os.path.sep+_private_get_coverage_filename(configparser))
-        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+get_buildscript_config_item(configparser, 'dotnet', 'coveragereportfolder')+'"', get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder'))
+        coveragefolder=get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
+        coverage_target_file=coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
+        shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"',coverage_target_file)
         git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
             git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
@@ -591,23 +592,24 @@ Requires the requirements of: TODO
 
 # <Helper>
 
-def _private_verbose_check_for_not_available_item(result:list, section:str, propertyname:str):
-    for item in result:
-        if "<notavailable>" in item:
-            write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
-            print_stacktrace()
+def _private_verbose_check_for_not_available_item(configparser: ConfigParser, result:list, section:str, propertyname:str):
+    if configparser.getboolean('other', 'verbose'):
+        for item in result:
+            if "<notavailable>" in item:
+                write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
+                print_stacktrace()
 
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
-    if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
+    if configparser.getboolean(configparser, 'dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
     return result
 
 
 def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
     result= _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
-    _private_verbose_check_for_not_available_item([result], section, propertyname)
+    _private_verbose_check_for_not_available_item(configparser, [result], section, propertyname)
     return result
 
 
@@ -710,7 +712,6 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
     available_configuration_items.append(["dotnet", "docfxfile"])
     available_configuration_items.append(["dotnet", "coveragefolder"])
     available_configuration_items.append(["dotnet", "coveragereportfolder"])
-    available_configuration_items.append(["dotnet", "referencerepositoryindexfile"])
     available_configuration_items.append(["dotnet", "referencerepository"])
     available_configuration_items.append(["dotnet", "exportreferenceremotename"])
     available_configuration_items.append(["dotnet", "publishtargetrepository"])
