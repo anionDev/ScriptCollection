@@ -155,8 +155,6 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
 
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
-
-        git_commit(get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
         return 1
@@ -198,7 +196,6 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
         SCDotNetReleaseNuget(configurationfile)
-        git_commit(get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
         return 1
@@ -717,7 +714,6 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
     available_configuration_items.append(["dotnet", "coveragereportfolder"])
     available_configuration_items.append(["dotnet", "referencerepository"])
     available_configuration_items.append(["dotnet", "exportreferenceremotename"])
-    available_configuration_items.append(["dotnet", "publishtargetrepository"])
     available_configuration_items.append(["dotnet", "nugetsource"])
     available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
