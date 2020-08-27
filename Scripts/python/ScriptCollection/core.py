@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.12"
+version = "1.12.13"
 
 
 # <Build>
@@ -155,8 +155,6 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
 
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
-
-        git_commit(get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
         return 1
@@ -198,7 +196,6 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     if build_and_tests_were_successful:
         SCDotNetReference(configurationfile)
         SCDotNetReleaseNuget(configurationfile)
-        git_commit(get_buildscript_config_item(configparser, 'dotnet', 'publishtargetrepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
         return 0
     else:
         return 1
@@ -321,7 +318,9 @@ def SCDotNetReference(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('dotnet', 'generatereference'):
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
-        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), os.path.dirname(docfx_file))
+        docfx_folder=os.path.dirname(docfx_file)
+        ensure_directory_does_not_exist(os.path.join(docfx_folder,"obj"))
+        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder)
         coveragefolder = get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
         coverage_target_file = coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
@@ -715,7 +714,6 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
     available_configuration_items.append(["dotnet", "coveragereportfolder"])
     available_configuration_items.append(["dotnet", "referencerepository"])
     available_configuration_items.append(["dotnet", "exportreferenceremotename"])
-    available_configuration_items.append(["dotnet", "publishtargetrepository"])
     available_configuration_items.append(["dotnet", "nugetsource"])
     available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
