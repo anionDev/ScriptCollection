@@ -321,7 +321,9 @@ def SCDotNetReference(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('dotnet', 'generatereference'):
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
-        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), os.path.dirname(docfx_file))
+        docfx_folder=os.path.dirname(docfx_file)
+        ensure_directory_does_not_exist(os.path.join(docfx_folder,"obj"))
+        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder)
         coveragefolder = get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
         coverage_target_file = coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
