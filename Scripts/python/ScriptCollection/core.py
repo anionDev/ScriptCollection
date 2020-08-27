@@ -592,9 +592,9 @@ Requires the requirements of: TODO
 
 # <Helper>
 
-def _private_verbose_check_for_not_available_item(configparser: ConfigParser, result:list, section:str, propertyname:str):
+def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items:list, section:str, propertyname:str):
     if configparser.getboolean('other', 'verbose'):
-        for item in result:
+        for item in queried_items:
             if "<notavailable>" in item:
                 write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
                 print_stacktrace()
@@ -619,7 +619,7 @@ def get_buildscript_config_items(configparser: ConfigParser, section: str, prope
         result = [item.strip() for item in itemlist_as_string.split(',')]
     else:
         result = [itemlist_as_string.strip()]
-    _private_verbose_check_for_not_available_item(result, section, propertyname)
+    _private_verbose_check_for_not_available_item(configparser, result, section, propertyname)
     return result
 
 
