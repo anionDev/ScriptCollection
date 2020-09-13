@@ -55,8 +55,8 @@ def SCCreateRelease(configurationfile: str):
         if(commitid == git_get_current_commit_id(repository, devbranch)):
             write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit ({commitid})")
             return 1
-        git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+        git_checkout(repository, devbranch)
+        git_merge(repository, devbranch, masterbranch, False, False)
 
     try:
 
