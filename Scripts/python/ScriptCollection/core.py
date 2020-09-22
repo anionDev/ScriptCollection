@@ -1547,6 +1547,22 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "AssemblyVersion", version + ".0")
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
 
+def replace_underscores_in_text(text: str, replacements: dict):
+    changed = True
+    while changed:
+        changed = False
+        for key, value in replacements.items():
+            previousValue = text
+            text = text.replace(f"__{key}__", value)
+            if(not text == previousValue):
+                changed = True
+    return text
+
+def replace_underscores_in_file(file: str, replacements: dict, encoding:str="utf-8"):
+    text=read_text_from_file(file,encoding)
+    text=replace_underscores_in_text(text,replacements)
+    write_text_to_file(file,text,encoding)
+
 
 def get_ScriptCollection_version():
     return version
