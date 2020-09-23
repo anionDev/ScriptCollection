@@ -1,4 +1,5 @@
 #! /bin/bash
+# This script is intended to be run as root.
 
 username="user"
 userhomedirectory="/home/$username"
@@ -9,7 +10,7 @@ apt update
 apt install ssh sudo curl sendmail net-tools nano git python3 python3-pip lsof tcpdump unattended-upgrades mlocate
 apt upgrade -y
 sudo adduser $username sudo
-echo $sshauthorizedkeyforuser >> $userhomedirectory/.ssh/authorized_keys
+echo $sshauthorizedkeyforuser | tee -a $userhomedirectory/.ssh/authorized_keys
 
 #set sshd-config
 truncate -s0 /etc/ssh/sshd_config

@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# This script is intended to be run as user with sudo privileges.
 # After execution usually the following paths will be used:
 # /etc/apache2 (configuration)
 # /var/log/apache2 (logs)
