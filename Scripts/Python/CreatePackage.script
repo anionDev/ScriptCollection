@@ -1,1 +1,2 @@
 python Setup.py bdist_wheel --dist-dir .
+# If you get the error "invalid command 'bdist_wheel'" then executing "pip install wheel" might fix it.
