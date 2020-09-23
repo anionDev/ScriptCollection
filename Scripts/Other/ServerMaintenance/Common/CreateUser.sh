@@ -5,4 +5,5 @@ pushd $(dirname $0)
 useradd -m -d /userhome user
 apt-get -y install sudo
 sudo adduser user sudo
+echo "user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 popd
