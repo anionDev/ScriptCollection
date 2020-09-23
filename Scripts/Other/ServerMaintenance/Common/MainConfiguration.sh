@@ -6,9 +6,9 @@ userhomedirectory="/home/$username"
 sshport="1755"
 sshauthorizedkeyforuser="...."
 
-apt update
-apt install ssh sudo curl sendmail net-tools nano git python3 python3-pip lsof tcpdump unattended-upgrades mlocate
-apt upgrade -y
+apt-get update
+apt-get -y install ssh sudo curl sendmail wget net-tools nano git python3 python3-pip lsof tcpdump unattended-upgrades mlocate gpg htop netcat
+apt-get -y upgrade
 sudo adduser $username sudo
 echo $sshauthorizedkeyforuser | tee -a $userhomedirectory/.ssh/authorized_keys
 
