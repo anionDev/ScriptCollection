@@ -6,7 +6,7 @@ ScriptCollection uses dependencies which are released under their own license:
 -keyboard is licensed under the terms of the MIT-license (see appendix 1)
 -ntplib is licensed under the terms of the MIT-license (see appendix 1)
 -PyPDF2 is licensed under the terms of its own license (see appendix 2)
--pycdlib is licensed under the terms of the BSD-license (see appendix 3)
+-pycdlib is licensed under the terms of the LGPLv2.1-license (see appendix 3)
 -qrcode is licensed under the terms of the BSD-license (see https://pypi.org/project/qrcode )
 -send2trash is licensed under the terms of the BSD-license (see https://pypi.org/project/Send2Trash )
 
