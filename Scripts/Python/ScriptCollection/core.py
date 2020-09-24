@@ -1,3 +1,4 @@
+import binascii
 import filecmp
 from distutils.dir_util import copy_tree
 from functools import lru_cache
@@ -889,6 +890,7 @@ def SCCreateEmptyFileWithSpecificSize_cli():
 
 # </SCCreateEmptyFileWithSpecificSize>
 
+
 # <SCCreateHashOfAllFiles>
 
 
@@ -905,6 +907,33 @@ def SCCreateHashOfAllFiles_cli():
     SCCreateHashOfAllFiles(args.folder)
 
 # </SCCreateHashOfAllFiles>
+
+
+# <SCCalculateBitcoinBlockHash>
+
+
+def SCCalculateBitcoinBlockHash(version: str,previousblockhash: str,transactionsmerkleroot: str,timestamp: str,target: str,nonce: str):
+    # Example-values:
+    # version: "00000020"; previousblockhash: "66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000"; transactionsmerkleroot: "7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187"; timestamp: "51eb505a"; target: "c1910018"; nonce: "de19b302"
+    header = str(version + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
+    return binascii.hexlify(hashlib.sha256(hashlib.sha256(binascii.unhexlify(header)).digest()).digest()[::-1]).decode('utf-8')
+
+
+def SCCalculateBitcoinBlockHash_cli():
+    parser = argparse.ArgumentParser(description='Calculates the Hash of the header of a bitcoin-block.')
+    parser.add_argument('--version', help='Block-version')
+    parser.add_argument('--previousblockhash', help='Hash-value of the previous block')
+    parser.add_argument('--transactionsmerkleroot', help='Hashvalue of the merkle-root of the transactions which are contained in the block')
+    parser.add_argument('--timestamp', help='Timestamp of the block')
+    parser.add_argument('--target', help='difficulty')
+    parser.add_argument('--nonce', help='Arbitrary 32-bit-integer-value')
+    args = parser.parse_args()
+
+    args = parser.parse_args()
+    print(SCCalculateBitcoinBlockHash(args.version,args.previousblockhash,args.transactionsmerkleroot,args.timestamp,args.target,args.nonce))
+
+# </SCCalculateBitcoinBlockHash>
+
 
 # <SCOrganizeLinesInFile>
 
