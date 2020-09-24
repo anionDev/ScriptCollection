@@ -1,21 +1,22 @@
+import os
 from setuptools import setup, find_packages
 version = "1.12.13"
 
 productname = "ScriptCollection"
-packages= [package for package in find_packages() if not package.endswith("Tests")]
+packages = [package for package in find_packages() if not package.endswith("Tests")]
 
-with open("..\\..\\ReadMe.md", "r", encoding='utf-8') as f:
-    long_description = f.read()
+with open(f"..{os.path.sep}..{os.path.sep}ReadMe.md", "r", encoding="utf-8") as file:
+    long_description = file.read()
 
 setup(
     name=productname,
     version=version,
-    description=f"The scriptcollection is the place for little scripts which are maybe also useful in future.",
+    description="The scriptcollection is the place for little scripts which are maybe also useful in future.",
     packages=packages,
-    author='Marius Göcke',
-    author_email='marius.goecke@gmail.com',
-    url='https://github.com/anionDev/ScriptCollection',
-    license='MIT',
+    author="Marius Göcke",
+    author_email="marius.goecke@gmail.com",
+    url="https://github.com/anionDev/ScriptCollection",
+    license="MIT",
     classifiers=[
         "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
@@ -23,48 +24,56 @@ setup(
         "Operating System :: Microsoft :: Windows :: Windows 10",
         "Topic :: System :: Logging",
         "Topic :: System :: Monitoring",
-        "Topic :: Terminals"
+        "Topic :: Terminals",
     ],
-    platforms=["windows10", "linux"],
+    platforms=[
+        "windows10",
+        "linux",
+    ],
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
         "epew>=3.4.0",
         "keyboard>=0.13.5",
         "ntplib>=0.3.4",
+        "pycdlib>=1.10.0",
         "PyPDF2>=1.26.0",
         "qrcode>=6.1",
         "send2trash>=1.5.0",
     ],
     entry_points={
-        'console_scripts': [
-            f"SCCreateRelease = ScriptCollection.core:SCCreateRelease_cli",
-            f"SCDotNetBuildExecutableAndRunTests = ScriptCollection.core:SCDotNetBuildExecutableAndRunTests_cli",
-            f"SCDotNetCreateExecutableRelease = ScriptCollection.core:SCDotNetCreateExecutableRelease_cli",
-            f"SCDotNetCreateNugetRelease = ScriptCollection.core:SCDotNetCreateNugetRelease_cli",
-            f"SCDotNetBuildNugetAndRunTests = ScriptCollection.core:SCDotNetBuildNugetAndRunTests_cli",
-            f"SCDotNetReleaseNuget = ScriptCollection.core:SCDotNetReleaseNuget_cli",
-            f"SCDotNetReference = ScriptCollection.core:SCDotNetReference_cli",
-            f"SCDotNetBuild = ScriptCollection.core:SCDotNetBuild_cli",
-            f"SCDotNetRunTests = ScriptCollection.core:SCDotNetRunTests_cli",
-            f"SCDotNetsign = ScriptCollection.core:SCDotNetsign_cli",
-            f"SCPythonCreateWheelRelease = ScriptCollection.core:SCPythonCreateWheelRelease_cli",
-            f"SCPythonBuildWheelAndRunTests = ScriptCollection.core:SCPythonBuildWheelAndRunTests_cli",
-            f"SCPythonBuild = ScriptCollection.core:SCPythonBuild_cli",
-            f"SCPythonRunTests = ScriptCollection.core:SCPythonRunTests_cli",
-            f"SCPythonReleaseWheel = ScriptCollection.core:SCPythonReleaseWheel_cli",
-            f"SCGenerateThumbnail = ScriptCollection.core:SCGenerateThumbnail_cli",
-            f"SCKeyboardDiagnosis = ScriptCollection.core:SCKeyboardDiagnosis_cli",
-            f"SCMergePDFs = ScriptCollection.core:SCMergePDFs_cli",
-            f"SCShowMissingFiles = ScriptCollection.core:SCShowMissingFiles_cli",
-            f"SCCreateEmptyFileWithSpecificSize = ScriptCollection.core:SCCreateEmptyFileWithSpecificSize_cli",
-            f"SCCreateHashOfAllFiles = ScriptCollection.core:SCCreateHashOfAllFiles_cli",
-            f"SCOrganizeLinesInFile = ScriptCollection.core:SCOrganizeLinesInFile_cli",
-            f"SCGenerateSnkFiles = ScriptCollection.core:SCGenerateSnkFiles_cli",
-            f"SCReplaceSubstringsInFilenames = ScriptCollection.core:SCReplaceSubstringsInFilenames_cli",
-            f"SCSearchInFiles = ScriptCollection.core:SCSearchInFiles_cli",
-            f"SCShow2FAAsQRCode = ScriptCollection.core:SCShow2FAAsQRCode_cli",
-            f"SCCalculateBitcoinBlockHash = ScriptCollection.core:SCCalculateBitcoinBlockHash_cli",
+        "console_scripts": [
+            f"SCCreateRelease = {productname}.core:SCCreateRelease_cli",
+            f"SCDotNetBuildExecutableAndRunTests = {productname}.core:SCDotNetBuildExecutableAndRunTests_cli",
+            f"SCDotNetCreateExecutableRelease = {productname}.core:SCDotNetCreateExecutableRelease_cli",
+            f"SCDotNetCreateNugetRelease = {productname}.core:SCDotNetCreateNugetRelease_cli",
+            f"SCDotNetBuildNugetAndRunTests = {productname}.core:SCDotNetBuildNugetAndRunTests_cli",
+            f"SCDotNetReleaseNuget = {productname}.core:SCDotNetReleaseNuget_cli",
+            f"SCDotNetReference = {productname}.core:SCDotNetReference_cli",
+            f"SCDotNetBuild = {productname}.core:SCDotNetBuild_cli",
+            f"SCDotNetRunTests = {productname}.core:SCDotNetRunTests_cli",
+            f"SCDotNetsign = {productname}.core:SCDotNetsign_cli",
+            f"SCPythonCreateWheelRelease = {productname}.core:SCPythonCreateWheelRelease_cli",
+            f"SCPythonBuildWheelAndRunTests = {productname}.core:SCPythonBuildWheelAndRunTests_cli",
+            f"SCPythonBuild = {productname}.core:SCPythonBuild_cli",
+            f"SCPythonRunTests = {productname}.core:SCPythonRunTests_cli",
+            f"SCPythonReleaseWheel = {productname}.core:SCPythonReleaseWheel_cli",
+            f"SCGenerateThumbnail = {productname}.core:SCGenerateThumbnail_cli",
+            f"SCKeyboardDiagnosis = {productname}.core:SCKeyboardDiagnosis_cli",
+            f"SCMergePDFs = {productname}.core:SCMergePDFs_cli",
+            f"SCShowMissingFiles = {productname}.core:SCShowMissingFiles_cli",
+            f"SCCreateEmptyFileWithSpecificSize = {productname}.core:SCCreateEmptyFileWithSpecificSize_cli",
+            f"SCCreateHashOfAllFiles = {productname}.core:SCCreateHashOfAllFiles_cli",
+            f"SCOrganizeLinesInFile = {productname}.core:SCOrganizeLinesInFile_cli",
+            f"SCGenerateSnkFiles = {productname}.core:SCGenerateSnkFiles_cli",
+            f"SCReplaceSubstringsInFilenames = {productname}.core:SCReplaceSubstringsInFilenames_cli",
+            f"SCSearchInFiles = {productname}.core:SCSearchInFiles_cli",
+            f"SCShow2FAAsQRCode = {productname}.core:SCShow2FAAsQRCode_cli",
+            f"SCCalculateBitcoinBlockHash = {productname}.core:SCCalculateBitcoinBlockHash_cli",
+            f"SCChangeHashOfProgram = {productname}.core:SCChangeHashOfProgram_cli",
+            f"SCCreateISOFileWithObfuscatedFiles = {productname}.core:SCCreateISOFileWithObfuscatedFiles_cli",
+            f"SCFilenameObfuscator = {productname}.core:SCFilenameObfuscator_cli",
+            f"SCObfuscateFilesFolder = {productname}.core:SCObfuscateFilesFolder_cli",
         ],
     },
 )
