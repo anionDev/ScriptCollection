@@ -1,0 +1,8 @@
+REM start capturing:
+netsh trace start maxsize=50 capture=yes tracefile=c:\temp\tracereport.etl
+
+REM stop capturing:
+netsh trace stop
+
+REM convert
+etl2pcapng tracereport.etl tracereport.pcapng

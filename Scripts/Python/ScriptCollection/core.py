@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.13"
+version = "1.12.14"
 
 
 # <Build>
@@ -55,8 +55,8 @@ def SCCreateRelease(configurationfile: str):
         if(commitid == git_get_current_commit_id(repository, devbranch)):
             write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit ({commitid})")
             return 1
-        git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+        git_checkout(repository, devbranch)
+        git_merge(repository, devbranch, masterbranch, False, False)
 
     try:
 
@@ -394,8 +394,8 @@ def SCDotNetRunTests(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
     SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" --no-build -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
+                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
     return 0
 
 
@@ -1546,6 +1546,22 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "Version", version)
     replace_xmltag_in_file(file, "AssemblyVersion", version + ".0")
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
+
+def replace_underscores_in_text(text: str, replacements: dict):
+    changed = True
+    while changed:
+        changed = False
+        for key, value in replacements.items():
+            previousValue = text
+            text = text.replace(f"__{key}__", value)
+            if(not text == previousValue):
+                changed = True
+    return text
+
+def replace_underscores_in_file(file: str, replacements: dict, encoding:str="utf-8"):
+    text=read_text_from_file(file,encoding)
+    text=replace_underscores_in_text(text,replacements)
+    write_text_to_file(file,text,encoding)
 
 
 def get_ScriptCollection_version():
