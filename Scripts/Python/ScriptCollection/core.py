@@ -396,7 +396,7 @@ def SCDotNetRunTests(configurationfile: str):
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
     SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
     execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
+                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, 2, False, "Execute tests")
     return 0
 
 
