@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.14"
+version = "1.12.15"
 
 
 # <Build>
@@ -322,6 +322,7 @@ def SCDotNetReference(configurationfile: str):
         ensure_directory_does_not_exist(os.path.join(docfx_folder,"obj"))
         execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder)
         coveragefolder = get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
+        ensure_directory_exists(coveragefolder)
         coverage_target_file = coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"', coveragefolder)
@@ -395,7 +396,7 @@ def SCDotNetRunTests(configurationfile: str):
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
     SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
     execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
+                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, 2, False, "Execute tests")
     return 0
 
 
