@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-version = "1.12.16"
+version = "1.12.17"
 
 productname = "ScriptCollection"
 packages= [package for package in find_packages() if not package.endswith("Tests")]
