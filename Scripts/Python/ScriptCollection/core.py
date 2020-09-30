@@ -405,6 +405,9 @@ Requires the requirements of: TODO""")
 
 # <SCDotNetRunTests>
 
+# TODO add possibility to set another buildconfiguration than for the real result-build
+# TODO remove the call to SCDotNetBuild
+
 
 def SCDotNetRunTests(configurationfile: str):
     configparser = ConfigParser()
