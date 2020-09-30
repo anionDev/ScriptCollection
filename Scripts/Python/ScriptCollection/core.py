@@ -282,18 +282,22 @@ Requires the requirements of: TODO
 def SCDotNetReleaseNuget(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    if configparser.getboolean('other', 'verbose'):
+        verbose_argument = 2
+    else:
+        verbose_argument = 1
     repository_version = get_version_for_buildscripts(configparser)
     publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     latest_nupkg_file = get_buildscript_config_item(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
     for localnugettarget in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargets'):
-        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory, 3600, verbose_argument)
     for localnugettargetrepository in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
         git_commit(localnugettargetrepository,  f"Added {get_buildscript_config_item(configparser,'general','productname')} .NET-release {get_buildscript_config_item(configparser,'prepare','gittagprefix')}{repository_version}")
     if (configparser.getboolean('dotnet', 'publishnugetfile')):
         with open(get_buildscript_config_item(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
             api_key = apikeyfile.read()
         nugetsource = get_buildscript_config_item(configparser, 'dotnet', 'nugetsource')
-        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory)
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory, 3600, verbose_argument)
     return 0
 
 
@@ -317,15 +321,21 @@ def SCDotNetReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('dotnet', 'generatereference'):
+        if configparser.getboolean('other', 'verbose'):
+            verbose_argument_for_reportgenerator = "-verbosity:Verbose"
+            verbose_argument = 2
+        else:
+            verbose_argument_for_reportgenerator = "-verbosity:Info"
+            verbose_argument = 1
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
-        docfx_folder=os.path.dirname(docfx_file)
-        ensure_directory_does_not_exist(os.path.join(docfx_folder,"obj"))
-        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder)
+        docfx_folder = os.path.dirname(docfx_file)
+        ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
+        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder, 3600, verbose_argument)
         coveragefolder = get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
         ensure_directory_exists(coveragefolder)
         coverage_target_file = coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
-        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"', coveragefolder)
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", f'-reports:"{_private_get_coverage_filename(configparser)}" -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}', coveragefolder, 3600, verbose_argument)
         git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
             git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
@@ -348,22 +358,27 @@ Requires the requirements of: TODO
 # <SCDotNetBuild>
 
 
-def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotNetFramework: str, clearOutputDirectoryBeforeBuild: bool = True, verbosity="normal", outputFilenameToSign: str = None, keyToSignForOutputfile: str = None):
+def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotNetFramework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None):
     # TODO find a good way to include the merge-commit-id into the build
     if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
         shutil.rmtree(outputDirectory)
     ensure_directory_exists(outputDirectory)
-
+    if verbose:
+        verbose_argument = 2
+        verbose_argument_for_dotnet = "detailed"
+    else:
+        verbose_argument = 1
+        verbose_argument_for_dotnet = "normal"
     argument = csprojFilename
     argument = argument + f' --no-incremental'
     argument = argument + f' --configuration {buildConfiguration}'
     argument = argument + f' --framework {dotNetFramework}'
     argument = argument + f' --runtime {runtimeId}'
-    argument = argument + f' --verbosity {verbosity}'
+    argument = argument + f' --verbosity {verbose_argument_for_dotnet}'
     argument = argument + f' --output "{outputDirectory}"'
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, True, False, "Build")
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
     if(outputFilenameToSign is not None):
-        SCDotNetsign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile)
+        SCDotNetsign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile, verbose)
     return 0
 
 
@@ -395,9 +410,15 @@ def SCDotNetRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
-    SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, 2, False, "Execute tests")
+    if configparser.getboolean('other', 'verbose'):
+        verbose_argument_for_dotnet = "detailed"
+        verbose_argument = 2
+    else:
+        verbose_argument_for_dotnet = "normal"
+        verbose_argument = 1
+    SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') +
+                                                         f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
     return 0
 
 
@@ -417,7 +438,11 @@ Requires the requirements of: TODO
 # <SCDotNetsign>
 
 
-def SCDotNetsign(dllOrExefile: str, snkfile: str):
+def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool):
+    if(verbose):
+        verbose_argument = 2
+    else:
+        verbose_argument = 1
     dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
     snkfile = resolve_relative_path_from_current_working_directory(snkfile)
     directory = os.path.dirname(dllOrExeFile)
@@ -430,8 +455,8 @@ def SCDotNetsign(dllOrExefile: str, snkfile: str):
         extension = "exe"
     else:
         raise Exception("Only .dll-files and .exe-files can be signed")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, True, False, "Sign: ildasm")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, True, False, "Sign: ilasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, verbose_argument, False, "Sign: ildasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, verbose_argument, False, "Sign: ilasm")
     os.remove(directory+os.path.sep+filename+".il")
     os.remove(directory+os.path.sep+filename+".res")
     return 0
@@ -441,8 +466,9 @@ def SCDotNetsign_cli():
     parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
     parser.add_argument("dllOrExefile")
     parser.add_argument("snkfile")
+    parser.add_argument("verbose", action='store_true')
     args = parser.parse_args()
-    return SCDotNetsign(args.dllOrExefile, args.snkfile)
+    return SCDotNetsign(args.dllOrExefile, args.snkfile, args.verbose)
 
 # </SCDotNetsign>
 
@@ -517,7 +543,7 @@ def SCPythonBuild(configurationfile: str):
     setuppyfile = get_buildscript_config_item(configparser, "python", "pythonsetuppyfile")
     setuppyfilename = os.path.basename(setuppyfile)
     setuppyfilefolder = os.path.dirname(setuppyfile)
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), setuppyfilefolder)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), setuppyfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
@@ -573,7 +599,11 @@ def SCPythonReleaseWheel(configurationfile: str):
         gpgidentity = get_buildscript_config_item(configparser, 'other', 'gpgidentity')
         repository_version = get_version_for_buildscripts(configparser)
         productname = get_buildscript_config_item(configparser, 'general', 'productname')
-        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
+        if configparser.getboolean('other', 'verbose'):
+            verbose_argument = "--verbose"
+        else:
+            verbose_argument = ""
+        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar--username __token__ --password {api_key} {verbose_argument}"
         execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
     return 0
 
@@ -592,6 +622,13 @@ Requires the requirements of: TODO
 # </SCPythonReleaseWheel>
 
 # <Helper>
+
+
+def _private_get_verbosity_for_exuecutor(configparser: ConfigParser):
+    if configparser.getboolean('other', 'verbose'):
+        return 1
+    else:
+        return 2
 
 
 def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
@@ -1271,8 +1308,8 @@ def file_is_empty(file: str):
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log"):
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
-# TODO change default-verbosity to 1
-def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=2, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
+
+def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
     result = execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
     if result[0] == 0:
         return result
@@ -1282,14 +1319,12 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
 
-# TODO change default-verbosity to 1
-def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=2, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None):
+def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None):
     result = execute_full(program, arguments, workingdirectory, timeoutInSeconds, verbosity, addLogOverhead, title, print_errors_as_information, log_file)
     return result[0]
 
 
-# TODO change default-verbosity to 1
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=2, addLogOverhead: bool = False, title: str = None):
+def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
@@ -1551,6 +1586,7 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "AssemblyVersion", version + ".0")
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
 
+
 def replace_underscores_in_text(text: str, replacements: dict):
     changed = True
     while changed:
@@ -1562,10 +1598,11 @@ def replace_underscores_in_text(text: str, replacements: dict):
                 changed = True
     return text
 
-def replace_underscores_in_file(file: str, replacements: dict, encoding:str="utf-8"):
-    text=read_text_from_file(file,encoding)
-    text=replace_underscores_in_text(text,replacements)
-    write_text_to_file(file,text,encoding)
+
+def replace_underscores_in_file(file: str, replacements: dict, encoding: str = "utf-8"):
+    text = read_text_from_file(file, encoding)
+    text = replace_underscores_in_text(text, replacements)
+    write_text_to_file(file, text, encoding)
 
 
 def get_ScriptCollection_version():
