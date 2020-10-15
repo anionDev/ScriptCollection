@@ -1308,9 +1308,11 @@ def file_is_empty(file: str):
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log"):
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
+def start_program(program: str, arguments: str = "", workingdirectory: str = "", run_as_administrator: bool = False):
+    pass # TODO implement and return the process-id
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
-    result = execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title)
+def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, run_as_administrator: bool = False):
+    result = execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title, run_as_administrator)
     if result[0] == 0:
         return result
     else:
@@ -1324,7 +1326,7 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None):
+def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None, run_as_administrator: bool = False):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
@@ -1334,30 +1336,32 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     else:
         workingdirectory = resolve_relative_path_from_current_working_directory(workingdirectory)
     title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
-    output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
-    output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".temp.txt"
+    output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
+    output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
     if verbosity == 2:
         write_message_to_stdout(f"Start executing {title_local}")
-    argument = " -p "+program
-    argument = argument+" -a "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-    argument = argument+" -b "
-    argument = argument+" -w "+'"'+workingdirectory+'"'
+    argument = " --Program "+program
+    argument = argument+" --Argument "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
+    argument = argument+" --ArgumentIsBase64Encoded "
+    argument = argument+" --Workingdirectory "+'"'+workingdirectory+'"'
     if print_errors_as_information:
-        argument = argument+" -i"
+        argument = argument+" --PrintErrorsAsInformation"
     if addLogOverhead:
-        argument = argument+" -h"
+        argument = argument+" --AddLogOverhead"
+    if run_as_administrator:
+        argument = argument+" --RunAsAdministrator"
     if verbosity == 0:
-        argument = argument+" -v Quiet"
+        argument = argument+" --Verbosity Quiet"
     if verbosity == 1:
-        argument = argument+" -v Normal"
+        argument = argument+" --Verbosity Normal"
     if verbosity == 2:
-        argument = argument+" -v Verbose"
-    argument = argument+" -o "+'"'+output_file_for_stdout+'"'
-    argument = argument+" -e "+'"'+output_file_for_stderr+'"'
+        argument = argument+" --Verbosity Verbose"
+    argument = argument+" --StdOutFile "+'"'+output_file_for_stdout+'"'
+    argument = argument+" --StdErrFile "+'"'+output_file_for_stderr+'"'
     if not string_is_none_or_whitespace(log_file):
-        argument = argument+" -l "+'"'+log_file+'"'
-    argument = argument+" -d "+str(timeoutInSeconds*1000)
-    argument = argument+' -t "'+program+'"'
+        argument = argument+" --LogFile "+'"'+log_file+'"'
+    argument = argument+" ---TimeoutInMilliseconds "+str(timeoutInSeconds*1000)
+    argument = argument+' --Title "'+program+'"'
     argument = argument.replace('"', '\\"')
     process = Popen("epew"+argument)
     exit_code = process.wait()
@@ -1641,11 +1645,12 @@ def git_repository_has_uncommitted_changes(repository_folder: str):
 def _private_git_repository_has_uncommitted_changes(repository_folder: str, argument: str):
     return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
 
-
 def git_get_current_commit_id(repository_folder: str, commit: str = "HEAD"):
     result = execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
     return result[1].replace('\r', '').replace('\n', '')
 
+def git_fetch(folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, 1, False, None, printErrorsAsInformation)
 
 def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False):
     argument = f"push {remotename} {localbranchname}:{remotebranchname}"
@@ -1657,12 +1662,24 @@ def git_push(folder: str, remotename: str, localbranchname: str, remotebranchnam
     return result[1].replace('\r', '').replace('\n', '')
 
 
-def git_clone_if_not_already_done(folder: str, link: str):
+def git_clone_if_not_already_done(clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False):
     original_cwd = os.getcwd()
     try:
-        if(not os.path.isdir(folder)):
-            argument = f"clone {link} --recurse-submodules --remote-submodules"
-            execute_and_raise_exception_if_exit_code_is_not_zero(f"git {argument}", argument, original_cwd)[0]
+        if(not os.path.isdir(clone_target_folder)):
+
+            if include_submodules:
+                include_submodules_argument=" --recurse-submodules --remote-submodules"
+            else:
+                include_submodules_argument=""
+
+            if mirror:
+                mirror_argument=" --mirror"
+            else:
+                mirror_argument=""
+
+            ensure_directory_exists(clone_target_folder)
+            argument = f"clone {remote_repository_path}{include_submodules_argument}{mirror_argument}"
+            execute_and_raise_exception_if_exit_code_is_not_zero(f"git {argument}", argument, clone_target_folder)[0]
     finally:
         os.chdir(original_cwd)
 
