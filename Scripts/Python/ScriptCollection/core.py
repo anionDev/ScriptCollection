@@ -1640,8 +1640,10 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
 def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
+        title_argument = '{workingdirectory}>{program} {arguments}'
     else:
         title_for_message = f"for task '{title}' "
+        title_argument = title
     if workingdirectory == "":
         workingdirectory = os.getcwd()
     else:
@@ -1670,7 +1672,7 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     if not string_is_none_or_whitespace(log_file):
         argument = argument + " -l " + '"'+log_file+'"'
     argument = argument + " -d "+str(timeoutInSeconds*1000)
-    argument = argument + ' -t "'+program+'"'
+    argument = argument + ' -t "'+title_argument+'"'
     argument = argument.replace('"', '\\"')
     process = Popen("epew"+argument)
     exit_code = process.wait()
