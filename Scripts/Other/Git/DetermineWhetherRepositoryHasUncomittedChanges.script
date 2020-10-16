@@ -1,3 +1,0 @@
-REM This command has the exit-code 1 if there are uncomitted changes.
-REM This command has the exit-code 0 if there are no uncomitted changes.
-git diff --exit-code --quiet

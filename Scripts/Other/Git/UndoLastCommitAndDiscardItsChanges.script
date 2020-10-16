@@ -1,3 +1,0 @@
-git reset HEAD~
-git reset --hard
-git clean -f -d

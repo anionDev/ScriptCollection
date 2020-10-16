@@ -34,7 +34,7 @@ import xml.dom.minidom
 import traceback
 
 
-version = "1.12.13"
+version = "1.12.17"
 
 
 # <Build>
@@ -58,8 +58,8 @@ def SCCreateRelease(configurationfile: str):
         if(commitid == git_get_current_commit_id(repository, devbranch)):
             write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit ({commitid})")
             return 1
-        git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
-        git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), False, False)
+        git_checkout(repository, devbranch)
+        git_merge(repository, devbranch, masterbranch, False, False)
 
     try:
 
@@ -285,18 +285,22 @@ Requires the requirements of: TODO
 def SCDotNetReleaseNuget(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    if configparser.getboolean('other', 'verbose'):
+        verbose_argument = 2
+    else:
+        verbose_argument = 1
     repository_version = get_version_for_buildscripts(configparser)
     publishdirectory = get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
     latest_nupkg_file = get_buildscript_config_item(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
     for localnugettarget in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargets'):
-        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory)
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory, 3600, verbose_argument)
     for localnugettargetrepository in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
         git_commit(localnugettargetrepository,  f"Added {get_buildscript_config_item(configparser,'general','productname')} .NET-release {get_buildscript_config_item(configparser,'prepare','gittagprefix')}{repository_version}")
     if (configparser.getboolean('dotnet', 'publishnugetfile')):
         with open(get_buildscript_config_item(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
             api_key = apikeyfile.read()
         nugetsource = get_buildscript_config_item(configparser, 'dotnet', 'nugetsource')
-        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory)
+        execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory, 3600, verbose_argument)
     return 0
 
 
@@ -320,14 +324,21 @@ def SCDotNetReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if configparser.getboolean('dotnet', 'generatereference'):
+        if configparser.getboolean('other', 'verbose'):
+            verbose_argument_for_reportgenerator = "-verbosity:Verbose"
+            verbose_argument = 2
+        else:
+            verbose_argument_for_reportgenerator = "-verbosity:Info"
+            verbose_argument = 1
         docfx_file = get_buildscript_config_item(configparser, 'dotnet', 'docfxfile')
         docfx_folder = os.path.dirname(docfx_file)
         ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
-        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder)
+        execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder, 3600, verbose_argument)
         coveragefolder = get_buildscript_config_item(configparser, 'dotnet', 'coveragefolder')
+        ensure_directory_exists(coveragefolder)
         coverage_target_file = coveragefolder+os.path.sep+_private_get_coverage_filename(configparser)
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
-        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", '-reports:"'+_private_get_coverage_filename(configparser)+'" -targetdir:"'+coveragefolder+'"', coveragefolder)
+        execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", f'-reports:"{_private_get_coverage_filename(configparser)}" -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}', coveragefolder, 3600, verbose_argument)
         git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
         if configparser.getboolean('dotnet', 'exportreference'):
             git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
@@ -350,21 +361,27 @@ Requires the requirements of: TODO
 # <SCDotNetBuild>
 
 
-def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotNetFramework: str, clearOutputDirectoryBeforeBuild: bool = True, verbosity="normal", outputFilenameToSign: str = None, keyToSignForOutputfile: str = None):
+def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotNetFramework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None):
+    # TODO find a good way to include the merge-commit-id into the build
     if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
         shutil.rmtree(outputDirectory)
     ensure_directory_exists(outputDirectory)
-
+    if verbose:
+        verbose_argument = 2
+        verbose_argument_for_dotnet = "detailed"
+    else:
+        verbose_argument = 1
+        verbose_argument_for_dotnet = "normal"
     argument = csprojFilename
     argument = argument + f' --no-incremental'
     argument = argument + f' --configuration {buildConfiguration}'
     argument = argument + f' --framework {dotNetFramework}'
     argument = argument + f' --runtime {runtimeId}'
-    argument = argument + f' --verbosity {verbosity}'
+    argument = argument + f' --verbosity {verbose_argument_for_dotnet}'
     argument = argument + f' --output "{outputDirectory}"'
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, True, False, "Build")
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
     if(outputFilenameToSign is not None):
-        SCDotNetsign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile)
+        SCDotNetsign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile, verbose)
     return 0
 
 
@@ -396,9 +413,15 @@ def SCDotNetRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
-    SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, "normal", None, None)
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" --no-build -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + " --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=" +
-                                                         _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover ", _private_get_test_csprojfile_folder(configparser), 3600, True, False, "Execute tests")
+    if configparser.getboolean('other', 'verbose'):
+        verbose_argument_for_dotnet = "detailed"
+        verbose_argument = 2
+    else:
+        verbose_argument_for_dotnet = "normal"
+        verbose_argument = 1
+    SCDotNetBuild(_private_get_test_csprojfile_folder(configparser), _private_get_test_csprojfile_filename(configparser), get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+_private_get_test_csprojfile_filename(configparser)+" -c " + get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') +
+                                                         f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + _private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", _private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
     return 0
 
 
@@ -418,7 +441,11 @@ Requires the requirements of: TODO
 # <SCDotNetsign>
 
 
-def SCDotNetsign(dllOrExefile: str, snkfile: str):
+def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool):
+    if(verbose):
+        verbose_argument = 2
+    else:
+        verbose_argument = 1
     dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
     snkfile = resolve_relative_path_from_current_working_directory(snkfile)
     directory = os.path.dirname(dllOrExeFile)
@@ -431,8 +458,8 @@ def SCDotNetsign(dllOrExefile: str, snkfile: str):
         extension = "exe"
     else:
         raise Exception("Only .dll-files and .exe-files can be signed")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, True, False, "Sign: ildasm")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, True, False, "Sign: ilasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, verbose_argument, False, "Sign: ildasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, verbose_argument, False, "Sign: ilasm")
     os.remove(directory+os.path.sep+filename+".il")
     os.remove(directory+os.path.sep+filename+".res")
     return 0
@@ -442,8 +469,9 @@ def SCDotNetsign_cli():
     parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
     parser.add_argument("dllOrExefile")
     parser.add_argument("snkfile")
+    parser.add_argument("verbose", action='store_true')
     args = parser.parse_args()
-    return SCDotNetsign(args.dllOrExefile, args.snkfile)
+    return SCDotNetsign(args.dllOrExefile, args.snkfile, args.verbose)
 
 # </SCDotNetsign>
 
@@ -518,7 +546,7 @@ def SCPythonBuild(configurationfile: str):
     setuppyfile = get_buildscript_config_item(configparser, "python", "pythonsetuppyfile")
     setuppyfilename = os.path.basename(setuppyfile)
     setuppyfilefolder = os.path.dirname(setuppyfile)
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), setuppyfilefolder)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), setuppyfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
@@ -574,7 +602,11 @@ def SCPythonReleaseWheel(configurationfile: str):
         gpgidentity = get_buildscript_config_item(configparser, 'other', 'gpgidentity')
         repository_version = get_version_for_buildscripts(configparser)
         productname = get_buildscript_config_item(configparser, 'general', 'productname')
-        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --verbose --username __token__ --password {api_key}"
+        if configparser.getboolean('other', 'verbose'):
+            verbose_argument = "--verbose"
+        else:
+            verbose_argument = ""
+        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar--username __token__ --password {api_key} {verbose_argument}"
         execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
     return 0
 
@@ -593,6 +625,13 @@ Requires the requirements of: TODO
 # </SCPythonReleaseWheel>
 
 # <Helper>
+
+
+def _private_get_verbosity_for_exuecutor(configparser: ConfigParser):
+    if configparser.getboolean('other', 'verbose'):
+        return 1
+    else:
+        return 2
 
 
 def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
