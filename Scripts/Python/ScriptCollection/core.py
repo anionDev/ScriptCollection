@@ -1469,16 +1469,19 @@ def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward:
     else:
         git_get_current_commit_id(directory)
 
-def get_parent_commit_ids_of_commit(self, commit_id:str):
-    return execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', self._private_repository_folder)[1].replace("\r", "").replace("\n", "").split(" ")
+def get_parent_commit_ids_of_commit(directory: str,commit_id:str):
+    return execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', directory)[1].replace("\r", "").replace("\n", "").split(" ")
 
-def _private_datetime_to_string_for_git(self, datetime: datetime.datetime):
+def _private_datetime_to_string_for_git(datetime: datetime.datetime):
     return datetime.strftime('%Y-%m-%d %H:%M:%S')
 
-def get_commit_ids_between_dates(self, since: datetime, until: datetime):
-    since_as_string = self._private_datetime_to_string_for_git(since)
-    until_as_string = self._private_datetime_to_string_for_git(until)
-    return filter(lambda line: not string_is_none_or_whitespace(line), execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', self._private_repository_folder)[1].split("\n").replace("\r", ""))
+def get_commit_ids_between_dates(directory: str, since: datetime, until: datetime):
+    since_as_string = _private_datetime_to_string_for_git(since)
+    until_as_string = _private_datetime_to_string_for_git(until)
+    return filter(lambda line: not string_is_none_or_whitespace(line), execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', directory)[1].split("\n").replace("\r", ""))
+
+def git_add_or_set_remote_address(directory: str,remote_name: str,remote_address: str):
+    pass # TODO
 
 # </git>
 
