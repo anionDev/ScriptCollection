@@ -603,7 +603,7 @@ def SCPythonReleaseWheel(configurationfile: str):
             verbose_argument = "--verbose"
         else:
             verbose_argument = ""
-        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar--username __token__ --password {api_key} {verbose_argument}"
+        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
         execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
     return 0
 
