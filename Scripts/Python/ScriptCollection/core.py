@@ -757,6 +757,7 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
     available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
     available_configuration_items.append(["other", "exportrepositoryremotename"])
+    available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"]) # TODO use this value
 
     for item in available_configuration_items:
         if configparser.has_option(item[0], item[1]):
