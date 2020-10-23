@@ -1,7 +1,7 @@
-Scripts/python/ScriptCollectionTests/testfile_*
-Scripts/python/.vscode/*
-!Scripts/python/.vscode/settings.json
-Scripts/python/*.whl
+Scripts/Python/ScriptCollectionTests/testfile_*
+Scripts/Python/.vscode/*
+!Scripts/Python/.vscode/settings.json
+Scripts/Python/*.whl
 
 
 # Byte-compiled / optimized / DLL files
