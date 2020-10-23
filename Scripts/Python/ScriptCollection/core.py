@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.20"
+version = "1.12.21"
 
 
 # <Build>
