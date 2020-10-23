@@ -1532,7 +1532,7 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None, run_as_administrator: bool = False):
+def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None, run_synchronously: bool = False):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
@@ -1556,6 +1556,8 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         argument = argument+" --AddLogOverhead"
     if run_as_administrator:
         argument = argument+" --RunAsAdministrator"
+    # if not run_synchronously:
+    #    argument = argument+" --NotSynchronous"
     if verbosity == 0:
         argument = argument+" --Verbosity Quiet"
     if verbosity == 1:
