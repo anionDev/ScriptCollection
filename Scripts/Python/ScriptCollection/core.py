@@ -1270,15 +1270,52 @@ def git_clone_if_not_already_done(clone_target_folder: str, remote_repository_pa
 
             ensure_directory_exists(clone_target_folder)
             argument = f"clone {remote_repository_path}{include_submodules_argument}{mirror_argument}"
-            execute_and_raise_exception_if_exit_code_is_not_zero(f"git {argument}", argument, clone_target_folder)[0]
+            execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, clone_target_folder)
     finally:
         os.chdir(original_cwd)
 
 
-def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None):
+def git_get_all_remote_names(directory):
+    lines = execute_and_raise_exception_if_exit_code_is_not_zero("git", "remote", directory)[1]
+    result = []
+    for line in lines:
+        if(not string_is_none_or_whitespace(line)):
+            result.append(line.strip())
+    return result
+
+
+def repository_has_remote_with_specific_name(directory: str, remote_name: str):
+    return remote_name in git_get_all_remote_names(directory)
+
+
+def git_add_or_set_remote_address(directory: str, remote_name: str, remote_address: str):
+    if (repository_has_remote_with_specific_name(directory, remote_name)):
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote set-url {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+    else:
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote add {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+
+
+def git_stage_all_changes(directory: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600, 1, False, "Stage", False)
+
+
+def git_unstage_all_changes(directory: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset", directory, 3600, 1, False, "Unstage", False)
+
+
+def git_stage_file(directory: str, file: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'stage -- "{file}"', directory, 3600, 1, False, "Stage", False)
+
+
+def git_unstage_file(directory: str, file: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'reset -- "{file}"', directory, 3600, 1, False, "Unstage", False)
+
+
+def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True):
     if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600, 1, False, "Add", False)
+        if stage_all_changes:
+            git_stage_all_changes(directory)
         if(author_name is not None and author_email is not None):
             author = f' --author="{author_name} <{author_email}>"'
         else:
