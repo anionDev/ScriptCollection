@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.18"
+version = "1.12.19"
 
 
 # <Build>
@@ -760,7 +760,7 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
     available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
     available_configuration_items.append(["other", "exportrepositoryremotename"])
-    available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"]) # TODO use this value
+    available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])  # TODO use this value
 
     for item in available_configuration_items:
         if configparser.has_option(item[0], item[1]):
@@ -1181,14 +1181,15 @@ Hints:
 
 # <UpdateNugetpackagesInCsharpProject>
 
+
 def UpdateNugetpackagesInCsharpProject(csprojfile: str):
-    outdated_packages=get_nuget_packages_of_csproj_file(csprojfile,True)
+    outdated_packages = get_nuget_packages_of_csproj_file(csprojfile, True)
     write_message_to_stdout("The following packages will be updated:")
     for outdated_package in outdated_packages:
         write_message_to_stdout(outdated_package)
-        update_nuget_package(csprojfile,outdated_package)
+        update_nuget_package(csprojfile, outdated_package)
     write_message_to_stdout(f"{len(outdated_packages)} package(s) were updated")
-    return 0<len(outdated_packages)
+    return 0 < len(outdated_packages)
 
 
 def UpdateNugetpackagesInCsharpProject_cli():
@@ -1201,6 +1202,158 @@ def UpdateNugetpackagesInCsharpProject_cli():
 
 # </UpdateNugetpackagesInCsharpProject>
 
+
+# <git>
+
+
+def git_repository_has_new_untracked_files(repository_folder: str):
+    return _private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
+
+
+def git_repository_has_unstaged_changes(repository_folder: str):
+    if(_private_git_repository_has_uncommitted_changes(repository_folder, "diff")):
+        return True
+    if(git_repository_has_new_untracked_files(repository_folder)):
+        return True
+    return False
+
+
+def git_repository_has_staged_changes(repository_folder: str):
+    return _private_git_repository_has_uncommitted_changes(repository_folder, "diff --cached")
+
+
+def git_repository_has_uncommitted_changes(repository_folder: str):
+    if(git_repository_has_unstaged_changes(repository_folder)):
+        return True
+    if(git_repository_has_staged_changes(repository_folder)):
+        return True
+    return False
+
+
+def _private_git_repository_has_uncommitted_changes(repository_folder: str, argument: str):
+    return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
+
+
+def git_get_current_commit_id(repository_folder: str, commit: str = "HEAD"):
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
+    return result[1].replace('\r', '').replace('\n', '')
+
+
+def git_fetch(folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, 1, False, None, printErrorsAsInformation)
+
+
+def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False):
+    argument = f"push {remotename} {localbranchname}:{remotebranchname}"
+    if (forcepush):
+        argument = argument+" --force"
+    if (pushalltags):
+        argument = argument+" --tags"
+    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, 1, False, None, True)
+    return result[1].replace('\r', '').replace('\n', '')
+
+
+def git_clone_if_not_already_done(clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False):
+    original_cwd = os.getcwd()
+    try:
+        if(not os.path.isdir(clone_target_folder)):
+
+            if include_submodules:
+                include_submodules_argument = " --recurse-submodules --remote-submodules"
+            else:
+                include_submodules_argument = ""
+
+            if mirror:
+                mirror_argument = " --mirror"
+            else:
+                mirror_argument = ""
+
+            ensure_directory_exists(clone_target_folder)
+            argument = f"clone {remote_repository_path}{include_submodules_argument}{mirror_argument}"
+            execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, clone_target_folder)
+    finally:
+        os.chdir(original_cwd)
+
+
+def git_get_all_remote_names(directory):
+    lines = execute_and_raise_exception_if_exit_code_is_not_zero("git", "remote", directory)[1]
+    result = []
+    for line in lines:
+        if(not string_is_none_or_whitespace(line)):
+            result.append(line.strip())
+    return result
+
+
+def repository_has_remote_with_specific_name(directory: str, remote_name: str):
+    return remote_name in git_get_all_remote_names(directory)
+
+
+def git_add_or_set_remote_address(directory: str, remote_name: str, remote_address: str):
+    if (repository_has_remote_with_specific_name(directory, remote_name)):
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote set-url {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+    else:
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote add {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+
+
+def git_stage_all_changes(directory: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600, 1, False, "Stage", False)
+
+
+def git_unstage_all_changes(directory: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset", directory, 3600, 1, False, "Unstage", False)
+
+
+def git_stage_file(directory: str, file: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'stage -- "{file}"', directory, 3600, 1, False, "Stage", False)
+
+
+def git_unstage_file(directory: str, file: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'reset -- "{file}"', directory, 3600, 1, False, "Unstage", False)
+
+
+def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True):
+    if (git_repository_has_uncommitted_changes(directory)):
+        write_message_to_stdout(f"Committing all changes in {directory}...")
+        if stage_all_changes:
+            git_stage_all_changes(directory)
+        if(author_name is not None and author_email is not None):
+            author = f' --author="{author_name} <{author_email}>"'
+        else:
+            author = ""
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}', directory, 600, 1, False, "Commit", False)
+    else:
+        write_message_to_stdout(f"There are no changes to commit in {directory}")
+    return git_get_current_commit_id(directory)
+
+
+def git_create_tag(directory: str, target_for_tag: str, tag: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600, 1, False, "CreateTag", False)
+
+
+def git_checkout(directory: str, branch: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600, 1, False, "Checkout", True)
+
+
+def git_merge_abort(directory: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600, 1, False, "AbortMerge", False)
+
+
+def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True):
+    git_checkout(directory, targetbranch)
+    if(fastforward):
+        fastforward_argument = ""
+    else:
+        fastforward_argument = "--no-ff "
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600, 1, False, "Merge", True)
+    if commit:
+        return git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
+    else:
+        git_get_current_commit_id(directory)
+
+
+# </git>
+
+
 # <miscellaneous>
 
 def current_user_has_elevated_privileges():
@@ -1210,22 +1363,24 @@ def current_user_has_elevated_privileges():
         return ctypes.windll.shell32.IsUserAnAdmin() == 1
 
 
-def get_nuget_packages_of_csproj_file(csproj_file:str, only_outdated_packages:bool):
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f'restore "{csproj_file}"')
+def get_nuget_packages_of_csproj_file(csproj_file: str, only_outdated_packages: bool):
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'restore "{csproj_file}"')
     if only_outdated_packages:
-        only_outdated_packages_argument=" --outdated"
+        only_outdated_packages_argument = " --outdated"
     else:
-        only_outdated_packages_argument=""
-    stdout=execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f'list "{csproj_file}" package{only_outdated_packages_argument}')[1]
-    result=[]
+        only_outdated_packages_argument = ""
+    stdout = execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'list "{csproj_file}" package{only_outdated_packages_argument}')[1]
+    result = []
     for line in stdout.splitlines():
-        trimmed_line=line.replace("\t","").strip()
+        trimmed_line = line.replace("\t", "").strip()
         if trimmed_line.startswith(">"):
             result.append(trimmed_line[2:].split(" ")[0])
     return result
 
-def update_nuget_package(csproj_file:str, name:str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f'add "{csproj_file}" package {name}')
+
+def update_nuget_package(csproj_file: str, name: str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
+
 
 def ensure_path_is_not_quoted(path: str):
     if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
@@ -1234,6 +1389,7 @@ def ensure_path_is_not_quoted(path: str):
         return path
     else:
         return path
+
 
 def get_missing_files(folderA: str, folderB: str):
     folderA_length = len(folderA)
@@ -1356,8 +1512,10 @@ def file_is_empty(file: str):
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log"):
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
+
 def start_program(program: str, arguments: str = "", workingdirectory: str = "", run_as_administrator: bool = False):
-    pass # TODO implement and return the process-id
+    pass  # TODO implement and return the process-id
+
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, run_as_administrator: bool = False):
     result = execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title, run_as_administrator)
@@ -1374,7 +1532,7 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None, run_as_administrator: bool = False):
+def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None, run_synchronously: bool = False):
     if string_is_none_or_whitespace(title):
         title_for_message = ""
     else:
@@ -1398,6 +1556,8 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         argument = argument+" --AddLogOverhead"
     if run_as_administrator:
         argument = argument+" --RunAsAdministrator"
+    # if not run_synchronously:
+    #    argument = argument+" --NotSynchronous"
     if verbosity == 0:
         argument = argument+" --Verbosity Quiet"
     if verbosity == 1:
@@ -1589,6 +1749,7 @@ def string_is_none_or_whitespace(string: str):
 def strip_new_lines_at_begin_and_end(string: str):
     return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')
 
+
 def get_semver_version_from_gitversion(folder: str):
     return get_version_from_gitversion(folder, "MajorMinorPatch")
 
@@ -1661,113 +1822,3 @@ def get_ScriptCollection_version():
 
 
 # </miscellaneous>
-
-# <git>
-
-
-def git_repository_has_new_untracked_files(repository_folder: str):
-    return _private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
-
-
-def git_repository_has_unstaged_changes(repository_folder: str):
-    if(_private_git_repository_has_uncommitted_changes(repository_folder, "diff")):
-        return True
-    if(git_repository_has_new_untracked_files(repository_folder)):
-        return True
-    return False
-
-
-def git_repository_has_staged_changes(repository_folder: str):
-    return _private_git_repository_has_uncommitted_changes(repository_folder, "diff --cached")
-
-
-def git_repository_has_uncommitted_changes(repository_folder: str):
-    if(git_repository_has_unstaged_changes(repository_folder)):
-        return True
-    if(git_repository_has_staged_changes(repository_folder)):
-        return True
-    return False
-
-
-def _private_git_repository_has_uncommitted_changes(repository_folder: str, argument: str):
-    return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
-
-def git_get_current_commit_id(repository_folder: str, commit: str = "HEAD"):
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
-    return result[1].replace('\r', '').replace('\n', '')
-
-def git_fetch(folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, 1, False, None, printErrorsAsInformation)
-
-def git_push(folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False):
-    argument = f"push {remotename} {localbranchname}:{remotebranchname}"
-    if (forcepush):
-        argument = argument+" --force"
-    if (pushalltags):
-        argument = argument+" --tags"
-    result = execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, 1, False, None, True)
-    return result[1].replace('\r', '').replace('\n', '')
-
-
-def git_clone_if_not_already_done(clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False):
-    original_cwd = os.getcwd()
-    try:
-        if(not os.path.isdir(clone_target_folder)):
-
-            if include_submodules:
-                include_submodules_argument=" --recurse-submodules --remote-submodules"
-            else:
-                include_submodules_argument=""
-
-            if mirror:
-                mirror_argument=" --mirror"
-            else:
-                mirror_argument=""
-
-            ensure_directory_exists(clone_target_folder)
-            argument = f"clone {remote_repository_path}{include_submodules_argument}{mirror_argument}"
-            execute_and_raise_exception_if_exit_code_is_not_zero(f"git {argument}", argument, clone_target_folder)[0]
-    finally:
-        os.chdir(original_cwd)
-
-
-def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None):
-    if (git_repository_has_uncommitted_changes(directory)):
-        write_message_to_stdout(f"Committing all changes in {directory}...")
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600, 1, False, "Add", False)
-        if(author_name is not None and author_email is not None):
-            author = f' --author="{author_name} <{author_email}>"'
-        else:
-            author = ""
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}', directory, 600, 1, False, "Commit", False)
-    else:
-        write_message_to_stdout(f"There are no changes to commit in {directory}")
-    return git_get_current_commit_id(directory)
-
-
-def git_create_tag(directory: str, target_for_tag: str, tag: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600, 1, False, "CreateTag", False)
-
-
-def git_checkout(directory: str, branch: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600, 1, False, "Checkout", True)
-
-
-def git_merge_abort(directory: str):
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600, 1, False, "AbortMerge", False)
-
-
-def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True):
-    git_checkout(directory, targetbranch)
-    if(fastforward):
-        fastforward_argument = ""
-    else:
-        fastforward_argument = "--no-ff "
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600, 1, False, "Merge", True)
-    if commit:
-        return git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
-    else:
-        git_get_current_commit_id(directory)
-
-
-# </git>

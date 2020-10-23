@@ -5,7 +5,7 @@ import unittest
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "1.12.18"
+version = "1.12.19"
 
 
 class MiscellaneousTests(unittest.TestCase):
