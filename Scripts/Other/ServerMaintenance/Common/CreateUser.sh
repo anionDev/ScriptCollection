@@ -3,6 +3,6 @@
 pushd $(dirname $0)
 ../Common/AptUpdate.sh
 useradd -m -d /userhome user
-apt-get -y install sudo
+apt-get install -y sudo
 sudo adduser user sudo
 popd
