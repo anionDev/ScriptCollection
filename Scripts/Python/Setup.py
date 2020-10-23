@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 from pathlib import Path
 
-version = "1.12.20"
+version = "1.12.21"
 
 productname = "ScriptCollection"
 packages = [package for package in find_packages() if not package.endswith("Tests")]
