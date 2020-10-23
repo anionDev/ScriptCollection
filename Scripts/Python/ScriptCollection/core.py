@@ -1,3 +1,4 @@
+import ctypes
 import filecmp
 from distutils.dir_util import copy_tree
 from functools import lru_cache
@@ -12,7 +13,6 @@ import hashlib
 import send2trash
 import time
 import shutil
-import ctypes
 import io
 import tempfile
 from PyPDF2 import PdfFileMerger
@@ -1180,6 +1180,12 @@ Hints:
 
 # <miscellaneous>
 
+def current_user_has_elevated_privileges():
+    try:
+        return os.getuid() == 0
+    except AttributeError:
+        return ctypes.windll.shell32.IsUserAnAdmin() == 1
+
 
 def ensure_path_is_not_quoted(path: str):
     if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
@@ -1188,6 +1194,7 @@ def ensure_path_is_not_quoted(path: str):
         return path
     else:
         return path
+
 
 
 def get_missing_files(folderA: str, folderB: str):
