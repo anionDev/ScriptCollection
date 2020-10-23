@@ -1,6 +1,6 @@
 #! /bin/bash
 echo test
-#apt-get update
-#apt-get install -y git
-#git clone https://github.com/anionDev/ScriptCollection.git
-#chmod chown -R user:user ./ScriptCollection
+apt-get update
+apt-get -y install git
+git clone https://github.com/anionDev/ScriptCollection.git
+chmod chown -R user:user ./ScriptCollection
