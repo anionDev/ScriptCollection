@@ -1554,8 +1554,6 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         argument = argument+" --PrintErrorsAsInformation"
     if addLogOverhead:
         argument = argument+" --AddLogOverhead"
-    if run_as_administrator:
-        argument = argument+" --RunAsAdministrator"
     # if not run_synchronously:
     #    argument = argument+" --NotSynchronous"
     if verbosity == 0:
