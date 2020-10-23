@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.21"
+version = "1.12.22"
 
 
 # <Build>
@@ -1566,7 +1566,7 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
     argument = argument+" --StdErrFile "+'"'+output_file_for_stderr+'"'
     if not string_is_none_or_whitespace(log_file):
         argument = argument+" --LogFile "+'"'+log_file+'"'
-    argument = argument+" ---TimeoutInMilliseconds "+str(timeoutInSeconds*1000)
+    argument = argument+" --TimeoutInMilliseconds "+str(timeoutInSeconds*1000)
     argument = argument+' --Title "'+program+'"'
     argument = argument.replace('"', '\\"')
     process = Popen("epew"+argument)
