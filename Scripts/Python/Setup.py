@@ -68,6 +68,7 @@ setup(
             f"SCReplaceSubstringsInFilenames = ScriptCollection.core:SCReplaceSubstringsInFilenames_cli",
             f"SCSearchInFiles = ScriptCollection.core:SCSearchInFiles_cli",
             f"SCShow2FAAsQRCode = ScriptCollection.core:SCShow2FAAsQRCode_cli",
+            f"SCUpdateNugetpackagesInCsharpProject = ScriptCollection.core:UpdateNugetpackagesInCsharpProject_cli",
         ],
     },
 )

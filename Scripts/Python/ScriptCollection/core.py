@@ -606,7 +606,7 @@ def SCPythonReleaseWheel(configurationfile: str):
             verbose_argument = "--verbose"
         else:
             verbose_argument = ""
-        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar--username __token__ --password {api_key} {verbose_argument}"
+        twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
         execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
     return 0
 
@@ -760,6 +760,7 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
     available_configuration_items.append(["other", "releaserepository"])
     available_configuration_items.append(["other", "gpgidentity"])
     available_configuration_items.append(["other", "exportrepositoryremotename"])
+    available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"]) # TODO use this value
 
     for item in available_configuration_items:
         if configparser.has_option(item[0], item[1]):
@@ -1178,6 +1179,28 @@ Hints:
 
 # </SCShow2FAAsQRCode>
 
+# <UpdateNugetpackagesInCsharpProject>
+
+def UpdateNugetpackagesInCsharpProject(csprojfile: str):
+    outdated_packages=get_nuget_packages_of_csproj_file(csprojfile,True)
+    write_message_to_stdout("The following packages will be updated:")
+    for outdated_package in outdated_packages:
+        write_message_to_stdout(outdated_package)
+        update_nuget_package(csprojfile,outdated_package)
+    write_message_to_stdout(f"{len(outdated_packages)} package(s) were updated")
+    return 0<len(outdated_packages)
+
+
+def UpdateNugetpackagesInCsharpProject_cli():
+
+    parser = argparse.ArgumentParser(description="""TODO""")
+    parser.add_argument('csprojfile')
+    args = parser.parse_args()
+    UpdateNugetpackagesInCsharpProject(args.csprojfile)
+    return 0
+
+# </UpdateNugetpackagesInCsharpProject>
+
 # <miscellaneous>
 
 def current_user_has_elevated_privileges():
@@ -1187,6 +1210,23 @@ def current_user_has_elevated_privileges():
         return ctypes.windll.shell32.IsUserAnAdmin() == 1
 
 
+def get_nuget_packages_of_csproj_file(csproj_file:str, only_outdated_packages:bool):
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f'restore "{csproj_file}"')
+    if only_outdated_packages:
+        only_outdated_packages_argument=" --outdated"
+    else:
+        only_outdated_packages_argument=""
+    stdout=execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f'list "{csproj_file}" package{only_outdated_packages_argument}')[1]
+    result=[]
+    for line in stdout.splitlines():
+        trimmed_line=line.replace("\t","").strip()
+        if trimmed_line.startswith(">"):
+            result.append(trimmed_line[2:].split(" ")[0])
+    return result
+
+def update_nuget_package(csproj_file:str, name:str):
+    execute_and_raise_exception_if_exit_code_is_not_zero("dotnet",f'add "{csproj_file}" package {name}')
+
 def ensure_path_is_not_quoted(path: str):
     if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
         path = path[1:]
@@ -1194,8 +1234,6 @@ def ensure_path_is_not_quoted(path: str):
         return path
     else:
         return path
-
-
 
 def get_missing_files(folderA: str, folderB: str):
     folderA_length = len(folderA)
@@ -1550,7 +1588,6 @@ def string_is_none_or_whitespace(string: str):
 
 def strip_new_lines_at_begin_and_end(string: str):
     return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')
-
 
 def get_semver_version_from_gitversion(folder: str):
     return get_version_from_gitversion(folder, "MajorMinorPatch")
