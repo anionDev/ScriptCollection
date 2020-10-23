@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.23"
+version = "1.12.24"
 
 
 # <Build>
@@ -1727,6 +1727,17 @@ def write_exception_to_stderr_with_traceback(exception: Exception, traceback, ex
     write_message_to_stderr("Traceback: "+traceback.format_exc())
     write_message_to_stderr(")")
 
+def string_has_content(string:str):
+    if string is None:
+        return False
+    else:
+        return 0<len(string)     
+        
+def string_has_nonwhitespace_content(string:str):
+    if string is None:
+        return False
+    else:
+        return 0<len(string.strip())
 
 def string_is_none_or_empty(string: str):
     if string is None:
