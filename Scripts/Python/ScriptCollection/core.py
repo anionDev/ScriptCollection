@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.30"
+version = "1.12.31"
 
 
 # <Build>
@@ -556,7 +556,9 @@ def SCPythonBuild(configurationfile: str):
     setuppyfile = get_buildscript_config_item(configparser, "python", "pythonsetuppyfile")
     setuppyfilename = os.path.basename(setuppyfile)
     setuppyfilefolder = os.path.dirname(setuppyfile)
-    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+" bdist_wheel --dist-dir "+get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), setuppyfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser))
+    publishdirectoryforwhlfile=get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile")
+    ensure_directory_exists(publishdirectoryforwhlfile)
+    execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"', setuppyfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
