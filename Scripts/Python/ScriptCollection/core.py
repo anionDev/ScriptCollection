@@ -1328,7 +1328,7 @@ def git_discard_unstaged_changes_of_file(directory: str, file: str):
     
 def git_discard_all_unstaged_changes(directory: str):
     """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'clean -df.', directory, 3600, 1, False, "Discard", False)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'clean -df', directory, 3600, 1, False, "Discard", False)
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
 
