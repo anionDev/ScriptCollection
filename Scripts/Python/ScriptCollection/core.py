@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.25"
+version = "1.12.26"
 
 
 # <Build>
@@ -63,14 +63,19 @@ def SCCreateRelease(configurationfile: str):
     try:
 
         if configparser.getboolean('general', 'createdotnetrelease') and not error_occurred:
+            write_message_to_stdout(f"Start to craete .NET-release")
             error_occurred = private_create_dotnet_release(configurationfile) != 0
 
         if configparser.getboolean('general', 'createpythonrelease') and not error_occurred:
+            write_message_to_stdout(f"Start to craete Python-release")
             error_occurred = SCPythonCreateWheelRelease(configurationfile) != 0
 
     except Exception as exception:
         error_occurred = True
         write_exception_to_stderr(exception, "Error occurred while creating release")
+
+    finally:
+        write_message_to_stdout(f"Finished to create releases")
 
     if error_occurred:
         if prepare:
