@@ -1509,11 +1509,15 @@ def file_is_empty(file: str):
     return os.stat(file).st_size == 0
 
 
+def folder_is_empty(folder: str):
+    return len(get_direct_files_of_folder(folder)) == 0 and len(get_direct_folders_of_folder(folder)) == 0
+
+
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log"):
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
 
-def start_program(program: str, arguments: str = "", workingdirectory: str = "", run_as_administrator: bool = False):
+def start_program_asynchronously(program: str, arguments: str = "", workingdirectory: str = "", run_as_administrator: bool = False):
     pass  # TODO implement and return the process-id
 
 
@@ -1727,17 +1731,20 @@ def write_exception_to_stderr_with_traceback(exception: Exception, traceback, ex
     write_message_to_stderr("Traceback: "+traceback.format_exc())
     write_message_to_stderr(")")
 
-def string_has_content(string:str):
+
+def string_has_content(string: str):
     if string is None:
         return False
     else:
-        return 0<len(string)     
-        
-def string_has_nonwhitespace_content(string:str):
+        return 0 < len(string)
+
+
+def string_has_nonwhitespace_content(string: str):
     if string is None:
         return False
     else:
-        return 0<len(string.strip())
+        return 0 < len(string.strip())
+
 
 def string_is_none_or_empty(string: str):
     if string is None:
