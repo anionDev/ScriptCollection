@@ -44,7 +44,9 @@ def SCCreateRelease(configurationfile: str):
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
     prepare = configparser.getboolean('general', 'prepare')
+    repository_version = get_version_for_buildscripts(configparser)
     repository = get_buildscript_config_item(configparser, "general", "repository")
+    write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
     if(git_repository_has_uncommitted_changes(repository)):
         write_message_to_stderr(f"'{repository}' contains uncommitted changes")
         return 1
@@ -79,7 +81,6 @@ def SCCreateRelease(configurationfile: str):
     else:
         if prepare:
             commit_id = git_commit(repository, "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
-            repository_version = get_version_for_buildscripts(configparser)
             git_create_tag(repository, commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
             git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
             if configparser.getboolean('other', 'exportrepository'):
@@ -642,7 +643,7 @@ def _private_verbose_check_for_not_available_item(configparser: ConfigParser, qu
                 print_stacktrace()
 
 
-def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime):
+def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime:str):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
     if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
