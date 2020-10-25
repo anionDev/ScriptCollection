@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.28"
+version = "1.12.29"
 
 
 # <Build>
@@ -47,9 +47,11 @@ def SCCreateRelease(configurationfile: str):
     repository_version = get_version_for_buildscripts(configparser)
     repository = get_buildscript_config_item(configparser, "general", "repository")
     write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
-    if(git_repository_has_uncommitted_changes(repository)):
-        write_message_to_stderr(f"'{repository}' contains uncommitted changes")
+    releaserepository=get_buildscript_config_item(configparser, "general", "releaserepository")
+
+    if (_private_repository_has_changes(repository) or _private_repository_has_changes(releaserepository)):
         return 1
+
     if prepare:
         devbranch = get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')
         masterbranch = get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
@@ -80,6 +82,8 @@ def SCCreateRelease(configurationfile: str):
     if error_occurred:
         if prepare:
             git_merge_abort(repository)
+            _private_undo_changes(repository)
+            _private_undo_changes(releaserepository)
             git_checkout(repository, get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'))
         write_message_to_stderr("Building wheel and running testcases was not successful")
         return 1
@@ -1318,6 +1322,15 @@ def git_stage_file(directory: str, file: str):
 def git_unstage_file(directory: str, file: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f'reset -- "{file}"', directory, 3600, 1, False, "Unstage", False)
 
+def git_discard_unstaged_changes_of_file(directory: str, file: str):
+    """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- "{file}"', directory, 3600, 1, False, "Discard", False)
+    
+def git_discard_all_unstaged_changes(directory: str):
+    """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'clean -df', directory, 3600, 1, False, "Discard", False)
+    execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- .', directory, 3600, 1, False, "Discard", False)
+
 
 def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True):
     if (git_repository_has_uncommitted_changes(directory)):
@@ -1358,11 +1371,28 @@ def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward:
     else:
         git_get_current_commit_id(directory)
 
+def git_undo_all_changes(directory:str):
+    """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
+    git_unstage_all_changes(directory)
+    git_discard_all_unstaged_changes(directory)
+
 
 # </git>
 
 
 # <miscellaneous>
+
+def _private_undo_changes(repository:str):
+    if(git_repository_has_uncommitted_changes(repository)):
+        git_undo_all_changes(repository)
+
+def _private_repository_has_changes(repository:str):
+    if(git_repository_has_uncommitted_changes(repository)):
+        write_message_to_stderr(f"'{repository}' contains uncommitted changes")
+        return True
+    else:
+        return False
+    
 
 def current_user_has_elevated_privileges():
     try:
