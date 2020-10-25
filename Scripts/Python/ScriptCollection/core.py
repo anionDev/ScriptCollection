@@ -464,8 +464,8 @@ def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool):
         extension = "exe"
     else:
         raise Exception("Only .dll-files and .exe-files can be signed")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, _private_get_verbosity_for_exuecutor(configparser), False, "Sign: ildasm")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, _private_get_verbosity_for_exuecutor(configparser), False, "Sign: ilasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, verbose, False, "Sign: ildasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, verbose, False, "Sign: ilasm")
     os.remove(directory+os.path.sep+filename+".il")
     os.remove(directory+os.path.sep+filename+".res")
     return 0
