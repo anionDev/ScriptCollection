@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.26"
+version = "1.12.27"
 
 
 # <Build>
@@ -663,6 +663,8 @@ def get_buildscript_config_item(configparser: ConfigParser, section: str, proper
 
 def get_buildscript_config_items(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
     itemlist_as_string = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    if not string_has_content(itemlist_as_string):
+        return []
     if ',' in itemlist_as_string:
         result = [item.strip() for item in itemlist_as_string.split(',')]
     else:
