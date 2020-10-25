@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.27"
+version = "1.12.28"
 
 
 # <Build>
@@ -579,7 +579,7 @@ def SCPythonRunTests(configurationfile: str):
         pythontestfile = get_buildscript_config_item(configparser, 'python', 'pythontestfile')
         pythontestfilename = os.path.basename(pythontestfile)
         pythontestfilefolder = os.path.dirname(pythontestfile)
-        execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, True, False, "Pytest")
+        execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
     return 0
 
 
@@ -648,7 +648,7 @@ def _private_verbose_check_for_not_available_item(configparser: ConfigParser, qu
                 print_stacktrace()
 
 
-def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime:str):
+def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime: str):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
     if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
