@@ -641,9 +641,9 @@ Requires the requirements of: TODO
 
 def _private_get_verbosity_for_exuecutor(configparser: ConfigParser):
     if configparser.getboolean('other', 'verbose'):
-        return 1
-    else:
         return 2
+    else:
+        return 1
 
 
 def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
