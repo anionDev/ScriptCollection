@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.31"
+version = "1.12.32"
 
 
 # <Build>
@@ -269,7 +269,7 @@ def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     nuspecfile = os.path.join(publishdirectory, nuspecfilename)
     with open(nuspecfile, encoding="utf-8", mode="w") as f:
         f.write(nuspec_content)
-    execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory)
+    execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
@@ -452,10 +452,6 @@ Requires the requirements of: TODO
 
 
 def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool):
-    if(verbose):
-        verbose_argument = 2
-    else:
-        verbose_argument = 1
     dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
     snkfile = resolve_relative_path_from_current_working_directory(snkfile)
     directory = os.path.dirname(dllOrExeFile)
@@ -468,8 +464,8 @@ def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool):
         extension = "exe"
     else:
         raise Exception("Only .dll-files and .exe-files can be signed")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, verbose_argument, False, "Sign: ildasm")
-    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, verbose_argument, False, "Sign: ilasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, _private_get_verbosity_for_exuecutor(configparser), False, "Sign: ildasm")
+    execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, _private_get_verbosity_for_exuecutor(configparser), False, "Sign: ilasm")
     os.remove(directory+os.path.sep+filename+".il")
     os.remove(directory+os.path.sep+filename+".res")
     return 0
@@ -619,7 +615,7 @@ def SCPythonReleaseWheel(configurationfile: str):
         else:
             verbose_argument = ""
         twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
-        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"))
+        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"),3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
@@ -641,9 +637,9 @@ Requires the requirements of: TODO
 
 def _private_get_verbosity_for_exuecutor(configparser: ConfigParser):
     if configparser.getboolean('other', 'verbose'):
-        return 1
-    else:
         return 2
+    else:
+        return 1
 
 
 def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
