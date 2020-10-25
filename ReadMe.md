@@ -10,6 +10,8 @@ TODO
 
 Most of the scripts are written in [python](https://www.python.org) 3.
 
+Caution: Before executing **any** script of this repository read the sourcecode of the script (and the sourcecode of all functions called by this function directly or transitively) carefully and verify that the script does exactly what you want to do and nothing else.
+
 ## Get ScriptCollection
 
 ### Installation via pip
