@@ -1594,8 +1594,8 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         argument = argument+" --PrintErrorsAsInformation"
     if addLogOverhead:
         argument = argument+" --AddLogOverhead"
-    # if not run_synchronously:
-    #    argument = argument+" --NotSynchronous"
+    if not run_synchronously:
+        argument = argument+" --NotSynchronous"
     if verbosity == 0:
         argument = argument+" --Verbosity Quiet"
     if verbosity == 1:
