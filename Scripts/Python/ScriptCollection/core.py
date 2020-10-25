@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.29"
+version = "1.12.30"
 
 
 # <Build>
@@ -47,7 +47,7 @@ def SCCreateRelease(configurationfile: str):
     repository_version = get_version_for_buildscripts(configparser)
     repository = get_buildscript_config_item(configparser, "general", "repository")
     write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
-    releaserepository=get_buildscript_config_item(configparser, "general", "releaserepository")
+    releaserepository=get_buildscript_config_item(configparser, "other", "releaserepository")
 
     if (_private_repository_has_changes(repository) or _private_repository_has_changes(releaserepository)):
         return 1
