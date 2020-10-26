@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 productname = "ScriptCollection"
-version = "1.12.36"
+version = "1.12.37"
 
 packages = [package for package in find_packages() if not package.endswith("Tests")]
 
@@ -33,7 +33,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
-        "epew>=3.4.0",
+        "epew>=3.4.6",
         "keyboard>=0.13.5",
         "ntplib>=0.3.4",
         "PyPDF2>=1.26.0",
