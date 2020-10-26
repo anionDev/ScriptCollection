@@ -43,6 +43,8 @@ from ScriptCollection.core import get_ScriptCollection_version
 get_ScriptCollection_version()
 ```
 
+Or you can simply run `pip freeze` in any folder to get the currently installed ScriptCollection.
+
 ## License
 
 ScriptCollection itself is licensed under the terms of MIT. See the [license](https://raw.githubusercontent.com/anionDev/ScriptCollection/master/License.txt) for more details.
