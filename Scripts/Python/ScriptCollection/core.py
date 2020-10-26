@@ -581,7 +581,7 @@ def SCPythonRunTests(configurationfile: str):
         pythontestfile = get_buildscript_config_item(configparser, 'python', 'pythontestfile')
         pythontestfilename = os.path.basename(pythontestfile)
         pythontestfilefolder = os.path.dirname(pythontestfile)
-        execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
+        execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
