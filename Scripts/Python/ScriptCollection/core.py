@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.33"
+version = "1.12.34"
 
 
 # <Build>
@@ -581,7 +581,7 @@ def SCPythonRunTests(configurationfile: str):
         pythontestfile = get_buildscript_config_item(configparser, 'python', 'pythontestfile')
         pythontestfilename = os.path.basename(pythontestfile)
         pythontestfilefolder = os.path.dirname(pythontestfile)
-        execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
+        execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
@@ -1594,8 +1594,8 @@ def execute_full(program: str, arguments: str, workingdirectory: str = "", print
         argument = argument+" --PrintErrorsAsInformation"
     if addLogOverhead:
         argument = argument+" --AddLogOverhead"
-    # if not run_synchronously:
-    #    argument = argument+" --NotSynchronous"
+    if not run_synchronously:
+        argument = argument+" --NotSynchronous"
     if verbosity == 0:
         argument = argument+" --Verbosity Quiet"
     if verbosity == 1:
