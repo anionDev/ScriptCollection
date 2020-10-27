@@ -47,7 +47,7 @@ def SCCreateRelease(configurationfile: str):
     repository_version = get_version_for_buildscripts(configparser)
     repository = get_buildscript_config_item(configparser, "general", "repository")
     write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
-    releaserepository=get_buildscript_config_item(configparser, "other", "releaserepository")
+    releaserepository = get_buildscript_config_item(configparser, "other", "releaserepository")
 
     if (_private_repository_has_changes(repository) or _private_repository_has_changes(releaserepository)):
         return 1
@@ -552,7 +552,7 @@ def SCPythonBuild(configurationfile: str):
     setuppyfile = get_buildscript_config_item(configparser, "python", "pythonsetuppyfile")
     setuppyfilename = os.path.basename(setuppyfile)
     setuppyfilefolder = os.path.dirname(setuppyfile)
-    publishdirectoryforwhlfile=get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile")
+    publishdirectoryforwhlfile = get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile")
     ensure_directory_exists(publishdirectoryforwhlfile)
     execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"', setuppyfilefolder, 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
@@ -615,7 +615,7 @@ def SCPythonReleaseWheel(configurationfile: str):
         else:
             verbose_argument = ""
         twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
-        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"),3600, _private_get_verbosity_for_exuecutor(configparser))
+        execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, get_buildscript_config_item(configparser, "python", "publishdirectoryforwhlfile"), 3600, _private_get_verbosity_for_exuecutor(configparser))
     return 0
 
 
@@ -1320,10 +1320,12 @@ def git_stage_file(directory: str, file: str):
 def git_unstage_file(directory: str, file: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f'reset -- "{file}"', directory, 3600, 1, False, "Unstage", False)
 
+
 def git_discard_unstaged_changes_of_file(directory: str, file: str):
     """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- "{file}"', directory, 3600, 1, False, "Discard", False)
-    
+
+
 def git_discard_all_unstaged_changes(directory: str):
     """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f'clean -df', directory, 3600, 1, False, "Discard", False)
@@ -1369,7 +1371,8 @@ def git_merge(directory: str, sourcebranch: str, targetbranch: str, fastforward:
     else:
         git_get_current_commit_id(directory)
 
-def git_undo_all_changes(directory:str):
+
+def git_undo_all_changes(directory: str):
     """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
     git_unstage_all_changes(directory)
     git_discard_all_unstaged_changes(directory)
@@ -1380,17 +1383,18 @@ def git_undo_all_changes(directory:str):
 
 # <miscellaneous>
 
-def _private_undo_changes(repository:str):
+def _private_undo_changes(repository: str):
     if(git_repository_has_uncommitted_changes(repository)):
         git_undo_all_changes(repository)
 
-def _private_repository_has_changes(repository:str):
+
+def _private_repository_has_changes(repository: str):
     if(git_repository_has_uncommitted_changes(repository)):
         write_message_to_stderr(f"'{repository}' contains uncommitted changes")
         return True
     else:
         return False
-    
+
 
 def current_user_has_elevated_privileges():
     try:
@@ -1553,12 +1557,37 @@ def get_time_based_logfile_by_folder(folder: str, name: str = "Log"):
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
 
-def start_program_asynchronously(program: str, arguments: str = "", workingdirectory: str = "", run_as_administrator: bool = False):
-    pass  # TODO implement and return the process-id
+def bytes_to_string(bytes: bytes, encoding: str = 'utf-8'):
+    return bytes.decode(encoding, errors="ignore")
 
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
-    result = execute_full(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title, True)
+def epew_is_available():
+    return False
+
+
+def _private_adapt_workingdirectory(workingdirectory: str):
+    if workingdirectory == None:
+        return os.getcwd()
+    else:
+        return resolve_relative_path_from_current_working_directory(workingdirectory)
+
+
+def _private_log_program_start(program: str, arguments: str, workingdirectory: str, verbosity: int = 1):
+    if(verbosity == 2):
+        write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
+
+
+def start_program_asynchronously(program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1):
+    workingdirectory = _private_adapt_workingdirectory(workingdirectory)
+    _private_log_program_start(program, arguments, workingdirectory, verbosity)
+    if epew_is_available():
+        raise Exception("start_program_asynchronously using epew is not implemented yet")
+    else:
+        return Popen(program+" "+arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory).pid
+
+
+def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
+    result = start_program_synchronously(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title, True)
     if result[0] == 0:
         return result
     else:
@@ -1568,54 +1597,59 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments
 
 
 def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None):
-    result = execute_full(program, arguments, workingdirectory, timeoutInSeconds, verbosity, addLogOverhead, title, print_errors_as_information, log_file)
+    result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title)
     return result[0]
 
 
-def execute_full(program: str, arguments: str, workingdirectory: str = "", print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds=3600, verbosity=1, addLogOverhead: bool = False, title: str = None, run_synchronously: bool = True):
-    if string_is_none_or_whitespace(title):
-        title_for_message = ""
+def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False):
+    workingdirectory = _private_adapt_workingdirectory(workingdirectory)
+    _private_log_program_start(program, arguments, workingdirectory, verbosity)
+    if (epew_is_available()):
+        raise Exception("start_program_synchronously using epew is not implemented yet")
+        # if string_is_none_or_whitespace(title):
+        #     title_for_message = ""
+        # else:
+        #     title_for_message = f"for task '{title}' "
+        # title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
+        # output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
+        # output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
+        # if verbosity == 2:
+        #     write_message_to_stdout(f"Start executing {title_local}")
+        # argument = " --Program "+program
+        # argument = argument+" --Argument "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
+        # argument = argument+" --ArgumentIsBase64Encoded "
+        # argument = argument+" --Workingdirectory "+'"'+workingdirectory+'"'
+        # if print_errors_as_information:
+        #     argument = argument+" --PrintErrorsAsInformation"
+        # if addLogOverhead:
+        #     argument = argument+" --AddLogOverhead"
+        # if verbosity == 0:
+        #     argument = argument+" --Verbosity Quiet"
+        # if verbosity == 1:
+        #     argument = argument+" --Verbosity Normal"
+        # if verbosity == 2:
+        #     argument = argument+" --Verbosity Verbose"
+        # argument = argument+" --StdOutFile "+'"'+output_file_for_stdout+'"'
+        # argument = argument+" --StdErrFile "+'"'+output_file_for_stderr+'"'
+        # if not string_is_none_or_whitespace(log_file):
+        #     argument = argument+" --LogFile "+'"'+log_file+'"'
+        # argument = argument+" --TimeoutInMilliseconds "+str(timeoutInSeconds*1000)
+        # argument = argument+' --Title "'+program+'"'
+        # argument = argument.replace('"', '\\"')
+        # process = Popen("epew"+argument)
+        # exit_code = process.wait()
+        # stdout = _private_load_text(output_file_for_stdout)
+        # stderr = _private_load_text(output_file_for_stderr)
+        # if verbosity == 2:
+        #     write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
+        # return (exit_code, stdout, stderr)
     else:
-        title_for_message = f"for task '{title}' "
-    if workingdirectory == "":
-        workingdirectory = os.getcwd()
-    else:
-        workingdirectory = resolve_relative_path_from_current_working_directory(workingdirectory)
-    title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
-    output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
-    output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
-    if verbosity == 2:
-        write_message_to_stdout(f"Start executing {title_local}")
-    argument = " --Program "+program
-    argument = argument+" --Argument "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-    argument = argument+" --ArgumentIsBase64Encoded "
-    argument = argument+" --Workingdirectory "+'"'+workingdirectory+'"'
-    if print_errors_as_information:
-        argument = argument+" --PrintErrorsAsInformation"
-    if addLogOverhead:
-        argument = argument+" --AddLogOverhead"
-    if not run_synchronously:
-        argument = argument+" --NotSynchronous"
-    if verbosity == 0:
-        argument = argument+" --Verbosity Quiet"
-    if verbosity == 1:
-        argument = argument+" --Verbosity Normal"
-    if verbosity == 2:
-        argument = argument+" --Verbosity Verbose"
-    argument = argument+" --StdOutFile "+'"'+output_file_for_stdout+'"'
-    argument = argument+" --StdErrFile "+'"'+output_file_for_stderr+'"'
-    if not string_is_none_or_whitespace(log_file):
-        argument = argument+" --LogFile "+'"'+log_file+'"'
-    argument = argument+" --TimeoutInMilliseconds "+str(timeoutInSeconds*1000)
-    argument = argument+' --Title "'+program+'"'
-    argument = argument.replace('"', '\\"')
-    process = Popen("epew"+argument)
-    exit_code = process.wait()
-    stdout = _private_load_text(output_file_for_stdout)
-    stderr = _private_load_text(output_file_for_stderr)
-    if verbosity == 2:
-        write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
-    return (exit_code, stdout, stderr)
+        process = Popen(program+" "+arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory)
+        stdout, stderr = process.communicate()
+        exit_code = process.wait()
+        if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+            raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
+        return (exit_code, bytes_to_string(stdout), bytes_to_string(stderr))
 
 
 def _private_load_text(file: str):
