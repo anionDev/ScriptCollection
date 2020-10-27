@@ -1648,8 +1648,8 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         stdout, stderr = process.communicate()
         exit_code = process.wait()
 
-        stdout = bytes_to_string(stdout)
-        stderr = bytes_to_string(stderr)
+        stdout = bytes_to_string(stdout).replace('\r', '')
+        stderr = bytes_to_string(stderr).replace('\r', '')
 
         for line in stdout.splitlines():
             write_message_to_stdout(line)
