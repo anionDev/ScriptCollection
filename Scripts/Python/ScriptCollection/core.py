@@ -1647,14 +1647,18 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         process = Popen(program+" "+arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory)
         stdout, stderr = process.communicate()
         exit_code = process.wait()
+
         stdout = bytes_to_string(stdout)
         stderr = bytes_to_string(stderr)
+
         for line in stdout.splitlines():
             write_message_to_stdout(line)
         for line in stderr.splitlines():
             write_message_to_stderr(line)
+
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
+
         return (exit_code, stdout, stderr)
 
 
