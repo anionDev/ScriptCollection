@@ -2,7 +2,6 @@ Copyright © 2020 Marius Göcke
 
 ScriptCollection itself is licensed under the terms of the MIT-license (see appendix 1).
 ScriptCollection uses dependencies which are released under their own license:
--epew is licensed under the terms of the MIT-license (see appendix 1)
 -keyboard is licensed under the terms of the MIT-license (see appendix 1)
 -ntplib is licensed under the terms of the MIT-license (see appendix 1)
 -PyPDF2 is licensed under the terms of its own license (see appendix 2)
