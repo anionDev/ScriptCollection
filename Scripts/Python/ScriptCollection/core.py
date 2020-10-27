@@ -1577,10 +1577,10 @@ def _private_log_program_start(program: str, arguments: str, workingdirectory: s
         write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
 
 
-def start_program_asynchronously(program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1):
+def start_program_asynchronously(program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False):
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
-    if epew_is_available():
+    if use_epew:
         raise Exception("start_program_asynchronously using epew is not implemented yet")
     else:
         return Popen(program+" "+arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory).pid
@@ -1601,10 +1601,10 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False):
+def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, use_epew: bool = False):
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
-    if (epew_is_available()):
+    if (use_epew):
         raise Exception("start_program_synchronously using epew is not implemented yet")
         # if string_is_none_or_whitespace(title):
         #     title_for_message = ""
