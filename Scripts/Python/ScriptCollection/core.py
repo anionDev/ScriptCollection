@@ -31,7 +31,7 @@ from os import listdir
 import datetime
 
 
-version = "1.12.41"
+version = "1.12.42"
 
 
 # <Build>
@@ -1583,7 +1583,7 @@ def start_program_asynchronously(program: str, arguments: str = "", workingdirec
     if use_epew:
         raise Exception("start_program_asynchronously using epew is not implemented yet")
     else:
-        return Popen(program+" "+arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory).pid
+        return Popen([program].extend(arguments.split), stdout=PIPE, stderr=PIPE, cwd=workingdirectory).pid
 
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
@@ -1644,7 +1644,7 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         #     write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
         # return (exit_code, stdout, stderr)
     else:
-        process = Popen(program+" "+arguments, stdout=PIPE, stderr=PIPE, cwd=workingdirectory)
+        process = Popen([program].extend(arguments.split), stdout=PIPE, stderr=PIPE, cwd=workingdirectory)
         stdout, stderr = process.communicate()
         exit_code = process.wait()
 
