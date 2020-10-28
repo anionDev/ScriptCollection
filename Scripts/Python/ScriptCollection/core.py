@@ -1713,16 +1713,16 @@ def get_clusters_and_sectors_of_disk(diskpath: str):
     return (sectorsPerCluster.value, bytesPerSector.value)
 
 
-def extract_archive_with_7z(unzip_file: str, file: str, password: str, output_directory: str):
+def extract_archive_with_7z(unzip_program_file: str, zipfile: str, password: str, output_directory: str):
     password_set = not password is None
-    file_name = Path(file).name
-    file_folder = os.path.dirname(file)
+    file_name = Path(zipfile).name
+    file_folder = os.path.dirname(zipfile)
     argument = "x"
     if password_set:
         argument = f"{argument} -p\"{password}\""
     argument = f"{argument} -o {output_directory}"
     argument = f"{argument} {file_name}"
-    return execute(unzip_file, argument, file_folder)
+    return execute(unzip_program_file, argument, file_folder)
 
 
 def get_internet_time():
