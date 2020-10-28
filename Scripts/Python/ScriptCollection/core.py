@@ -1693,12 +1693,12 @@ def ensure_file_does_not_exist(path: str):
         os.remove(path)
 
 
-def format_xml_file(file: str, encoding: str):
-    with codecs.open(file, 'r', encoding=encoding) as f:
-        text = f.read()
+def format_xml_file(filepath: str, encoding: str):
+    with codecs.open(filepath, 'r', encoding=encoding) as file:
+        text = file.read()
     text = xml.dom.minidom.parseString(text).toprettyxml()
-    with codecs.open(file, 'w', encoding=encoding) as f:
-        f.write(text)
+    with codecs.open(filepath, 'w', encoding=encoding) as file:
+        file.write(text)
 
 
 def get_clusters_and_sectors_of_disk(diskpath: str):
