@@ -1583,9 +1583,10 @@ def start_program_asynchronously(program: str, arguments: str = "", workingdirec
     if use_epew:
         raise Exception("start_program_asynchronously using epew is not implemented yet")
     else:
-        start_argument = [program]
-        start_argument.extend(arguments.split())
-        return Popen(start_argument, stdout=PIPE, stderr=PIPE, cwd=workingdirectory).pid
+        start_argument_as_array = [program]
+        start_argument_as_array.extend(arguments.split())
+        start_argument_as_string = f"{program} {arguments}"
+        return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
 
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
@@ -1646,9 +1647,10 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         #     write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
         # return (exit_code, stdout, stderr)
     else:
-        start_argument = [program]
-        start_argument.extend(arguments.split())
-        process = Popen(start_argument, stdout=PIPE, stderr=PIPE, cwd=workingdirectory)
+        start_argument_as_array = [program]
+        start_argument_as_array.extend(arguments.split())
+        start_argument_as_string = f"{program} {arguments}"
+        process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
         stdout, stderr = process.communicate()
         exit_code = process.wait()
 
