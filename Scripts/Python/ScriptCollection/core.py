@@ -1782,13 +1782,13 @@ def get_default_tolerance_for_system_time_equals_internet_time():
 
 
 def write_message_to_stdout(message: str):
-    message = str(message)
+    message = str_none_safe(message)
     sys.stdout.write(message+"\n")
     sys.stdout.flush()
 
 
 def write_message_to_stderr(message: str):
-    message = str(message)
+    message = str_none_safe(message)
     sys.stderr.write(message+"\n")
     sys.stderr.flush()
 
