@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 productname = "ScriptCollection"
-version = "1.12.42"
+version = "1.12.43"
 
 packages = [package for package in find_packages() if not package.endswith("Tests")]
 
