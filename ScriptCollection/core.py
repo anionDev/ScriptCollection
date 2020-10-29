@@ -1,3 +1,4 @@
+from random import randrange
 import stat
 import errno
 import ctypes
@@ -1191,10 +1192,10 @@ Hints:
 
 # </SCShow2FAAsQRCode>
 
-# <UpdateNugetpackagesInCsharpProject>
+# <SCUpdateNugetpackagesInCsharpProject>
 
 
-def UpdateNugetpackagesInCsharpProject(csprojfile: str):
+def SCUpdateNugetpackagesInCsharpProject(csprojfile: str):
     outdated_packages = get_nuget_packages_of_csproj_file(csprojfile, True)
     write_message_to_stdout("The following packages will be updated:")
     for outdated_package in outdated_packages:
@@ -1204,15 +1205,68 @@ def UpdateNugetpackagesInCsharpProject(csprojfile: str):
     return 0 < len(outdated_packages)
 
 
-def UpdateNugetpackagesInCsharpProject_cli():
+def SCUpdateNugetpackagesInCsharpProject_cli():
 
     parser = argparse.ArgumentParser(description="""TODO""")
     parser.add_argument('csprojfile')
     args = parser.parse_args()
-    UpdateNugetpackagesInCsharpProject(args.csprojfile)
+    SCUpdateNugetpackagesInCsharpProject(args.csprojfile)
     return 0
 
-# </UpdateNugetpackagesInCsharpProject>
+# </SCUpdateNugetpackagesInCsharpProject>
+
+# <SCUploadFile>
+
+
+def SCUploadFile(file: str, host: str):
+    try:
+        write_message_to_stdout(upload_file(file, host))
+        return 0
+    except Exception as exception:
+        write_exception_to_stderr(exception)
+        return 1
+
+
+def SCUploadFile_cli():
+
+    parser = argparse.ArgumentParser(description="""Uploads a file to a filesharing-service.
+Caution:
+You are responsible, accountable and liable for this upload. This trivial script only automates a process which you would otherwise do manually.
+Be aware of the issues regarding
+- copyright/licenses
+- legal issues
+of the file content. Furthermore consider the terms of use of the filehoster.
+Currently the following filesharing-services will be supported:
+- anonfiles.com
+- bayfiles.com
+""")
+    parser.add_argument('file', required=True)
+    parser.add_argument('host', required=False)
+    args = parser.parse_args()
+    return SCUploadFile(args.file, args.host)
+
+# </SCUploadFile>
+
+# <SCFileIsAvailable>
+
+
+def SCFileIsAvailable(file: str):
+    try:
+        write_message_to_stdout(file_is_available(file))
+        return 0
+    except Exception as exception:
+        write_exception_to_stderr(exception)
+        return 1
+
+
+def SCFileIsAvailable_cli():
+
+    parser = argparse.ArgumentParser(description="""Determines whether a file on a filesharing-service supported by the UploadFile-function is still available.""")
+    parser.add_argument('link')
+    args = parser.parse_args()
+    return SCFileIsAvailable(args.link)
+
+# </SCFileIsAvailable>
 
 
 # <git>
@@ -1382,8 +1436,45 @@ def git_undo_all_changes(directory: str):
 
 # </git>
 
-
 # <miscellaneous>
+
+
+def upload_file(file: str, host: str):
+    if(host is None):
+        return upload_file_to_random_filesharing_service(file)
+    elif host == "anonfiles.com":
+        return upload_file_to_anonfiles(file)
+    elif host == "bayfiles.com":
+        return upload_file_to_bayfiles(file)
+    write_message_to_stderr("Unknown host: "+host)
+    return 1
+
+
+def upload_file_to_random_filesharing_service(file: str):
+    host = randrange(2)
+    if host == 0:
+        return upload_file_to_anonfiles(file)
+    if host == 1:
+        return upload_file_to_bayfiles(file)
+
+
+def upload_file_to_anonfiles(file):
+    return upload_file_by_using_simple_curl_request("https://api.anonfiles.com/upload", file)
+
+
+def upload_file_to_bayfiles(file):
+    return upload_file_by_using_simple_curl_request("https://api.bayfiles.com/upload", file)
+
+
+def upload_file_by_using_simple_curl_request(api_url: str, file: str):
+    write_message_to_stderr("Notimplemented yet")
+    return 1  # TODO
+
+
+def file_is_available(file):
+    write_message_to_stderr("Notimplemented yet")
+    return 1  # TODO
+
 
 def _private_undo_changes(repository: str):
     if(git_repository_has_uncommitted_changes(repository)):

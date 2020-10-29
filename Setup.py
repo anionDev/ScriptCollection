@@ -7,7 +7,7 @@ version = "1.12.49"
 
 packages = [package for package in find_packages() if not package.endswith("Tests")]
 
-folder_of_current_file=os.path.dirname(os.path.realpath(__file__))
+folder_of_current_file = os.path.dirname(os.path.realpath(__file__))
 with open(str(Path(os.path.join(folder_of_current_file, f"ReadMe.md")).resolve()), "r", encoding='utf-8') as f:
     long_description = f.read()
 
@@ -33,7 +33,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
-        #"epew>=3.4.8",
+        # "epew>=3.4.8",
         "keyboard>=0.13.5",
         "ntplib>=0.3.4",
         "PyPDF2>=1.26.0",
@@ -69,6 +69,8 @@ setup(
             f"SCSearchInFiles = ScriptCollection.core:SCSearchInFiles_cli",
             f"SCShow2FAAsQRCode = ScriptCollection.core:SCShow2FAAsQRCode_cli",
             f"SCUpdateNugetpackagesInCsharpProject = ScriptCollection.core:UpdateNugetpackagesInCsharpProject_cli",
+            f"SCUploadFile = ScriptCollection.core:SCUploadFile_cli",
+            f"SCFileIsAvailable = ScriptCollection.core:SCFileIsAvailable_cli",
         ],
     },
 )
