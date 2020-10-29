@@ -3,7 +3,6 @@ ScriptCollectionTests/testfile_*
 !.vscode/settings.json
 *.whl
 
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
