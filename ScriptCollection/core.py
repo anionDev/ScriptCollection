@@ -32,7 +32,7 @@ import datetime
 
 
 version = "1.12.45"
-
+__version__ = version
 
 # <Build>
 
@@ -1924,3 +1924,6 @@ def get_ScriptCollection_version():
 
 
 # </miscellaneous>
+
+def tesxt():
+    pass
