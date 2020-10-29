@@ -1700,7 +1700,7 @@ def ensure_directory_does_not_exist(path: str):
                 os.remove(filename)
             for name in dirs:
                 os.rmdir(os.path.join(root, name))
-        os.rmdir(top)
+        os.rmdir(path)
 
 
 def ensure_file_does_not_exist(path: str):
