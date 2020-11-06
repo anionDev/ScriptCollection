@@ -2057,7 +2057,7 @@ def system_time_equals_internet_time(maximal_tolerance_difference: datetime.time
 
 
 def timedelta_to_simple_string(delta):
-    return (datetime.datetime(1970, 1, 1, 0, 0, 0)+delta).strftime('%H:%M:%S')
+    return (datetime.datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
 
 
 def resolve_relative_path_from_current_working_directory(path: str):
@@ -2079,15 +2079,18 @@ def get_metadata_for_file_for_clone_folder_structure(file: str):
     return f'{{"size":"{size}","sha256":"{hash_value}","mtime":"{last_modified_timestamp}","atime":"{last_access_timestamp}"}}'
 
 
-def clone_folder_structure(source: str, target: str, write_information_to_file):
+def clone_folder_structure(source: str, target: str, copy_only_metadata: bool):
     source = resolve_relative_path(source, os.getcwd())
     target = resolve_relative_path(target, os.getcwd())
     length_of_source = len(source)
     for source_file in absolute_file_paths(source):
         target_file = target+source_file[length_of_source:]
         ensure_directory_exists(os.path.dirname(target_file))
-        with open(target_file, 'w', encoding='utf8') as f:
-            f.write(get_metadata_for_file_for_clone_folder_structure(source_file))
+        if copy_only_metadata:
+            with open(target_file, 'w', encoding='utf8') as f:
+                f.write(get_metadata_for_file_for_clone_folder_structure(source_file))
+        else:
+            copyfile(source_file, target_file)
 
 
 def system_time_equals_internet_time_with_default_tolerance():
@@ -2119,7 +2122,7 @@ def write_message_to_stderr(message: str):
     sys.stderr.flush()
 
 
-def write_exception_to_stderr(exception: Exception, extra_message=None):
+def write_exception_to_stderr(exception: Exception, extra_message: str = None):
     write_message_to_stderr("Exception(")
     write_message_to_stderr("Type: "+str(type(exception)))
     write_message_to_stderr("Message: "+str(exception))
@@ -2128,7 +2131,7 @@ def write_exception_to_stderr(exception: Exception, extra_message=None):
     write_message_to_stderr(")")
 
 
-def write_exception_to_stderr_with_traceback(exception: Exception, traceback, extra_message=None):
+def write_exception_to_stderr_with_traceback(exception: Exception, traceback, extra_message: str = None):
     write_message_to_stderr("Exception(")
     write_message_to_stderr("Type: "+str(type(exception)))
     write_message_to_stderr("Message: "+str(exception))
