@@ -47,7 +47,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-          	f"SCCalculateBitcoinBlockHash = {productname}.core:SCCalculateBitcoinBlockHash_cli",
+            f"SCCalculateBitcoinBlockHash = {productname}.core:SCCalculateBitcoinBlockHash_cli",
             f"SCChangeHashOfProgram = {productname}.core:SCChangeHashOfProgram_cli",
             f"SCCreateEmptyFileWithSpecificSize = {productname}.core:SCCreateEmptyFileWithSpecificSize_cli",
             f"SCCreateHashOfAllFiles = {productname}.core:SCCreateHashOfAllFiles_cli",

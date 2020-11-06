@@ -1,37 +1,39 @@
-from random import randrange
-import stat
-import errno
-import ctypes
-import filecmp
+from configparser import ConfigParser
 from distutils.dir_util import copy_tree
 from functools import lru_cache
-import keyboard
-import re
-import ntplib
-import base64
-import os
-from shutil import copytree
-from subprocess import Popen, PIPE, call
-import hashlib
-import send2trash
-import time
-import shutil
-import io
-import tempfile
-from PyPDF2 import PdfFileMerger
-import uuid
-from pathlib import Path
-import codecs
-from shutil import copyfile
-import sys
-import xml.dom.minidom
-from configparser import ConfigParser
-import argparse
-from os.path import abspath
-import traceback
-from os.path import isfile, join, isdir
+from io import BytesIO
 from os import listdir
+from os.path import isfile, join, isdir, abspath
+from pathlib import Path
+from PyPDF2 import PdfFileMerger
+from random import randrange
+from shutil import copytree, copy2, copyfile
+from subprocess import Popen, PIPE, call
+import argparse
+import base64
+import binascii
+import codecs
+import ctypes
 import datetime
+import errno
+import filecmp
+import hashlib
+import io
+import keyboard
+import ntplib
+import os
+import pathlib
+import pycdlib
+import re
+import send2trash
+import shutil
+import stat
+import sys
+import tempfile
+import time
+import traceback
+import uuid
+import xml.dom.minidom
 
 
 version = "1.12.49"
@@ -1272,7 +1274,7 @@ def SCFileIsAvailable_cli():
 # <SCCalculateBitcoinBlockHash>
 
 
-def SCCalculateBitcoinBlockHash(version: str,previousblockhash: str,transactionsmerkleroot: str,timestamp: str,target: str,nonce: str):
+def SCCalculateBitcoinBlockHash(version: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str):
     # Example-values:
     # version: "00000020"; previousblockhash: "66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000"; transactionsmerkleroot: "7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187"; timestamp: "51eb505a"; target: "c1910018"; nonce: "de19b302"
     header = str(version + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
@@ -1290,16 +1292,17 @@ def SCCalculateBitcoinBlockHash_cli():
     args = parser.parse_args()
 
     args = parser.parse_args()
-    print(SCCalculateBitcoinBlockHash(args.version,args.previousblockhash,args.transactionsmerkleroot,args.timestamp,args.target,args.nonce))
+    print(SCCalculateBitcoinBlockHash(args.version, args.previousblockhash, args.transactionsmerkleroot, args.timestamp, args.target, args.nonce))
 
 # </SCCalculateBitcoinBlockHash>
 
 # <SCChangeHashOfProgram>
 
-def SCChangeHashOfProgram(inputfile:str):
+
+def SCChangeHashOfProgram(inputfile: str):
     valuetoappend = str(uuid.uuid4())
 
-    outputfile=inputfile + '.modified'
+    outputfile = inputfile + '.modified'
 
     copy2(inputfile, outputfile)
     file = open(outputfile, 'a')
@@ -1322,12 +1325,14 @@ def SCChangeHashOfProgram_cli():
 
 # <SCCreateISOFileWithObfuscatedFiles>
 
-def _private_adjust_folder_name(folder:str):
-    result = os.path.dirname(folder).replace("\\","/")
+def _private_adjust_folder_name(folder: str):
+    result = os.path.dirname(folder).replace("\\", "/")
     if result == "/":
         return ""
     else:
         return result
+
+
 def _private_create_iso(folder, iso_file):
     created_directories = []
     files_directory = "FILES"
@@ -1344,17 +1349,18 @@ def _private_create_iso(folder, iso_file):
             if not (path_in_iso in created_directories):
                 iso.add_directory(path_in_iso)
                 created_directories.append(path_in_iso)
-            iso.add_fp(BytesIO(content), len(content),path_in_iso + '/' + file.upper() + ';1')
+            iso.add_fp(BytesIO(content), len(content), path_in_iso + '/' + file.upper() + ';1')
     iso.write(iso_file)
     iso.close()
 
-def SCCreateISOFileWithObfuscatedFiles(inputfolder:str, outputfile:str,printtableheadline, createisofile, extensions):
+
+def SCCreateISOFileWithObfuscatedFiles(inputfolder: str, outputfile: str, printtableheadline, createisofile, extensions):
     if (os.path.isdir(inputfolder)):
         namemappingfile = "name_map.csv"
         files_directory = inputfolder
         files_directory_obf = files_directory + "_Obfuscated"
-        SCObfuscateFilesFolder(inputfolder,printtableheadline,namemappingfile ,extensions)
-        os.rename(namemappingfile, os.path.join(files_directory_obf,namemappingfile))
+        SCObfuscateFilesFolder(inputfolder, printtableheadline, namemappingfile, extensions)
+        os.rename(namemappingfile, os.path.join(files_directory_obf, namemappingfile))
         if createisofile:
             _private_create_iso(files_directory_obf, outputfile)
             shutil.rmtree(files_directory_obf)
@@ -1365,27 +1371,27 @@ def SCCreateISOFileWithObfuscatedFiles(inputfolder:str, outputfile:str,printtabl
 def SCCreateISOFileWithObfuscatedFiles_cli():
     parser = argparse.ArgumentParser(description='Creates an iso file with the files in the given folder and changes their names and hash-values. This script does not process subfolders transitively.')
 
-    parser.add_argument('--inputfolder', help='Specifies the foldere where the files are stored which should be added to the iso-file',required=True)
-    parser.add_argument('--outputfile', default="files.iso", help = 'Specifies the output-iso-file and its location')
-    parser.add_argument('--printtableheadline', default=False,action='store_true', help='Prints column-titles in the name-mapping-csv-file')
+    parser.add_argument('--inputfolder', help='Specifies the foldere where the files are stored which should be added to the iso-file', required=True)
+    parser.add_argument('--outputfile', default="files.iso", help='Specifies the output-iso-file and its location')
+    parser.add_argument('--printtableheadline', default=False, action='store_true', help='Prints column-titles in the name-mapping-csv-file')
     parser.add_argument('--createnoisofile', default=False, action='store_true', help="Create no iso file")
-    parser.add_argument('--extensions', default="exe,py,sh", help = 'Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
+    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
     args = parser.parse_args()
 
-    SCCreateISOFileWithObfuscatedFiles(args.inputfolder, args.outputfile, args.printtableheadline,not args.createnoisofile,args.extensions)
+    SCCreateISOFileWithObfuscatedFiles(args.inputfolder, args.outputfile, args.printtableheadline, not args.createnoisofile, args.extensions)
 
 
 # </SCCreateISOFileWithObfuscatedFiles>
 
 # <SCFilenameObfuscator>
 
-def SCFilenameObfuscator(inputfolder:str,printtableheadline,namemappingfile:str,extensions:str):
-    obfuscate_all_files=extensions=="*"
+def SCFilenameObfuscator(inputfolder: str, printtableheadline, namemappingfile: str, extensions: str):
+    obfuscate_all_files = extensions == "*"
     if(not obfuscate_all_files):
-        obfuscate_file_extensions=extensions.split(",")
+        obfuscate_file_extensions = extensions.split(",")
 
     if (os.path.isdir(inputfolder)):
-        printtableheadline=string_to_boolean(printtableheadline)
+        printtableheadline = string_to_boolean(printtableheadline)
         files = []
         if not os.path.isfile(namemappingfile):
             with open(namemappingfile, "a"):
@@ -1394,13 +1400,13 @@ def SCFilenameObfuscator(inputfolder:str,printtableheadline,namemappingfile:str,
             append_line_to_file(namemappingfile, "Original filename;new filename;SHA2-hash of file")
         for file in absolute_file_paths(inputfolder):
             if os.path.isfile(os.path.join(inputfolder, file)):
-                if obfuscate_all_files or _private_extension_matchs(file,obfuscate_file_extensions):
+                if obfuscate_all_files or _private_extension_matchs(file, obfuscate_file_extensions):
                     files.append(file)
         for file in files:
-            hash=get_sha256_of_file(file)
-            extension=pathlib.Path(file).suffix
-            new_file_name_without_path=str(uuid.uuid4())[0:8] + extension
-            new_file_name=os.path.join(os.path.dirname(file),new_file_name_without_path)
+            hash = get_sha256_of_file(file)
+            extension = pathlib.Path(file).suffix
+            new_file_name_without_path = str(uuid.uuid4())[0:8] + extension
+            new_file_name = os.path.join(os.path.dirname(file), new_file_name_without_path)
             os.rename(file, new_file_name)
             append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash)
     else:
@@ -1411,34 +1417,35 @@ def SCFilenameObfuscator_cli():
     parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
     parser.add_argument('--printtableheadline', type=string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
-    parser.add_argument('--namemappingfile', default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
-    parser.add_argument('--extensions', default="exe,py,sh", help = 'Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
-    parser.add_argument('--inputfolder', help='Specifies the foldere where the files are stored whose names should be obfuscated',required=True)
+    parser.add_argument('--namemappingfile', default="NameMapping.csv", help='Specifies the file where the name-mapping will be written to')
+    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
+    parser.add_argument('--inputfolder', help='Specifies the foldere where the files are stored whose names should be obfuscated', required=True)
 
     args = parser.parse_args()
-    SCFilenameObfuscator(args.inputfolder,args.printtableheadline,args.namemappingfile,args.extensions)
+    SCFilenameObfuscator(args.inputfolder, args.printtableheadline, args.namemappingfile, args.extensions)
 
 # </SCFilenameObfuscator>
 
 # <SCObfuscateFilesFolder>
 
-def SCObfuscateFilesFolder(inputfolder:str,printtableheadline,namemappingfile:str,extensions:str):
-    obfuscate_all_files=extensions=="*"
+
+def SCObfuscateFilesFolder(inputfolder: str, printtableheadline, namemappingfile: str, extensions: str):
+    obfuscate_all_files = extensions == "*"
     if(not obfuscate_all_files):
         if "," in extensions:
-            obfuscate_file_extensions=extensions.split(",")
+            obfuscate_file_extensions = extensions.split(",")
         else:
-            obfuscate_file_extensions=[extensions]
-    newd=inputfolder+"_Obfuscated"
+            obfuscate_file_extensions = [extensions]
+    newd = inputfolder+"_Obfuscated"
     shutil.copytree(inputfolder, newd)
-    inputfolder=newd
+    inputfolder = newd
     if (os.path.isdir(inputfolder)):
         for file in absolute_file_paths(inputfolder):
-            if obfuscate_all_files or _private_extension_matchs(file,obfuscate_file_extensions):
-                SCChangeHashOfProgram( file )
+            if obfuscate_all_files or _private_extension_matchs(file, obfuscate_file_extensions):
+                SCChangeHashOfProgram(file)
                 os.remove(file)
                 os.rename(file + ".modified", file)
-        SCFilenameObfuscator(inputfolder,printtableheadline,namemappingfile,extensions)
+        SCFilenameObfuscator(inputfolder, printtableheadline, namemappingfile, extensions)
     else:
         raise Exception(f"Directory not found: '{inputfolder}'")
 
@@ -1447,12 +1454,12 @@ def SCObfuscateFilesFolder_cli():
     parser = argparse.ArgumentParser(description='Changes the hash-value of the files in the given folder and renames them to obfuscated names. This script does not process subfolders transitively. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
     parser.add_argument('--printtableheadline', type=string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
-    parser.add_argument('--namemappingfile', default="NameMapping.csv", help = 'Specifies the file where the name-mapping will be written to')
-    parser.add_argument('--extensions', default="exe,py,sh", help = 'Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
+    parser.add_argument('--namemappingfile', default="NameMapping.csv", help='Specifies the file where the name-mapping will be written to')
+    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
     parser.add_argument('--inputfolder', help='Specifies the folder where the files are stored whose names should be obfuscated', required=True)
 
     args = parser.parse_args()
-    SCObfuscateFilesFolder(args.inputfolder,args.printtableheadline,args.namemappingfile,args.extensions)
+    SCObfuscateFilesFolder(args.inputfolder, args.printtableheadline, args.namemappingfile, args.extensions)
 
 # </SCObfuscateFilesFolder>
 
@@ -1460,11 +1467,13 @@ def SCObfuscateFilesFolder_cli():
 # <git>
 
 
-def get_parent_commit_ids_of_commit(self, commit_id:str):
+def get_parent_commit_ids_of_commit(self, commit_id: str):
     return execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', self._private_repository_folder)[1].replace("\r", "").replace("\n", "").split(" ")
+
 
 def _private_datetime_to_string_for_git(self, datetime: datetime.datetime):
     return datetime.strftime('%Y-%m-%d %H:%M:%S')
+
 
 def get_commit_ids_between_dates(self, since: datetime, until: datetime):
     since_as_string = self._private_datetime_to_string_for_git(since)
@@ -1971,6 +1980,17 @@ def _private_load_text(file: str):
         return ""
 
 
+def append_line_to_file(file: str, line: str, encoding: str = "utf-8"):
+    if(not file_is_empty(file)):
+        line = os.linesep+line
+    append_to_file(file, line, encoding)
+
+
+def append_to_file(file: str, content: str, encoding: str = "utf-8"):
+    with open(file, "a", encoding=encoding) as fileObject:
+        fileObject.write(content)
+
+
 def ensure_directory_exists(path: str):
     if(not os.path.isdir(path)):
         os.makedirs(path)
@@ -2223,11 +2243,10 @@ def get_ScriptCollection_version():
     return version
 
 
-def _private_extension_matchs(file:str,obfuscate_file_extensions):
+def _private_extension_matchs(file: str, obfuscate_file_extensions):
     for extension in obfuscate_file_extensions:
         if file.lower().endswith("."+extension.lower()):
             return True
     return False
-	
-# </miscellaneous>
 
+# </miscellaneous>

@@ -1,6 +1,6 @@
 from ScriptCollection.core import get_ScriptCollection_version, string_is_none_or_whitespace, string_is_none_or_empty, write_lines_to_file, read_lines_from_file, SCOrganizeLinesInFile
-import pytest
 import os
+import pytest
 import unittest
 
 testfileprefix = "testfile_"
