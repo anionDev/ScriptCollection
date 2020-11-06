@@ -1,14 +1,17 @@
 #! /bin/bash
+# After execution usually the following paths will be used:
+# TODO (configuration)
+# TODO (logs)
 pushd $(dirname $0)
 ../Common/AptUpdate.sh
-apt-get -y install php7.0
-apt-get -y install php7.0-mysql
-apt-get -y install php7.0-mcrypt
-apt-get -y install libapache2-mod-php7.0
-apt-get -y install php7.0-curl
-apt-get -y install php7.0-json
-apt-get -y install php7.0-cgi
-apt-get -y install php7.0-xml
-apt-get -y install sendmail
-./PHPHardening.sh
+sudo apt-get -y install php7.0
+sudo apt-get -y install php7.0-mysql
+sudo apt-get -y install php7.0-mcrypt
+sudo apt-get -y install libapache2-mod-php7.0
+sudo apt-get -y install php7.0-curl
+sudo apt-get -y install php7.0-json
+sudo apt-get -y install php7.0-cgi
+sudo apt-get -y install php7.0-xml
+sudo apt-get -y install sendmail
+sudo ./PHPHardening.sh
 popd

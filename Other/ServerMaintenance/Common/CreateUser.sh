@@ -1,8 +1,9 @@
 #! /bin/bash
 # This script is intended to be run as root
 pushd $(dirname $0)
-sudo ../Common/AptUpdate.sh
+../Common/AptUpdate.sh
 useradd -m -d /userhome user
-apt-get install -y sudo
+apt-get -y install sudo
 sudo adduser user sudo
+echo "user ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
 popd
