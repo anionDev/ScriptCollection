@@ -490,6 +490,29 @@ def SCDotNetsign_cli():
 
 # </SCDotNetsign>
 
+# <SCDebCreateInstallerRelease>
+
+
+def SCDebCreateInstallerRelease(configurationfile: str):
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    write_message_to_stderr("Not implemented yet")
+    return 1
+
+
+def SCDebCreateInstallerRelease_cli():
+    parser = argparse.ArgumentParser(description="""SCDebCreateInstallerRelease_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""", formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    return SCDebCreateInstallerRelease(args.configurationfile)
+
+# </SCDebCreateInstallerRelease>
+
 # <SCPythonCreateWheelRelease>
 
 

@@ -53,6 +53,7 @@ setup(
             f"SCCreateHashOfAllFiles = {productname}.core:SCCreateHashOfAllFiles_cli",
             f"SCCreateISOFileWithObfuscatedFiles = {productname}.core:SCCreateISOFileWithObfuscatedFiles_cli",
             f"SCCreateRelease = {productname}.core:SCCreateRelease_cli",
+            f"SCDebCreateInstallerRelease = {productname}.core:SCDebCreateInstallerRelease_cli",
             f"SCDotNetBuild = {productname}.core:SCDotNetBuild_cli",
             f"SCDotNetBuildExecutableAndRunTests = {productname}.core:SCDotNetBuildExecutableAndRunTests_cli",
             f"SCDotNetBuildNugetAndRunTests = {productname}.core:SCDotNetBuildNugetAndRunTests_cli",
