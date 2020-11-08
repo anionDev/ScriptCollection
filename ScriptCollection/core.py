@@ -1905,7 +1905,7 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, use_epew: bool = False):
+def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, use_epew: bool = False, write_output_to_standard_output:bool = True):
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
     if (use_epew):
@@ -1960,10 +1960,11 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         stdout = bytes_to_string(stdout).replace('\r', '')
         stderr = bytes_to_string(stderr).replace('\r', '')
 
-        for line in stdout.splitlines():
-            write_message_to_stdout(line)
-        for line in stderr.splitlines():
-            write_message_to_stderr(line)
+        if write_output_to_standard_output:
+            for line in stdout.splitlines():
+                write_message_to_stdout(line)
+            for line in stderr.splitlines():
+                write_message_to_stderr(line)
 
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
