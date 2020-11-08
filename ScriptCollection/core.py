@@ -1596,7 +1596,8 @@ def git_discard_all_unstaged_changes(directory: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
 
-def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True):
+def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits:bool=False):
+    do_commit=False
     if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
         if stage_all_changes:
@@ -1605,9 +1606,17 @@ def git_commit(directory: str, message: str, author_name: str = None, author_ema
             author = f' --author="{author_name} <{author_email}>"'
         else:
             author = ""
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}', directory, 600, 1, False, "Commit", False)
+        do_commit=True
+        allowempty=""
     else:
-        write_message_to_stdout(f"There are no changes to commit in {directory}")
+        if allow_empty_commits:
+            do_commit=True
+            allowempty=" --allow-empty"
+        else:
+            write_message_to_stdout(f"There are no changes to commit in {directory}")
+    if do_commit:
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}{allowempty}', directory, 600, 1, False, "Commit", False)
+        
     return git_get_current_commit_id(directory)
 
 
