@@ -36,7 +36,7 @@ import uuid
 import xml.dom.minidom
 
 
-version = "1.12.51"
+version = "1.12.52"
 __version__ = version
 
 # <Build>
@@ -48,7 +48,7 @@ def SCCreateRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     error_occurred = False
-    prepare = configparser.getboolean('general', 'prepare')
+    prepare = get_buildscript_config_boolean_value(configparser,'general', 'prepare')
     repository_version = get_version_for_buildscripts(configparser)
     repository = get_buildscript_config_item(configparser, "general", "repository")
     write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
@@ -69,13 +69,17 @@ def SCCreateRelease(configurationfile: str):
 
     try:
 
-        if configparser.getboolean('general', 'createdotnetrelease') and not error_occurred:
-            write_message_to_stdout(f"Start to craete .NET-release")
+        if get_buildscript_config_boolean_value(configparser,'general', 'createdotnetrelease') and not error_occurred:
+            write_message_to_stdout(f"Start to create .NET-release")
             error_occurred = private_create_dotnet_release(configurationfile) != 0
 
-        if configparser.getboolean('general', 'createpythonrelease') and not error_occurred:
-            write_message_to_stdout(f"Start to craete Python-release")
+        if get_buildscript_config_boolean_value(configparser,'general', 'createpythonrelease') and not error_occurred:
+            write_message_to_stdout(f"Start to create Python-release")
             error_occurred = SCPythonCreateWheelRelease(configurationfile) != 0
+
+        if get_buildscript_config_boolean_value(configparser,'general', 'createdebrelease') and not error_occurred:
+            write_message_to_stdout(f"Start to create Deb-release")
+            # error_occurred = SCDebCreateInstallerRelease(configurationfile) != 0
 
     except Exception as exception:
         error_occurred = True
@@ -97,7 +101,7 @@ def SCCreateRelease(configurationfile: str):
             commit_id = git_commit(repository, "Merge branch '" + get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '"+get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
             git_create_tag(repository, commit_id, get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
             git_merge(repository, get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
-            if configparser.getboolean('other', 'exportrepository'):
+            if get_buildscript_config_boolean_value(configparser,'other', 'exportrepository'):
                 branch = get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
                 git_push(repository, get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
             git_commit(get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+get_buildscript_config_item(configparser, 'general', 'productname')+" "+get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
@@ -124,7 +128,7 @@ Requires the requirements of: TODO
 def SCDotNetBuildExecutableAndRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('other', 'hastestproject'):
+    if get_buildscript_config_boolean_value(configparser,'other', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
     for runtime in get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
         SCDotNetBuild(_private_get_csprojfile_folder(configparser), _private_get_csprojfile_filename(configparser), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime,
@@ -155,7 +159,7 @@ def SCDotNetCreateExecutableRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     repository_version = get_version_for_buildscripts(configparser)
-    if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
+    if get_buildscript_config_boolean_value(configparser,'dotnet', 'updateversionsincsprojfile'):
         update_version_in_csproj_file(get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), repository_version)
 
     build_and_tests_were_successful = False
@@ -195,7 +199,7 @@ def SCDotNetCreateNugetRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     repository_version = get_version_for_buildscripts(configparser)
-    if configparser.getboolean('dotnet', 'updateversionsincsprojfile'):
+    if get_buildscript_config_boolean_value(configparser,'dotnet', 'updateversionsincsprojfile'):
         update_version_in_csproj_file(get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), repository_version)
 
     build_and_tests_were_successful = False
@@ -259,7 +263,7 @@ _private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
 def SCDotNetBuildNugetAndRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('other', 'hastestproject'):
+    if get_buildscript_config_boolean_value(configparser,'other', 'hastestproject'):
         SCDotNetRunTests(configurationfile)
     for runtime in get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
         SCDotNetBuild(_private_get_csprojfile_folder(configparser), _private_get_csprojfile_filename(configparser), _private_get_buildoutputdirectory(configparser, runtime), get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime,
@@ -297,7 +301,7 @@ Requires the requirements of: TODO
 def SCDotNetReleaseNuget(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('other', 'verbose'):
+    if get_buildscript_config_boolean_value(configparser,'other', 'verbose'):
         verbose_argument = 2
     else:
         verbose_argument = 1
@@ -308,7 +312,7 @@ def SCDotNetReleaseNuget(configurationfile: str):
         execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory, 3600, verbose_argument)
     for localnugettargetrepository in get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
         git_commit(localnugettargetrepository,  f"Added {get_buildscript_config_item(configparser,'general','productname')} .NET-release {get_buildscript_config_item(configparser,'prepare','gittagprefix')}{repository_version}")
-    if (configparser.getboolean('dotnet', 'publishnugetfile')):
+    if (get_buildscript_config_boolean_value(configparser,'dotnet', 'publishnugetfile')):
         with open(get_buildscript_config_item(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
             api_key = apikeyfile.read()
         nugetsource = get_buildscript_config_item(configparser, 'dotnet', 'nugetsource')
@@ -335,8 +339,8 @@ Requires the requirements of: TODO
 def SCDotNetReference(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('dotnet', 'generatereference'):
-        if configparser.getboolean('other', 'verbose'):
+    if get_buildscript_config_boolean_value(configparser,'dotnet', 'generatereference'):
+        if get_buildscript_config_boolean_value(configparser,'other', 'verbose'):
             verbose_argument_for_reportgenerator = "-verbosity:Verbose"
             verbose_argument = 2
         else:
@@ -352,7 +356,7 @@ def SCDotNetReference(configurationfile: str):
         shutil.copyfile(_private_get_test_csprojfile_folder(configparser)+os.path.sep+_private_get_coverage_filename(configparser), coverage_target_file)
         execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", f'-reports:"{_private_get_coverage_filename(configparser)}" -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}', coveragefolder, 3600, verbose_argument)
         git_commit(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
-        if configparser.getboolean('dotnet', 'exportreference'):
+        if get_buildscript_config_boolean_value(configparser,'dotnet', 'exportreference'):
             git_push(get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
     return 0
 
@@ -428,7 +432,7 @@ def SCDotNetRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
-    if configparser.getboolean('other', 'verbose'):
+    if get_buildscript_config_boolean_value(configparser,'other', 'verbose'):
         verbose_argument_for_dotnet = "detailed"
         verbose_argument = 2
     else:
@@ -486,6 +490,29 @@ def SCDotNetsign_cli():
 
 # </SCDotNetsign>
 
+# <SCDebCreateInstallerRelease>
+
+
+def SCDebCreateInstallerRelease(configurationfile: str):
+    configparser = ConfigParser()
+    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+    write_message_to_stderr("Not implemented yet")
+    return 1
+
+
+def SCDebCreateInstallerRelease_cli():
+    parser = argparse.ArgumentParser(description="""SCDebCreateInstallerRelease_cli:
+Description: TODO
+Required commandline-commands: TODO
+Required configuration-items: TODO
+Requires the requirements of: TODO
+""", formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("configurationfile")
+    args = parser.parse_args()
+    return SCDebCreateInstallerRelease(args.configurationfile)
+
+# </SCDebCreateInstallerRelease>
+
 # <SCPythonCreateWheelRelease>
 
 
@@ -493,7 +520,7 @@ def SCPythonCreateWheelRelease(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     repository_version = get_version_for_buildscripts(configparser)
-    if(configparser.getboolean('python', 'updateversion')):
+    if(get_buildscript_config_boolean_value(configparser,'python', 'updateversion')):
         for file in get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
             replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
     try:
@@ -582,7 +609,7 @@ Requires the requirements of: TODO
 def SCPythonRunTests(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('other', 'hastestproject'):
+    if get_buildscript_config_boolean_value(configparser,'other', 'hastestproject'):
         pythontestfile = get_buildscript_config_item(configparser, 'python', 'pythontestfile')
         pythontestfilename = os.path.basename(pythontestfile)
         pythontestfilefolder = os.path.dirname(pythontestfile)
@@ -609,13 +636,13 @@ Requires the requirements of: TODO
 def SCPythonReleaseWheel(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('python', 'publishwhlfile'):
+    if get_buildscript_config_boolean_value(configparser,'python', 'publishwhlfile'):
         with open(get_buildscript_config_item(configparser, 'python', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
             api_key = apikeyfile.read()
         gpgidentity = get_buildscript_config_item(configparser, 'other', 'gpgidentity')
         repository_version = get_version_for_buildscripts(configparser)
         productname = get_buildscript_config_item(configparser, 'general', 'productname')
-        if configparser.getboolean('other', 'verbose'):
+        if get_buildscript_config_boolean_value(configparser,'other', 'verbose'):
             verbose_argument = "--verbose"
         else:
             verbose_argument = ""
@@ -641,14 +668,14 @@ Requires the requirements of: TODO
 
 
 def _private_get_verbosity_for_exuecutor(configparser: ConfigParser):
-    if configparser.getboolean('other', 'verbose'):
+    if get_buildscript_config_boolean_value(configparser,'other', 'verbose'):
         return 2
     else:
         return 1
 
 
 def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
-    if configparser.getboolean('other', 'verbose'):
+    if get_buildscript_config_boolean_value(configparser,'other', 'verbose'):
         for item in queried_items:
             if "<notavailable>" in item:
                 write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
@@ -657,10 +684,16 @@ def _private_verbose_check_for_not_available_item(configparser: ConfigParser, qu
 
 def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime: str):
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
-    if configparser.getboolean('dotnet', 'separatefolderforeachruntime'):
+    if get_buildscript_config_boolean_value(configparser,'dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
     return result
 
+
+def get_buildscript_config_boolean_value(configparser: ConfigParser, section: str, propertyname: str):
+    try:
+        return configparser.getboolean(section, propertyname)
+    except:
+        return False
 
 def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True):
     result = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
@@ -796,7 +829,7 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
 def private_create_dotnet_release(configurationfile: str):
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    if configparser.getboolean('dotnet', 'createexe'):
+    if get_buildscript_config_boolean_value(configparser,'dotnet', 'createexe'):
         return SCDotNetCreateExecutableRelease(configurationfile)
     else:
         return SCDotNetCreateNugetRelease(configurationfile)
@@ -1467,19 +1500,18 @@ def SCObfuscateFilesFolder_cli():
 # <git>
 
 
-def get_parent_commit_ids_of_commit(self, commit_id: str):
-    return execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', self._private_repository_folder)[1].replace("\r", "").replace("\n", "").split(" ")
+def get_parent_commit_ids_of_commit(directory: str,commit_id:str):
+    return execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', directory)[1].replace("\r", "").replace("\n", "").split(" ")
 
 
-def _private_datetime_to_string_for_git(self, datetime: datetime.datetime):
+def _private_datetime_to_string_for_git(datetime: datetime.datetime):
     return datetime.strftime('%Y-%m-%d %H:%M:%S')
 
 
-def get_commit_ids_between_dates(self, since: datetime, until: datetime):
-    since_as_string = self._private_datetime_to_string_for_git(since)
-    until_as_string = self._private_datetime_to_string_for_git(until)
-    return filter(lambda line: not string_is_none_or_whitespace(line), execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', self._private_repository_folder)[1].split("\n").replace("\r", ""))
-
+def get_commit_ids_between_dates(directory: str, since: datetime, until: datetime):
+    since_as_string = _private_datetime_to_string_for_git(since)
+    until_as_string = _private_datetime_to_string_for_git(until)
+    return filter(lambda line: not string_is_none_or_whitespace(line), execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', directory)[1].split("\n").replace("\r", ""))
 
 def git_repository_has_new_untracked_files(repository_folder: str):
     return _private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
@@ -1597,7 +1629,8 @@ def git_discard_all_unstaged_changes(directory: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
 
-def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True):
+def git_commit(directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits:bool=False):
+    do_commit=False
     if (git_repository_has_uncommitted_changes(directory)):
         write_message_to_stdout(f"Committing all changes in {directory}...")
         if stage_all_changes:
@@ -1606,9 +1639,17 @@ def git_commit(directory: str, message: str, author_name: str = None, author_ema
             author = f' --author="{author_name} <{author_email}>"'
         else:
             author = ""
-        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}', directory, 600, 1, False, "Commit", False)
+        do_commit=True
+        allowempty=""
     else:
-        write_message_to_stdout(f"There are no changes to commit in {directory}")
+        if allow_empty_commits:
+            do_commit=True
+            allowempty=" --allow-empty"
+        else:
+            write_message_to_stdout(f"There are no changes to commit in {directory}")
+    if do_commit:
+        execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}{allowempty}', directory, 600, 1, False, "Commit", False)
+        
     return git_get_current_commit_id(directory)
 
 
@@ -1906,15 +1947,17 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, use_epew: bool = False):
+def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, use_epew: bool = False, write_output_to_standard_output:bool = True):
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
     if (use_epew):
         raise Exception("start_program_synchronously using epew is not implemented yet")
         # if string_is_none_or_whitespace(title):
         #     title_for_message = ""
+        #     title_argument = '{workingdirectory}>{program} {arguments}'
         # else:
         #     title_for_message = f"for task '{title}' "
+        #     title_argument = title
         # title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
         # output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
         # output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
@@ -1939,7 +1982,7 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         # if not string_is_none_or_whitespace(log_file):
         #     argument = argument+" --LogFile "+'"'+log_file+'"'
         # argument = argument+" --TimeoutInMilliseconds "+str(timeoutInSeconds*1000)
-        # argument = argument+' --Title "'+program+'"'
+        # argument = argument + ' --Title "'+title_argument+'"'
         # argument = argument.replace('"', '\\"')
         # process = Popen("epew"+argument)
         # exit_code = process.wait()
@@ -1959,10 +2002,11 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         stdout = bytes_to_string(stdout).replace('\r', '')
         stderr = bytes_to_string(stderr).replace('\r', '')
 
-        for line in stdout.splitlines():
-            write_message_to_stdout(line)
-        for line in stderr.splitlines():
-            write_message_to_stderr(line)
+        if write_output_to_standard_output:
+            for line in stdout.splitlines():
+                write_message_to_stdout(line)
+            for line in stderr.splitlines():
+                write_message_to_stderr(line)
 
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
