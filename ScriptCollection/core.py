@@ -36,7 +36,7 @@ import uuid
 import xml.dom.minidom
 
 
-version = "1.12.52"
+version = "1.12.53"
 __version__ = version
 
 # <Build>
@@ -1649,7 +1649,7 @@ def git_commit(directory: str, message: str, author_name: str = None, author_ema
             write_message_to_stdout(f"There are no changes to commit in {directory}")
     if do_commit:
         execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}{allowempty}', directory, 600, 1, False, "Commit", False)
-        
+
     return git_get_current_commit_id(directory)
 
 
@@ -1803,7 +1803,7 @@ def read_lines_from_file(file: str, encoding="utf-8"):
 
 
 def read_text_from_file(file: str, encoding="utf-8"):
-    return read_binary_from_file(file).decode(encoding)
+    return bytes_to_string(read_binary_from_file(file), encoding)
 
 
 def read_binary_from_file(file: str):
@@ -1900,8 +1900,8 @@ def get_time_based_logfile_by_folder(folder: str, name: str = "Log"):
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
 
-def bytes_to_string(bytes: bytes, encoding: str = 'utf-8'):
-    return bytes.decode(encoding, errors="ignore")
+def bytes_to_string(payload: bytes, encoding: str = 'utf-8'):
+    return payload.decode(encoding, errors="ignore")
 
 
 def epew_is_available():
