@@ -80,11 +80,7 @@ def SCCreateRelease(configurationfile: str) -> int:
 
         if get_buildscript_config_boolean_value(configparser, 'general', 'createdebrelease') and not error_occurred:
             write_message_to_stdout(f"Start to create Deb-release")
-            error_occurred = SCDebCreateInstallerRelease(configurationfile) != 0
-
-        if get_buildscript_config_boolean_value(configparser, 'general', 'createwingetrelease') and not error_occurred:
-            write_message_to_stdout(f"Start to create Winget-release")
-            error_occurred = SCWingetCreateInstallerRelease(configurationfile) != 0
+            # error_occurred = SCDebCreateInstallerRelease(configurationfile) != 0
 
     except Exception as exception:
         error_occurred = True
@@ -518,31 +514,6 @@ Requires the requirements of: TODO
     return SCDebCreateInstallerRelease(args.configurationfile)
 
 # </SCDebCreateInstallerRelease>
-
-
-# <SCWingetCreateInstallerRelease>
-
-
-def SCWingetCreateInstallerRelease(configurationfile: str) -> int:
-    configparser = ConfigParser()
-    configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-    write_message_to_stderr("Not implemented yet")
-    return 1
-
-
-def SCWingetCreateInstallerRelease_cli() -> int:
-    parser = argparse.ArgumentParser(description="""SCWingetCreateInstallerRelease_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return SCWingetCreateInstallerRelease(args.configurationfile)
-
-# </SCWingetCreateInstallerRelease>
-
 
 # <SCPythonCreateWheelRelease>
 
