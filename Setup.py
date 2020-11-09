@@ -4,13 +4,13 @@ import os
 from pathlib import Path
 
 productname = "ScriptCollection"
-version = "1.12.53"
+version = "1.12.54"
 
 packages = [package for package in find_packages() if not package.endswith("Tests")]
 
 folder_of_current_file = os.path.dirname(os.path.realpath(__file__))
-with open(str(Path(os.path.join(folder_of_current_file, f"ReadMe.md")).resolve()), "r", encoding='utf-8') as f:
-    long_description = f.read()
+with open(str(Path(os.path.join(folder_of_current_file, f"ReadMe.md")).resolve()), "r", encoding='utf-8') as file:
+    long_description = file.read()
 
 setup(
     name=productname,
