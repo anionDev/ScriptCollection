@@ -126,7 +126,7 @@ Requires the requirements of: TODO
 # <SCDotNetBuildExecutableAndRunTests>
 
 
-def SCDotNetBuildExecutableAndRunTests(configurationfile: str)->int:
+def SCDotNetBuildExecutableAndRunTests(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
@@ -140,7 +140,7 @@ def SCDotNetBuildExecutableAndRunTests(configurationfile: str)->int:
     return 0
 
 
-def SCDotNetBuildExecutableAndRunTests_cli()->int:
+def SCDotNetBuildExecutableAndRunTests_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetBuildExecutableAndRunTests_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -156,7 +156,7 @@ Requires the requirements of: TODO
 # <SCDotNetCreateExecutableRelease>
 
 
-def SCDotNetCreateExecutableRelease(configurationfile: str)->int:
+def SCDotNetCreateExecutableRelease(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     repository_version = get_version_for_buildscripts(configparser)
@@ -180,7 +180,7 @@ def SCDotNetCreateExecutableRelease(configurationfile: str)->int:
         return 1
 
 
-def SCDotNetCreateExecutableRelease_cli()->int:
+def SCDotNetCreateExecutableRelease_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetCreateExecutableRelease_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -196,7 +196,7 @@ Requires the requirements of: TODO
 # <SCDotNetCreateNugetRelease>
 
 
-def SCDotNetCreateNugetRelease(configurationfile: str)->int:
+def SCDotNetCreateNugetRelease(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     repository_version = get_version_for_buildscripts(configparser)
@@ -221,7 +221,7 @@ def SCDotNetCreateNugetRelease(configurationfile: str)->int:
         return 1
 
 
-def SCDotNetCreateNugetRelease_cli()->int:
+def SCDotNetCreateNugetRelease_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetCreateNugetRelease_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -261,7 +261,7 @@ _private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
 </package>"""
 
 
-def SCDotNetBuildNugetAndRunTests(configurationfile: str)->int:
+def SCDotNetBuildNugetAndRunTests(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
@@ -283,7 +283,7 @@ def SCDotNetBuildNugetAndRunTests(configurationfile: str)->int:
     return 0
 
 
-def SCDotNetBuildNugetAndRunTests_cli()->int:
+def SCDotNetBuildNugetAndRunTests_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetBuildNugetAndRunTests_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -299,7 +299,7 @@ Requires the requirements of: TODO
 # <SCDotNetReleaseNuget>
 
 
-def SCDotNetReleaseNuget(configurationfile: str)->int:
+def SCDotNetReleaseNuget(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
@@ -321,7 +321,7 @@ def SCDotNetReleaseNuget(configurationfile: str)->int:
     return 0
 
 
-def SCDotNetReleaseNuget_cli()->int:
+def SCDotNetReleaseNuget_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetReleaseNuget_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -337,7 +337,7 @@ Requires the requirements of: TODO
 # <SCDotNetReference>
 
 
-def SCDotNetReference(configurationfile: str)->int:
+def SCDotNetReference(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if get_buildscript_config_boolean_value(configparser, 'dotnet', 'generatereference'):
@@ -362,7 +362,7 @@ def SCDotNetReference(configurationfile: str)->int:
     return 0
 
 
-def SCDotNetReference_cli()->int:
+def SCDotNetReference_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetReference_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -378,7 +378,7 @@ Requires the requirements of: TODO
 # <SCDotNetBuild>
 
 
-def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotNetFramework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None)->int:
+def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotNetFramework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None) -> int:
     # TODO find a good way to include the merge-commit-id into the build
     if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
         shutil.rmtree(outputDirectory)
@@ -402,7 +402,7 @@ def SCDotNetBuild(folderOfCsprojFile: str, csprojFilename: str, outputDirectory:
     return 0
 
 
-def SCDotNetBuild_cli()->int:
+def SCDotNetBuild_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetRunTests_cli:
 Description: Builds a DotNet-project by a given .csproj-file.
 Required commandline-commands: dotnet
@@ -429,7 +429,7 @@ Requires the requirements of: TODO""")
 # TODO remove the call to SCDotNetBuild
 
 
-def SCDotNetRunTests(configurationfile: str)->int:
+def SCDotNetRunTests(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     runtime = get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
@@ -445,7 +445,7 @@ def SCDotNetRunTests(configurationfile: str)->int:
     return 0
 
 
-def SCDotNetRunTests_cli()->int:
+def SCDotNetRunTests_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetRunTests_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -461,7 +461,7 @@ Requires the requirements of: TODO
 # <SCDotNetsign>
 
 
-def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool)->int:
+def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool) -> int:
     dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
     snkfile = resolve_relative_path_from_current_working_directory(snkfile)
     directory = os.path.dirname(dllOrExeFile)
@@ -481,7 +481,7 @@ def SCDotNetsign(dllOrExefile: str, snkfile: str, verbose: bool)->int:
     return 0
 
 
-def SCDotNetsign_cli()->int:
+def SCDotNetsign_cli() -> int:
     parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
     parser.add_argument("dllOrExefile")
     parser.add_argument("snkfile")
@@ -494,14 +494,14 @@ def SCDotNetsign_cli()->int:
 # <SCDebCreateInstallerRelease>
 
 
-def SCDebCreateInstallerRelease(configurationfile: str)->int:
+def SCDebCreateInstallerRelease(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     write_message_to_stderr("Not implemented yet")
     return 1
 
 
-def SCDebCreateInstallerRelease_cli()->int:
+def SCDebCreateInstallerRelease_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDebCreateInstallerRelease_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -517,7 +517,7 @@ Requires the requirements of: TODO
 # <SCPythonCreateWheelRelease>
 
 
-def SCPythonCreateWheelRelease(configurationfile: str)->int:
+def SCPythonCreateWheelRelease(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     repository_version = get_version_for_buildscripts(configparser)
@@ -539,7 +539,7 @@ def SCPythonCreateWheelRelease(configurationfile: str)->int:
         return 1
 
 
-def SCPythonCreateWheelRelease_cli()->int:
+def SCPythonCreateWheelRelease_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCPythonCreateWheelRelease_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -555,13 +555,13 @@ Requires the requirements of: TODO
 # <SCPythonBuildWheelAndRunTests>
 
 
-def SCPythonBuildWheelAndRunTests(configurationfile: str)->int:
+def SCPythonBuildWheelAndRunTests(configurationfile: str) -> int:
     SCPythonRunTests(configurationfile)
     SCPythonBuild(configurationfile)
     return 0
 
 
-def SCPythonBuildWheelAndRunTests_cli()->int:
+def SCPythonBuildWheelAndRunTests_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCPythonBuildWheelAndRunTests_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -577,7 +577,7 @@ Requires the requirements of: TODO
 # <SCPythonBuild>
 
 
-def SCPythonBuild(configurationfile: str)->int:
+def SCPythonBuild(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     for folder in get_buildscript_config_items(configparser, "python", "deletefolderbeforcreatewheel"):
@@ -591,7 +591,7 @@ def SCPythonBuild(configurationfile: str)->int:
     return 0
 
 
-def SCPythonBuild_cli()->int:
+def SCPythonBuild_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCPythonBuild_cli:
 Description: TODO
 Required commandline-commands: TODO
@@ -607,7 +607,7 @@ Requires the requirements of: TODO
 # <SCPythonRunTests>
 
 
-def SCPythonRunTests(configurationfile: str)->int:
+def SCPythonRunTests(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
@@ -618,7 +618,7 @@ def SCPythonRunTests(configurationfile: str)->int:
     return 0
 
 
-def SCPythonRunTests_cli()->int:
+def SCPythonRunTests_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCPythonRunTests_cli:
 Description: Executes python-unit-tests.
 Required commandline-commands: TODO
@@ -634,7 +634,7 @@ Requires the requirements of: TODO
 # <SCPythonReleaseWheel>
 
 
-def SCPythonReleaseWheel(configurationfile: str)->int:
+def SCPythonReleaseWheel(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if get_buildscript_config_boolean_value(configparser, 'python', 'publishwhlfile'):
@@ -652,7 +652,7 @@ def SCPythonReleaseWheel(configurationfile: str)->int:
     return 0
 
 
-def SCPythonReleaseWheel_cli()->int:
+def SCPythonReleaseWheel_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCPythonReleaseWheel_cli:
 Description: Uploads a .whl-file using twine.
 Required commandline-commands: TODO
@@ -668,7 +668,7 @@ Requires the requirements of: TODO
 # <Helper>
 
 
-def _private_get_verbosity_for_exuecutor(configparser: ConfigParser)->int:
+def _private_get_verbosity_for_exuecutor(configparser: ConfigParser) -> int:
     if get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
         return 2
     else:
@@ -683,27 +683,27 @@ def _private_verbose_check_for_not_available_item(configparser: ConfigParser, qu
                 print_stacktrace()
 
 
-def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime: str)->str:
+def _private_get_buildoutputdirectory(configparser: ConfigParser, runtime: str) -> str:
     result = get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
     if get_buildscript_config_boolean_value(configparser, 'dotnet', 'separatefolderforeachruntime'):
         result = result+os.path.sep+runtime
     return result
 
 
-def get_buildscript_config_boolean_value(configparser: ConfigParser, section: str, propertyname: str)->bool:
+def get_buildscript_config_boolean_value(configparser: ConfigParser, section: str, propertyname: str) -> bool:
     try:
         return configparser.getboolean(section, propertyname)
     except:
         return False
 
 
-def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True)->str:
+def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> str:
     result = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
     _private_verbose_check_for_not_available_item(configparser, [result], section, propertyname)
     return result
 
 
-def get_buildscript_config_items(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True)->list:
+def get_buildscript_config_items(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> list:
     itemlist_as_string = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
     if not string_has_content(itemlist_as_string):
         return []
@@ -715,44 +715,44 @@ def get_buildscript_config_items(configparser: ConfigParser, section: str, prope
     return result
 
 
-def _private_get_csprojfile_filename(configparser: ConfigParser)->str:
+def _private_get_csprojfile_filename(configparser: ConfigParser) -> str:
     file = get_buildscript_config_item(configparser, "dotnet", "csprojfile")
     file = resolve_relative_path_from_current_working_directory(file)
     result = os.path.basename(file)
     return result
 
 
-def _private_get_test_csprojfile_filename(configparser: ConfigParser)->str:
+def _private_get_test_csprojfile_filename(configparser: ConfigParser) -> str:
     file = get_buildscript_config_item(configparser, "dotnet", "testcsprojfile")
     file = resolve_relative_path_from_current_working_directory(file)
     result = os.path.basename(file)
     return result
 
 
-def _private_get_csprojfile_folder(configparser: ConfigParser)->str:
+def _private_get_csprojfile_folder(configparser: ConfigParser) -> str:
     file = get_buildscript_config_item(configparser, "dotnet", "csprojfile")
     file = resolve_relative_path_from_current_working_directory(file)
     result = os.path.dirname(file)
     return result
 
 
-def _private_get_test_csprojfile_folder(configparser: ConfigParser)->str:
+def _private_get_test_csprojfile_folder(configparser: ConfigParser) -> str:
     file = get_buildscript_config_item(configparser, "dotnet", "testcsprojfile")
     file = resolve_relative_path_from_current_working_directory(file)
     result = os.path.dirname(file)
     return result
 
 
-def _private_get_coverage_filename(configparser: ConfigParser)->str:
+def _private_get_coverage_filename(configparser: ConfigParser) -> str:
     return get_buildscript_config_item(configparser, "general", "productname")+".TestCoverage.opencover.xml"
 
 
-def get_version_for_buildscripts(configparser: ConfigParser)->str:
+def get_version_for_buildscripts(configparser: ConfigParser) -> str:
     return get_version_for_buildscripts_helper(get_buildscript_config_item(configparser, 'general', 'repository', {}, False))
 
 
 @lru_cache(maxsize=None)
-def get_version_for_buildscripts_helper(folder: str)->str:
+def get_version_for_buildscripts_helper(folder: str) -> str:
     return get_semver_version_from_gitversion(folder)
 
 
@@ -764,7 +764,7 @@ def _private_replace_underscore_in_file_for_buildconfiguration(file: str, config
         f.write(text)
 
 
-def _private_replace_underscores_for_buildconfiguration(string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True)->str:
+def _private_replace_underscores_for_buildconfiguration(string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True) -> str:
     replacements["year"] = str(datetime.datetime.now().year)
     if include_version:
         replacements["version"] = get_version_for_buildscripts(configparser)
@@ -828,7 +828,7 @@ def _private_replace_underscores_for_buildconfiguration(string: str, configparse
     return result
 
 
-def private_create_dotnet_release(configurationfile: str)->int:
+def private_create_dotnet_release(configurationfile: str) -> int:
     configparser = ConfigParser()
     configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
     if get_buildscript_config_boolean_value(configparser, 'dotnet', 'createexe'):
@@ -844,7 +844,7 @@ def private_create_dotnet_release(configurationfile: str)->int:
 # <SCGenerateThumbnail>
 
 
-def _private_calculate_lengh_in_seconds(filename: str, folder: str)->float:
+def _private_calculate_lengh_in_seconds(filename: str, folder: str) -> float:
     argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
     return float(execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, folder)[1])
 
@@ -862,7 +862,7 @@ def _private_create_thumbnail(outputfilename: str, folder: str, length_in_second
     execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
 
-def SCGenerateThumbnail(file: str)->int:
+def SCGenerateThumbnail(file: str) -> int:
     tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
     amount_of_images = 16
@@ -877,7 +877,7 @@ def SCGenerateThumbnail(file: str)->int:
         _private_create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails)
         return 0
     except Exception as exception:
-        write_exception_to_stderr_with_traceback(exception,traceback)
+        write_exception_to_stderr_with_traceback(exception, traceback)
         return 1
     finally:
         for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
@@ -885,8 +885,7 @@ def SCGenerateThumbnail(file: str)->int:
             os.remove(file)
 
 
-
-def SCGenerateThumbnail_cli()->int:
+def SCGenerateThumbnail_cli() -> int:
     parser = argparse.ArgumentParser(description='Generate thumpnails for video-files')
     parser.add_argument('file', help='Input-videofile for thumbnail-generation')
     args = parser.parse_args()
@@ -912,7 +911,7 @@ def SCKeyboardDiagnosis_cli():
 # <SCMergePDFs>
 
 
-def SCMergePDFs(files, outputfile: str)->int:
+def SCMergePDFs(files, outputfile: str) -> int:
     # TODO add wildcard-option
     pdfFileMerger = PdfFileMerger()
     for file in files:
@@ -922,7 +921,7 @@ def SCMergePDFs(files, outputfile: str)->int:
     return 0
 
 
-def SCMergePDFs_cli()->int:
+def SCMergePDFs_cli() -> int:
     parser = argparse.ArgumentParser(description='merges pdf-files')
     parser.add_argument('files', help='Comma-separated filenames')
     parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"')
@@ -941,7 +940,7 @@ def SCShowMissingFiles(folderA: str, folderB: str):
         write_message_to_stdout(file)
 
 
-def SCShowMissingFiles_cli()->int:
+def SCShowMissingFiles_cli() -> int:
     parser = argparse.ArgumentParser(description='Shows all files which are in folderA but not in folder B. This program does not do any content-comparisons.')
     parser.add_argument('folderA')
     parser.add_argument('folderB')
@@ -954,7 +953,7 @@ def SCShowMissingFiles_cli()->int:
 # <SCCreateEmptyFileWithSpecificSize>
 
 
-def SCCreateEmptyFileWithSpecificSize(name: str, size_string: str)->int:
+def SCCreateEmptyFileWithSpecificSize(name: str, size_string: str) -> int:
     if size_string.isdigit():
         size = int(size_string)
     else:
@@ -982,7 +981,7 @@ def SCCreateEmptyFileWithSpecificSize(name: str, size_string: str)->int:
     return 0
 
 
-def SCCreateEmptyFileWithSpecificSize_cli()->int:
+def SCCreateEmptyFileWithSpecificSize_cli() -> int:
     parser = argparse.ArgumentParser(description='Creates a file with a specific size')
     parser.add_argument('name', help='Specifies the name of the created file')
     parser.add_argument('size', help='Specifies the size of the created file')
@@ -1000,7 +999,7 @@ def SCCreateHashOfAllFiles(folder: str):
             f.write(get_sha256_of_file(file))
 
 
-def SCCreateHashOfAllFiles_cli()->int:
+def SCCreateHashOfAllFiles_cli() -> int:
     parser = argparse.ArgumentParser(description='Calculates the SHA-256-value of all files in the given folder and stores the hash-value in a file next to the hashed file.')
     parser.add_argument('folder', help='Folder where the files are stored which should be hashed')
     args = parser.parse_args()
@@ -1012,7 +1011,7 @@ def SCCreateHashOfAllFiles_cli()->int:
 # <SCOrganizeLinesInFile>
 
 
-def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False, remove_empty_lines: bool = True)->int:
+def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False, remove_empty_lines: bool = True) -> int:
     if os.path.isfile(file):
 
         # read file
@@ -1053,7 +1052,7 @@ def SCOrganizeLinesInFile(file: str, encoding: str, sort: bool = False, remove_d
         return 1
 
 
-def SCOrganizeLinesInFile_cli()->int:
+def SCOrganizeLinesInFile_cli() -> int:
     parser = argparse.ArgumentParser(description='Processes the lines of a file with the given commands')
 
     parser.add_argument('file', help='File which should be transformed')
@@ -1072,7 +1071,7 @@ def SCOrganizeLinesInFile_cli()->int:
 # <SCGenerateSnkFiles>
 
 
-def SCGenerateSnkFiles(outputfolder, keysize=4096, amountofkeys=10)->int:
+def SCGenerateSnkFiles(outputfolder, keysize=4096, amountofkeys=10) -> int:
     ensure_directory_exists(outputfolder)
     for _ in range(amountofkeys):
         file = os.path.join(outputfolder, str(uuid.uuid4())+".snk")
@@ -1080,7 +1079,7 @@ def SCGenerateSnkFiles(outputfolder, keysize=4096, amountofkeys=10)->int:
         execute("sn", argument, outputfolder)
 
 
-def SCGenerateSnkFiles_cli()->int:
+def SCGenerateSnkFiles_cli() -> int:
     parser = argparse.ArgumentParser(description='Generate multiple .snk-files')
     parser.add_argument('outputfolder', help='Folder where the files are stored which should be hashed')
     parser.add_argument('--keysize', default='4096')
@@ -1135,7 +1134,7 @@ def SCReplaceSubstringsInFilenames(folder: str, substringInFilename: str, newSub
         _private_process_file(file, substringInFilename, newSubstringInFilename, conflictResolveMode)
 
 
-def SCReplaceSubstringsInFilenames_cli()->int:
+def SCReplaceSubstringsInFilenames_cli() -> int:
     parser = argparse.ArgumentParser(description='Replaces certain substrings in filenames. This program requires "pip install Send2Trash" in certain cases.')
 
     parser.add_argument('folder', help='Folder where the files are stored which should be renamed')
@@ -1172,7 +1171,7 @@ def SCSearchInFiles(folder: str, searchstring: str):
         _private_check_file(file, searchstring)
 
 
-def SCSearchInFiles_cli()->int:
+def SCSearchInFiles_cli() -> int:
     parser = argparse.ArgumentParser(description='Searchs for the given searchstrings in the content of all files in the given folder. This program prints all files where the given searchstring was found to the console')
 
     parser.add_argument('folder', help='Folder for search')
@@ -1240,7 +1239,7 @@ Hints:
 # <SCUpdateNugetpackagesInCsharpProject>
 
 
-def SCUpdateNugetpackagesInCsharpProject(csprojfile: str)->int:
+def SCUpdateNugetpackagesInCsharpProject(csprojfile: str) -> int:
     outdated_packages = get_nuget_packages_of_csproj_file(csprojfile, True)
     write_message_to_stdout("The following packages will be updated:")
     for outdated_package in outdated_packages:
@@ -1250,7 +1249,7 @@ def SCUpdateNugetpackagesInCsharpProject(csprojfile: str)->int:
     return 0 < len(outdated_packages)
 
 
-def SCUpdateNugetpackagesInCsharpProject_cli()->int:
+def SCUpdateNugetpackagesInCsharpProject_cli() -> int:
 
     parser = argparse.ArgumentParser(description="""TODO""")
     parser.add_argument('csprojfile')
@@ -1266,7 +1265,7 @@ def SCUpdateNugetpackagesInCsharpProject_cli()->int:
 # <SCUploadFileToFileHost>
 
 
-def SCUploadFileToFileHost(file: str, host: str)->int:
+def SCUploadFileToFileHost(file: str, host: str) -> int:
     try:
         write_message_to_stdout(upload_file_to_file_host(file, host))
         return 0
@@ -1275,7 +1274,7 @@ def SCUploadFileToFileHost(file: str, host: str)->int:
         return 1
 
 
-def SCUploadFileToFileHost_cli()->int:
+def SCUploadFileToFileHost_cli() -> int:
 
     parser = argparse.ArgumentParser(description="""Uploads a file to a filesharing-service.
 Caution:
@@ -1298,7 +1297,7 @@ Currently the following filesharing-services will be supported:
 # <SCFileIsAvailableOnFileHost>
 
 
-def SCFileIsAvailableOnFileHost(file: str)->int:
+def SCFileIsAvailableOnFileHost(file: str) -> int:
     try:
         if file_is_available_on_file_host(file):
             write_message_to_stdout(f"'{file}' is available")
@@ -1311,7 +1310,7 @@ def SCFileIsAvailableOnFileHost(file: str)->int:
         return 2
 
 
-def SCFileIsAvailableOnFileHost_cli()->int:
+def SCFileIsAvailableOnFileHost_cli() -> int:
 
     parser = argparse.ArgumentParser(description="""Determines whether a file on a filesharing-service supported by the UploadFile-function is still available.""")
     parser.add_argument('link')
@@ -1324,14 +1323,14 @@ def SCFileIsAvailableOnFileHost_cli()->int:
 # <SCCalculateBitcoinBlockHash>
 
 
-def SCCalculateBitcoinBlockHash(version: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str)->str:
+def SCCalculateBitcoinBlockHash(version: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str) -> str:
     # Example-values:
     # version: "00000020"; previousblockhash: "66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000"; transactionsmerkleroot: "7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187"; timestamp: "51eb505a"; target: "c1910018"; nonce: "de19b302"
     header = str(version + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
     return binascii.hexlify(hashlib.sha256(hashlib.sha256(binascii.unhexlify(header)).digest()).digest()[::-1]).decode('utf-8')
 
 
-def SCCalculateBitcoinBlockHash_cli()->int:
+def SCCalculateBitcoinBlockHash_cli() -> int:
     parser = argparse.ArgumentParser(description='Calculates the Hash of the header of a bitcoin-block.')
     parser.add_argument('--version', help='Block-version', required=True)
     parser.add_argument('--previousblockhash', help='Hash-value of the previous block', required=True)
@@ -1365,7 +1364,7 @@ def SCChangeHashOfProgram(inputfile: str):
     file.close()
 
 
-def SCChangeHashOfProgram_cli()->int:
+def SCChangeHashOfProgram_cli() -> int:
     parser = argparse.ArgumentParser(description='Changes the hash-value of arbitrary files by appending data at the end of the file.')
     parser.add_argument('--inputfile', help='Specifies the script/executable-file whose hash-value should be changed', required=True)
     args = parser.parse_args()
@@ -1377,7 +1376,7 @@ def SCChangeHashOfProgram_cli()->int:
 
 # <SCCreateISOFileWithObfuscatedFiles>
 
-def _private_adjust_folder_name(folder: str)->str:
+def _private_adjust_folder_name(folder: str) -> str:
     result = os.path.dirname(folder).replace("\\", "/")
     if result == "/":
         return ""
@@ -1420,7 +1419,7 @@ def SCCreateISOFileWithObfuscatedFiles(inputfolder: str, outputfile: str, printt
         raise Exception(f"Directory not found: '{inputfolder}'")
 
 
-def SCCreateISOFileWithObfuscatedFiles_cli()->int:
+def SCCreateISOFileWithObfuscatedFiles_cli() -> int:
     parser = argparse.ArgumentParser(description='Creates an iso file with the files in the given folder and changes their names and hash-values. This script does not process subfolders transitively.')
 
     parser.add_argument('--inputfolder', help='Specifies the foldere where the files are stored which should be added to the iso-file', required=True)
@@ -1436,6 +1435,7 @@ def SCCreateISOFileWithObfuscatedFiles_cli()->int:
 # </SCCreateISOFileWithObfuscatedFiles>
 
 # <SCFilenameObfuscator>
+
 
 def SCFilenameObfuscator(inputfolder: str, printtableheadline, namemappingfile: str, extensions: str):
     obfuscate_all_files = extensions == "*"
@@ -1465,7 +1465,7 @@ def SCFilenameObfuscator(inputfolder: str, printtableheadline, namemappingfile: 
         raise Exception(f"Directory not found: '{inputfolder}'")
 
 
-def SCFilenameObfuscator_cli()->int:
+def SCFilenameObfuscator_cli() -> int:
     parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
     parser.add_argument('--printtableheadline', type=string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
@@ -1503,7 +1503,7 @@ def SCObfuscateFilesFolder(inputfolder: str, printtableheadline, namemappingfile
         raise Exception(f"Directory not found: '{inputfolder}'")
 
 
-def SCObfuscateFilesFolder_cli()->int:
+def SCObfuscateFilesFolder_cli() -> int:
     parser = argparse.ArgumentParser(description='Changes the hash-value of the files in the given folder and renames them to obfuscated names. This script does not process subfolders transitively. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
 
     parser.add_argument('--printtableheadline', type=string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
@@ -1521,11 +1521,11 @@ def SCObfuscateFilesFolder_cli()->int:
 # <git>
 
 
-def get_parent_commit_ids_of_commit(directory: str, commit_id: str)->str:
+def get_parent_commit_ids_of_commit(directory: str, commit_id: str) -> str:
     return execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', directory)[1].replace("\r", "").replace("\n", "").split(" ")
 
 
-def _private_datetime_to_string_for_git(datetime: datetime.datetime)->str:
+def _private_datetime_to_string_for_git(datetime: datetime.datetime) -> str:
     return datetime.strftime('%Y-%m-%d %H:%M:%S')
 
 
@@ -1535,11 +1535,11 @@ def get_commit_ids_between_dates(directory: str, since: datetime, until: datetim
     return filter(lambda line: not string_is_none_or_whitespace(line), execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', directory)[1].split("\n").replace("\r", ""))
 
 
-def git_repository_has_new_untracked_files(repository_folder: str)->bool:
+def git_repository_has_new_untracked_files(repository_folder: str) -> bool:
     return _private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
 
 
-def git_repository_has_unstaged_changes(repository_folder: str)->bool:
+def git_repository_has_unstaged_changes(repository_folder: str) -> bool:
     if(_private_git_repository_has_uncommitted_changes(repository_folder, "diff")):
         return True
     if(git_repository_has_new_untracked_files(repository_folder)):
@@ -1547,11 +1547,11 @@ def git_repository_has_unstaged_changes(repository_folder: str)->bool:
     return False
 
 
-def git_repository_has_staged_changes(repository_folder: str)->bool:
+def git_repository_has_staged_changes(repository_folder: str) -> bool:
     return _private_git_repository_has_uncommitted_changes(repository_folder, "diff --cached")
 
 
-def git_repository_has_uncommitted_changes(repository_folder: str)->bool:
+def git_repository_has_uncommitted_changes(repository_folder: str) -> bool:
     if(git_repository_has_unstaged_changes(repository_folder)):
         return True
     if(git_repository_has_staged_changes(repository_folder)):
@@ -1559,11 +1559,11 @@ def git_repository_has_uncommitted_changes(repository_folder: str)->bool:
     return False
 
 
-def _private_git_repository_has_uncommitted_changes(repository_folder: str, argument: str)->bool:
+def _private_git_repository_has_uncommitted_changes(repository_folder: str, argument: str) -> bool:
     return not string_is_none_or_whitespace(execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
 
 
-def git_get_current_commit_id(repository_folder: str, commit: str = "HEAD")->str:
+def git_get_current_commit_id(repository_folder: str, commit: str = "HEAD") -> str:
     result = execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
     return result[1].replace('\r', '').replace('\n', '')
 
@@ -1604,7 +1604,7 @@ def git_clone_if_not_already_done(clone_target_folder: str, remote_repository_pa
         os.chdir(original_cwd)
 
 
-def git_get_all_remote_names(directory)->list:
+def git_get_all_remote_names(directory) -> list:
     lines = execute_and_raise_exception_if_exit_code_is_not_zero("git", "remote", directory)[1]
     result = []
     for line in lines:
@@ -1613,7 +1613,7 @@ def git_get_all_remote_names(directory)->list:
     return result
 
 
-def repository_has_remote_with_specific_name(directory: str, remote_name: str)->bool:
+def repository_has_remote_with_specific_name(directory: str, remote_name: str) -> bool:
     return remote_name in git_get_all_remote_names(directory)
 
 
@@ -1706,7 +1706,6 @@ def git_undo_all_changes(directory: str):
     git_discard_all_unstaged_changes(directory)
 
 
-
 def _private_undo_changes(repository: str):
     if(git_repository_has_uncommitted_changes(repository)):
         git_undo_all_changes(repository)
@@ -1723,12 +1722,14 @@ def _private_repository_has_changes(repository: str):
 
 # <miscellaneous>
 
-def absolute_file_paths(directory: str)->list:
+
+def absolute_file_paths(directory: str) -> list:
     for dirpath, _, filenames in os.walk(directory):
         for filename in filenames:
             yield os.path.abspath(os.path.join(dirpath, filename))
 
-def upload_file_to_file_host(file: str, host: str)->int:
+
+def upload_file_to_file_host(file: str, host: str) -> int:
     if(host is None):
         return upload_file_to_random_filesharing_service(file)
     elif host == "anonfiles.com":
@@ -1739,7 +1740,7 @@ def upload_file_to_file_host(file: str, host: str)->int:
     return 1
 
 
-def upload_file_to_random_filesharing_service(file: str)->int:
+def upload_file_to_random_filesharing_service(file: str) -> int:
     host = randrange(2)
     if host == 0:
         return upload_file_to_anonfiles(file)
@@ -1747,32 +1748,32 @@ def upload_file_to_random_filesharing_service(file: str)->int:
         return upload_file_to_bayfiles(file)
 
 
-def upload_file_to_anonfiles(file)->int:
+def upload_file_to_anonfiles(file) -> int:
     return upload_file_by_using_simple_curl_request("https://api.anonfiles.com/upload", file)
 
 
-def upload_file_to_bayfiles(file)->int:
+def upload_file_to_bayfiles(file) -> int:
     return upload_file_by_using_simple_curl_request("https://api.bayfiles.com/upload", file)
 
 
-def upload_file_by_using_simple_curl_request(api_url: str, file: str)->int:
+def upload_file_by_using_simple_curl_request(api_url: str, file: str) -> int:
     write_message_to_stderr("Notimplemented yet")
     return 1  # TODO
 
 
-def file_is_available_on_file_host(file)->int:
+def file_is_available_on_file_host(file) -> int:
     write_message_to_stderr("Notimplemented yet")
     return 1  # TODO
 
 
-def current_user_has_elevated_privileges()->bool:
+def current_user_has_elevated_privileges() -> bool:
     try:
         return os.getuid() == 0
     except AttributeError:
         return ctypes.windll.shell32.IsUserAnAdmin() == 1
 
 
-def get_nuget_packages_of_csproj_file(csproj_file: str, only_outdated_packages: bool)->bool:
+def get_nuget_packages_of_csproj_file(csproj_file: str, only_outdated_packages: bool) -> bool:
     execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'restore "{csproj_file}"')
     if only_outdated_packages:
         only_outdated_packages_argument = " --outdated"
@@ -1791,7 +1792,7 @@ def update_nuget_package(csproj_file: str, name: str):
     execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
 
 
-def ensure_path_is_not_quoted(path: str)->str:
+def ensure_path_is_not_quoted(path: str) -> str:
     if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
         path = path[1:]
         path = path[:-1]
@@ -1800,7 +1801,7 @@ def ensure_path_is_not_quoted(path: str)->str:
         return path
 
 
-def get_missing_files(folderA: str, folderB: str)->list:
+def get_missing_files(folderA: str, folderB: str) -> list:
     folderA_length = len(folderA)
     result = []
     for fileA in absolute_file_paths(folderA):
@@ -1824,15 +1825,15 @@ def write_binary_to_file(file: str, content: bytearray):
         file_object.write(content)
 
 
-def read_lines_from_file(file: str, encoding="utf-8")->list:
+def read_lines_from_file(file: str, encoding="utf-8") -> list:
     return read_text_from_file(file, encoding).split(os.linesep)
 
 
-def read_text_from_file(file: str, encoding="utf-8")->str:
+def read_text_from_file(file: str, encoding="utf-8") -> str:
     return bytes_to_string(read_binary_from_file(file), encoding)
 
 
-def read_binary_from_file(file: str)->bytes:
+def read_binary_from_file(file: str) -> bytes:
     with open(file, "rb") as file_object:
         return file_object.read()
 
@@ -1845,12 +1846,12 @@ def rename_names_of_all_files_and_folders(folder: str, replace_from: str, replac
     replace_in_foldername(folder, replace_from, replace_to, replace_only_full_match)
 
 
-def get_direct_files_of_folder(folder: str)->list:
+def get_direct_files_of_folder(folder: str) -> list:
     result = [os.path.join(folder, f) for f in listdir(folder) if isfile(join(folder, f))]
     return result
 
 
-def get_direct_folders_of_folder(folder: str)->list:
+def get_direct_folders_of_folder(folder: str) -> list:
     result = [os.path.join(folder, f) for f in listdir(folder) if isdir(join(folder, f))]
     return result
 
@@ -1869,21 +1870,21 @@ def replace_in_foldername(folder: str, replace_from: str, replace_to: str, repla
         os.rename(folder, os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to)))
 
 
-def _private_should_get_replaced(input_text, search_text, replace_only_full_match)->bool:
+def _private_should_get_replaced(input_text, search_text, replace_only_full_match) -> bool:
     if replace_only_full_match:
         return input_text == search_text
     else:
         return search_text in input_text
 
 
-def str_none_safe(variable)->str:
+def str_none_safe(variable) -> str:
     if variable is None:
         return ''
     else:
         return str(variable)
 
 
-def get_sha256_of_file(file: str)->str:
+def get_sha256_of_file(file: str) -> str:
     sha256 = hashlib.sha256()
     with open(file, "rb") as fileObject:
         for chunk in iter(lambda: fileObject.read(4096), b""):
@@ -1891,7 +1892,7 @@ def get_sha256_of_file(file: str)->str:
     return sha256.hexdigest()
 
 
-def remove_duplicates(input)->list:
+def remove_duplicates(input) -> list:
     result = []
     for item in input:
         if not item in result:
@@ -1904,7 +1905,7 @@ def print_stacktrace():
         write_message_to_stdout(line.strip())
 
 
-def string_to_boolean(value: str)->bool:
+def string_to_boolean(value: str) -> bool:
     value = value.strip().lower()
     if value in ('yes', 'true', 't', 'y', '1'):
         return True
@@ -1914,27 +1915,31 @@ def string_to_boolean(value: str)->bool:
         raise Exception(f"Can not convert '{value}' to a boolean value")
 
 
-def file_is_empty(file: str)->bool:
+def file_is_empty(file: str) -> bool:
     return os.stat(file).st_size == 0
 
 
-def folder_is_empty(folder: str)->bool:
+def folder_is_empty(folder: str) -> bool:
     return len(get_direct_files_of_folder(folder)) == 0 and len(get_direct_folders_of_folder(folder)) == 0
 
 
-def get_time_based_logfile_by_folder(folder: str, name: str = "Log")->str:
+def get_time_based_logfile_by_folder(folder: str, name: str = "Log") -> str:
     return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
 
 
-def bytes_to_string(payload: bytes, encoding: str = 'utf-8')->str:
+def bytes_to_string(payload: bytes, encoding: str = 'utf-8') -> str:
     return payload.decode(encoding, errors="ignore")
 
 
-def epew_is_available()->bool:
+def string_to_bytes(payload: str, encoding: str = 'utf-8') -> bytes:
+    return payload.encode(encoding, errors="ignore")
+
+
+def epew_is_available() -> bool:
     return find_executable("epew") is not None
 
 
-def _private_adapt_workingdirectory(workingdirectory: str)->str:
+def _private_adapt_workingdirectory(workingdirectory: str) -> str:
     if workingdirectory == None:
         return os.getcwd()
     else:
@@ -1946,7 +1951,7 @@ def _private_log_program_start(program: str, arguments: str, workingdirectory: s
         write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
 
 
-def start_program_asynchronously(program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False)->int:
+def start_program_asynchronously(program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False) -> int:
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
     if use_epew:
@@ -1968,7 +1973,7 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
 
-def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None)->int:
+def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None) -> int:
     result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title)
     return result[0]
 
@@ -2040,7 +2045,7 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         return (exit_code, stdout, stderr)
 
 
-def _private_load_text(file: str)->str:
+def _private_load_text(file: str) -> str:
     if os.path.isfile(file):
         with io.open(file, mode='r', encoding="utf-8") as f:
             content = f.read()
@@ -2117,20 +2122,20 @@ def extract_archive_with_7z(unzip_program_file: str, zipfile: str, password: str
     return execute(unzip_program_file, argument, file_folder)
 
 
-def get_internet_time()->datetime.datetime:
+def get_internet_time() -> datetime.datetime:
     response = ntplib.NTPClient().request('pool.ntp.org')
     return datetime.datetime.fromtimestamp(response.tx_time)
 
 
-def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta)->bool:
+def system_time_equals_internet_time(maximal_tolerance_difference: datetime.timedelta) -> bool:
     return abs(datetime.datetime.now() - get_internet_time()) < maximal_tolerance_difference
 
 
-def timedelta_to_simple_string(delta)->str:
+def timedelta_to_simple_string(delta) -> str:
     return (datetime.datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
 
 
-def resolve_relative_path_from_current_working_directory(path: str)->str:
+def resolve_relative_path_from_current_working_directory(path: str) -> str:
     return resolve_relative_path(path, os.getcwd())
 
 
@@ -2141,7 +2146,7 @@ def resolve_relative_path(path: str, base_path: str):
         return str(Path(os.path.join(base_path, path)).resolve())
 
 
-def get_metadata_for_file_for_clone_folder_structure(file: str)->str:
+def get_metadata_for_file_for_clone_folder_structure(file: str) -> str:
     size = os.path.getsize(file)
     last_modified_timestamp = os.path.getmtime(file)
     hash_value = get_sha256_of_file(file)
@@ -2163,7 +2168,7 @@ def clone_folder_structure(source: str, target: str, copy_only_metadata: bool):
             copyfile(source_file, target_file)
 
 
-def system_time_equals_internet_time_with_default_tolerance()->bool:
+def system_time_equals_internet_time_with_default_tolerance() -> bool:
     return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
 
 
@@ -2176,20 +2181,18 @@ def check_system_time_with_default_tolerance():
     check_system_time(get_default_tolerance_for_system_time_equals_internet_time())
 
 
-def get_default_tolerance_for_system_time_equals_internet_time()->datetime.timedelta:
+def get_default_tolerance_for_system_time_equals_internet_time() -> datetime.timedelta:
     return datetime.timedelta(hours=0, minutes=0, seconds=3)
 
 
-def write_message_to_stdout(message: str):
-    message = str_none_safe(message)
-    sys.stdout.write(message+"\n")
+def write_message_to_stdout(message: str, encoding: str = "utf-8"):
+    sys.stderr.buffer.write(string_to_bytes(str_none_safe(message)+"\n", encoding))
     sys.stdout.flush()
 
 
-def write_message_to_stderr(message: str):
-    message = str_none_safe(message)
-    sys.stderr.write(message+"\n")
-    sys.stderr.flush()
+def write_message_to_stderr(message: str, encoding: str = "utf-8"):
+    sys.stderr.buffer.write(string_to_bytes(str_none_safe(message)+"\n", encoding))
+    sys.stderr.buffer.flush()
 
 
 def write_exception_to_stderr(exception: Exception, extra_message: str = None):
@@ -2211,21 +2214,21 @@ def write_exception_to_stderr_with_traceback(exception: Exception, traceback, ex
     write_message_to_stderr(")")
 
 
-def string_has_content(string: str)->bool:
+def string_has_content(string: str) -> bool:
     if string is None:
         return False
     else:
         return 0 < len(string)
 
 
-def string_has_nonwhitespace_content(string: str)->bool:
+def string_has_nonwhitespace_content(string: str) -> bool:
     if string is None:
         return False
     else:
         return 0 < len(string.strip())
 
 
-def string_is_none_or_empty(string: str)->bool:
+def string_is_none_or_empty(string: str) -> bool:
     if string is None:
         return True
     if type(string) == str:
@@ -2234,22 +2237,22 @@ def string_is_none_or_empty(string: str)->bool:
         raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was 'str'")
 
 
-def string_is_none_or_whitespace(string: str)->bool:
+def string_is_none_or_whitespace(string: str) -> bool:
     if string_is_none_or_empty(string):
         return True
     else:
         return string.strip() == ""
 
 
-def strip_new_lines_at_begin_and_end(string: str)->str:
+def strip_new_lines_at_begin_and_end(string: str) -> str:
     return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')
 
 
-def get_semver_version_from_gitversion(folder: str)->str:
+def get_semver_version_from_gitversion(folder: str) -> str:
     return get_version_from_gitversion(folder, "MajorMinorPatch")
 
 
-def get_version_from_gitversion(folder: str, variable: str)->str:
+def get_version_from_gitversion(folder: str, variable: str) -> str:
     # called tweice as workaround for bug 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
     strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
     return strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
@@ -2295,7 +2298,7 @@ def update_version_in_csproj_file(file: str, version: str):
     replace_xmltag_in_file(file, "FileVersion", version + ".0")
 
 
-def replace_underscores_in_text(text: str, replacements: dict)->str:
+def replace_underscores_in_text(text: str, replacements: dict) -> str:
     changed = True
     while changed:
         changed = False
@@ -2313,14 +2316,14 @@ def replace_underscores_in_file(file: str, replacements: dict, encoding: str = "
     write_text_to_file(file, text, encoding)
 
 
-def _private_extension_matchs(file: str, obfuscate_file_extensions)->bool:
+def _private_extension_matchs(file: str, obfuscate_file_extensions) -> bool:
     for extension in obfuscate_file_extensions:
         if file.lower().endswith("."+extension.lower()):
             return True
     return False
 
 
-def get_ScriptCollection_version()->str:
+def get_ScriptCollection_version() -> str:
     return version
 
 # </miscellaneous>
