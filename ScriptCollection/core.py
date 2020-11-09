@@ -2028,6 +2028,7 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         start_argument_as_array.extend(arguments.split())
         start_argument_as_string = f"{program} {arguments}"
         process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
+        pid=process.pid
         stdout, stderr = process.communicate()
         exit_code = process.wait()
 
@@ -2043,7 +2044,7 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
 
-        return (exit_code, stdout, stderr)
+        return (exit_code, stdout, stderr, pid)
 
 
 def _private_load_text(file: str) -> str:
