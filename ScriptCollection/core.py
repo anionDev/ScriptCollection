@@ -37,7 +37,7 @@ import uuid
 import xml.dom.minidom
 
 
-version = "1.12.57"
+version = "1.12.58"
 __version__ = version
 
 # <Build>
@@ -1964,8 +1964,8 @@ def start_program_asynchronously(program: str, arguments: str = "", workingdirec
         return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
 
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True):
-    result = start_program_synchronously(program, arguments, workingdirectory, print_errors_as_information, log_file, timeoutInSeconds, verbosity, addLogOverhead, title, True)
+def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False, write_output_to_standard_output: bool = False, log_namespace: str = ""):
+    result = start_program_synchronously(program, arguments, workingdirectory,verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, True,prevent_using_epew,write_output_to_standard_output,log_namespace)
     if result[0] == 0:
         return result
     else:
@@ -1974,8 +1974,10 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
 
-def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None) -> int:
-    result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title)
+def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False, write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
+    result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title,False,prevent_using_epew,write_output_to_standard_output,log_namespace)
+    if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
+        write_message_to_stderr(result[2])
     return result[0]
 
 
@@ -2240,13 +2242,14 @@ def string_has_nonwhitespace_content(string: str) -> bool:
         return 0 < len(string.strip())
 
 
-def string_is_none_or_empty(string: str) -> bool:
-    if string is None:
+def string_is_none_or_empty(argument: str) -> bool:
+    if argument is None:
         return True
-    if type(string) == str:
-        return string == ""
+    type_of_argument=type(argument)
+    if type_of_argument == str:
+        return argument == ""
     else:
-        raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was 'str'")
+        raise Exception(f"expected string-variable in argument of string_is_none_or_empty but the type was '{type(type_of_argument)}'")
 
 
 def string_is_none_or_whitespace(string: str) -> bool:
