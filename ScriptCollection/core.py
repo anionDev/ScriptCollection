@@ -37,7 +37,7 @@ import uuid
 import xml.dom.minidom
 
 
-version = "1.12.56"
+version = "1.12.57"
 __version__ = version
 
 # <Build>
@@ -1979,72 +1979,82 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, use_epew: bool = False, write_output_to_standard_output: bool = True):
+def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False, write_output_to_standard_output: bool = True, log_namespace: str = ""):
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
-    if (use_epew):
-        raise Exception("start_program_synchronously using epew is not implemented yet")
-        # if string_is_none_or_whitespace(title):
-        #     title_for_message = ""
-        #     title_argument = '{workingdirectory}>{program} {arguments}'
-        # else:
-        #     title_for_message = f"for task '{title}' "
-        #     title_argument = title
-        # title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
-        # output_file_for_stdout = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
-        # output_file_for_stderr = tempfile.gettempdir() + os.path.sep+str(uuid.uuid4()) + ".epew-temp.txt"
-        # if verbosity == 2:
-        #     write_message_to_stdout(f"Start executing {title_local}")
-        # argument = " --Program "+program
-        # argument = argument+" --Argument "+base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-        # argument = argument+" --ArgumentIsBase64Encoded "
-        # argument = argument+" --Workingdirectory "+'"'+workingdirectory+'"'
-        # if print_errors_as_information:
-        #     argument = argument+" --PrintErrorsAsInformation"
-        # if addLogOverhead:
-        #     argument = argument+" --AddLogOverhead"
-        # if verbosity == 0:
-        #     argument = argument+" --Verbosity Quiet"
-        # if verbosity == 1:
-        #     argument = argument+" --Verbosity Normal"
-        # if verbosity == 2:
-        #     argument = argument+" --Verbosity Verbose"
-        # argument = argument+" --StdOutFile "+'"'+output_file_for_stdout+'"'
-        # argument = argument+" --StdErrFile "+'"'+output_file_for_stderr+'"'
-        # if not string_is_none_or_whitespace(log_file):
-        #     argument = argument+" --LogFile "+'"'+log_file+'"'
-        # argument = argument+" --TimeoutInMilliseconds "+str(timeoutInSeconds*1000)
-        # argument = argument + ' --Title "'+title_argument+'"'
-        # argument = argument.replace('"', '\\"')
-        # process = Popen("epew"+argument)
-        # exit_code = process.wait()
-        # stdout = _private_load_text(output_file_for_stdout)
-        # stderr = _private_load_text(output_file_for_stderr)
-        # if verbosity == 2:
-        #     write_message_to_stdout(f"Finished executing {title_local} with exitcode "+str(exit_code))
-        # return (exit_code, stdout, stderr)
+    if (epew_is_available() and not prevent_using_epew):
+        if string_is_none_or_whitespace(title):
+            title_for_message = ""
+            title_argument = f'{workingdirectory}>{program} {arguments}'
+        else:
+            title_for_message = f"for task '{title}' "
+            title_argument = title
+        title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
+        tempdir = tempfile.gettempdir()
+        output_file_for_stdout = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
+        output_file_for_stderr = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
+        output_file_for_exit_code = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
+        output_file_for_pid = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
+        base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
+        argument = f'--Program "{program}"'
+        argument = argument+f' --Argument {base64argument}'
+        argument = argument+f' --ArgumentIsBase64Encoded'
+        argument = argument+f' --Workingdirectory "{workingdirectory}"'
+        argument = argument+f' --StdOutFile "{output_file_for_stdout}"'
+        argument = argument+f' --StdErrFile "{output_file_for_stderr}"'
+        argument = argument+f' --ExitCodeFile "{output_file_for_exit_code}"'
+        argument = argument+f' --ProcessIdFile "{output_file_for_pid}"'
+        argument = argument+f' --TimeoutInMilliseconds {str(timeoutInSeconds*1000)}'
+        argument = argument+f' --Title "{title_argument}"'
+        argument = argument+f' --LogNamespace "{log_namespace}"'
+        if not string_is_none_or_whitespace(log_file):
+            argument = argument+f' --LogFile "{log_file}"'
+        if write_output_to_standard_output:
+            argument = argument+f' --WriteOutputToConsole'
+        if print_errors_as_information:
+            argument = argument+" --PrintErrorsAsInformation"
+        if addLogOverhead:
+            argument = argument+" --AddLogOverhead"
+        if verbosity == 0:
+            argument = argument+" --Verbosity Quiet"
+        if verbosity == 1:
+            argument = argument+" --Verbosity Normal"
+        if verbosity == 2:
+            argument = argument+" --Verbosity Verbose"
+        argument = argument.replace('"', '\\"')
+        if verbosity == 2:
+            write_message_to_stdout(f"Start executing '{title_local}'")
+        process = Popen(f'epew {argument}')
+        process.wait()
+        stdout = _private_load_text(output_file_for_stdout)
+        stderr = _private_load_text(output_file_for_stderr)
+        exit_code = _private_get_number_from_filecontent(_private_load_text(output_file_for_exit_code))
+        pid = _private_get_number_from_filecontent(_private_load_text(output_file_for_pid))
+        if verbosity == 2:
+            write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
+        return (exit_code, stdout, stderr, pid)
     else:
         start_argument_as_array = [program]
         start_argument_as_array.extend(arguments.split())
         start_argument_as_string = f"{program} {arguments}"
         process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
-        pid=process.pid
+        pid = process.pid
         stdout, stderr = process.communicate()
         exit_code = process.wait()
-
         stdout = bytes_to_string(stdout).replace('\r', '')
         stderr = bytes_to_string(stderr).replace('\r', '')
-
         if write_output_to_standard_output:
             for line in stdout.splitlines():
                 write_message_to_stdout(line)
             for line in stderr.splitlines():
                 write_message_to_stderr(line)
-
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
-
         return (exit_code, stdout, stderr, pid)
+
+
+def _private_get_number_from_filecontent(filecontent: str) -> int:
+    return int(filecontent.splitlines()[-1].strip().split(':')[1])
 
 
 def _private_load_text(file: str) -> str:
