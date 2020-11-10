@@ -1979,7 +1979,7 @@ def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInS
     return result[0]
 
 
-def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = ""):
+def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False, write_output_to_standard_output: bool = True, log_namespace: str = ""):
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
     if (epew_is_available() and not prevent_using_epew):
