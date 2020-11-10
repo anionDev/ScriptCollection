@@ -2240,13 +2240,14 @@ def string_has_nonwhitespace_content(string: str) -> bool:
         return 0 < len(string.strip())
 
 
-def string_is_none_or_empty(string: str) -> bool:
+def string_is_none_or_empty(argument: str) -> bool:
     if string is None:
         return True
-    if type(string) == str:
-        return string == ""
+    type_of_argument=type(argument)
+    if type_of_argument == str:
+        return argument == ""
     else:
-        raise Exception("expected string-variable in argument of string_is_none_or_empty but the type was 'str'")
+        raise Exception(f"expected string-variable in argument of string_is_none_or_empty but the type was '{type(type_of_argument)}'")
 
 
 def string_is_none_or_whitespace(string: str) -> bool:
