@@ -37,7 +37,7 @@ import uuid
 import xml.dom.minidom
 
 
-version = "1.12.56"
+version = "1.12.57"
 __version__ = version
 
 # <Build>
