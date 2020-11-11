@@ -9,7 +9,7 @@ version = "1.12.60"
 packages = [package for package in find_packages() if not package.endswith("Tests")]
 
 folder_of_current_file = os.path.dirname(os.path.realpath(__file__))
-with open(str(Path(os.path.join(folder_of_current_file, f"ReadMe.md")).resolve()), "r", encoding='utf-8') as file:
+with open(os.path.join(folder_of_current_file, f"ReadMe.md"), "r", encoding='utf-8') as file:
     long_description = file.read()
 
 setup(
