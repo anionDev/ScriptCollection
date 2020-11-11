@@ -2199,7 +2199,7 @@ def clone_folder_structure(source: str, target: str, copy_only_metadata: bool):
 
 
 def system_time_equals_internet_time_with_default_tolerance() -> bool:
-    return system_time_equals_internet_time(get_default_tolerance_for_system_time_equals_internet_time())
+    return system_time_equals_internet_time(_private_get_default_tolerance_for_system_time_equals_internet_time())
 
 
 def check_system_time(maximal_tolerance_difference: datetime.timedelta):
@@ -2208,21 +2208,21 @@ def check_system_time(maximal_tolerance_difference: datetime.timedelta):
 
 
 def check_system_time_with_default_tolerance():
-    check_system_time(get_default_tolerance_for_system_time_equals_internet_time())
+    check_system_time(_private_get_default_tolerance_for_system_time_equals_internet_time())
 
 
-def get_default_tolerance_for_system_time_equals_internet_time() -> datetime.timedelta:
+def _private_get_default_tolerance_for_system_time_equals_internet_time() -> datetime.timedelta:
     return datetime.timedelta(hours=0, minutes=0, seconds=3)
 
 
-def write_message_to_stdout(message: str, encoding: str = "utf-8"):
-    sys.stdout.buffer.write(string_to_bytes(str_none_safe(message)+"\n", encoding))
+def write_message_to_stdout(message: str):
+    sys.stdout.write(str_none_safe(message)+"\n")
     sys.stdout.flush()
 
 
-def write_message_to_stderr(message: str, encoding: str = "utf-8"):
-    sys.stderr.buffer.write(string_to_bytes(str_none_safe(message)+"\n", encoding))
-    sys.stderr.buffer.flush()
+def write_message_to_stderr(message: str):
+    sys.stderr.write(str_none_safe(message)+"\n")
+    sys.stderr.flush()
 
 
 def write_exception_to_stderr(exception: Exception, extra_message: str = None):
@@ -2280,9 +2280,9 @@ def get_semver_version_from_gitversion(folder: str) -> str:
 
 
 def get_version_from_gitversion(folder: str, variable: str) -> str:
-    # called tweice as workaround for bug 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-    strip_new_line_character(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
-    return strip_new_line_character(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
+    # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
+    execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0, False, None, False, None, True, True, False, "")
+    return strip_new_line_character(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0, False, None, False, None, True, True, False, "")[1])
 
 
 def move_content_of_folder(srcDir, dstDir):
