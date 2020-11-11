@@ -2056,8 +2056,12 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
 
 
 def _private_get_number_from_filecontent(filecontent: str) -> int:
-    return int(filecontent.splitlines()[-1].strip().split(':')[1])
-
+    try:
+        return int(filecontent.splitlines()[-1])
+    except Exception as e:# TODO remove this try-catch-block
+        write_message_to_stderr("error in _private_get_number_from_filecontent for content:")
+        write_message_to_stderr(filecontent)
+        write_exception_to_stderr(e)
 
 def _private_load_text(file: str) -> str:
     if os.path.isfile(file):
