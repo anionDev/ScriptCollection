@@ -679,7 +679,7 @@ def _private_get_verbosity_for_exuecutor(configparser: ConfigParser) -> int:
 def _private_verbose_check_for_not_available_item(configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
     if get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
         for item in queried_items:
-            if "<notavailable>" in item:
+            if "<notavailable>" == item:
                 write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
                 print_stacktrace()
 
@@ -698,8 +698,14 @@ def get_buildscript_config_boolean_value(configparser: ConfigParser, section: st
         return False
 
 
+def strip_new_line_character(value: str):
+    value = value.strip().strip('\n').strip('\r').strip()
+    return value
+
+
 def get_buildscript_config_item(configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> str:
     result = _private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    result = strip_new_line_character(result)
     _private_verbose_check_for_not_available_item(configparser, [result], section, propertyname)
     return result
 
@@ -1965,7 +1971,7 @@ def start_program_asynchronously(program: str, arguments: str = "", workingdirec
 
 
 def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False, write_output_to_standard_output: bool = False, log_namespace: str = ""):
-    result = start_program_synchronously(program, arguments, workingdirectory,verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, True,prevent_using_epew,write_output_to_standard_output,log_namespace)
+    result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
     if result[0] == 0:
         return result
     else:
@@ -1975,7 +1981,7 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments
 
 
 def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False, write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
-    result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title,False,prevent_using_epew,write_output_to_standard_output,log_namespace)
+    result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
     if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
         write_message_to_stderr(result[2])
     return result[0]
@@ -1991,12 +1997,15 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
         else:
             title_for_message = f"for task '{title}' "
             title_argument = title
+        title_argument = title_argument.replace("\"", "'").replace("\\", "/")
         title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
-        tempdir = tempfile.gettempdir()
-        output_file_for_stdout = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
-        output_file_for_stderr = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
-        output_file_for_exit_code = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
-        output_file_for_pid = os.path.join(tempdir, str(uuid.uuid4()) + ".epew-temp.txt")
+        tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        if verbosity == 2:
+            write_message_to_stdout(f"Start executing '{title_local}' (temp: '{tempdir}')")
+        output_file_for_stdout = tempdir + ".stdout-epew-temp.txt"
+        output_file_for_stderr = tempdir + ".stderr-epew-temp.txt"
+        output_file_for_exit_code = tempdir + ".exitcode-epew-temp.txt"
+        output_file_for_pid = tempdir + ".pid-epew-temp.txt"
         base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
         argument = f'--Program "{program}"'
         argument = argument+f' --Argument {base64argument}'
@@ -2023,9 +2032,10 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
             argument = argument+" --Verbosity Normal"
         if verbosity == 2:
             argument = argument+" --Verbosity Verbose"
-        argument = argument.replace('"', '\\"')
         if verbosity == 2:
             write_message_to_stdout(f"Start executing '{title_local}'")
+        if verbosity == 2:
+            write_message_to_stdout(f"Plain epew-call: 'epew {argument}'")
         process = Popen(f'epew {argument}')
         process.wait()
         stdout = _private_load_text(output_file_for_stdout)
@@ -2056,21 +2066,23 @@ def start_program_synchronously(program: str, arguments: str, workingdirectory: 
 
 
 def _private_get_number_from_filecontent(filecontent: str) -> int:
-    try:
-        return int(filecontent.splitlines()[-1])
-    except Exception as e:# TODO remove this try-catch-block
-        write_message_to_stderr("error in _private_get_number_from_filecontent for content:")
-        write_message_to_stderr(filecontent)
-        write_exception_to_stderr(e)
+    for line in filecontent.splitlines():
+        try:
+            striped_line = strip_new_line_character(line)
+            result = int(striped_line)
+            return result
+        except:
+            pass
+    raise Exception(f"'{filecontent}' does not containe an int-line")
+
 
 def _private_load_text(file: str) -> str:
     if os.path.isfile(file):
-        with io.open(file, mode='r', encoding="utf-8") as f:
-            content = f.read()
+        content = read_text_from_file(file)
         os.remove(file)
         return content
     else:
-        return ""
+        raise Exception(f"File '{file}' does not exist")
 
 
 def append_line_to_file(file: str, line: str, encoding: str = "utf-8"):
@@ -2204,7 +2216,7 @@ def get_default_tolerance_for_system_time_equals_internet_time() -> datetime.tim
 
 
 def write_message_to_stdout(message: str, encoding: str = "utf-8"):
-    sys.stderr.buffer.write(string_to_bytes(str_none_safe(message)+"\n", encoding))
+    sys.stdout.buffer.write(string_to_bytes(str_none_safe(message)+"\n", encoding))
     sys.stdout.flush()
 
 
@@ -2249,7 +2261,7 @@ def string_has_nonwhitespace_content(string: str) -> bool:
 def string_is_none_or_empty(argument: str) -> bool:
     if argument is None:
         return True
-    type_of_argument=type(argument)
+    type_of_argument = type(argument)
     if type_of_argument == str:
         return argument == ""
     else:
@@ -2263,18 +2275,14 @@ def string_is_none_or_whitespace(string: str) -> bool:
         return string.strip() == ""
 
 
-def strip_new_lines_at_begin_and_end(string: str) -> str:
-    return string.lstrip('\r').lstrip('\n').rstrip('\r').rstrip('\n')
-
-
 def get_semver_version_from_gitversion(folder: str) -> str:
     return get_version_from_gitversion(folder, "MajorMinorPatch")
 
 
 def get_version_from_gitversion(folder: str, variable: str) -> str:
     # called tweice as workaround for bug 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-    strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
-    return strip_new_lines_at_begin_and_end(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
+    strip_new_line_character(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
+    return strip_new_line_character(execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0)[1])
 
 
 def move_content_of_folder(srcDir, dstDir):
