@@ -37,7 +37,7 @@ import uuid
 import xml.dom.minidom
 
 
-version = "1.12.61"
+version = "1.12.62"
 __version__ = version
 
 # <Build>
@@ -1970,7 +1970,7 @@ def start_program_asynchronously(program: str, arguments: str = "", workingdirec
         return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
 
 
-def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False, write_output_to_standard_output: bool = False, log_namespace: str = ""):
+def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True, write_output_to_standard_output: bool = False, log_namespace: str = ""):
     result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
     if result[0] == 0:
         return result
@@ -1980,14 +1980,14 @@ def execute_and_raise_exception_if_exit_code_is_not_zero(program: str, arguments
         raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
 
-def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False, write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
+def execute(program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True, write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
     result = start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
     if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
         write_message_to_stderr(result[2])
     return result[0]
 
 
-def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False, write_output_to_standard_output: bool = True, log_namespace: str = ""):
+def start_program_synchronously(program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = ""):
     workingdirectory = _private_adapt_workingdirectory(workingdirectory)
     _private_log_program_start(program, arguments, workingdirectory, verbosity)
     if (epew_is_available() and not prevent_using_epew):
