@@ -1,0 +1,13 @@
+[MESSAGES CONTROL]
+
+disable = C0103
+disable = C0111
+disable = C0302
+disable = C0325
+disable = W0102
+disable = W0702
+disable = W0703
+
+[FORMAT]
+max-line-length = 1000
+max-statements = 300

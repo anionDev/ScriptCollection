@@ -1,11 +1,10 @@
-from ScriptCollection.core import get_ScriptCollection_version, string_is_none_or_whitespace, string_is_none_or_empty, write_lines_to_file, read_lines_from_file, SCOrganizeLinesInFile
 import os
-import pytest
 import unittest
+from ScriptCollection.core import get_ScriptCollection_version, string_is_none_or_whitespace, string_is_none_or_empty, write_lines_to_file, read_lines_from_file, ScriptCollection
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "1.12.62"
+version = "2.0.0"
 
 
 class MiscellaneousTests(unittest.TestCase):
@@ -43,50 +42,50 @@ class MiscellaneousTests(unittest.TestCase):
             os.remove(testfile)
 
 
-class SCOrganizeLinesInFileTests(unittest.TestCase):
+class OrganizeLinesInFileTests(unittest.TestCase):
 
-    def test_SCOrganizeLinesInFile_test_basic(self):
+    def test_sc_organize_lines_in_file_test_basic(self):
         # arrange
-        testfile = testfileprefix+"test_SCOrganizeLinesInFile_test_basic.txt"
+        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_basic.txt"
         try:
-            input = ["line1", "line2", "line3"]
+            example_input = ["line1", "line2", "line3"]
             expected_output = ["line1", "line2", "line3"]
-            write_lines_to_file(testfile, input)
+            write_lines_to_file(testfile, example_input)
 
             # act
-            SCOrganizeLinesInFile(testfile, encoding, True, True, True, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
 
             # assert
             assert expected_output == read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
 
-    def test_SCOrganizeLinesInFile_test_emptylineandignorefirstline(self):
+    def test_sc_organize_lines_in_file_test_emptylineandignorefirstline(self):
         # arrange
-        testfile = testfileprefix+"test_SCOrganizeLinesInFile_test_emptylineandignorefirstline.txt"
+        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_emptylineandignorefirstline.txt"
         try:
-            input = ["line1", "", "line3"]
+            example_input = ["line1", "", "line3"]
             expected_output = ["line1", "line3"]
-            write_lines_to_file(testfile, input)
+            write_lines_to_file(testfile, example_input)
 
             # act
-            SCOrganizeLinesInFile(testfile, encoding, True, True, True, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
 
             # assert
             assert expected_output == read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
 
-    def test_SCOrganizeLinesInFile_test_emptyline(self):
+    def test_sc_organize_lines_in_file_test_emptyline(self):
         # arrange
-        testfile = testfileprefix+"test_SCOrganizeLinesInFile_test_emptyline.txt"
+        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
         try:
-            input = ["line1", "", "line3"]
+            example_input = ["line1", "", "line3"]
             expected_output = ["line1", "line3"]
-            write_lines_to_file(testfile, input)
+            write_lines_to_file(testfile, example_input)
 
             # act
-            SCOrganizeLinesInFile(testfile, encoding, True, True, False, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
 
             # assert
             assert expected_output == read_lines_from_file(testfile)
