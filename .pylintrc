@@ -1,12 +1,6 @@
 [MESSAGES CONTROL]
 
-disable = C0103
-disable = C0111
-disable = C0302
-disable = C0325
-disable = W0102
-disable = W0702
-disable = W0703
+disable = C0103, C0111, C0302, C0325, W0102, W0702, W0703
 
 [FORMAT]
 max-line-length = 1000

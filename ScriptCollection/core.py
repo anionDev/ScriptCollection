@@ -1,15 +1,3 @@
-from configparser import ConfigParser
-from distutils.dir_util import copy_tree
-from distutils.spawn import find_executable
-from functools import lru_cache
-from io import BytesIO
-from os import listdir
-from os.path import isfile, join, isdir
-from pathlib import Path
-from PyPDF2 import PdfFileMerger
-from random import randrange
-from shutil import copy2, copyfile
-from subprocess import Popen, PIPE, call
 import argparse
 import base64
 import binascii
@@ -18,13 +6,9 @@ import ctypes
 import datetime
 import filecmp
 import hashlib
-import keyboard
-import ntplib
-import os
 import pathlib
-import pycdlib
 import re
-import send2trash
+import os
 import shutil
 import stat
 import sys
@@ -33,9 +17,24 @@ import time
 import traceback
 import uuid
 import xml.dom.minidom
+from configparser import ConfigParser
+from distutils.dir_util import copy_tree
+from distutils.spawn import find_executable
+from functools import lru_cache
+from io import BytesIO
+from os import listdir
+from os.path import isfile, join, isdir
+from pathlib import Path
+from random import randrange
+from shutil import copy2, copyfile
+from subprocess import Popen, PIPE, call
+from PyPDF2 import PdfFileMerger
+import keyboard
+import ntplib
+import pycdlib
+import send2trash
 
-
-version = "2.0.0"
+version = "2.0.1"
 __version__ = version
 
 
@@ -50,7 +49,7 @@ class ScriptCollection:
 
     # <Build>
 
-    def SCCreateRelease(self, configurationfile: str) -> int:
+    def create_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         error_occurred = False
@@ -77,15 +76,15 @@ class ScriptCollection:
 
             if self.get_buildscript_config_boolean_value(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
-                error_occurred = self.private_create_dotnet_release(configurationfile) != 0
+                error_occurred = self._private_create_dotnet_release(configurationfile) != 0
 
             if self.get_buildscript_config_boolean_value(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
-                error_occurred = self.SCPythonCreateWheelRelease(configurationfile) != 0
+                error_occurred = self.python_create_wheel_release(configurationfile) != 0
 
             if self.get_buildscript_config_boolean_value(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
-                error_occurred = self.SCDebCreateInstallerRelease(configurationfile) != 0
+                error_occurred = self.deb_create_installer_release(configurationfile) != 0
 
         except Exception as exception:
             error_occurred = True
@@ -114,20 +113,20 @@ class ScriptCollection:
             write_message_to_stdout("Building wheel and running testcases was successful")
             return 0
 
-    def SCDotNetBuildExecutableAndRunTests(self, configurationfile: str) -> int:
+    def dotnet_build_eExecutable_and_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
-            self.SCDotNetRunTests(configurationfile)
+            self.dotnet_run_tests(configurationfile)
         for runtime in self.get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
-            self.SCDotNetBuild(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'),
-                               runtime, self.get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), self.get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
+            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'),
+                              runtime, self.get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), self.get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
         return 0
 
-    def SCDotNetCreateExecutableRelease(self, configurationfile: str) -> int:
+    def dotnet_create_executable_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
@@ -136,7 +135,7 @@ class ScriptCollection:
 
         build_and_tests_were_successful = False
         try:
-            exitcode = self.SCDotNetBuildExecutableAndRunTests(configurationfile)
+            exitcode = self.dotnet_build_eExecutable_and_run_tests(configurationfile)
             build_and_tests_were_successful = exitcode == 0
             if not build_and_tests_were_successful:
                 write_exception_to_stderr("Building executable and running testcases resulted in exitcode "+exitcode)
@@ -145,12 +144,12 @@ class ScriptCollection:
             write_exception_to_stderr_with_traceback(exception, traceback, "Building executable and running testcases resulted in an error")
 
         if build_and_tests_were_successful:
-            self.SCDotNetReference(configurationfile)
+            self.dotnet_reference(configurationfile)
             return 0
         else:
             return 1
 
-    def SCDotNetCreateNugetRelease(self, configurationfile: str) -> int:
+    def dotnet_create_nuget_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
@@ -159,7 +158,7 @@ class ScriptCollection:
 
         build_and_tests_were_successful = False
         try:
-            exitcode = self.SCDotNetBuildNugetAndRunTests(configurationfile)
+            exitcode = self.dotnet_build_nuget_and_run_tests(configurationfile)
             build_and_tests_were_successful = exitcode == 0
             if not build_and_tests_were_successful:
                 write_exception_to_stderr("Building nuget and running testcases resulted in exitcode "+exitcode)
@@ -168,8 +167,8 @@ class ScriptCollection:
             write_exception_to_stderr_with_traceback(exception, traceback, "Building nuget and running testcases resulted in an error")
 
         if build_and_tests_were_successful:
-            self.SCDotNetReference(configurationfile)
-            self.SCDotNetReleaseNuget(configurationfile)
+            self.dotnet_reference(configurationfile)
+            self.dotnet_release_nuget(configurationfile)
             return 0
         else:
             return 1
@@ -197,14 +196,14 @@ class ScriptCollection:
       </files>
     </package>"""
 
-    def SCDotNetBuildNugetAndRunTests(self, configurationfile: str) -> int:
+    def dotnet_build_nuget_and_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
-            self.SCDotNetRunTests(configurationfile)
+            self.dotnet_run_tests(configurationfile)
         for runtime in self.get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
-            self.SCDotNetBuild(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'),
-                               runtime, self.get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), self.get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
+            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'),
+                              runtime, self.get_buildscript_config_item(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_buildscript_config_item(configparser, 'dotnet', 'filestosign'), self.get_buildscript_config_item(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_buildscript_config_item(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         ensure_directory_does_not_exist(publishdirectory)
@@ -218,7 +217,7 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
         return 0
 
-    def SCDotNetReleaseNuget(self, configurationfile: str) -> int:
+    def dotnet_release_nuget(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
@@ -239,7 +238,7 @@ class ScriptCollection:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory, 3600, verbose_argument)
         return 0
 
-    def SCDotNetReference(self, configurationfile: str) -> int:
+    def dotnet_reference(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'generatereference'):
@@ -263,7 +262,7 @@ class ScriptCollection:
                 self.git_push(self.get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), self.get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
         return 0
 
-    def SCDotNetBuild(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None) -> int:
+    def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None) -> None:
         # TODO find a good way to include the merge-commit-id into the build
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             shutil.rmtree(outputDirectory)
@@ -284,10 +283,10 @@ class ScriptCollection:
         # TODO remove /bin- and /obj-folder of project and of referenced projects
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
         if(outputFilenameToSign is not None):
-            self.SCDotNetsign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile, verbose)
+            self.dotnet_sign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile, verbose)
         return 0
 
-    def SCDotNetRunTests(self, configurationfile: str) -> int:
+    def dotnet_run_tests(self, configurationfile: str) -> None:
         # TODO add possibility to set another buildconfiguration than for the real result-build
         # TODO remove the call to SCDotNetBuild
         configparser = ConfigParser()
@@ -299,11 +298,13 @@ class ScriptCollection:
         else:
             verbose_argument_for_dotnet = "normal"
             verbose_argument = 1
-        self.SCDotNetBuild(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'), self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') + f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
+        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_buildscript_config_item(configparser, 'dotnet', 'testoutputfolder'),
+                          self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_buildscript_config_item(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration') +
+                                                                  f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
         return 0
 
-    def SCDotNetsign(self, dllOrExefile: str, snkfile: str, verbose: bool) -> int:
+    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = resolve_relative_path_from_current_working_directory(snkfile)
         directory = os.path.dirname(dllOrExeFile)
@@ -322,13 +323,13 @@ class ScriptCollection:
         os.remove(directory+os.path.sep+filename+".res")
         return 0
 
-    def SCDebCreateInstallerRelease(self, configurationfile: str) -> int:
+    def deb_create_installer_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         write_message_to_stderr("Not implemented yet")
         return 1
 
-    def SCPythonCreateWheelRelease(self, configurationfile: str) -> int:
+    def python_create_wheel_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
@@ -336,7 +337,7 @@ class ScriptCollection:
             for file in self.get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
         try:
-            exitcode = self.SCPythonBuildWheelAndRunTests(configurationfile)
+            exitcode = self.python_build_wheel_and_run_tests(configurationfile)
             build_and_tests_were_successful = exitcode == 0
             if not build_and_tests_were_successful:
                 write_exception_to_stderr("Building wheel and running testcases resulted in exitcode "+exitcode)
@@ -344,17 +345,17 @@ class ScriptCollection:
             build_and_tests_were_successful = False
             write_exception_to_stderr_with_traceback(exception, traceback, "Building wheel and running testcases resulted in an error")
         if build_and_tests_were_successful:
-            self.SCPythonReleaseWheel(configurationfile)
+            self.python_release_wheel(configurationfile)
             return 0
         else:
             return 1
 
-    def SCPythonBuildWheelAndRunTests(self, configurationfile: str) -> int:
-        self.SCPythonRunTests(configurationfile)
-        self.SCPythonBuild(configurationfile)
+    def python_build_wheel_and_run_tests(self, configurationfile: str) -> None:
+        self.python_run_tests(configurationfile)
+        self.python_build(configurationfile)
         return 0
 
-    def SCPythonBuild(self, configurationfile: str) -> int:
+    def python_build(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         for folder in self.get_buildscript_config_items(configparser, "python", "deletefolderbeforcreatewheel"):
@@ -367,7 +368,7 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"', setuppyfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
         return 0
 
-    def SCPythonRunTests(self, configurationfile: str) -> int:
+    def python_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
@@ -377,7 +378,7 @@ class ScriptCollection:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
         return 0
 
-    def SCPythonReleaseWheel(self, configurationfile: str) -> int:
+    def python_release_wheel(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_buildscript_config_boolean_value(configparser, 'python', 'publishwhlfile'):
@@ -401,7 +402,7 @@ class ScriptCollection:
     def get_parent_commit_ids_of_commit(self, directory: str, commit_id: str) -> str:
         return self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', directory)[1].replace("\r", "").replace("\n", "").    split(" ")
 
-    def get_commit_ids_between_dates(self, directory: str, since: datetime, until: datetime):
+    def get_commit_ids_between_dates(self, directory: str, since: datetime, until: datetime) -> None:
         since_as_string = _private_datetime_to_string_for_git(since)
         until_as_string = _private_datetime_to_string_for_git(until)
         return filter(lambda line: not string_is_none_or_whitespace(line), self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "    {since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', directory)[1].split("\n").replace("\r", ""))
@@ -433,10 +434,10 @@ class ScriptCollection:
         result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
         return result[1].replace('\r', '').replace('\n', '')
 
-    def git_fetch(self, folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True):
+    def git_fetch(self, folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, 1, False, None, printErrorsAsInformation)
 
-    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False):
+    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False) -> None:
         argument = f"push {remotename} {localbranchname}:{remotebranchname}"
         if (forcepush):
             argument = argument+" --force"
@@ -445,7 +446,7 @@ class ScriptCollection:
         result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, 1, False, None, True)
         return result[1].replace('\r', '').replace('\n', '')
 
-    def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False):
+    def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
         original_cwd = os.getcwd()
         try:
             if(not os.path.isdir(clone_target_folder)):
@@ -477,34 +478,34 @@ class ScriptCollection:
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
         return remote_name in self.git_get_all_remote_names(directory)
 
-    def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str):
+    def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
             self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote set-url {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
         else:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote add {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
 
-    def git_stage_all_changes(self, directory: str):
+    def git_stage_all_changes(self, directory: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600, 1, False, "Stage", False)
 
-    def git_unstage_all_changes(self, directory: str):
+    def git_unstage_all_changes(self, directory: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset", directory, 3600, 1, False, "Unstage", False)
 
-    def git_stage_file(self, directory: str, file: str):
+    def git_stage_file(self, directory: str, file: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'stage -- "{file}"', directory, 3600, 1, False, "Stage", False)
 
-    def git_unstage_file(self, directory: str, file: str):
+    def git_unstage_file(self, directory: str, file: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'reset -- "{file}"', directory, 3600, 1, False, "Unstage", False)
 
-    def git_discard_unstaged_changes_of_file(self, directory: str, file: str):
+    def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- "{file}"', directory, 3600, 1, False, "Discard", False)
 
-    def git_discard_all_unstaged_changes(self, directory: str):
+    def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'clean -df', directory, 3600, 1, False, "Discard", False)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- .', directory, 3600, 1, False, "Discard", False)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'clean -df', directory, 3600, 1, False, "Discard", False)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
-    def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits: bool = False):
+    def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits: bool = False) -> None:
         do_commit = False
         if (self.git_repository_has_uncommitted_changes(directory)):
             write_message_to_stdout(f"Committing all changes in {directory}...")
@@ -527,16 +528,16 @@ class ScriptCollection:
 
         return self.git_get_current_commit_id(directory)
 
-    def git_create_tag(self, directory: str, target_for_tag: str, tag: str):
+    def git_create_tag(self, directory: str, target_for_tag: str, tag: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600, 1, False, "CreateTag", False)
 
-    def git_checkout(self, directory: str, branch: str):
+    def git_checkout(self, directory: str, branch: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600, 1, False, "Checkout", True)
 
-    def git_merge_abort(self, directory: str):
+    def git_merge_abort(self, directory: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600, 1, False, "AbortMerge", False)
 
-    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True):
+    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> None:
         self.git_checkout(directory, targetbranch)
         if(fastforward):
             fastforward_argument = ""
@@ -548,16 +549,16 @@ class ScriptCollection:
         else:
             self.git_get_current_commit_id(directory)
 
-    def git_undo_all_changes(self, directory: str):
+    def git_undo_all_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
         self.git_unstage_all_changes(directory)
         self.git_discard_all_unstaged_changes(directory)
 
-    def _private_undo_changes(self, repository: str):
+    def _private_undo_changes(self, repository: str) -> None:
         if(self.git_repository_has_uncommitted_changes(repository)):
             self.git_undo_all_changes(repository)
 
-    def _private_repository_has_changes(self, repository: str):
+    def _private_repository_has_changes(self, repository: str) -> None:
         if(self.git_repository_has_uncommitted_changes(repository)):
             write_message_to_stderr(f"'{repository}' contains uncommitted changes")
             return True
@@ -574,7 +575,7 @@ class ScriptCollection:
         else:
             return 1
 
-    def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str):
+    def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
         if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
             for item in queried_items:
                 if item == "<notavailable>":
@@ -644,7 +645,7 @@ class ScriptCollection:
     def get_version_for_buildscripts_helper(self, folder: str) -> str:
         return self.get_semver_version_from_gitversion(folder)
 
-    def _private_replace_underscore_in_file_for_buildconfiguration(self, file: str, configparser: ConfigParser, replacements: dict = {}, encoding="utf-8"):
+    def _private_replace_underscore_in_file_for_buildconfiguration(self, file: str, configparser: ConfigParser, replacements: dict = {}, encoding="utf-8") -> None:
         with codecs.open(file, 'r', encoding=encoding) as file_object:
             text = file_object.read()
         text = self._private_replace_underscores_for_buildconfiguration(text, configparser, replacements)
@@ -697,7 +698,7 @@ class ScriptCollection:
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
         available_configuration_items.append(["other", "exportrepositoryremotename"])
-        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])  # TODO use this value
+        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])  # TODO use minimalrequiredtestcoverageinpercent value when running testcases
 
         for item in available_configuration_items:
             if configparser.has_option(item[0], item[1]):
@@ -714,30 +715,30 @@ class ScriptCollection:
                     changed = True
         return result
 
-    def private_create_dotnet_release(self, configurationfile: str) -> int:
+    def _private_create_dotnet_release(self, configurationfile: str) -> int:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'createexe'):
-            return self.SCDotNetCreateExecutableRelease(configurationfile)
+            return self.dotnet_create_executable_release(configurationfile)
         else:
-            return self.SCDotNetCreateNugetRelease(configurationfile)
+            return self.dotnet_create_nuget_release(configurationfile)
 
     def _private_calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
         return float(self.execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, folder)[1])
 
-    def _private_create_thumbnails(self, filename: str, length_in_seconds: float, amount_of_images: int, folder: str, tempname_for_thumbnails):
+    def _private_create_thumbnails(self, filename: str, length_in_seconds: float, amount_of_images: int, folder: str, tempname_for_thumbnails) -> None:
         rrp = length_in_seconds/(amount_of_images-2)
         argument = '-i "'+filename+'" -r 1/'+str(rrp)+' -vf scale=-1:120 -vcodec png '+tempname_for_thumbnails+'-%002d.png'
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, folder)
 
-    def _private_create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails):
+    def _private_create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails) -> None:
         duration = datetime.timedelta(seconds=length_in_seconds)
         info = timedelta_to_simple_string(duration)
         argument = '-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
         self.execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
-    def SCGenerateThumbnail(self, file: str) -> int:
+    def generate_thumbnail(self, file: str) -> None:
         tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
         amount_of_images = 16
@@ -759,7 +760,7 @@ class ScriptCollection:
                 file = str(thumbnail_to_delete)
                 os.remove(file)
 
-    def SCMergePDFs(self, files, outputfile: str) -> int:
+    def merge_pdf_files(self, files, outputfile: str) -> None:
         # TODO add wildcard-option
         pdfFileMerger = PdfFileMerger()
         for file in files:
@@ -799,7 +800,7 @@ class ScriptCollection:
             f.write(b"\0")
         return 0
 
-    def SCCreateHashOfAllFiles(self, folder: str):
+    def SCCreateHashOfAllFiles(self, folder: str) -> None:
         for file in absolute_file_paths(folder):
             with open(file+".sha256", "w+") as f:
                 f.write(get_sha256_of_file(file))
@@ -851,7 +852,7 @@ class ScriptCollection:
             argument = f"-k {keysize} {file}"
             self.execute("sn", argument, outputfolder)
 
-    def _private_merge_files(self, sourcefile: str, targetfile: str):
+    def _private_merge_files(self, sourcefile: str, targetfile: str) -> None:
         with open(sourcefile, "rb") as f:
             source_data = f.read()
         fout = open(targetfile, "ab")
@@ -860,7 +861,7 @@ class ScriptCollection:
         fout.write(source_data)
         fout.close()
 
-    def _private_process_file(self, file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str):
+    def _private_process_file(self, file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
         new_filename = os.path.join(os.path.dirname(file), os.path.basename(file).replace(substringInFilename, newSubstringInFilename))
         if file != new_filename:
             if os.path.isfile(new_filename):
@@ -883,11 +884,11 @@ class ScriptCollection:
             else:
                 os.rename(file, new_filename)
 
-    def SCReplaceSubstringsInFilenames(self, folder: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str):
+    def SCReplaceSubstringsInFilenames(self, folder: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
         for file in absolute_file_paths(folder):
             self._private_process_file(file, substringInFilename, newSubstringInFilename, conflictResolveMode)
 
-    def _private_check_file(self, file: str, searchstring: str):
+    def _private_check_file(self, file: str, searchstring: str) -> None:
         bytes_ascii = bytes(searchstring, "ascii")
         bytes_utf16 = bytes(searchstring, "utf-16")  # often called "unicode-encoding"
         bytes_utf8 = bytes(searchstring, "utf-8")
@@ -900,11 +901,11 @@ class ScriptCollection:
             elif bytes_utf8 in content:
                 write_message_to_stdout(file)
 
-    def SCSearchInFiles(self, folder: str, searchstring: str):
+    def SCSearchInFiles(self, folder: str, searchstring: str) -> None:
         for file in absolute_file_paths(folder):
             self._private_check_file(file, searchstring)
 
-    def _private_print_qr_code_by_csv_line(self, line: str):
+    def _private_print_qr_code_by_csv_line(self, line: str) -> None:
         splitted = line.split(";")
         displayname = splitted[0]
         website = splitted[1]
@@ -916,7 +917,7 @@ class ScriptCollection:
         write_message_to_stdout(qrcode_content)
         call(["qr", qrcode_content])
 
-    def SCShow2FAAsQRCode(self, csvfile: str):
+    def SCShow2FAAsQRCode(self, csvfile: str) -> None:
         separator_line = "--------------------------------------------------------"
         with open(csvfile) as f:
             lines = f.readlines()
@@ -957,13 +958,13 @@ class ScriptCollection:
             write_exception_to_stderr_with_traceback(exception, traceback)
             return 2
 
-    def SCCalculateBitcoinBlockHash(self, version: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str) -> str:
+    def SCCalculateBitcoinBlockHash(self, block_version_number: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str) -> str:
         # Example-values:
-        # version: "00000020"; previousblockhash: "66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000"; transactionsmerkleroot:     "7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187"; timestamp: "51eb505a"; target: "c1910018"; nonce: "de19b302"
-        header = str(version + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
+        # block_version_number: "00000020"; previousblockhash: "66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000"; transactionsmerkleroot:     "7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187"; timestamp: "51eb505a"; target: "c1910018"; nonce: "de19b302"
+        header = str(block_version_number + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
         return binascii.hexlify(hashlib.sha256(hashlib.sha256(binascii.unhexlify(header)).digest()).digest()[::-1]).decode('utf-8')
 
-    def SCChangeHashOfProgram(self, inputfile: str):
+    def SCChangeHashOfProgram(self, inputfile: str) -> None:
         valuetoappend = str(uuid.uuid4())
 
         outputfile = inputfile + '.modified'
@@ -984,7 +985,7 @@ class ScriptCollection:
         else:
             return result
 
-    def _private_create_iso(self, folder, iso_file):
+    def _private_create_iso(self, folder, iso_file) -> None:
         created_directories = []
         files_directory = "FILES"
         iso = pycdlib.PyCdlib()
@@ -1004,7 +1005,7 @@ class ScriptCollection:
         iso.write(iso_file)
         iso.close()
 
-    def SCCreateISOFileWithObfuscatedFiles(self, inputfolder: str, outputfile: str, printtableheadline, createisofile, extensions):
+    def SCCreateISOFileWithObfuscatedFiles(self, inputfolder: str, outputfile: str, printtableheadline, createisofile, extensions) -> None:
         if (os.path.isdir(inputfolder)):
             namemappingfile = "name_map.csv"
             files_directory = inputfolder
@@ -1017,7 +1018,7 @@ class ScriptCollection:
         else:
             raise Exception(f"Directory not found: '{inputfolder}'")
 
-    def SCFilenameObfuscator(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str):
+    def SCFilenameObfuscator(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
         if(not obfuscate_all_files):
             obfuscate_file_extensions = extensions.split(",")
@@ -1035,16 +1036,16 @@ class ScriptCollection:
                     if obfuscate_all_files or _private_extension_matchs(file, obfuscate_file_extensions):
                         files.append(file)
             for file in files:
-                hash = get_sha256_of_file(file)
+                hash_value = get_sha256_of_file(file)
                 extension = pathlib.Path(file).suffix
                 new_file_name_without_path = str(uuid.uuid4())[0:8] + extension
                 new_file_name = os.path.join(os.path.dirname(file), new_file_name_without_path)
                 os.rename(file, new_file_name)
-                append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash)
+                append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash_value)
         else:
             raise Exception(f"Directory not found: '{inputfolder}'")
 
-    def SCObfuscateFilesFolder(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str):
+    def SCObfuscateFilesFolder(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
         if(not obfuscate_all_files):
             if "," in extensions:
@@ -1109,7 +1110,7 @@ class ScriptCollection:
                 result.append(trimmed_line[2:].split(" ")[0])
         return result
 
-    def update_nuget_package(self, csproj_file: str, name: str):
+    def update_nuget_package(self, csproj_file: str, name: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
 
     def _private_adapt_workingdirectory(self, workingdirectory: str) -> str:
@@ -1118,7 +1119,7 @@ class ScriptCollection:
         else:
             return resolve_relative_path_from_current_working_directory(workingdirectory)
 
-    def _private_log_program_start(self, program: str, arguments: str, workingdirectory: str, verbosity: int = 1):
+    def _private_log_program_start(self, program: str, arguments: str, workingdirectory: str, verbosity: int = 1) -> None:
         if(verbosity == 2):
             write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
 
@@ -1133,7 +1134,7 @@ class ScriptCollection:
             start_argument_as_string = f"{program} {arguments}"
             return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
 
-    def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True, write_output_to_standard_output: bool = False, log_namespace: str = ""):
+    def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True, write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if result[0] == 0:
             return result
@@ -1148,7 +1149,7 @@ class ScriptCollection:
             write_message_to_stderr(result[2])
         return result[0]
 
-    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = ""):
+    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = "") -> None:
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if (epew_is_available() and not prevent_using_epew):
@@ -1170,7 +1171,7 @@ class ScriptCollection:
             base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
             argument = f'--Program "{program}"'
             argument = argument+f' --Argument {base64argument}'
-            argument = argument+f' --ArgumentIsBase64Encoded'
+            argument = argument+' --ArgumentIsBase64Encoded'
             argument = argument+f' --Workingdirectory "{workingdirectory}"'
             argument = argument+f' --StdOutFile "{output_file_for_stdout}"'
             argument = argument+f' --StdErrFile "{output_file_for_stderr}"'
@@ -1182,7 +1183,7 @@ class ScriptCollection:
             if not string_is_none_or_whitespace(log_file):
                 argument = argument+f' --LogFile "{log_file}"'
             if write_output_to_standard_output:
-                argument = argument+f' --WriteOutputToConsole'
+                argument = argument+' --WriteOutputToConsole'
             if print_errors_as_information:
                 argument = argument+" --PrintErrorsAsInformation"
             if addLogOverhead:
@@ -1197,7 +1198,7 @@ class ScriptCollection:
                 write_message_to_stdout(f"Start executing '{title_local}'")
             if verbosity == 2:
                 write_message_to_stdout(f"Plain epew-call: 'epew {argument}'")
-            if mock_program_call:
+            if self.mock_program_call:
                 raise Exception("usage of mock_program_call using epew is not implemented yet")
             else:
                 process = Popen(f'epew {argument}')
@@ -1213,7 +1214,7 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            if mock_program_call:
+            if self.mock_program_call:
                 raise Exception("usage of mock_program_call is not implemented yet")
             else:
                 process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
@@ -1293,138 +1294,7 @@ class ScriptCollection:
 # <static>
 
 
-def move_content_of_folder(srcDir, dstDir) -> None:
-    srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
-    dstDirFull = resolve_relative_path_from_current_working_directory(dstDir)
-    for file in get_direct_files_of_folder(srcDirFull):
-        shutil.move(file, dstDirFull)
-    for sub_folder in get_direct_folders_of_folder(srcDirFull):
-        shutil.move(sub_folder, dstDirFull)
-
-
-def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
-    """This function iterates over each line in the file and replaces it by the line which applied regex.
-    Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
-    with open(file, encoding=encoding, mode="r") as f:
-        lines = f.readlines()
-        replaced_lines = []
-        for line in lines:
-            replaced_line = re.sub(replace_from_regex, replace_to_regex, line)
-            replaced_lines.append(replaced_line)
-    with open(file, encoding=encoding, mode="w") as f:
-        f.writelines(replaced_lines)
-
-
-def replace_regex_in_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
-    with open(file, encoding=encoding, mode="r") as f:
-        content = f.read()
-        content = re.sub(replace_from_regex, replace_to_regex, content)
-    with open(file, encoding=encoding, mode="w") as f:
-        f.write(content)
-
-
-def replace_xmltag_in_file(file: str, tag: str, new_value: str, encoding="utf-8") -> None:
-    replace_regex_in_file(file, f"<{tag}>.*</{tag}>", f"<{tag}>{new_value}</{tag}>", encoding)
-
-
-def update_version_in_csproj_file(file: str, version: str) -> None:
-    replace_xmltag_in_file(file, "Version", version)
-    replace_xmltag_in_file(file, "AssemblyVersion", version + ".0")
-    replace_xmltag_in_file(file, "FileVersion", version + ".0")
-
-
-def replace_underscores_in_text(text: str, replacements: dict) -> str:
-    changed = True
-    while changed:
-        changed = False
-        for key, value in replacements.items():
-            previousValue = text
-            text = text.replace(f"__{key}__", value)
-            if(not text == previousValue):
-                changed = True
-    return text
-
-
-def replace_underscores_in_file(file: str, replacements: dict, encoding: str = "utf-8"):
-    text = read_text_from_file(file, encoding)
-    text = replace_underscores_in_text(text, replacements)
-    write_text_to_file(file, text, encoding)
-
-
-def _private_extension_matchs(file: str, obfuscate_file_extensions) -> bool:
-    for extension in obfuscate_file_extensions:
-        if file.lower().endswith("."+extension.lower()):
-            return True
-    return False
-
-
-def get_ScriptCollection_version() -> str:
-    return version
-
-
-def write_message_to_stdout(message: str):
-    sys.stdout.write(str_none_safe(message)+"\n")
-    sys.stdout.flush()
-
-
-def write_message_to_stderr(message: str):
-    sys.stderr.write(str_none_safe(message)+"\n")
-    sys.stderr.flush()
-
-
-def write_exception_to_stderr(exception: Exception, extra_message: str = None):
-    write_message_to_stderr("Exception(")
-    write_message_to_stderr("Type: "+str(type(exception)))
-    write_message_to_stderr("Message: "+str(exception))
-    if str is not None:
-        write_message_to_stderr("Extra-message: "+str(extra_message))
-    write_message_to_stderr(")")
-
-
-def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback, extra_message: str = None):
-    write_message_to_stderr("Exception(")
-    write_message_to_stderr("Type: "+str(type(exception)))
-    write_message_to_stderr("Message: "+str(exception))
-    if str is not None:
-        write_message_to_stderr("Extra-message: "+str(extra_message))
-    write_message_to_stderr("Traceback: "+current_traceback.format_exc())
-    write_message_to_stderr(")")
-
-
-def string_has_content(string: str) -> bool:
-    if string is None:
-        return False
-    else:
-        return len(string) > 0
-
-
-def _private_datetime_to_string_for_git(datetime_object: datetime.datetime) -> str:
-    return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
-
-
-def string_has_nonwhitespace_content(string: str) -> bool:
-    if string is None:
-        return False
-    else:
-        return len(string.strip()) > 0
-
-
-def string_is_none_or_empty(argument: str) -> bool:
-    if argument is None:
-        return True
-    type_of_argument = type(argument)
-    if type_of_argument == str:
-        return argument == ""
-    else:
-        raise Exception(f"expected string-variable in argument of string_is_none_or_empty but the type was '{str(type_of_argument)}'")
-
-
-def string_is_none_or_whitespace(string: str) -> bool:
-    if string_is_none_or_empty(string):
-        return True
-    else:
-        return string.strip() == ""
-
+# <CLI-scripts>
 
 def SCCreateRelease_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCCreateRelease_cli:
@@ -1435,7 +1305,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCCreateRelease(args.configurationfile)
+    return ScriptCollection().create_release(args.configurationfile)
 
 
 def SCDotNetBuildExecutableAndRunTests_cli() -> int:
@@ -1447,7 +1317,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetBuildExecutableAndRunTests(args.configurationfile)
+    return ScriptCollection().dotnet_build_eExecutable_and_run_tests(args.configurationfile)
 
 
 def SCDotNetCreateExecutableRelease_cli() -> int:
@@ -1459,7 +1329,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetCreateExecutableRelease(args.configurationfile)
+    return ScriptCollection().dotnet_create_executable_release(args.configurationfile)
 
 
 def SCDotNetCreateNugetRelease_cli() -> int:
@@ -1471,7 +1341,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetCreateNugetRelease(args.configurationfile)
+    return ScriptCollection().dotnet_create_nuget_release(args.configurationfile)
 
 
 def SCDotNetBuildNugetAndRunTests_cli() -> int:
@@ -1483,7 +1353,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetBuildNugetAndRunTests(args.configurationfile)
+    return ScriptCollection().dotnet_build_nuget_and_run_tests(args.configurationfile)
 
 
 def SCDotNetReleaseNuget_cli() -> int:
@@ -1495,7 +1365,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetReleaseNuget(args.configurationfile)
+    return ScriptCollection().dotnet_release_nuget(args.configurationfile)
 
 
 def SCDotNetReference_cli() -> int:
@@ -1507,7 +1377,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetReference(args.configurationfile)
+    return ScriptCollection().dotnet_reference(args.configurationfile)
 
 
 def SCDotNetBuild_cli() -> int:
@@ -1527,7 +1397,7 @@ Requires the requirements of: TODO""")
     parser.add_argument("outputFilenameToSign")
     parser.add_argument("keyToSignForOutputfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetBuild(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework, args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile)
+    return ScriptCollection().dotnet_build(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework, args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile)
 
 
 def SCDotNetRunTests_cli() -> int:
@@ -1539,7 +1409,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetRunTests(args.configurationfile)
+    return ScriptCollection().dotnet_run_tests(args.configurationfile)
 
 
 def SCDotNetsign_cli() -> int:
@@ -1548,7 +1418,7 @@ def SCDotNetsign_cli() -> int:
     parser.add_argument("snkfile")
     parser.add_argument("verbose", action='store_true')
     args = parser.parse_args()
-    return ScriptCollection().SCDotNetsign(args.dllOrExefile, args.snkfile, args.verbose)
+    return ScriptCollection().dotnet_sign(args.dllOrExefile, args.snkfile, args.verbose)
 
 
 def SCDebCreateInstallerRelease_cli() -> int:
@@ -1560,7 +1430,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCDebCreateInstallerRelease(args.configurationfile)
+    return ScriptCollection().deb_create_installer_release(args.configurationfile)
 
 
 def SCPythonCreateWheelRelease_cli() -> int:
@@ -1572,7 +1442,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCPythonCreateWheelRelease(args.configurationfile)
+    return ScriptCollection().python_create_wheel_release(args.configurationfile)
 
 
 def SCPythonBuild_cli() -> int:
@@ -1584,7 +1454,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCPythonBuild(args.configurationfile)
+    return ScriptCollection().python_build(args.configurationfile)
 
 
 def SCPythonRunTests_cli() -> int:
@@ -1596,7 +1466,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCPythonRunTests(args.configurationfile)
+    return ScriptCollection().python_run_tests(args.configurationfile)
 
 
 def SCPythonReleaseWheel_cli() -> int:
@@ -1608,7 +1478,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCPythonReleaseWheel(args.configurationfile)
+    return ScriptCollection().python_release_wheel(args.configurationfile)
 
 
 def SCPythonBuildWheelAndRunTests_cli() -> int:
@@ -1620,157 +1490,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().SCPythonBuildWheelAndRunTests(args.configurationfile)
-
-
-def strip_new_line_character(value: str):
-    value = value.strip().strip('\n').strip('\r').strip()
-    return value
-
-
-def append_line_to_file(file: str, line: str, encoding: str = "utf-8"):
-    if not file_is_empty(file):
-        line = os.linesep+line
-    append_to_file(file, line, encoding)
-
-
-def append_to_file(file: str, content: str, encoding: str = "utf-8"):
-    with open(file, "a", encoding=encoding) as fileObject:
-        fileObject.write(content)
-
-
-def ensure_directory_exists(path: str):
-    if not os.path.isdir(path):
-        os.makedirs(path)
-
-
-def ensure_file_exists(path: str):
-    if(not os.path.isfile(path)):
-        with open(path, "a+"):
-            pass
-
-
-def ensure_directory_does_not_exist(path: str):
-    if(os.path.isdir(path)):
-        for root, dirs, files in os.walk(path, topdown=False):
-            for name in files:
-                filename = os.path.join(root, name)
-                os.chmod(filename, stat.S_IWUSR)
-                os.remove(filename)
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
-        os.rmdir(path)
-
-
-def ensure_file_does_not_exist(path: str):
-    if(os.path.isfile(path)):
-        os.remove(path)
-
-
-def format_xml_file(filepath: str, encoding: str):
-    with codecs.open(filepath, 'r', encoding=encoding) as file:
-        text = file.read()
-    text = xml.dom.minidom.parseString(text).toprettyxml()
-    with codecs.open(filepath, 'w', encoding=encoding) as file:
-        file.write(text)
-
-
-def get_clusters_and_sectors_of_disk(diskpath: str):
-    sectorsPerCluster = ctypes.c_ulonglong(0)
-    bytesPerSector = ctypes.c_ulonglong(0)
-    rootPathName = ctypes.c_wchar_p(diskpath)
-    ctypes.windll.kernel32.GetDiskFreeSpaceW(rootPathName, ctypes.pointer(sectorsPerCluster), ctypes.pointer(bytesPerSector), None, None)
-    return (sectorsPerCluster.value, bytesPerSector.value)
-
-
-def ensure_path_is_not_quoted(path: str) -> str:
-    if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
-        path = path[1:]
-        path = path[:-1]
-        return path
-    else:
-        return path
-
-
-def get_missing_files(folderA: str, folderB: str) -> list:
-    folderA_length = len(folderA)
-    result = []
-    for fileA in absolute_file_paths(folderA):
-        file = fileA[folderA_length:]
-        fileB = folderB+file
-        if not os.path.isfile(fileB):
-            result.append(fileB)
-    return result
-
-
-def write_lines_to_file(file: str, lines: list, encoding="utf-8"):
-    write_text_to_file(file, os.linesep.join(lines), encoding)
-
-
-def write_text_to_file(file: str, content: str, encoding="utf-8"):
-    write_binary_to_file(file, bytearray(content, encoding))
-
-
-def write_binary_to_file(file: str, content: bytearray):
-    with open(file, "wb") as file_object:
-        file_object.write(content)
-
-
-def read_lines_from_file(file: str, encoding="utf-8") -> list:
-    return read_text_from_file(file, encoding).split(os.linesep)
-
-
-def read_text_from_file(file: str, encoding="utf-8") -> str:
-    return bytes_to_string(read_binary_from_file(file), encoding)
-
-
-def read_binary_from_file(file: str) -> bytes:
-    with open(file, "rb") as file_object:
-        return file_object.read()
-
-
-def timedelta_to_simple_string(delta) -> str:
-    return (datetime.datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
-
-
-def resolve_relative_path_from_current_working_directory(path: str) -> str:
-    return resolve_relative_path(path, os.getcwd())
-
-
-def resolve_relative_path(path: str, base_path: str):
-    if(os.path.isabs(path)):
-        return path
-    else:
-        return str(Path(os.path.join(base_path, path)).resolve())
-
-
-def get_metadata_for_file_for_clone_folder_structure(file: str) -> str:
-    size = os.path.getsize(file)
-    last_modified_timestamp = os.path.getmtime(file)
-    hash_value = get_sha256_of_file(file)
-    last_access_timestamp = os.path.getatime(file)
-    return f'{{"size":"{size}","sha256":"{hash_value}","mtime":"{last_modified_timestamp}","atime":"{last_access_timestamp}"}}'
-
-
-def clone_folder_structure(source: str, target: str, copy_only_metadata: bool):
-    source = resolve_relative_path(source, os.getcwd())
-    target = resolve_relative_path(target, os.getcwd())
-    length_of_source = len(source)
-    for source_file in absolute_file_paths(source):
-        target_file = target+source_file[length_of_source:]
-        ensure_directory_exists(os.path.dirname(target_file))
-        if copy_only_metadata:
-            with open(target_file, 'w', encoding='utf8') as f:
-                f.write(get_metadata_for_file_for_clone_folder_structure(source_file))
-        else:
-            copyfile(source_file, target_file)
-
-
-def current_user_has_elevated_privileges() -> bool:
-    try:
-        return os.getuid() == 0
-    except AttributeError:
-        return ctypes.windll.shell32.IsUserAnAdmin() == 1
+    return ScriptCollection().python_build_wheel_and_run_tests(args.configurationfile)
 
 
 def SCFilenameObfuscator_cli() -> int:
@@ -1966,11 +1686,12 @@ def SCMergePDFs_cli() -> int:
     parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.    pdf,myfile3.pdf result.pdf"')
     parser.add_argument('outputfile', help='File for the resulting pdf-document')
     args = parser.parse_args()
-    ScriptCollection().SCMergePDFs(args.files.split(','), args.outputfile)
+    ScriptCollection().merge_pdf_files(args.files.split(','), args.outputfile)
     return 0
 
 
 def SCKeyboardDiagnosis_cli():
+    """Caution: This function does usually never terminate"""
     keyboard.hook(_private_keyhook)
     while True:
         time.sleep(10)
@@ -1980,7 +1701,7 @@ def SCGenerateThumbnail_cli() -> int:
     parser = argparse.ArgumentParser(description='Generate thumpnails for video-files')
     parser.add_argument('file', help='Input-videofile for thumbnail-generation')
     args = parser.parse_args()
-    return ScriptCollection().SCGenerateThumbnail(args.file)
+    return ScriptCollection().generate_thumbnail(args.file)
 
 
 def SCObfuscateFilesFolder_cli() -> int:
@@ -1994,6 +1715,294 @@ def SCObfuscateFilesFolder_cli() -> int:
     args = parser.parse_args()
     ScriptCollection().SCObfuscateFilesFolder(args.inputfolder, args.printtableheadline, args.namemappingfile, args.extensions)
     return 0
+
+
+# </CLI-scripts>
+
+
+# <miscellaneous>
+
+def move_content_of_folder(srcDir, dstDir) -> None:
+    srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
+    dstDirFull = resolve_relative_path_from_current_working_directory(dstDir)
+    for file in get_direct_files_of_folder(srcDirFull):
+        shutil.move(file, dstDirFull)
+    for sub_folder in get_direct_folders_of_folder(srcDirFull):
+        shutil.move(sub_folder, dstDirFull)
+
+
+def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
+    """This function iterates over each line in the file and replaces it by the line which applied regex.
+    Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
+    with open(file, encoding=encoding, mode="r") as f:
+        lines = f.readlines()
+        replaced_lines = []
+        for line in lines:
+            replaced_line = re.sub(replace_from_regex, replace_to_regex, line)
+            replaced_lines.append(replaced_line)
+    with open(file, encoding=encoding, mode="w") as f:
+        f.writelines(replaced_lines)
+
+
+def replace_regex_in_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
+    with open(file, encoding=encoding, mode="r") as f:
+        content = f.read()
+        content = re.sub(replace_from_regex, replace_to_regex, content)
+    with open(file, encoding=encoding, mode="w") as f:
+        f.write(content)
+
+
+def replace_xmltag_in_file(file: str, tag: str, new_value: str, encoding="utf-8") -> None:
+    replace_regex_in_file(file, f"<{tag}>.*</{tag}>", f"<{tag}>{new_value}</{tag}>", encoding)
+
+
+def update_version_in_csproj_file(file: str, target_version: str) -> None:
+    replace_xmltag_in_file(file, "Version", target_version)
+    replace_xmltag_in_file(file, "AssemblyVersion", target_version + ".0")
+    replace_xmltag_in_file(file, "FileVersion", target_version + ".0")
+
+
+def replace_underscores_in_text(text: str, replacements: dict) -> str:
+    changed = True
+    while changed:
+        changed = False
+        for key, value in replacements.items():
+            previousValue = text
+            text = text.replace(f"__{key}__", value)
+            if(not text == previousValue):
+                changed = True
+    return text
+
+
+def replace_underscores_in_file(file: str, replacements: dict, encoding: str = "utf-8"):
+    text = read_text_from_file(file, encoding)
+    text = replace_underscores_in_text(text, replacements)
+    write_text_to_file(file, text, encoding)
+
+
+def _private_extension_matchs(file: str, obfuscate_file_extensions) -> bool:
+    for extension in obfuscate_file_extensions:
+        if file.lower().endswith("."+extension.lower()):
+            return True
+    return False
+
+
+def get_ScriptCollection_version() -> str:
+    return version
+
+
+def write_message_to_stdout(message: str):
+    sys.stdout.write(str_none_safe(message)+"\n")
+    sys.stdout.flush()
+
+
+def write_message_to_stderr(message: str):
+    sys.stderr.write(str_none_safe(message)+"\n")
+    sys.stderr.flush()
+
+
+def write_exception_to_stderr(exception: Exception, extra_message: str = None):
+    write_message_to_stderr("Exception(")
+    write_message_to_stderr("Type: "+str(type(exception)))
+    write_message_to_stderr("Message: "+str(exception))
+    if str is not None:
+        write_message_to_stderr("Extra-message: "+str(extra_message))
+    write_message_to_stderr(")")
+
+
+def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback, extra_message: str = None):
+    write_message_to_stderr("Exception(")
+    write_message_to_stderr("Type: "+str(type(exception)))
+    write_message_to_stderr("Message: "+str(exception))
+    if str is not None:
+        write_message_to_stderr("Extra-message: "+str(extra_message))
+    write_message_to_stderr("Traceback: "+current_traceback.format_exc())
+    write_message_to_stderr(")")
+
+
+def string_has_content(string: str) -> bool:
+    if string is None:
+        return False
+    else:
+        return len(string) > 0
+
+
+def _private_datetime_to_string_for_git(datetime_object: datetime.datetime) -> str:
+    return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
+
+
+def string_has_nonwhitespace_content(string: str) -> bool:
+    if string is None:
+        return False
+    else:
+        return len(string.strip()) > 0
+
+
+def string_is_none_or_empty(argument: str) -> bool:
+    if argument is None:
+        return True
+    type_of_argument = type(argument)
+    if type_of_argument == str:
+        return argument == ""
+    else:
+        raise Exception(f"expected string-variable in argument of string_is_none_or_empty but the type was '{str(type_of_argument)}'")
+
+
+def string_is_none_or_whitespace(string: str) -> bool:
+    if string_is_none_or_empty(string):
+        return True
+    else:
+        return string.strip() == ""
+
+
+def strip_new_line_character(value: str):
+    value = value.strip().strip('\n').strip('\r').strip()
+    return value
+
+
+def append_line_to_file(file: str, line: str, encoding: str = "utf-8"):
+    if not file_is_empty(file):
+        line = os.linesep+line
+    append_to_file(file, line, encoding)
+
+
+def append_to_file(file: str, content: str, encoding: str = "utf-8"):
+    with open(file, "a", encoding=encoding) as fileObject:
+        fileObject.write(content)
+
+
+def ensure_directory_exists(path: str):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
+def ensure_file_exists(path: str):
+    if(not os.path.isfile(path)):
+        with open(path, "a+"):
+            pass
+
+
+def ensure_directory_does_not_exist(path: str):
+    if(os.path.isdir(path)):
+        for root, dirs, files in os.walk(path, topdown=False):
+            for name in files:
+                filename = os.path.join(root, name)
+                os.chmod(filename, stat.S_IWUSR)
+                os.remove(filename)
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir(path)
+
+
+def ensure_file_does_not_exist(path: str):
+    if(os.path.isfile(path)):
+        os.remove(path)
+
+
+def format_xml_file(filepath: str, encoding: str):
+    with codecs.open(filepath, 'r', encoding=encoding) as file:
+        text = file.read()
+    text = xml.dom.minidom.parseString(text).toprettyxml()
+    with codecs.open(filepath, 'w', encoding=encoding) as file:
+        file.write(text)
+
+
+def get_clusters_and_sectors_of_disk(diskpath: str):
+    sectorsPerCluster = ctypes.c_ulonglong(0)
+    bytesPerSector = ctypes.c_ulonglong(0)
+    rootPathName = ctypes.c_wchar_p(diskpath)
+    ctypes.windll.kernel32.GetDiskFreeSpaceW(rootPathName, ctypes.pointer(sectorsPerCluster), ctypes.pointer(bytesPerSector), None, None)
+    return (sectorsPerCluster.value, bytesPerSector.value)
+
+
+def ensure_path_is_not_quoted(path: str) -> str:
+    if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
+        path = path[1:]
+        path = path[:-1]
+        return path
+    else:
+        return path
+
+
+def get_missing_files(folderA: str, folderB: str) -> list:
+    folderA_length = len(folderA)
+    result = []
+    for fileA in absolute_file_paths(folderA):
+        file = fileA[folderA_length:]
+        fileB = folderB+file
+        if not os.path.isfile(fileB):
+            result.append(fileB)
+    return result
+
+
+def write_lines_to_file(file: str, lines: list, encoding="utf-8"):
+    write_text_to_file(file, os.linesep.join(lines), encoding)
+
+
+def write_text_to_file(file: str, content: str, encoding="utf-8"):
+    write_binary_to_file(file, bytearray(content, encoding))
+
+
+def write_binary_to_file(file: str, content: bytearray):
+    with open(file, "wb") as file_object:
+        file_object.write(content)
+
+
+def read_lines_from_file(file: str, encoding="utf-8") -> list:
+    return read_text_from_file(file, encoding).split(os.linesep)
+
+
+def read_text_from_file(file: str, encoding="utf-8") -> str:
+    return bytes_to_string(read_binary_from_file(file), encoding)
+
+
+def read_binary_from_file(file: str) -> bytes:
+    with open(file, "rb") as file_object:
+        return file_object.read()
+
+
+def timedelta_to_simple_string(delta) -> str:
+    return (datetime.datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
+
+
+def resolve_relative_path_from_current_working_directory(path: str) -> str:
+    return resolve_relative_path(path, os.getcwd())
+
+
+def resolve_relative_path(path: str, base_path: str):
+    if(os.path.isabs(path)):
+        return path
+    else:
+        return str(Path(os.path.join(base_path, path)).resolve())
+
+
+def get_metadata_for_file_for_clone_folder_structure(file: str) -> str:
+    size = os.path.getsize(file)
+    last_modified_timestamp = os.path.getmtime(file)
+    hash_value = get_sha256_of_file(file)
+    last_access_timestamp = os.path.getatime(file)
+    return f'{{"size":"{size}","sha256":"{hash_value}","mtime":"{last_modified_timestamp}","atime":"{last_access_timestamp}"}}'
+
+
+def clone_folder_structure(source: str, target: str, copy_only_metadata: bool):
+    source = resolve_relative_path(source, os.getcwd())
+    target = resolve_relative_path(target, os.getcwd())
+    length_of_source = len(source)
+    for source_file in absolute_file_paths(source):
+        target_file = target+source_file[length_of_source:]
+        ensure_directory_exists(os.path.dirname(target_file))
+        if copy_only_metadata:
+            with open(target_file, 'w', encoding='utf8') as f:
+                f.write(get_metadata_for_file_for_clone_folder_structure(source_file))
+        else:
+            copyfile(source_file, target_file)
+
+
+def current_user_has_elevated_privileges() -> bool:
+    try:
+        return os.getuid() == 0
+    except AttributeError:
+        return ctypes.windll.shell32.IsUserAnAdmin() == 1
 
 
 def rename_names_of_all_files_and_folders(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
@@ -2050,9 +2059,9 @@ def get_sha256_of_file(file: str) -> str:
     return sha256.hexdigest()
 
 
-def remove_duplicates(input) -> list:
+def remove_duplicates(input_list) -> list:
     result = []
-    for item in input:
+    for item in input_list:
         if not item in result:
             result.append(item)
     return result
@@ -2103,7 +2112,9 @@ def absolute_file_paths(directory: str) -> list:
             yield os.path.abspath(os.path.join(dirpath, filename))
 
 
-def _private_keyhook(event):
+def _private_keyhook(event) -> None:
     write_message_to_stdout(str(event.name)+" "+event.event_type)
+
+# <miscellaneous>
 
 # </static>
