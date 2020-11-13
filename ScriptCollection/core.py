@@ -42,8 +42,8 @@ class ScriptCollection:
 
     # <Properties>
 
-    mock_program_call: bool = False
-    mocked_program_calls: list = list()
+    mock_program_calls: bool = False  # This property is for test-purposes only
+    _private_mocked_program_calls: list = list()
 
     # </Properties>
 
@@ -1150,6 +1150,8 @@ class ScriptCollection:
         return result[0]
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = "") -> None:
+        if self.mock_program_calls:
+            return self._private_mock_program_call(program, arguments, workingdirectory)
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if (epew_is_available() and not prevent_using_epew):
@@ -1198,15 +1200,12 @@ class ScriptCollection:
                 write_message_to_stdout(f"Start executing '{title_local}'")
             if verbosity == 2:
                 write_message_to_stdout(f"Plain epew-call: 'epew {argument}'")
-            if self.mock_program_call:
-                raise Exception("usage of mock_program_call using epew is not implemented yet")
-            else:
-                process = Popen(f'epew {argument}')
-                process.wait()
-                stdout = self._private_load_text(output_file_for_stdout)
-                stderr = self._private_load_text(output_file_for_stderr)
-                exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
-                pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
+            process = Popen(f'epew {argument}')
+            process.wait()
+            stdout = self._private_load_text(output_file_for_stdout)
+            stderr = self._private_load_text(output_file_for_stderr)
+            exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
+            pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
             if verbosity == 2:
                 write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
             return (exit_code, stdout, stderr, pid)
@@ -1214,15 +1213,12 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            if self.mock_program_call:
-                raise Exception("usage of mock_program_call is not implemented yet")
-            else:
-                process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
-                pid = process.pid
-                stdout, stderr = process.communicate()
-                exit_code = process.wait()
-                stdout = bytes_to_string(stdout).replace('\r', '')
-                stderr = bytes_to_string(stderr).replace('\r', '')
+            process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
+            pid = process.pid
+            stdout, stderr = process.communicate()
+            exit_code = process.wait()
+            stdout = bytes_to_string(stdout).replace('\r', '')
+            stderr = bytes_to_string(stderr).replace('\r', '')
             if write_output_to_standard_output:
                 for line in stdout.splitlines():
                     write_message_to_stdout(line)
@@ -1231,6 +1227,43 @@ class ScriptCollection:
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                 raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
             return (exit_code, stdout, stderr, pid)
+
+    def verify_no_pending_mock_program_calls(self):
+        if(len(self._private_mocked_program_calls) > 0):
+            raise AssertionError("The following mock-calls were not called: \n"+",\n    ".join([f"'{r.workingdirectory}>{r.program} {r.argument}' (exitcode: {str_none_safe(str(r.exit_code))}, pid: {str_none_safe(str(r.pid))}, stdout: {str_none_safe(str(r.stdout))}, stderr: {str_none_safe(str(r.stderr))})" for r in self._private_mocked_program_calls]))
+
+    def register_mock_programm_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int):
+        "This function is for test-purposes only"
+        r = ScriptCollection._private_mock_programm_call()
+        r.program = program
+        r.argument = argument
+        r.workingdirectory = workingdirectory
+        r.exit_code = result_exit_code
+        r.stdout = result_stdout
+        r.stderr = result_stderr
+        r.pid = result_pid
+        self._private_mocked_program_calls.append(r)
+
+    def _private_mock_program_call(self, program: str, argument: str, workingdirectory: str):
+        r: ScriptCollection._private_mock_programm_call = None
+        for r2 in self._private_mocked_program_calls:
+            if(re.match(r2.program, program) and re.match(r2.argument, argument) and re.match(r2.workingdirectory, workingdirectory)):
+                r = r2
+                break
+        if r is None:
+            raise LookupError(f"Tried to execute '{workingdirectory}>{program} {argument}' but no mock-call was defined for that programm-call")
+        else:
+            self._private_mocked_program_calls.remove(r)
+            return (r.exit_code, r.stdout, r.stderr, r.pid)
+
+    class _private_mock_programm_call:
+        program: str
+        argument: str
+        workingdirectory: str
+        exit_code: int
+        stdout: str
+        stderr: str
+        pid: int
 
     def _private_get_number_from_filecontent(self, filecontent: str) -> int:
         for line in filecontent.splitlines():
