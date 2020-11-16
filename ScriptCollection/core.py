@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.4"
+version = "2.0.5"
 __version__ = version
 
 
@@ -1125,7 +1125,7 @@ class ScriptCollection:
 
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False) -> int:
         if self.mock_program_calls:
-            return self._private_get_mock_program_call(program, arguments, workingdirectory)
+            return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if use_epew:
