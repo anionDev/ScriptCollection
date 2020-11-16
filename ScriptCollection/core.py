@@ -420,7 +420,7 @@ class ScriptCollection:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
 
-    def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD"):
+    def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD")->bool:
         return self.start_program_synchronously("git", f"merge-base --is-ancestor {ancestor} {descendant}", repository_folder)[0] == 0
 
     def git_repository_has_new_untracked_files(self, repository_folder: str) -> bool:
