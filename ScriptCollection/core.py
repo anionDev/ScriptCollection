@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.3"
+version = "2.0.4"
 __version__ = version
 
 
@@ -1124,6 +1124,8 @@ class ScriptCollection:
             write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
 
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False) -> int:
+        if self.mock_program_calls:
+            return self._private_get_mock_program_call(program, arguments, workingdirectory)
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if use_epew:
@@ -1230,7 +1232,7 @@ class ScriptCollection:
 
     def verify_no_pending_mock_program_calls(self):
         if(len(self._private_mocked_program_calls) > 0):
-            raise AssertionError("The following mock-calls were not called: \n"+",\n    ".join([f"'{r.workingdirectory}>{r.program} {r.argument}' (exitcode: {str_none_safe(str(r.exit_code))}, pid: {str_none_safe(str(r.pid))}, stdout: {str_none_safe(str(r.stdout))}, stderr: {str_none_safe(str(r.stderr))})" for r in self._private_mocked_program_calls]))
+            raise AssertionError("The following mock-calls were not called:\n    "+",\n    ".join([f"'{r.workingdirectory}>{r.program} {r.argument}' (exitcode: {str_none_safe(str(r.exit_code))}, pid: {str_none_safe(str(r.pid))}, stdout: {str_none_safe(str(r.stdout))}, stderr: {str_none_safe(str(r.stderr))})" for r in self._private_mocked_program_calls]))
 
     def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int):
         "This function is for test-purposes only"
