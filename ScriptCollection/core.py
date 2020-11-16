@@ -3,7 +3,6 @@ import base64
 import binascii
 import codecs
 import ctypes
-import datetime
 import filecmp
 import hashlib
 import pathlib
@@ -17,6 +16,7 @@ import time
 import traceback
 import uuid
 import xml.dom.minidom
+from datetime import datetime, timedelta
 from configparser import ConfigParser
 from distutils.dir_util import copy_tree
 from distutils.spawn import find_executable
@@ -403,8 +403,8 @@ class ScriptCollection:
         return self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', directory)[1].replace("\r", "").replace("\n", "").    split(" ")
 
     def get_commit_ids_between_dates(self, directory: str, since: datetime, until: datetime) -> None:
-        since_as_string = _private_datetime_to_string_for_git(since)
-        until_as_string = _private_datetime_to_string_for_git(until)
+        since_as_string = datetime_to_string_for_git(since)
+        until_as_string = datetime_to_string_for_git(until)
         return filter(lambda line: not string_is_none_or_whitespace(line), self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "    {since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', directory)[1].split("\n").replace("\r", ""))
 
     def git_repository_has_new_untracked_files(self, repository_folder: str) -> bool:
@@ -653,7 +653,7 @@ class ScriptCollection:
             file_object.write(text)
 
     def _private_replace_underscores_for_buildconfiguration(self, string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True) -> str:
-        replacements["year"] = str(datetime.datetime.now().year)
+        replacements["year"] = str(datetime.now().year)
         if include_version:
             replacements["version"] = self.get_version_for_buildscripts(configparser)
 
@@ -1296,25 +1296,25 @@ class ScriptCollection:
         argument = f"{argument} {file_name}"
         return self.execute(unzip_program_file, argument, file_folder)
 
-    def get_internet_time(self) -> datetime.datetime:
+    def get_internet_time(self) -> datetime:
         response = ntplib.NTPClient().request('pool.ntp.org')
-        return datetime.datetime.fromtimestamp(response.tx_time)
+        return datetime.fromtimestamp(response.tx_time)
 
-    def system_time_equals_internet_time(self, maximal_tolerance_difference: datetime.timedelta) -> bool:
-        return abs(datetime.datetime.now() - self.get_internet_time()) < maximal_tolerance_difference
+    def system_time_equals_internet_time(self, maximal_tolerance_difference: timedelta) -> bool:
+        return abs(datetime.now() - self.get_internet_time()) < maximal_tolerance_difference
 
     def system_time_equals_internet_time_with_default_tolerance(self) -> bool:
         return self.system_time_equals_internet_time(self._private_get_default_tolerance_for_system_time_equals_internet_time())
 
-    def check_system_time(self, maximal_tolerance_difference: datetime.timedelta):
+    def check_system_time(self, maximal_tolerance_difference: timedelta):
         if not self.system_time_equals_internet_time(maximal_tolerance_difference):
             raise ValueError("System time may be wrong")
 
     def check_system_time_with_default_tolerance(self) -> None:
         self.check_system_time(self._private_get_default_tolerance_for_system_time_equals_internet_time())
 
-    def _private_get_default_tolerance_for_system_time_equals_internet_time(self) -> datetime.timedelta:
-        return datetime.timedelta(hours=0, minutes=0, seconds=3)
+    def _private_get_default_tolerance_for_system_time_equals_internet_time(self) -> timedelta:
+        return timedelta(hours=0, minutes=0, seconds=3)
 
     def get_semver_version_from_gitversion(self, folder: str) -> str:
         return self.get_version_from_gitversion(folder, "MajorMinorPatch")
@@ -1862,7 +1862,13 @@ def string_has_content(string: str) -> bool:
         return len(string) > 0
 
 
-def _private_datetime_to_string_for_git(datetime_object: datetime.datetime) -> str:
+def datetime_to_string_for_git(datetime_object: datetime) -> str:
+    return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
+
+def datetime_to_string_for_logfile_name(datetime_object: datetime) -> str:
+    return datetime_object.strftime('%Y-%m-%d_%H-%M-%S')
+
+def datetime_to_string_for_logfile_entry(datetime_object: datetime) -> str:
     return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
 
 
@@ -2125,8 +2131,12 @@ def folder_is_empty(folder: str) -> bool:
     return len(get_direct_files_of_folder(folder)) == 0 and len(get_direct_folders_of_folder(folder)) == 0
 
 
-def get_time_based_logfile_by_folder(folder: str, name: str = "Log") -> str:
-    return os.path.join(folder, name+"_"+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')+".log")
+def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc:bool=False) -> str:
+    if(in_utc):
+        d=datetime.utcnow()
+    else:
+        d=datetime.now()
+    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{name}_{datetime_to_string_for_logfile_name(d)}.log")
 
 
 def bytes_to_string(payload: bytes, encoding: str = 'utf-8') -> str:
