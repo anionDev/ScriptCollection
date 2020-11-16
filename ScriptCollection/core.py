@@ -1151,7 +1151,7 @@ class ScriptCollection:
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = "") -> None:
         if self.mock_program_calls:
-            return self._private_mock_program_call(program, arguments, workingdirectory)
+            return self._private_get_mock_program_call(program, arguments, workingdirectory)
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if (epew_is_available() and not prevent_using_epew):
@@ -1232,9 +1232,9 @@ class ScriptCollection:
         if(len(self._private_mocked_program_calls) > 0):
             raise AssertionError("The following mock-calls were not called: \n"+",\n    ".join([f"'{r.workingdirectory}>{r.program} {r.argument}' (exitcode: {str_none_safe(str(r.exit_code))}, pid: {str_none_safe(str(r.pid))}, stdout: {str_none_safe(str(r.stdout))}, stderr: {str_none_safe(str(r.stderr))})" for r in self._private_mocked_program_calls]))
 
-    def register_mock_programm_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int):
+    def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int):
         "This function is for test-purposes only"
-        r = ScriptCollection._private_mock_programm_call()
+        r = ScriptCollection._private_mock_program_call()
         r.program = program
         r.argument = argument
         r.workingdirectory = workingdirectory
@@ -1244,19 +1244,19 @@ class ScriptCollection:
         r.pid = result_pid
         self._private_mocked_program_calls.append(r)
 
-    def _private_mock_program_call(self, program: str, argument: str, workingdirectory: str):
-        r: ScriptCollection._private_mock_programm_call = None
+    def _private_get_mock_program_call(self, program: str, argument: str, workingdirectory: str):
+        r: ScriptCollection._private_mock_program_call = None
         for r2 in self._private_mocked_program_calls:
             if(re.match(r2.program, program) and re.match(r2.argument, argument) and re.match(r2.workingdirectory, workingdirectory)):
                 r = r2
                 break
         if r is None:
-            raise LookupError(f"Tried to execute '{workingdirectory}>{program} {argument}' but no mock-call was defined for that programm-call")
+            raise LookupError(f"Tried to execute '{workingdirectory}>{program} {argument}' but no mock-call was defined for that program-call")
         else:
             self._private_mocked_program_calls.remove(r)
             return (r.exit_code, r.stdout, r.stderr, r.pid)
 
-    class _private_mock_programm_call:
+    class _private_mock_program_call:
         program: str
         argument: str
         workingdirectory: str
