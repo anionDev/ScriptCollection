@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.6"
+version = "2.0.7"
 __version__ = version
 
 
@@ -399,13 +399,29 @@ class ScriptCollection:
 
     # <git>
 
-    def get_parent_commit_ids_of_commit(self, directory: str, commit_id: str) -> str:
-        return self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', directory)[1].replace("\r", "").replace("\n", "").    split(" ")
+    def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
+        result = self.start_program_synchronously("git", f"verify-commit {revision_identifier}", repository_folder)
+        if(result[0] != 0):
+            return False
+        if(not contains_line(result[1], f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):# TODO check whether this works on machines where gpg is installed in another langauge than english
+            return False
+        if(not contains_line(result[1], "gpg\\:\\ Good\\ signature\\ from")):# TODO check whether this works on machines where gpg is installed in another langauge than english
+            return False
+        return True
 
-    def get_commit_ids_between_dates(self, directory: str, since: datetime, until: datetime) -> None:
+    def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
+        return self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder)[1].replace("\r", "").replace("\n", "").    split(" ")
+
+    def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = datetime_to_string_for_git(since)
         until_as_string = datetime_to_string_for_git(until)
-        return filter(lambda line: not string_is_none_or_whitespace(line), self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "    {since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', directory)[1].split("\n").replace("\r", ""))
+        result = filter(lambda line: not string_is_none_or_whitespace(line), self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder)[1].split("\n").replace("\r", ""))
+        if ignore_commits_which_are_not_in_history_of_head:
+            result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
+        return result
+
+    def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD"):
+        return self.start_program_synchronously("git", f"merge-base --is-ancestor {ancestor} {descendant}", repository_folder)[0] == 0
 
     def git_repository_has_new_untracked_files(self, repository_folder: str) -> bool:
         return self._private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
@@ -1865,8 +1881,10 @@ def string_has_content(string: str) -> bool:
 def datetime_to_string_for_git(datetime_object: datetime) -> str:
     return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
 
+
 def datetime_to_string_for_logfile_name(datetime_object: datetime) -> str:
     return datetime_object.strftime('%Y-%m-%d_%H-%M-%S')
+
 
 def datetime_to_string_for_logfile_entry(datetime_object: datetime) -> str:
     return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
@@ -2131,11 +2149,11 @@ def folder_is_empty(folder: str) -> bool:
     return len(get_direct_files_of_folder(folder)) == 0 and len(get_direct_folders_of_folder(folder)) == 0
 
 
-def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc:bool=False) -> str:
+def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc: bool = False) -> str:
     if(in_utc):
-        d=datetime.utcnow()
+        d = datetime.utcnow()
     else:
-        d=datetime.now()
+        d = datetime.now()
     return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{name}_{datetime_to_string_for_logfile_name(d)}.log")
 
 
@@ -2145,6 +2163,13 @@ def bytes_to_string(payload: bytes, encoding: str = 'utf-8') -> str:
 
 def string_to_bytes(payload: str, encoding: str = 'utf-8') -> bytes:
     return payload.encode(encoding, errors="ignore")
+
+
+def contains_line(lines, regex: str) -> bool:
+    for line in lines:
+        if(re.match(regex, line)):
+            return True
+    return False
 
 
 def epew_is_available() -> bool:
