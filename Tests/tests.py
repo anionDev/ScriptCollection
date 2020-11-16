@@ -99,8 +99,8 @@ class ExecuteProgramTests(unittest.TestCase):
         # arrange
         sc = ScriptCollection()
         sc.mock_program_calls = True
-        sc.register_mock_programm_call("p", "a1", "/tmp", 0, "out 1", "err 1", 40)
-        sc.register_mock_programm_call("p", "a2", "/tmp", 0, "out 2", "err 2", 44)
+        sc.register_mock_program_call("p", "a1", "/tmp", 0, "out 1", "err 1", 40)
+        sc.register_mock_program_call("p", "a2", "/tmp", 0, "out 2", "err 2", 44)
 
         # act
         result1 = sc.start_program_synchronously("p", "a1", "/tmp", 3600, 1, False, None, False, None, True, True)
