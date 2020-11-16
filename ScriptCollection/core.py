@@ -403,9 +403,9 @@ class ScriptCollection:
         result = self.start_program_synchronously("git", f"verify-commit {revision_identifier}", repository_folder)
         if(result[0] != 0):
             return False
-        if(not contains_line(result[1], f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):
+        if(not contains_line(result[1], f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):# TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
-        if(not contains_line(result[1], "gpg\\:\\ Good\\ signature\\ from")):
+        if(not contains_line(result[1], "gpg\\:\\ Good\\ signature\\ from")):# TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
         return True
 
