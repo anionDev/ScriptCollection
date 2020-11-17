@@ -391,7 +391,7 @@ class ScriptCollection:
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
-            twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar     --username __token__ --password {api_key} {verbose_argument}"
+            twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
             self.execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"), 3600, self._private_get_verbosity_for_exuecutor(configparser))
         return 0
 
