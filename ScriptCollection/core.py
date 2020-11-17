@@ -53,7 +53,7 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         error_occurred = False
-        prepare = self.get_buildscript_config_boolean_value(configparser, 'general', 'prepare')
+        prepare = self.get_boolean_value_from_configuration(configparser, 'general', 'prepare')
         repository_version = self.get_version_for_buildscripts(configparser)
         repository = self.get_buildscript_config_item(configparser, "general", "repository")
         write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
@@ -74,15 +74,15 @@ class ScriptCollection:
 
         try:
 
-            if self.get_buildscript_config_boolean_value(configparser, 'general', 'createdotnetrelease') and not error_occurred:
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
                 error_occurred = self._private_create_dotnet_release(configurationfile) != 0
 
-            if self.get_buildscript_config_boolean_value(configparser, 'general', 'createpythonrelease') and not error_occurred:
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
                 error_occurred = self.python_create_wheel_release(configurationfile) != 0
 
-            if self.get_buildscript_config_boolean_value(configparser, 'general', 'createdebrelease') and not error_occurred:
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
                 error_occurred = self.deb_create_installer_release(configurationfile) != 0
 
@@ -106,7 +106,7 @@ class ScriptCollection:
                 commit_id = self.git_commit(repository, "Merge branch '" + self.get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname')+"' into '" + self.get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')+"'")
                 self.git_create_tag(repository, commit_id, self.get_buildscript_config_item(configparser, 'prepare', 'gittagprefix') + repository_version)
                 self.git_merge(repository, self.get_buildscript_config_item(configparser, 'prepare', 'masterbranchname'), self.get_buildscript_config_item(configparser, 'prepare', 'developmentbranchname'), True)
-                if self.get_buildscript_config_boolean_value(configparser, 'other', 'exportrepository'):
+                if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
                     branch = self.get_buildscript_config_item(configparser, 'prepare', 'masterbranchname')
                     self.git_push(repository, self.get_buildscript_config_item(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
                 self.git_commit(self.get_buildscript_config_item(configparser, 'other', 'releaserepository'), "Added "+self.get_buildscript_config_item(configparser, 'general', 'productname')+" "+self.get_buildscript_config_item(configparser, 'prepare', 'gittagprefix')+repository_version)
@@ -116,7 +116,7 @@ class ScriptCollection:
     def dotnet_build_eExecutable_and_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'),
@@ -130,7 +130,7 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
-        if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'updateversionsincsprojfile'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), repository_version)
 
         build_and_tests_were_successful = False
@@ -153,7 +153,7 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
-        if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'updateversionsincsprojfile'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_buildscript_config_item(configparser, 'dotnet', 'csprojfile'), repository_version)
 
         build_and_tests_were_successful = False
@@ -199,7 +199,7 @@ class ScriptCollection:
     def dotnet_build_nuget_and_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_buildscript_config_items(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_buildscript_config_item(configparser, 'dotnet', 'buildconfiguration'),
@@ -220,7 +220,7 @@ class ScriptCollection:
     def dotnet_release_nuget(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
             verbose_argument = 2
         else:
             verbose_argument = 1
@@ -231,7 +231,7 @@ class ScriptCollection:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory, 3600, verbose_argument)
         for localnugettargetrepository in self.get_buildscript_config_items(configparser, 'dotnet', 'localnugettargetrepositories'):
             self.git_commit(localnugettargetrepository, f"Added {self.get_buildscript_config_item(configparser,'general','productname')} .NET-release {self.get_buildscript_config_item(configparser,'prepare','gittagprefix')}{repository_version}")
-        if (self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'publishnugetfile')):
+        if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile')):
             with open(self.get_buildscript_config_item(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
             nugetsource = self.get_buildscript_config_item(configparser, 'dotnet', 'nugetsource')
@@ -241,8 +241,8 @@ class ScriptCollection:
     def dotnet_reference(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'generatereference'):
-            if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
+            if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
                 verbose_argument_for_reportgenerator = "-verbosity:Verbose"
                 verbose_argument = 2
             else:
@@ -258,7 +258,7 @@ class ScriptCollection:
             shutil.copyfile(self._private_get_test_csprojfile_folder(configparser)+os.path.sep+self._private_get_coverage_filename(configparser), coverage_target_file)
             self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", f'-reports:"{self._private_get_coverage_filename(configparser)}" -targetdir:"    {coveragefolder}" {verbose_argument_for_reportgenerator}', coveragefolder, 3600, verbose_argument)
             self.git_commit(self.get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), "Updated reference")
-            if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'exportreference'):
+            if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
                 self.git_push(self.get_buildscript_config_item(configparser, 'dotnet', 'referencerepository'), self.get_buildscript_config_item(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
         return 0
 
@@ -292,7 +292,7 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         runtime = self.get_buildscript_config_item(configparser, 'dotnet', 'testruntime')
-        if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
             verbose_argument_for_dotnet = "detailed"
             verbose_argument = 2
         else:
@@ -333,7 +333,7 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
-        if(self.get_buildscript_config_boolean_value(configparser, 'python', 'updateversion')):
+        if(self.get_boolean_value_from_configuration(configparser, 'python', 'updateversion')):
             for file in self.get_buildscript_config_items(configparser, 'python', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
         try:
@@ -371,7 +371,7 @@ class ScriptCollection:
     def python_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_buildscript_config_boolean_value(configparser, 'other', 'hastestproject'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             pythontestfile = self.get_buildscript_config_item(configparser, 'python', 'pythontestfile')
             pythontestfilename = os.path.basename(pythontestfile)
             pythontestfilefolder = os.path.dirname(pythontestfile)
@@ -381,13 +381,13 @@ class ScriptCollection:
     def python_release_wheel(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_buildscript_config_boolean_value(configparser, 'python', 'publishwhlfile'):
+        if self.get_boolean_value_from_configuration(configparser, 'python', 'publishwhlfile'):
             with open(self.get_buildscript_config_item(configparser, 'python', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
             gpgidentity = self.get_buildscript_config_item(configparser, 'other', 'gpgidentity')
             repository_version = self.get_version_for_buildscripts(configparser)
             productname = self.get_buildscript_config_item(configparser, 'general', 'productname')
-            if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
+            if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
@@ -586,13 +586,13 @@ class ScriptCollection:
     # <miscellaneous>
 
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
-        if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
             return 2
         else:
             return 1
 
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
-        if self.get_buildscript_config_boolean_value(configparser, 'other', 'verbose'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
             for item in queried_items:
                 if item == "<notavailable>":
                     write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
@@ -600,11 +600,11 @@ class ScriptCollection:
 
     def _private_get_buildoutputdirectory(self, configparser: ConfigParser, runtime: str) -> str:
         result = self.get_buildscript_config_item(configparser, 'dotnet', 'buildoutputdirectory')
-        if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'separatefolderforeachruntime'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'separatefolderforeachruntime'):
             result = result+os.path.sep+runtime
         return result
 
-    def get_buildscript_config_boolean_value(self, configparser: ConfigParser, section: str, propertyname: str) -> bool:
+    def get_boolean_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> bool:
         try:
             return configparser.getboolean(section, propertyname)
         except:
@@ -734,7 +734,7 @@ class ScriptCollection:
     def _private_create_dotnet_release(self, configurationfile: str) -> int:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_buildscript_config_boolean_value(configparser, 'dotnet', 'createexe'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
             return self.dotnet_create_executable_release(configurationfile)
         else:
             return self.dotnet_create_nuget_release(configurationfile)
