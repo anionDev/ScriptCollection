@@ -608,7 +608,12 @@ class ScriptCollection:
         try:
             return configparser.getboolean(section, propertyname)
         except:
-            return False
+            pass
+        try:
+            return string_to_boolean(self.get_buildscript_config_item(configparser,section, propertyname,{},False))
+        except:
+            pass
+        return False
 
     def get_buildscript_config_item(self, configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> str:
         result = self._private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
