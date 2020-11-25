@@ -523,24 +523,24 @@ class ScriptCollection:
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits: bool = False) -> None:
         if(author_name is not None and author_email is not None):
-            author = f' --author="{author_name} <{author_email}>"'
+            author_argument = f' --author="{author_name} <{author_email}>"'
         else:
-            author = ""
+            author_argument = ""
         do_commit = False
         if (self.git_repository_has_uncommitted_changes(directory)):
             write_message_to_stdout(f"Committing all changes in {directory}...")
             if stage_all_changes:
                 self.git_stage_all_changes(directory)
             do_commit = True
-            allowempty = ""
+            allowempty_argument = ""
         else:
             if allow_empty_commits:
                 do_commit = True
-                allowempty = " --allow-empty"
+                allowempty_argument = " --allow-empty"
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author}{allowempty}', directory, 600, 1, False, "Commit", False)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author_argument}{allowempty_argument}', directory, 600, 1, False, "Commit", False)
 
         return self.git_get_current_commit_id(directory)
 
