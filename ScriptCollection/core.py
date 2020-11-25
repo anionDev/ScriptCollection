@@ -522,15 +522,15 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits: bool = False) -> None:
+        if(author_name is not None and author_email is not None):
+            author = f' --author="{author_name} <{author_email}>"'
+        else:
+            author = ""
         do_commit = False
         if (self.git_repository_has_uncommitted_changes(directory)):
             write_message_to_stdout(f"Committing all changes in {directory}...")
             if stage_all_changes:
                 self.git_stage_all_changes(directory)
-            if(author_name is not None and author_email is not None):
-                author = f' --author="{author_name} <{author_email}>"'
-            else:
-                author = ""
             do_commit = True
             allowempty = ""
         else:
