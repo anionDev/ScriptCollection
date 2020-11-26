@@ -1,6 +1,6 @@
 # ScriptCollection ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
 
-This repository is the place for little scripts which are also useful in future so that someone does not have remember them and write them new froms sratch. You can simply use the scripts.
+This repository is the place for little scripts which are also useful in future so that someone does not have remember them and write them new from scratch. You can simply use the scripts.
 
 ## Functions
 
@@ -16,19 +16,15 @@ Caution: Before executing **any** script of this repository read the sourcecode 
 
 ### Installation via pip
 
-```
-pip install ScriptCollection
-```
+`pip install ScriptCollection`
 
-pip requires [Python](https://www.python.org) 3. See the [pypi-site of ScriptCollection](https://pypi.org/project/ScriptCollection) for more information.
+pip requires [Python](https://www.python.org) 3. See the [PyPI-site for ScriptCollection](https://pypi.org/project/ScriptCollection)
 
 ### Download sourcecode using git
 
 You can simply git-clone the ScriptCollection and then use the scripts under the provided license.
 
-```
-git clone https://github.com/anionDev/ScriptCollection
-```
+`git clone https://github.com/anionDev/ScriptCollection`
 
 It may be more easy to pip-install the ScriptCollection but technically pip is not required. Actually you need to git-clone (or download as zip-file from [Github](https://github.com/anionDev/ScriptCollection) the ScriptCollection to use the scripts in this repository which are not written in python.
 
@@ -36,15 +32,52 @@ It may be more easy to pip-install the ScriptCollection but technically pip is n
 
 It is recommended to always use only the newest version of the ScriptCollection. If you have an older version: Update it (e. g. using `pip install ScriptCollection --upgrade` if you installed the ScriptCollection via pip). If you still have problems, then feel free to create an [issue](https://github.com/anionDev/ScriptCollection/issues).
 
-If you have installed the ScriptCollection as pip-package you can simply check the version using Python with the following command:
+If you have installed the ScriptCollection as pip-package you can simply check the version using Python with the following commands:
 
-```
+```lang-bash
 from ScriptCollection.core import get_ScriptCollection_version
 get_ScriptCollection_version()
 ```
 
-Or you can simply run `pip freeze` in any folder to get the currently installed ScriptCollection.
+Or you can simply run `pip freeze` folder to get information about (all) currently installed pip-packages.
+
+## Development
+
+### Install dependencies
+
+To develop ScriptCollection it is obviously required that the following commandline-commands are available on your system:
+
+- `python` (on some systems `python3`)
+- `pip` (on some systems `pip3`)
+
+To install all required pip-packages simply execute the following commands:
+
+```lang-bash
+pip install "keyboard>=0.13.5"
+pip install "ntplib>=0.3.4"
+pip install "pycdlib>=1.10.0"
+pip install "PyPDF2>=1.26.0"
+pip install "qrcode>=6.1"
+pip install "send2trash>=1.5.0"
+pip install "pylint>=2.6.0"
+pip install "pytest>=6.1.2"
+pip install "wheel>=0.35.1"
+```
+
+### IDE
+
+The recommended IDE for developing ScriptCollection is Visual Studio Code.
+The recommended addons for developing ScriptCollection with Visual Studio Code are:
+
+- [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+- [Python Test Explorer for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=LittleFoxTeam.vscode-python-test-adapter)
+- [Spell Right](https://marketplace.visualstudio.com/items?itemName=ban.spellright)
+- [docs-markdown](https://marketplace.visualstudio.com/items?itemName=docsmsft.docs-markdown)
+
+### Build
+
+To Create an installable whl-package simply execute `python Setup.py bdist_wheel --dist-dir .`.
 
 ## License
 
-ScriptCollection itself is licensed under the terms of MIT. See the [license](https://raw.githubusercontent.com/anionDev/ScriptCollection/master/License.txt) for more details.
+See [License.txt](https://raw.githubusercontent.com/anionDev/ScriptCollection/master/License.txt) for license-information.

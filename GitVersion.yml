@@ -11,5 +11,10 @@ branches:
     increment: Patch
     mode: ContinuousDelivery
     source-branches: ['master']
+  nextrelease:
+    regex: 'next-release'
+    increment: Patch
+    mode: ContinuousDelivery
+    source-branches: ['master']
 ignore:
   sha: []

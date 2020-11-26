@@ -6,5 +6,13 @@
         "./Tests/tests.py"
     ],
     "python.testing.autoTestDiscoverOnSaveEnabled": true,
-    "python.linting.pylintEnabled":True,
+    "python.linting.pylintEnabled": true,
+    "spellright.language": [
+        "en"
+    ],
+    "spellright.documentTypes": [
+        "markdown",
+        "latex",
+        "plaintext"
+    ],
 }

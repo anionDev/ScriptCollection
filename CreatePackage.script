@@ -1,1 +1,0 @@
-python Setup.py bdist_wheel --dist-dir .
