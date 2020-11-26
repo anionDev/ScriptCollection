@@ -534,7 +534,11 @@ class ScriptCollection:
             if stage_all_changes:
                 self.git_stage_all_changes(directory)
             do_commit = True
-            allowempty_argument = ""
+            if allow_empty_commits:
+                do_commit = True
+                allowempty_argument = " --allow-empty"
+            else:
+                allowempty_argument = ""
         else:
             if allow_empty_commits:
                 do_commit = True
