@@ -522,7 +522,9 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits: bool = False) -> None:
-        if(author_name is not None and author_email is not None):
+        author_name=str_none_safe(author_name).strip()
+        author_email=str_none_safe(author_email).strip()
+        if(string_has_content(author_name)):
             author_argument = f' --author="{author_name} <{author_email}>"'
         else:
             author_argument = ""
