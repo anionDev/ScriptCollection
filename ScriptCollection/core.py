@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.12"
+version = "2.0.13"
 __version__ = version
 
 
@@ -760,13 +760,14 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, folder)
 
     def _private_create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails) -> None:
-        duration = datetime.timedelta(seconds=length_in_seconds)
+        duration = timedelta(seconds=length_in_seconds)
         info = timedelta_to_simple_string(duration)
         argument = '-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
         self.execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
-    def generate_thumbnail(self, file: str) -> None:
-        tempname_for_thumbnails = "t"+str(uuid.uuid4())
+    def generate_thumbnail(self, file: str, tempname_for_thumbnails:str=None) -> None:
+        if tempname_for_thumbnails is None:
+            tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
         amount_of_images = 16
         file = resolve_relative_path_from_current_working_directory(file)
@@ -778,10 +779,6 @@ class ScriptCollection:
             length_in_seconds = self._private_calculate_lengh_in_seconds(filename, folder)
             self._private_create_thumbnails(filename, length_in_seconds, amount_of_images, folder, tempname_for_thumbnails)
             self._private_create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails)
-            return 0
-        except Exception as exception:
-            write_exception_to_stderr_with_traceback(exception, traceback)
-            return 1
         finally:
             for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
                 file = str(thumbnail_to_delete)
@@ -1763,7 +1760,12 @@ def SCGenerateThumbnail_cli() -> int:
     parser = argparse.ArgumentParser(description='Generate thumpnails for video-files')
     parser.add_argument('file', help='Input-videofile for thumbnail-generation')
     args = parser.parse_args()
-    return ScriptCollection().generate_thumbnail(args.file)
+    try:
+        ScriptCollection().generate_thumbnail(args.file)
+        return 0
+    except Exception as exception:
+        write_exception_to_stderr_with_traceback(exception, traceback)
+        return 1
 
 
 def SCObfuscateFilesFolder_cli() -> int:
@@ -2032,7 +2034,7 @@ def read_binary_from_file(file: str) -> bytes:
 
 
 def timedelta_to_simple_string(delta) -> str:
-    return (datetime.datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
+    return (datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
 
 
 def resolve_relative_path_from_current_working_directory(path: str) -> str:
