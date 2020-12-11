@@ -86,6 +86,14 @@ class ScriptCollection:
                 write_message_to_stdout("Start to create Deb-release")
                 error_occurred = self.deb_create_installer_release(configurationfile) != 0
 
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
+                write_message_to_stdout("Start to create DockerImage-release")
+                error_occurred = self.dockerimage_create_installer_release(configurationfile) != 0
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
+                write_message_to_stdout("Start to create FlutterAndroid-release")
+                error_occurred = self.flutterandroid_create_installer_release(configurationfile) != 0
+
         except Exception as exception:
             error_occurred = True
             write_exception_to_stderr_with_traceback(exception, traceback, "Error occurred while creating release")
@@ -298,10 +306,8 @@ class ScriptCollection:
         else:
             verbose_argument_for_dotnet = "normal"
             verbose_argument = 1
-        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration') +
-                                                                  f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
+        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration (configparser, 'dotnet', 'buildconfiguration') + f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename (configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
         return 0
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool) -> None:
@@ -324,6 +330,18 @@ class ScriptCollection:
         return 0
 
     def deb_create_installer_release(self, configurationfile: str) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        write_message_to_stderr("Not implemented yet")
+        return 1
+
+    def dockerimage_create_installer_release(self, configurationfile: str) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        write_message_to_stderr("Not implemented yet")
+        return 1
+
+    def flutterandroid_create_installer_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         write_message_to_stderr("Not implemented yet")
