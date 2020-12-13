@@ -72,6 +72,8 @@ class ScriptCollection:
             self.git_checkout(repository, devbranch)
             self.git_merge(repository, devbranch, masterbranch, False, False)
 
+        # TODO allow custom pre-create-regex-replacements for certain or all files
+		
         try:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
@@ -85,6 +87,8 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
                 error_occurred = self.deb_create_installer_release(configurationfile) != 0
+
+        # TODO allow custom post-create-regex-replacements for certain or all files (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"->"![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)"
 
         except Exception as exception:
             error_occurred = True
