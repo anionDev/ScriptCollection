@@ -102,12 +102,12 @@ class ScriptCollection:
             write_message_to_stdout("Finished to create releases")
 
         if error_occurred:
+            write_message_to_stderr("Building wheel and running testcases was not successful")
             if prepare:
                 self.git_merge_abort(repository)
                 self._private_undo_changes(repository)
                 self._private_undo_changes(releaserepository)
                 self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'))
-            write_message_to_stderr("Building wheel and running testcases was not successful")
             return 1
         else:
             if prepare:
