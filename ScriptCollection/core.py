@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.15"
+version = "2.0.16"
 __version__ = version
 
 
@@ -139,9 +139,9 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        build_and_tests_were_successful = False
         try:
             self.dotnet_build_executable_and_run_tests(configurationfile)
+            build_and_tests_were_successful = True
         except Exception as exception:
             build_and_tests_were_successful = False
             write_exception_to_stderr_with_traceback(exception, traceback, "Building executable and running testcases resulted in an error")
@@ -157,9 +157,9 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        build_and_tests_were_successful = False
         try:
             self.dotnet_build_nuget_and_run_tests(configurationfile)
+            build_and_tests_were_successful = True
         except Exception as exception:
             build_and_tests_were_successful = False
             write_exception_to_stderr_with_traceback(exception, traceback, "Building nuget and running testcases resulted in an error")
@@ -337,6 +337,7 @@ class ScriptCollection:
 
         try:
             self.python_build_wheel_and_run_tests(configurationfile)
+            build_and_tests_were_successful = True
         except Exception as exception:
             build_and_tests_were_successful = False
             write_exception_to_stderr_with_traceback(exception, traceback, "Building wheel and running testcases resulted in an error")
