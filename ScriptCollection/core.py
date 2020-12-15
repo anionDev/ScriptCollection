@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.13"
+version = "2.0.14"
 __version__ = version
 
 
@@ -85,6 +85,14 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
                 error_occurred = self.deb_create_installer_release(configurationfile) != 0
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
+                write_message_to_stdout("Start to create DockerImage-release")
+                error_occurred = self.dockerimage_create_installer_release(configurationfile) != 0
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
+                write_message_to_stdout("Start to create FlutterAndroid-release")
+                error_occurred = self.flutterandroid_create_installer_release(configurationfile) != 0
 
         except Exception as exception:
             error_occurred = True
@@ -298,10 +306,8 @@ class ScriptCollection:
         else:
             verbose_argument_for_dotnet = "normal"
             verbose_argument = 1
-        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration') +
-                                                                  f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
+        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration (configparser, 'dotnet', 'buildconfiguration') + f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename (configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
         return 0
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool) -> None:
@@ -324,6 +330,18 @@ class ScriptCollection:
         return 0
 
     def deb_create_installer_release(self, configurationfile: str) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        write_message_to_stderr("Not implemented yet")
+        return 1
+
+    def dockerimage_create_installer_release(self, configurationfile: str) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        write_message_to_stderr("Not implemented yet")
+        return 1
+
+    def flutterandroid_create_installer_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         write_message_to_stderr("Not implemented yet")
@@ -2163,11 +2181,14 @@ def folder_is_empty(folder: str) -> bool:
 
 
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc: bool = False) -> str:
+    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{get_time_based_logfilename(name, in_utc)}.log")
+
+def get_time_based_logfilename(name: str = "Log", in_utc: bool = False) -> str:
     if(in_utc):
         d = datetime.utcnow()
     else:
         d = datetime.now()
-    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{name}_{datetime_to_string_for_logfile_name(d)}.log")
+    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{name}_{datetime_to_string_for_logfile_name(d)}")
 
 
 def bytes_to_string(payload: bytes, encoding: str = 'utf-8') -> str:
