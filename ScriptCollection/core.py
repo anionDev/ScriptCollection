@@ -2181,11 +2181,14 @@ def folder_is_empty(folder: str) -> bool:
 
 
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc: bool = False) -> str:
+    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{get_time_based_logfilename(name, in_utc)}.log")
+
+def get_time_based_logfilename(name: str = "Log", in_utc: bool = False) -> str:
     if(in_utc):
         d = datetime.utcnow()
     else:
         d = datetime.now()
-    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{name}_{datetime_to_string_for_logfile_name(d)}.log")
+    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{name}_{datetime_to_string_for_logfile_name(d)}")
 
 
 def bytes_to_string(payload: bytes, encoding: str = 'utf-8') -> str:
