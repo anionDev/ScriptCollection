@@ -76,23 +76,23 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
-                error_occurred = self._private_execute_and_return_boolean("create_dotnet_release",self._private_create_dotnet_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release", self._private_create_dotnet_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
-                error_occurred =self._private_execute_and_return_boolean("python_create_wheel_release",lambda: self.python_create_wheel_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release", lambda: self.python_create_wheel_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
-                error_occurred = self._private_execute_and_return_boolean("deb_create_installer_release",lambda:self.deb_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release", lambda:self.deb_create_installer_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
                 write_message_to_stdout("Start to create DockerImage-release")
-                error_occurred =self._private_execute_and_return_boolean("dockerimage_create_installer_release",lambda: self.dockerimage_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release", lambda: self.dockerimage_create_installer_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
-                error_occurred = self._private_execute_and_return_boolean("flutterandroid_create_installer_release",self.flutterandroid_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", self.flutterandroid_create_installer_release(configurationfile))
 
         except Exception as exception:
             error_occurred = True
@@ -102,7 +102,7 @@ class ScriptCollection:
             write_message_to_stdout("Finished to create releases")
 
         if error_occurred:
-            write_message_to_stderr("Building wheel and running testcases was not successful")
+            write_message_to_stderr("Create release was not successful")
             if prepare:
                 self.git_merge_abort(repository)
                 self._private_undo_changes(repository)
