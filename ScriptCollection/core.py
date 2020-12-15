@@ -76,23 +76,23 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
-                error_occurred = self._private_create_dotnet_release(configurationfile) != 0
+                error_occurred = self._private_execute_and_return_boolean("create_dotnet_release",self._private_create_dotnet_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
-                error_occurred = self.python_create_wheel_release(configurationfile) != 0
+                error_occurred =self._private_execute_and_return_boolean("python_create_wheel_release",lambda: self.python_create_wheel_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
-                error_occurred = self.deb_create_installer_release(configurationfile) != 0
+                error_occurred = self._private_execute_and_return_boolean("deb_create_installer_release",lambda:self.deb_create_installer_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
                 write_message_to_stdout("Start to create DockerImage-release")
-                error_occurred = self.dockerimage_create_installer_release(configurationfile) != 0
+                error_occurred =self._private_execute_and_return_boolean("dockerimage_create_installer_release",lambda: self.dockerimage_create_installer_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
-                error_occurred = self.flutterandroid_create_installer_release(configurationfile) != 0
+                error_occurred = self._private_execute_and_return_boolean("flutterandroid_create_installer_release",self.flutterandroid_create_installer_release(configurationfile))
 
         except Exception as exception:
             error_occurred = True
@@ -139,16 +139,8 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        try:
-            self.dotnet_build_executable_and_run_tests(configurationfile)
-            build_and_tests_were_successful = True
-        except Exception as exception:
-            build_and_tests_were_successful = False
-            write_exception_to_stderr_with_traceback(exception, traceback, "Building executable and running testcases resulted in an error")
-            raise
-
-        if build_and_tests_were_successful:
-            self.dotnet_reference(configurationfile)
+        self.dotnet_build_executable_and_run_tests(configurationfile)
+        self.dotnet_reference(configurationfile)
 
     def dotnet_create_nuget_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -157,17 +149,9 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        try:
-            self.dotnet_build_nuget_and_run_tests(configurationfile)
-            build_and_tests_were_successful = True
-        except Exception as exception:
-            build_and_tests_were_successful = False
-            write_exception_to_stderr_with_traceback(exception, traceback, "Building nuget and running testcases resulted in an error")
-            raise
-
-        if build_and_tests_were_successful:
-            self.dotnet_reference(configurationfile)
-            self.dotnet_release_nuget(configurationfile)
+        self.dotnet_build_nuget_and_run_tests(configurationfile)
+        self.dotnet_reference(configurationfile)
+        self.dotnet_release_nuget(configurationfile)
 
     _private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
     <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
@@ -311,23 +295,22 @@ class ScriptCollection:
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
-    def deb_create_installer_release(self, configurationfile: str) -> None:
+    def deb_create_installer_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        # TODO implement
+        return False  # TODO implement
 
-    def dockerimage_create_installer_release(self, configurationfile: str) -> None:
+    def dockerimage_create_installer_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        write_message_to_stderr("Not implemented yet")
-        # TODO implement
+        return False # TODO implement
 
-    def flutterandroid_create_installer_release(self, configurationfile: str) -> None:
+    def flutterandroid_create_installer_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        # TODO implement
+        return False  # TODO implement
 
-    def python_create_wheel_release(self, configurationfile: str) -> None:
+    def python_create_wheel_release(self, configurationfile: str):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
@@ -335,16 +318,16 @@ class ScriptCollection:
             for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
 
-        try:
-            self.python_build_wheel_and_run_tests(configurationfile)
-            build_and_tests_were_successful = True
-        except Exception as exception:
-            build_and_tests_were_successful = False
-            write_exception_to_stderr_with_traceback(exception, traceback, "Building wheel and running testcases resulted in an error")
-            raise
+        self.python_build_wheel_and_run_tests(configurationfile)
+        self.python_release_wheel(configurationfile)
 
-        if build_and_tests_were_successful:
-            self.python_release_wheel(configurationfile)
+    def _private_execute_and_return_boolean(self, name:str, method) -> bool:
+        try:
+            method()
+            return True
+        except Exception as exception:
+            write_exception_to_stderr_with_traceback(exception, traceback, f"'{name}' resulted in an error")
+            return False
 
     def python_build_wheel_and_run_tests(self, configurationfile: str) -> None:
         self.python_run_tests(configurationfile)
@@ -738,13 +721,13 @@ class ScriptCollection:
                     changed = True
         return result
 
-    def _private_create_dotnet_release(self, configurationfile: str) -> int:
+    def _private_create_dotnet_release(self, configurationfile: str) :
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
-            return self.dotnet_create_executable_release(configurationfile)
+            self.dotnet_create_executable_release(configurationfile)
         else:
-            return self.dotnet_create_nuget_release(configurationfile)
+            self.dotnet_create_nuget_release(configurationfile)
 
     def _private_calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
