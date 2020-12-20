@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.13"
+version = "2.0.18"
 __version__ = version
 
 
@@ -49,7 +49,7 @@ class ScriptCollection:
 
     # <Build>
 
-    def create_release(self, configurationfile: str) -> None:
+    def create_release(self, configurationfile: str) -> int:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         error_occurred = False
@@ -78,15 +78,23 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
-                error_occurred = self._private_create_dotnet_release(configurationfile) != 0
+                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release", self._private_create_dotnet_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
-                error_occurred = self.python_create_wheel_release(configurationfile) != 0
+                error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release", lambda: self.python_create_wheel_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
-                error_occurred = self.deb_create_installer_release(configurationfile) != 0
+                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release", lambda:self.deb_create_installer_release(configurationfile))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
+                write_message_to_stdout("Start to create DockerImage-release")
+                error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release", lambda: self.dockerimage_create_installer_release(configurationfile))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
+                write_message_to_stdout("Start to create FlutterAndroid-release")
+                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", self.flutterandroid_create_installer_release(configurationfile))
 
         # TODO allow custom post-create-regex-replacements for certain or all files (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"->"![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)"
 
@@ -98,12 +106,12 @@ class ScriptCollection:
             write_message_to_stdout("Finished to create releases")
 
         if error_occurred:
+            write_message_to_stderr("Create release was not successful")
             if prepare:
                 self.git_merge_abort(repository)
                 self._private_undo_changes(repository)
                 self._private_undo_changes(releaserepository)
                 self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'))
-            write_message_to_stderr("Building wheel and running testcases was not successful")
             return 1
         else:
             if prepare:
@@ -117,18 +125,16 @@ class ScriptCollection:
             write_message_to_stdout("Building wheel and running testcases was successful")
             return 0
 
-    def dotnet_build_eExecutable_and_run_tests(self, configurationfile: str) -> None:
+    def dotnet_build_executable_and_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
-            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
-        return 0
 
     def dotnet_create_executable_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -137,21 +143,8 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        build_and_tests_were_successful = False
-        try:
-            exitcode = self.dotnet_build_eExecutable_and_run_tests(configurationfile)
-            build_and_tests_were_successful = exitcode == 0
-            if not build_and_tests_were_successful:
-                write_exception_to_stderr("Building executable and running testcases resulted in exitcode "+exitcode)
-        except Exception as exception:
-            build_and_tests_were_successful = False
-            write_exception_to_stderr_with_traceback(exception, traceback, "Building executable and running testcases resulted in an error")
-
-        if build_and_tests_were_successful:
-            self.dotnet_reference(configurationfile)
-            return 0
-        else:
-            return 1
+        self.dotnet_build_executable_and_run_tests(configurationfile)
+        self.dotnet_reference(configurationfile)
 
     def dotnet_create_nuget_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -160,22 +153,9 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        build_and_tests_were_successful = False
-        try:
-            exitcode = self.dotnet_build_nuget_and_run_tests(configurationfile)
-            build_and_tests_were_successful = exitcode == 0
-            if not build_and_tests_were_successful:
-                write_exception_to_stderr("Building nuget and running testcases resulted in exitcode "+exitcode)
-        except Exception as exception:
-            build_and_tests_were_successful = False
-            write_exception_to_stderr_with_traceback(exception, traceback, "Building nuget and running testcases resulted in an error")
-
-        if build_and_tests_were_successful:
-            self.dotnet_reference(configurationfile)
-            self.dotnet_release_nuget(configurationfile)
-            return 0
-        else:
-            return 1
+        self.dotnet_build_nuget_and_run_tests(configurationfile)
+        self.dotnet_reference(configurationfile)
+        self.dotnet_release_nuget(configurationfile)
 
     _private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
     <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
@@ -219,7 +199,6 @@ class ScriptCollection:
         with open(nuspecfile, encoding="utf-8", mode="w") as file_object:
             file_object.write(nuspec_content)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
-        return 0
 
     def dotnet_release_nuget(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -240,7 +219,6 @@ class ScriptCollection:
                 api_key = apikeyfile.read()
             nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource')
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory, 3600, verbose_argument)
-        return 0
 
     def dotnet_reference(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -264,7 +242,6 @@ class ScriptCollection:
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
-        return 0
 
     def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None) -> None:
         # TODO find a good way to include the merge-commit-id into the build
@@ -288,7 +265,6 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
         if(outputFilenameToSign is not None):
             self.dotnet_sign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile, verbose)
-        return 0
 
     def dotnet_run_tests(self, configurationfile: str) -> None:
         # TODO add possibility to set another buildconfiguration than for the real result-build
@@ -302,11 +278,8 @@ class ScriptCollection:
         else:
             verbose_argument_for_dotnet = "normal"
             verbose_argument = 1
-        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration') +
-                                                                  f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
-        return 0
+        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration (configparser, 'dotnet', 'buildconfiguration') + f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename (configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
@@ -325,39 +298,45 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, verbose, False, "Sign: ilasm")
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
-        return 0
 
-    def deb_create_installer_release(self, configurationfile: str) -> None:
+    def deb_create_installer_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        write_message_to_stderr("Not implemented yet")
-        return 1
+        return False  # TODO implement
 
-    def python_create_wheel_release(self, configurationfile: str) -> None:
+    def dockerimage_create_installer_release(self, configurationfile: str) -> bool:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        return False # TODO implement
+
+    def flutterandroid_create_installer_release(self, configurationfile: str) -> bool:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        return False  # TODO implement
+
+    def python_create_wheel_release(self, configurationfile: str):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
         if(self.get_boolean_value_from_configuration(configparser, 'python', 'updateversion')):
             for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
+
+        self.python_build_wheel_and_run_tests(configurationfile)
+        self.python_release_wheel(configurationfile)
+
+    def _private_execute_and_return_boolean(self, name:str, method) -> bool:
         try:
-            exitcode = self.python_build_wheel_and_run_tests(configurationfile)
-            build_and_tests_were_successful = exitcode == 0
-            if not build_and_tests_were_successful:
-                write_exception_to_stderr("Building wheel and running testcases resulted in exitcode "+exitcode)
+            method()
+            return True
         except Exception as exception:
-            build_and_tests_were_successful = False
-            write_exception_to_stderr_with_traceback(exception, traceback, "Building wheel and running testcases resulted in an error")
-        if build_and_tests_were_successful:
-            self.python_release_wheel(configurationfile)
-            return 0
-        else:
-            return 1
+            write_exception_to_stderr_with_traceback(exception, traceback, f"'{name}' resulted in an error")
+            return False
 
     def python_build_wheel_and_run_tests(self, configurationfile: str) -> None:
         self.python_run_tests(configurationfile)
+        self.python_lint(configurationfile)
         self.python_build(configurationfile)
-        return 0
 
     def python_build(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -370,7 +349,9 @@ class ScriptCollection:
         publishdirectoryforwhlfile = self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile")
         ensure_directory_exists(publishdirectoryforwhlfile)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"', setuppyfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
-        return 0
+
+    def python_lint(self, configurationfile: str) -> None:
+        pass # TODO allow executing scripts like "pylint --rcfile=Build.pylintrc ScriptCollection/core.py"
 
     def python_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -380,7 +361,6 @@ class ScriptCollection:
             pythontestfilename = os.path.basename(pythontestfile)
             pythontestfilefolder = os.path.dirname(pythontestfile)
             self.execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
-        return 0
 
     def python_release_wheel(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -397,7 +377,6 @@ class ScriptCollection:
                 verbose_argument = ""
             twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
             self.execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"), 3600, self._private_get_verbosity_for_exuecutor(configparser))
-        return 0
 
     # </Build>
 
@@ -563,7 +542,7 @@ class ScriptCollection:
     def git_merge_abort(self, directory: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600, 1, False, "AbortMerge", False)
 
-    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> None:
+    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
         self.git_checkout(directory, targetbranch)
         if(fastforward):
             fastforward_argument = ""
@@ -573,7 +552,7 @@ class ScriptCollection:
         if commit:
             return self.git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
         else:
-            self.git_get_current_commit_id(directory)
+            return self.git_get_current_commit_id(directory)
 
     def git_undo_all_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
@@ -746,13 +725,13 @@ class ScriptCollection:
                     changed = True
         return result
 
-    def _private_create_dotnet_release(self, configurationfile: str) -> int:
+    def _private_create_dotnet_release(self, configurationfile: str) :
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
-            return self.dotnet_create_executable_release(configurationfile)
+            self.dotnet_create_executable_release(configurationfile)
         else:
-            return self.dotnet_create_nuget_release(configurationfile)
+            self.dotnet_create_nuget_release(configurationfile)
 
     def _private_calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
@@ -920,8 +899,8 @@ class ScriptCollection:
         bytes_ascii = bytes(searchstring, "ascii")
         bytes_utf16 = bytes(searchstring, "utf-16")  # often called "unicode-encoding"
         bytes_utf8 = bytes(searchstring, "utf-8")
-        with open(file, mode='rb') as file:
-            content = file.read()
+        with open(file, mode='rb') as file_object:
+            content = file_object.read()
             if bytes_ascii in content:
                 write_message_to_stdout(file)
             elif bytes_utf16 in content:
@@ -1109,6 +1088,7 @@ class ScriptCollection:
             return self.upload_file_to_anonfiles(file)
         if host == 1:
             return self.upload_file_to_bayfiles(file)
+        return 1
 
     def upload_file_to_anonfiles(self, file) -> int:
         return self.upload_file_by_using_simple_curl_request("https://api.anonfiles.com/upload", file)
@@ -1117,12 +1097,12 @@ class ScriptCollection:
         return self.upload_file_by_using_simple_curl_request("https://api.bayfiles.com/upload", file)
 
     def upload_file_by_using_simple_curl_request(self, api_url: str, file: str) -> int:
-        write_message_to_stderr("Notimplemented yet")
-        return 1  # TODO
+        # TODO implement
+        return 1
 
     def file_is_available_on_file_host(self, file) -> int:
-        write_message_to_stderr("Notimplemented yet")
-        return 1  # TODO
+        # TODO implement
+        return 1
 
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'restore --disable-parallel --force --force-evaluate "{csproj_file}"')
@@ -1380,7 +1360,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_build_eExecutable_and_run_tests(args.configurationfile)
+    return ScriptCollection().dotnet_build_executable_and_run_tests(args.configurationfile)
 
 
 def SCDotNetCreateExecutableRelease_cli() -> int:
@@ -2167,11 +2147,14 @@ def folder_is_empty(folder: str) -> bool:
 
 
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc: bool = False) -> str:
+    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{get_time_based_logfilename(name, in_utc)}.log")
+
+def get_time_based_logfilename(name: str = "Log", in_utc: bool = False) -> str:
     if(in_utc):
         d = datetime.utcnow()
     else:
         d = datetime.now()
-    return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{name}_{datetime_to_string_for_logfile_name(d)}.log")
+    return f"{name}_{datetime_to_string_for_logfile_name(d)}"
 
 
 def bytes_to_string(payload: bytes, encoding: str = 'utf-8') -> str:
