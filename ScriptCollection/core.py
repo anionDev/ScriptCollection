@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.18"
+version = "2.0.19"
 __version__ = version
 
 
@@ -76,7 +76,7 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
-                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release", self._private_create_dotnet_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release", lambda: self._private_create_dotnet_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
@@ -92,7 +92,7 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
-                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", self.flutterandroid_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", lambda: self.flutterandroid_create_installer_release(configurationfile))
 
         except Exception as exception:
             error_occurred = True
