@@ -584,7 +584,20 @@ class ScriptCollection:
     # <miscellaneous>
 
     def export_filemetadata(self, folder:str, target_file:str) -> None:
-        pass # TODO
+        lines=list()
+        repository_path_length=len(folder)
+        for file_or_folder in get_all_objects_of_folder(folder):
+            truncated_file=file_or_folder[repository_path_length:]
+            if(not self.file_is_git_ignored(folder,truncated_file)):
+                path = Path(file_or_folder)
+                user=f"{path.owner()}:{path.group()}"
+                permissions="TODO"
+                lines.append(f"{truncated_file};{user};{permissions}")
+        lines = sorted(lines, key=str.casefold)
+        lines.insert(0,"File;User;Permission")
+        with open(target_file, "w", encoding="utf-8") as file_object:
+            file_object.write("\n".join(lines))
+
 
     def restore_filemetadata(self, folder:str, source_file:str) -> None:
         pass # TODO
@@ -2093,6 +2106,14 @@ def get_direct_folders_of_folder(folder: str) -> list:
     result = [os.path.join(folder, f) for f in listdir(folder) if isdir(join(folder, f))]
     return result
 
+def get_all_files_of_folder(folder: str) -> list:
+    pass # TODO
+
+def get_all_folders_of_folder(folder: str) -> list:
+    pass # TODO
+
+def get_all_objects_of_folder(folder: str) -> list:
+    return get_all_files_of_folder(folder) + get_all_folders_of_folder(folder)
 
 def replace_in_filename(file: str, replace_from: str, replace_to: str, replace_only_full_match=False):
     filename = Path(file).name
