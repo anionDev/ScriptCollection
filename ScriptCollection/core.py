@@ -566,9 +566,19 @@ class ScriptCollection:
         else:
             return False
 
+
+    def _private_file_is_git_ignored(self,repository: str, file:str) -> None:
+        pass # TODO
+
     # </git>
 
     # <miscellaneous>
+
+    def export_filemetadata(self, folder:str, target_file:str) -> None:
+        pass # TODO
+
+    def import_filemetadata(self, folder:str, source_file:str) -> None:
+        pass # TODO
 
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
