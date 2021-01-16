@@ -34,7 +34,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.18"
+version = "2.0.19"
 __version__ = version
 
 
@@ -78,7 +78,7 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
-                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release", self._private_create_dotnet_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release", lambda: self._private_create_dotnet_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
@@ -94,7 +94,7 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
-                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", self.flutterandroid_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", lambda: self.flutterandroid_create_installer_release(configurationfile))
 
         # TODO allow custom post-create-regex-replacements for certain or all files (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"->"![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)"
 
@@ -570,9 +570,19 @@ class ScriptCollection:
         else:
             return False
 
+
+    def _private_file_is_git_ignored(self,repository: str, file:str) -> None:
+        pass # TODO
+
     # </git>
 
     # <miscellaneous>
+
+    def export_filemetadata(self, folder:str, target_file:str) -> None:
+        pass # TODO
+
+    def import_filemetadata(self, folder:str, source_file:str) -> None:
+        pass # TODO
 
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
