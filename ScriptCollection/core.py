@@ -73,7 +73,7 @@ class ScriptCollection:
             self.git_merge(repository, devbranch, masterbranch, False, False)
 
         # TODO allow custom pre-create-regex-replacements for certain or all files
-		
+
         try:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
@@ -571,8 +571,13 @@ class ScriptCollection:
             return False
 
 
-    def _private_file_is_git_ignored(self,repository: str, file:str) -> None:
-        pass # TODO
+    def file_is_git_ignored(self,repository: str, file:str) -> None:
+        exit_code=self.start_program_synchronously("git", "check-ignore "+file, repository,0, False, None,120,False)[1]
+        if(exit_code==0):
+            return True
+        if(exit_code==1):
+            return False
+        raise Exception(f"Unable to calculate if '{file}' is ignored in repository '{repository}'or not due to exitcode {exit_code}.")
 
     # </git>
 
@@ -581,7 +586,7 @@ class ScriptCollection:
     def export_filemetadata(self, folder:str, target_file:str) -> None:
         pass # TODO
 
-    def import_filemetadata(self, folder:str, source_file:str) -> None:
+    def restore_filemetadata(self, folder:str, source_file:str) -> None:
         pass # TODO
 
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
@@ -1147,7 +1152,7 @@ class ScriptCollection:
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if use_epew:
-            raise Exception("start_program_asynchronously using epew is not implemented yet")
+            raise Exception("start_program_asynchronously using epew is not implemented yet. Set use_epew=False to use this function.")
         else:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
@@ -1169,7 +1174,7 @@ class ScriptCollection:
             write_message_to_stderr(result[2])
         return result[0]
 
-    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = "") -> None:
+    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = "") :
         if self.mock_program_calls:
             return self._private_get_mock_program_call(program, arguments, workingdirectory)
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
