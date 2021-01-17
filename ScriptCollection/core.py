@@ -86,7 +86,7 @@ class ScriptCollection:
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
-                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release", lambda:self.deb_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release", lambda: self.deb_create_installer_release(configurationfile))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
                 write_message_to_stdout("Start to create DockerImage-release")
@@ -131,7 +131,8 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
-            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
@@ -278,8 +279,10 @@ class ScriptCollection:
         else:
             verbose_argument_for_dotnet = "normal"
             verbose_argument = 1
-        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration (configparser, 'dotnet', 'buildconfiguration') + f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename (configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
+        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
+                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration') +
+                                                                  f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
@@ -307,7 +310,7 @@ class ScriptCollection:
     def dockerimage_create_installer_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        return False # TODO implement
+        return False  # TODO implement
 
     def flutterandroid_create_installer_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
@@ -325,7 +328,7 @@ class ScriptCollection:
         self.python_build_wheel_and_run_tests(configurationfile)
         self.python_release_wheel(configurationfile)
 
-    def _private_execute_and_return_boolean(self, name:str, method) -> bool:
+    def _private_execute_and_return_boolean(self, name: str, method) -> bool:
         try:
             method()
             return True
@@ -351,7 +354,7 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"', setuppyfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
 
     def python_lint(self, configurationfile: str) -> None:
-        pass # TODO allow executing scripts like "pylint --rcfile=Build.pylintrc ScriptCollection/core.py"
+        pass  # TODO allow executing scripts like "pylint --rcfile=Build.pylintrc ScriptCollection/core.py"
 
     def python_run_tests(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -386,9 +389,9 @@ class ScriptCollection:
         result = self.start_program_synchronously("git", f"verify-commit {revision_identifier}", repository_folder)
         if(result[0] != 0):
             return False
-        if(not contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):# TODO check whether this works on machines where gpg is installed in another langauge than english
+        if(not contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):  # TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
-        if(not contains_line(result[1].splitlines(), "gpg\\:\\ Good\\ signature\\ from")):# TODO check whether this works on machines where gpg is installed in another langauge than english
+        if(not contains_line(result[1].splitlines(), "gpg\\:\\ Good\\ signature\\ from")):  # TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
         return True
 
@@ -403,7 +406,7 @@ class ScriptCollection:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
 
-    def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD")->bool:
+    def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
         return self.start_program_synchronously("git", f"merge-base --is-ancestor {ancestor} {descendant}", repository_folder)[0] == 0
 
     def git_repository_has_new_untracked_files(self, repository_folder: str) -> bool:
@@ -505,8 +508,8 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits: bool = False) -> None:
-        author_name=str_none_safe(author_name).strip()
-        author_email=str_none_safe(author_email).strip()
+        author_name = str_none_safe(author_name).strip()
+        author_email = str_none_safe(author_email).strip()
         if(string_has_content(author_name)):
             author_argument = f' --author="{author_name} <{author_email}>"'
         else:
@@ -570,12 +573,11 @@ class ScriptCollection:
         else:
             return False
 
-
-    def file_is_git_ignored(self,repository: str, file:str) -> None:
-        exit_code=self.start_program_synchronously("git", "check-ignore "+file, repository,0, False, None,120,False)[1]
-        if(exit_code==0):
+    def file_is_git_ignored(self, repository: str, file: str) -> None:
+        exit_code = self.start_program_synchronously("git", "check-ignore "+file, repository, 0, False, None, 120, False)[1]
+        if(exit_code == 0):
             return True
-        if(exit_code==1):
+        if(exit_code == 1):
             return False
         raise Exception(f"Unable to calculate if '{file}' is ignored in repository '{repository}'or not due to exitcode {exit_code}.")
 
@@ -583,50 +585,50 @@ class ScriptCollection:
 
     # <miscellaneous>
 
-    def export_filemetadata(self, folder:str, target_file:str, filter_function,encoding:str="utf-8") -> None:
-        lines=list()
-        repository_path_length=len(folder)
-        items:dict()
+    def export_filemetadata(self, folder: str, target_file: str, filter_function, encoding: str = "utf-8") -> None:
+        lines = list()
+        repository_path_length = len(folder)
+        items: dict()
         for item in get_all_files_of_folder(folder):
-            items[item]="f"
+            items[item] = "f"
         for item in get_all_folders_of_folder(folder):
-            items[item]="d"
+            items[item] = "d"
         for loop_item in items:
-            file_or_folder=loop_item[0]
-            truncated_file=file_or_folder[repository_path_length:]
-            if(filter_function(folder,truncated_file)):
-                path = Path(file_or_folder)
-                item_type=loop_item[1]
-                user=f"{path.owner()}:{path.group()}"
-                permissions=oct(stat.S_IMODE(os.stat(file_or_folder).st_mode))[-3:]
+            file_or_folder = loop_item[0]
+            truncated_file = file_or_folder[repository_path_length:]
+            if(filter_function(folder, truncated_file)):
+                item_type = loop_item[1]
+                user = get_file_owner(file_or_folder)
+                permissions =get_file_permission(file_or_folder)
                 lines.append(f"{truncated_file};{item_type};{user};{permissions}")
         lines = sorted(lines, key=str.casefold)
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
-
-    def restore_filemetadata(self, folder:str, source_file:str,strict=False,encoding:str="utf-8") -> None:
-        for line in read_lines_from_file(source_file,encoding):
-            splitted=line.split(";")
-            path =os.path.join(folder, splitted[0])
-            filetype=splitted[1]
-            user=splitted[2]
-            permissions=splitted[3]
-            if (filetype=="f" and os.path.isfile(path)) or (filetype=="d" and os.path.isdir(path)) :
-                pass# TODO restore metadate for path
+    def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8") -> None:
+        for line in read_lines_from_file(source_file, encoding):
+            splitted = line.split(";")
+            full_path_of_file_or_folder = os.path.join(folder, splitted[0])
+            filetype = splitted[1]
+            user = splitted[2].split(":")
+            permissions = splitted[3]
+            if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
+                set_file_owner(full_path_of_file_or_folder,user)
+                set_file_permission(full_path_of_file_or_folder,permissions)
             else:
                 if strict:
-                    if filetype=="f":
-                        filetype_full="File"
-                    if filetype=="d":
-                        filetype_full="Directory"
-                    raise Exception (f"{filetype_full} '{path}' does not exist")
+                    if filetype == "f":
+                        filetype_full = "File"
+                    if filetype == "d":
+                        filetype_full = "Directory"
+                    raise Exception(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
             return 2
         else:
             return 1
+
 
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
@@ -647,7 +649,7 @@ class ScriptCollection:
         except:
             pass
         try:
-            return string_to_boolean(self.get_item_from_configuration(configparser,section, propertyname,{},False))
+            return string_to_boolean(self.get_item_from_configuration(configparser, section, propertyname, {}, False))
         except:
             pass
         return False
@@ -773,7 +775,7 @@ class ScriptCollection:
                     changed = True
         return result
 
-    def _private_create_dotnet_release(self, configurationfile: str) :
+    def _private_create_dotnet_release(self, configurationfile: str):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
@@ -796,7 +798,7 @@ class ScriptCollection:
         argument = '-title "'+outputfilename+" ("+info+')" -geometry +4+4 '+tempname_for_thumbnails+'*.png "'+outputfilename+'.png"'
         self.execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
-    def generate_thumbnail(self, file: str, tempname_for_thumbnails:str=None) -> None:
+    def generate_thumbnail(self, file: str, tempname_for_thumbnails: str = None) -> None:
         if tempname_for_thumbnails is None:
             tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
@@ -1207,7 +1209,7 @@ class ScriptCollection:
             write_message_to_stderr(result[2])
         return result[0]
 
-    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = "") :
+    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = ""):
         if self.mock_program_calls:
             return self._private_get_mock_program_call(program, arguments, workingdirectory)
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
@@ -2126,23 +2128,27 @@ def get_direct_folders_of_folder(folder: str) -> list:
     result = [os.path.join(folder, f) for f in listdir(folder) if isdir(join(folder, f))]
     return result
 
+
 def get_all_files_of_folder(folder: str) -> list:
-    result=list()
+    result = list()
     result.extend(get_direct_files_of_folder(folder))
     for subfolder in get_direct_folders_of_folder(folder):
         result.extend(get_all_files_of_folder(subfolder))
     return result
 
+
 def get_all_folders_of_folder(folder: str) -> list:
-    result=list()
-    subfolders=get_direct_folders_of_folder(folder)
+    result = list()
+    subfolders = get_direct_folders_of_folder(folder)
     result.extend(subfolders)
     for subfolder in subfolders:
         result.extend(get_all_folders_of_folder(subfolder))
     return result
 
+
 def get_all_objects_of_folder(folder: str) -> list:
     return get_all_files_of_folder(folder) + get_all_folders_of_folder(folder)
+
 
 def replace_in_filename(file: str, replace_from: str, replace_to: str, replace_only_full_match=False):
     filename = Path(file).name
@@ -2214,6 +2220,7 @@ def folder_is_empty(folder: str) -> bool:
 def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc: bool = False) -> str:
     return os.path.join(resolve_relative_path_from_current_working_directory(folder), f"{get_time_based_logfilename(name, in_utc)}.log")
 
+
 def get_time_based_logfilename(name: str = "Log", in_utc: bool = False) -> str:
     if(in_utc):
         d = datetime.utcnow()
@@ -2249,6 +2256,21 @@ def absolute_file_paths(directory: str) -> list:
 
 def _private_keyhook(event) -> None:
     write_message_to_stdout(str(event.name)+" "+event.event_type)
+
+
+def get_file_permission(file:str)->str:
+    return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
+
+def get_file_owner(file:str)->str:
+    path = Path(file)
+    return f"{path.owner()}:{path.group()}"
+
+def set_file_permission(file:str, permissions_as_octet_triple:str,recursive:bool=False)->None:
+    pass # TODO call chmod
+
+def set_file_owner(file:str,owner:str,recursive:bool=False, follow_symlinks:bool=False)->None:
+    # if follow_symlinks==False -> add --no-dereference
+    pass # TODO call chown
 
 # <miscellaneous>
 
