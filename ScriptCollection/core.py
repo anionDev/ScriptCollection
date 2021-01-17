@@ -583,24 +583,44 @@ class ScriptCollection:
 
     # <miscellaneous>
 
-    def export_filemetadata(self, folder:str, target_file:str) -> None:
+    def export_filemetadata(self, folder:str, target_file:str, filter_function,encoding:str="utf-8") -> None:
         lines=list()
         repository_path_length=len(folder)
-        for file_or_folder in get_all_objects_of_folder(folder):
+        items:dict()
+        for item in get_all_files_of_folder(folder):
+            items[item]="f"
+        for item in get_all_folders_of_folder(folder):
+            items[item]="d"
+        for loop_item in items:
+            file_or_folder=loop_item[0]
             truncated_file=file_or_folder[repository_path_length:]
-            if(not self.file_is_git_ignored(folder,truncated_file)):
+            if(filter_function(folder,truncated_file)):
                 path = Path(file_or_folder)
+                item_type=loop_item[1]
                 user=f"{path.owner()}:{path.group()}"
-                permissions="TODO"
-                lines.append(f"{truncated_file};{user};{permissions}")
+                permissions=oct(stat.S_IMODE(os.stat(file_or_folder).st_mode))[-3:]
+                lines.append(f"{truncated_file};{item_type};{user};{permissions}")
         lines = sorted(lines, key=str.casefold)
-        lines.insert(0,"File;User;Permission")
-        with open(target_file, "w", encoding="utf-8") as file_object:
+        with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
 
-    def restore_filemetadata(self, folder:str, source_file:str) -> None:
-        pass # TODO
+    def restore_filemetadata(self, folder:str, source_file:str,strict=False,encoding:str="utf-8") -> None:
+        for line in read_lines_from_file(source_file,encoding):
+            splitted=line.split(";")
+            path =os.path.join(folder, splitted[0])
+            filetype=splitted[1]
+            user=splitted[2]
+            permissions=splitted[3]
+            if (filetype=="f" and os.path.isfile(path)) or (filetype=="d" and os.path.isdir(path)) :
+                pass# TODO restore metadate for path
+            else:
+                if strict:
+                    if filetype=="f":
+                        filetype_full="File"
+                    if filetype=="d":
+                        filetype_full="Directory"
+                    raise Exception (f"{filetype_full} '{path}' does not exist")
 
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
@@ -2107,10 +2127,19 @@ def get_direct_folders_of_folder(folder: str) -> list:
     return result
 
 def get_all_files_of_folder(folder: str) -> list:
-    pass # TODO
+    result=list()
+    result.extend(get_direct_files_of_folder(folder))
+    for subfolder in get_direct_folders_of_folder(folder):
+        result.extend(get_all_files_of_folder(subfolder))
+    return result
 
 def get_all_folders_of_folder(folder: str) -> list:
-    pass # TODO
+    result=list()
+    subfolders=get_direct_folders_of_folder(folder)
+    result.extend(subfolders)
+    for subfolder in subfolders:
+        result.extend(get_all_folders_of_folder(subfolder))
+    return result
 
 def get_all_objects_of_folder(folder: str) -> list:
     return get_all_files_of_folder(folder) + get_all_folders_of_folder(folder)
