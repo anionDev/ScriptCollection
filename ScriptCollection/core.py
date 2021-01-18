@@ -613,8 +613,8 @@ class ScriptCollection:
             user = splitted[2].split(":")
             permissions = splitted[3]
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
-                self.set_file_owner(full_path_of_file_or_folder,user)
-                self.set_file_permission(full_path_of_file_or_folder,permissions)
+                self.set_file_owner(full_path_of_file_or_folder, user)
+                self.set_file_permission(full_path_of_file_or_folder, permissions)
             else:
                 if strict:
                     if filetype == "f":
@@ -628,7 +628,6 @@ class ScriptCollection:
             return 2
         else:
             return 1
-
 
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
@@ -1171,31 +1170,30 @@ class ScriptCollection:
     def update_nuget_package(self, csproj_file: str, name: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
 
-
-    def get_file_permission(self,file:str)->str:
+    def get_file_permission(self, file: str) -> str:
         _private_check_is_os_is_linux()
         return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
 
-    def get_file_owner(self,file:str)->str:
+    def get_file_owner(self, file: str) -> str:
         _private_check_is_os_is_linux()
         path = Path(file)
         return f"{path.owner()}:{path.group()}"
 
-    def set_file_permission(self,file:str, permissions_as_octet_triple:str,recursive:bool=False)->None:
+    def set_file_permission(self, file: str, permissions_as_octet_triple: str, recursive: bool = False) -> None:
         _private_check_is_os_is_linux()
-        argument=f'{permissions_as_octet_triple} "{file}"'
+        argument = f'{permissions_as_octet_triple} "{file}"'
         if recursive:
-            argument=f" --recursive {argument}"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod",argument)
+            argument = f" --recursive {argument}"
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
 
-    def set_file_owner(self,file:str,owner:str,recursive:bool=False, follow_symlinks:bool=False)->None:
+    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
         _private_check_is_os_is_linux()
-        argument=f'{owner} "{file}"'
+        argument = f'{owner} "{file}"'
         if recursive:
-            argument=f" --recursive {argument}"
+            argument = f" --recursive {argument}"
         if not follow_symlinks:
-            argument=f" --no-dereference {argument}"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("chown",argument)
+            argument = f" --no-dereference {argument}"
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chown", argument)
 
     def _private_adapt_workingdirectory(self, workingdirectory: str) -> str:
         if workingdirectory is None:
@@ -2285,7 +2283,7 @@ def _private_keyhook(event) -> None:
 
 
 def _private_check_is_os_is_linux():
-    if not( sys.platform == "linux" or sys.platform == "linux2"):
+    if not(sys.platform == "linux" or sys.platform == "linux2"):
         raise Exception("This operation is only executable on Linux")
 
 # <miscellaneous>
