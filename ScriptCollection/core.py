@@ -3,6 +3,7 @@ import base64
 import binascii
 import codecs
 import ctypes
+import itertools
 import filecmp
 import hashlib
 import pathlib
@@ -580,6 +581,10 @@ class ScriptCollection:
         if(exit_code == 1):
             return False
         raise Exception(f"Unable to calculate if '{file}' is ignored in repository '{repository}'or not due to exitcode {exit_code}.")
+
+    def discard_all_changes(self, repository: str) -> None:
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset HEAD -- .", repository)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout -- .", repository)
 
     # </git>
 
@@ -1318,29 +1323,30 @@ class ScriptCollection:
         if(len(self._private_mocked_program_calls) > 0):
             raise AssertionError("The following mock-calls were not called:\n    "+",\n    ".join([f"'{r.workingdirectory}>{r.program} {r.argument}' (exitcode: {str_none_safe(str(r.exit_code))}, pid: {str_none_safe(str(r.pid))}, stdout: {str_none_safe(str(r.stdout))}, stderr: {str_none_safe(str(r.stderr))})" for r in self._private_mocked_program_calls]))
 
-    def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int):
+    def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int, amount_of_expected_calls=1):
         "This function is for test-purposes only"
-        r = ScriptCollection._private_mock_program_call()
-        r.program = program
-        r.argument = argument
-        r.workingdirectory = workingdirectory
-        r.exit_code = result_exit_code
-        r.stdout = result_stdout
-        r.stderr = result_stderr
-        r.pid = result_pid
-        self._private_mocked_program_calls.append(r)
+        for _ in itertools.repeat(None, amount_of_expected_calls):
+            mock_call= ScriptCollection._private_mock_program_call()
+            mock_call.program = program
+            mock_call.argument = argument
+            mock_call.workingdirectory = workingdirectory
+            mock_call.exit_code = result_exit_code
+            mock_call.stdout = result_stdout
+            mock_call.stderr = result_stderr
+            mock_call.pid = result_pid
+            self._private_mocked_program_calls.append(mock_call)
 
     def _private_get_mock_program_call(self, program: str, argument: str, workingdirectory: str):
-        r: ScriptCollection._private_mock_program_call = None
-        for r2 in self._private_mocked_program_calls:
-            if(re.match(r2.program, program) and re.match(r2.argument, argument) and re.match(r2.workingdirectory, workingdirectory)):
-                r = r2
+        result: ScriptCollection._private_mock_program_call = None
+        for mock_call in self._private_mocked_program_calls:
+            if(re.match(mock_call.program, program) and re.match(mock_call.argument, argument) and re.match(mock_call.workingdirectory, workingdirectory)):
+                result = mock_call
                 break
-        if r is None:
-            raise LookupError(f"Tried to execute '{workingdirectory}>{program} {argument}' but no mock-call was defined for that program-call")
+        if result is None:
+            raise LookupError(f"Tried to execute mock-call '{workingdirectory}>{program} {argument}' but no mock-call was defined for that execution")
         else:
-            self._private_mocked_program_calls.remove(r)
-            return (r.exit_code, r.stdout, r.stderr, r.pid)
+            self._private_mocked_program_calls.remove(result)
+            return (result.exit_code, result.stdout, result.stderr, result.pid)
 
     class _private_mock_program_call:
         program: str
