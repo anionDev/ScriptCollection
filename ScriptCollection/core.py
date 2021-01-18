@@ -598,8 +598,8 @@ class ScriptCollection:
             truncated_file = file_or_folder[repository_path_length:]
             if(filter_function(folder, truncated_file)):
                 item_type = loop_item[1]
-                user = get_file_owner(file_or_folder)
-                permissions =get_file_permission(file_or_folder)
+                user = self.get_file_owner(file_or_folder)
+                permissions = self.get_file_permission(file_or_folder)
                 lines.append(f"{truncated_file};{item_type};{user};{permissions}")
         lines = sorted(lines, key=str.casefold)
         with open(target_file, "w", encoding=encoding) as file_object:
@@ -613,8 +613,8 @@ class ScriptCollection:
             user = splitted[2].split(":")
             permissions = splitted[3]
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
-                set_file_owner(full_path_of_file_or_folder,user)
-                set_file_permission(full_path_of_file_or_folder,permissions)
+                self.set_file_owner(full_path_of_file_or_folder,user)
+                self.set_file_permission(full_path_of_file_or_folder,permissions)
             else:
                 if strict:
                     if filetype == "f":
