@@ -1171,6 +1171,32 @@ class ScriptCollection:
     def update_nuget_package(self, csproj_file: str, name: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
 
+
+    def get_file_permission(self,file:str)->str:
+        _private_check_is_os_is_linux()
+        return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
+
+    def get_file_owner(self,file:str)->str:
+        _private_check_is_os_is_linux()
+        path = Path(file)
+        return f"{path.owner()}:{path.group()}"
+
+    def set_file_permission(self,file:str, permissions_as_octet_triple:str,recursive:bool=False)->None:
+        _private_check_is_os_is_linux()
+        argument=f'{permissions_as_octet_triple} "{file}"'
+        if recursive:
+            argument=f" --recursive {argument}"
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod",argument)
+
+    def set_file_owner(self,file:str,owner:str,recursive:bool=False, follow_symlinks:bool=False)->None:
+        _private_check_is_os_is_linux()
+        argument=f'{owner} "{file}"'
+        if recursive:
+            argument=f" --recursive {argument}"
+        if not follow_symlinks:
+            argument=f" --no-dereference {argument}"
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chown",argument)
+
     def _private_adapt_workingdirectory(self, workingdirectory: str) -> str:
         if workingdirectory is None:
             return os.getcwd()
@@ -2257,31 +2283,6 @@ def absolute_file_paths(directory: str) -> list:
 def _private_keyhook(event) -> None:
     write_message_to_stdout(str(event.name)+" "+event.event_type)
 
-
-def get_file_permission(file:str)->str:
-    _private_check_is_os_is_linux()
-    return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
-
-def get_file_owner(file:str)->str:
-    _private_check_is_os_is_linux()
-    path = Path(file)
-    return f"{path.owner()}:{path.group()}"
-
-def set_file_permission(file:str, permissions_as_octet_triple:str,recursive:bool=False)->None:
-    _private_check_is_os_is_linux()
-    argument=f'{permissions_as_octet_triple} "{file}"'
-    if recursive:
-        argument=f" --recursive {argument}"
-    ScriptCollection().execute_and_raise_exception_if_exit_code_is_not_zero("chmod",argument)
-
-def set_file_owner(file:str,owner:str,recursive:bool=False, follow_symlinks:bool=False)->None:
-    _private_check_is_os_is_linux()
-    argument=f'{owner} "{file}"'
-    if recursive:
-        argument=f" --recursive {argument}"
-    if not follow_symlinks:
-        argument=f" --no-dereference {argument}"
-    ScriptCollection().execute_and_raise_exception_if_exit_code_is_not_zero("chown",argument)
 
 def _private_check_is_os_is_linux():
     if not( sys.platform == "linux" or sys.platform == "linux2"):
