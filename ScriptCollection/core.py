@@ -586,6 +586,7 @@ class ScriptCollection:
     # <miscellaneous>
 
     def export_filemetadata(self, folder: str, target_file: str, filter_function, encoding: str = "utf-8") -> None:
+        _private_check_if_os_is_linux()
         lines = list()
         repository_path_length = len(folder)
         items: dict()
@@ -606,6 +607,7 @@ class ScriptCollection:
             file_object.write("\n".join(lines))
 
     def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8") -> None:
+        _private_check_if_os_is_linux()
         for line in read_lines_from_file(source_file, encoding):
             splitted = line.split(";")
             full_path_of_file_or_folder = os.path.join(folder, splitted[0])
@@ -1171,23 +1173,23 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
 
     def get_file_permission(self, file: str) -> str:
-        _private_check_is_os_is_linux()
+        _private_check_if_os_is_linux()
         return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
 
     def get_file_owner(self, file: str) -> str:
-        _private_check_is_os_is_linux()
+        _private_check_if_os_is_linux()
         path = Path(file)
         return f"{path.owner()}:{path.group()}"
 
     def set_file_permission(self, file: str, permissions_as_octet_triple: str, recursive: bool = False) -> None:
-        _private_check_is_os_is_linux()
+        _private_check_if_os_is_linux()
         argument = f'{permissions_as_octet_triple} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
 
     def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
-        _private_check_is_os_is_linux()
+        _private_check_if_os_is_linux()
         argument = f'{owner} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
@@ -2282,9 +2284,12 @@ def _private_keyhook(event) -> None:
     write_message_to_stdout(str(event.name)+" "+event.event_type)
 
 
-def _private_check_is_os_is_linux():
-    if not(sys.platform == "linux" or sys.platform == "linux2"):
+def _private_check_if_os_is_linux():
+    if not(_private_check_if_os_is_linux/()):
         raise Exception("This operation is only executable on Linux")
+
+def os_is_linux():
+    return sys.platform == "linux" or sys.platform == "linux2"
 
 # <miscellaneous>
 
