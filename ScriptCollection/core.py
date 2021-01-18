@@ -2259,18 +2259,33 @@ def _private_keyhook(event) -> None:
 
 
 def get_file_permission(file:str)->str:
+    _private_check_is_os_is_linux()
     return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
 
 def get_file_owner(file:str)->str:
+    _private_check_is_os_is_linux()
     path = Path(file)
     return f"{path.owner()}:{path.group()}"
 
 def set_file_permission(file:str, permissions_as_octet_triple:str,recursive:bool=False)->None:
-    pass # TODO call chmod
+    _private_check_is_os_is_linux()
+    argument=f'{permissions_as_octet_triple} "{file}"'
+    if recursive:
+        argument=f" --recursive {argument}"
+    ScriptCollection().execute_and_raise_exception_if_exit_code_is_not_zero("chmod",argument)
 
 def set_file_owner(file:str,owner:str,recursive:bool=False, follow_symlinks:bool=False)->None:
-    # if follow_symlinks==False -> add --no-dereference
-    pass # TODO call chown
+    _private_check_is_os_is_linux()
+    argument=f'{owner} "{file}"'
+    if recursive:
+        argument=f" --recursive {argument}"
+    if not follow_symlinks:
+        argument=f" --no-dereference {argument}"
+    ScriptCollection().execute_and_raise_exception_if_exit_code_is_not_zero("chown",argument)
+
+def _private_check_is_os_is_linux():
+    if not( sys.platform == "linux" or sys.platform == "linux2"):
+        raise Exception("This operation is only executable on Linux")
 
 # <miscellaneous>
 
