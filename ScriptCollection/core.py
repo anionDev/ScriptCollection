@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.21"
+version = "2.0.22"
 __version__ = version
 
 
@@ -2291,7 +2291,7 @@ def _private_keyhook(event) -> None:
 
 
 def _private_check_if_os_is_linux():
-    if not(_private_check_if_os_is_linux/()):
+    if not(_private_check_if_os_is_linux()):
         raise Exception("This operation is only executable on Linux")
 
 def os_is_linux():
