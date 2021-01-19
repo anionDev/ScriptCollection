@@ -594,7 +594,7 @@ class ScriptCollection:
     def export_filemetadata(self, folder: str, target_file: str, filter_function, encoding: str = "utf-8") -> None:
         lines = list()
         repository_path_length = len(folder)
-        items: dict()
+        items = dict()
         for item in get_all_files_of_folder(folder):
             items[item] = "f"
         for item in get_all_folders_of_folder(folder):
