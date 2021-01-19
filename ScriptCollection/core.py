@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.27"
+version = "2.0.28"
 __version__ = version
 
 
@@ -1177,19 +1177,22 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
 
     def get_file_permission(self, file: str) -> str:
-        return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
+        """This function returns an usual octet-triple, for example "0700"."""
+        return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}" | awk \'{{chars=substr($1,2); gsub("-","0",chars); gsub("r","4",chars); gsub("w","2",chars); gsub("x","1",chars); for(i=1;i<10;i++) {{ sum+=substr(chars,i,1); if (i%3 == 0) {{ printf "%d",sum;sum=0; }}; }} print ""; }}\'')[1]
 
     def get_file_owner(self, file: str) -> str:
-        path = Path(file)
-        return f"{path.owner()}:{path.group()}"
+        """This function returns the user and the group in the format "user:group"."""
+        return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}" | awk \'{{printf($3);printf(":");printf($4)}}\'')[1]
 
-    def set_file_permission(self, file: str, permissions_as_octet_triple: str, recursive: bool = False) -> None:
-        argument = f'{permissions_as_octet_triple} "{file}"'
+    def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
+        """This function expects an usual octet-triple, for example "0700"."""
+        argument = f'{permissions} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
 
     def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
+        """This function expects the user and the group in the format "user:group"."""
         argument = f'{owner} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
