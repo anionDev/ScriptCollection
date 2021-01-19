@@ -576,12 +576,12 @@ class ScriptCollection:
             return False
 
     def file_is_git_ignored(self, repository: str, file: str) -> None:
-        exit_code = self.start_program_synchronously("git", "check-ignore "+file, repository, 0, False, None, 120, False)[1]
+        exit_code = self.start_program_synchronously("git", "check-ignore "+file, repository, 0, False, None, 120, False)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
             return False
-        raise Exception(f"Unable to calculate if '{file}' is ignored in repository '{repository}'or not due to exitcode {exit_code}.")
+        raise Exception(f"Unable to calculate if '{file}' is ignored in repository '{repository} 'or not due to exitcode {exit_code}.")
 
     def discard_all_changes(self, repository: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset HEAD -- .", repository)
