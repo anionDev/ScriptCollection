@@ -44,6 +44,7 @@ class ScriptCollection:
     # <Properties>
 
     mock_program_calls: bool = False  # This property is for test-purposes only
+    execute_programy_really_if_no_mock_call_is_defined: bool = False  # This property is for test-purposes only
     _private_mocked_program_calls: list = list()
 
     # </Properties>
@@ -1178,7 +1179,6 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
 
     def get_file_permission(self, file: str) -> str:
-        _private_check_if_os_is_linux()
         return oct(stat.S_IMODE(os.stat(file).st_mode))[-3:]
 
     def get_file_owner(self, file: str) -> str:
@@ -1187,7 +1187,6 @@ class ScriptCollection:
         return f"{path.owner()}:{path.group()}"
 
     def set_file_permission(self, file: str, permissions_as_octet_triple: str, recursive: bool = False) -> None:
-        _private_check_if_os_is_linux()
         argument = f'{permissions_as_octet_triple} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
@@ -1214,7 +1213,11 @@ class ScriptCollection:
 
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False) -> int:
         if self.mock_program_calls:
-            return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
+            try:
+                return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
+            except LookupError:
+                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                    raise
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if use_epew:
@@ -1242,7 +1245,11 @@ class ScriptCollection:
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = ""):
         if self.mock_program_calls:
-            return self._private_get_mock_program_call(program, arguments, workingdirectory)
+            try:
+                return self._private_get_mock_program_call(program, arguments, workingdirectory)
+            except LookupError:
+                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                    raise
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if (epew_is_available() and not prevent_using_epew):
