@@ -12,6 +12,8 @@ Most of the scripts are written in [python](https://www.python.org) 3.
 
 Caution: Before executing **any** script of this repository read the sourcecode of the script (and the sourcecode of all functions called by this function directly or transitively) carefully and verify that the script does exactly what you want to do and nothing else.
 
+Some functions are not entirely available on windows or require common third-party tools. See the [Runtime-Dependencies](#Runtime-Dependencies)-section for more information.
+
 ## Get ScriptCollection
 
 ### Installation via pip
@@ -77,6 +79,19 @@ The recommended addons for developing ScriptCollection with Visual Studio Code a
 ### Build
 
 To Create an installable whl-package simply execute `python Setup.py bdist_wheel --dist-dir .`.
+
+## Runtime-Dependencies
+
+The usual Python-dependencies will be installed automagically by pip.
+
+For functions to to read or change the permissions or the owner of a file the ScriptCollection relies on the functionality of the following tools:
+
+- awk
+- chmod
+- chown
+- ls
+
+This tools must be available on the system where the functions should be executed. Meanwhile this tools are also available on Windows but may have a slightly limited functionality.
 
 ## License
 
