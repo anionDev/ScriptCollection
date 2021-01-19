@@ -1345,7 +1345,7 @@ class ScriptCollection:
     def _private_get_mock_program_call(self, program: str, argument: str, workingdirectory: str):
         result: ScriptCollection._private_mock_program_call = None
         for mock_call in self._private_mocked_program_calls:
-            if(re.match(mock_call.program, program) and re.match(mock_call.argument, argument) and re.match(mock_call.workingdirectory, workingdirectory)):
+            if(re.match(mock_call.program, program) is not None) and (re.match(mock_call.argument, argument) is not None) and (re.match(mock_call.workingdirectory, workingdirectory) is not None):
                 result = mock_call
                 break
         if result is None:
