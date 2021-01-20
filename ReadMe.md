@@ -86,7 +86,6 @@ The usual Python-dependencies will be installed automagically by pip.
 
 For functions to to read or change the permissions or the owner of a file the ScriptCollection relies on the functionality of the following tools:
 
-- awk
 - chmod
 - chown
 - ls
