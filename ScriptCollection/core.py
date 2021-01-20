@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.29"
+version = "2.0.30"
 __version__ = version
 
 
@@ -1178,11 +1178,24 @@ class ScriptCollection:
 
     def get_file_permission(self, file: str) -> str:
         """This function returns an usual octet-triple, for example "0700"."""
-        return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}" | awk \'{{chars=substr($1,2); gsub("-","0",chars); gsub("r","4",chars); gsub("w","2",chars); gsub("x","1",chars); for(i=1;i<10;i++) {{ sum+=substr(chars,i,1); if (i%3 == 0) {{ printf "%d",sum;sum=0; }}; }} print ""; }}\'')[1]
+        ls_output = self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
+        permissions = ' '.join(ls_output.split()).split(' ')[0][1:]
+        return str(self._private_to_octet(permissions[0:3]))+str(self._private_to_octet(permissions[3:6]))+str(self._private_to_octet(permissions[6:9]))
+
+    def _private_to_octet(self, string: str) -> int:
+        return int(self._private_to_octet_helper(string[0])+self._private_to_octet_helper(string[1])+self._private_to_octet_helper(string[2]), 2)
+
+    def _private_to_octet_helper(self, string: str) -> str:
+        if(string == "-"):
+            return "0"
+        else:
+            return "1"
 
     def get_file_owner(self, file: str) -> str:
         """This function returns the user and the group in the format "user:group"."""
-        return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}" | awk \'{{printf($3);printf(":");printf($4)}}\'')[1]
+        ls_output = self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
+        splitted = ' '.join(ls_output.split()).split(' ')
+        return f"{splitted[2]}:{splitted[3]}"
 
     def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
         """This function expects an usual octet-triple, for example "0700"."""
@@ -1332,7 +1345,7 @@ class ScriptCollection:
     def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int, amount_of_expected_calls=1):
         "This function is for test-purposes only"
         for _ in itertools.repeat(None, amount_of_expected_calls):
-            mock_call= ScriptCollection._private_mock_program_call()
+            mock_call = ScriptCollection._private_mock_program_call()
             mock_call.program = program
             mock_call.argument = argument
             mock_call.workingdirectory = workingdirectory
