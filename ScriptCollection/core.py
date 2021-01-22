@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.30"
+version = "2.0.31"
 __version__ = version
 
 
@@ -591,21 +591,22 @@ class ScriptCollection:
 
     # <miscellaneous>
 
-    def export_filemetadata(self, folder: str, target_file: str, filter_function, encoding: str = "utf-8") -> None:
+    def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
+        folder=resolve_relative_path_from_current_working_directory(folder)
         lines = list()
-        repository_path_length = len(folder)
+        path_prefix = len(folder)+1
         items = dict()
         for item in get_all_files_of_folder(folder):
             items[item] = "f"
         for item in get_all_folders_of_folder(folder):
             items[item] = "d"
-        for loop_item in items:
-            file_or_folder = loop_item[0]
-            truncated_file = file_or_folder[repository_path_length:]
-            if(filter_function(folder, truncated_file)):
-                item_type = loop_item[1]
-                user = self.get_file_owner(file_or_folder)
-                permissions = self.get_file_permission(file_or_folder)
+        for file_or_folder in items:
+            truncated_file = file_or_folder[path_prefix:]
+            if(filter_function is None or filter_function(folder, truncated_file)):
+                item_type = items[file_or_folder]
+                owner_and_permisssion = self.get_file_owner_and_file_permission(file_or_folder)
+                user = owner_and_permisssion[0]
+                permissions = owner_and_permisssion[1]
                 lines.append(f"{truncated_file};{item_type};{user};{permissions}")
         lines = sorted(lines, key=str.casefold)
         with open(target_file, "w", encoding=encoding) as file_object:
@@ -616,10 +617,10 @@ class ScriptCollection:
             splitted = line.split(";")
             full_path_of_file_or_folder = os.path.join(folder, splitted[0])
             filetype = splitted[1]
-            user = splitted[2].split(":")
+            user = splitted[2]
             permissions = splitted[3]
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
-                self.set_file_owner(full_path_of_file_or_folder, user)
+                self.set_file_owner(full_path_of_file_or_folder, user,os.name != 'nt')
                 self.set_file_permission(full_path_of_file_or_folder, permissions)
             else:
                 if strict:
@@ -1178,7 +1179,10 @@ class ScriptCollection:
 
     def get_file_permission(self, file: str) -> str:
         """This function returns an usual octet-triple, for example "0700"."""
-        ls_output = self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
+        ls_output = self._private_ls(file)
+        return self._private_get_file_permission_helper(ls_output)
+
+    def _private_get_file_permission_helper(self, ls_output: str) -> str:
         permissions = ' '.join(ls_output.split()).split(' ')[0][1:]
         return str(self._private_to_octet(permissions[0:3]))+str(self._private_to_octet(permissions[3:6]))+str(self._private_to_octet(permissions[6:9]))
 
@@ -1193,9 +1197,19 @@ class ScriptCollection:
 
     def get_file_owner(self, file: str) -> str:
         """This function returns the user and the group in the format "user:group"."""
-        ls_output = self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
+        ls_output = self._private_ls(file)
+        return self._private_get_file_owner_helper(ls_output)
+
+    def _private_get_file_owner_helper(self, ls_output: str) -> str:
         splitted = ' '.join(ls_output.split()).split(' ')
         return f"{splitted[2]}:{splitted[3]}"
+
+    def get_file_owner_and_file_permission(self, file: str) -> str:
+        ls_output = self._private_ls(file)
+        return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
+
+    def _private_ls(self, file: str) -> str:
+        return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
 
     def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
         """This function expects an usual octet-triple, for example "0700"."""
@@ -1209,7 +1223,7 @@ class ScriptCollection:
         argument = f'{owner} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
-        if not follow_symlinks:
+        if follow_symlinks:
             argument = f" --no-dereference {argument}"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("chown", argument)
 
