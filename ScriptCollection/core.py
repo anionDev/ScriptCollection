@@ -2326,6 +2326,19 @@ def _private_keyhook(event) -> None:
 def os_is_linux():
     return sys.platform == "linux" or sys.platform == "linux2"
 
+def to_list(self,input: str, separator:str=",") -> list:
+    result = list()
+    if input is not None:
+        input = input.strip()
+        if input == "":
+            pass
+        elif separator in input:
+            for item in input.split(separator):
+                result.append(item.strip())
+        else:
+            result.append(input)
+    return result
+
 # <miscellaneous>
 
 # </static>
