@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.32"
+version = "2.0.33"
 __version__ = version
 
 
@@ -2326,7 +2326,7 @@ def _private_keyhook(event) -> None:
 def os_is_linux():
     return sys.platform == "linux" or sys.platform == "linux2"
 
-def to_list(self,input: str, separator:str=",") -> list:
+def to_list(input: str, separator:str=",") -> list:
     result = list()
     if input is not None:
         input = input.strip()
