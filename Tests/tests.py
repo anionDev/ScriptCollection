@@ -2,7 +2,7 @@ import os
 import unittest
 import tempfile
 import re
-from ScriptCollection.core import get_ScriptCollection_version, string_is_none_or_whitespace, string_is_none_or_empty, write_lines_to_file, read_lines_from_file, ScriptCollection
+from ScriptCollection.core import get_ScriptCollection_version, string_is_none_or_whitespace, string_is_none_or_empty, write_lines_to_file, read_lines_from_file, ScriptCollection, to_list
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
@@ -68,6 +68,49 @@ class MiscellaneousTests(unittest.TestCase):
             os.close(fd)
             os.remove(temporary_file)
 
+    def test_to_list_none(self):
+        # arrange
+        input=None
+        expected=[]
+
+        # act
+        actual=to_list(input,",")
+
+        # assert
+        assert expected==actual
+
+    def test_to_list_empty(self):
+        # arrange
+        input="   "
+        expected=[]
+
+        # act
+        actual=to_list(input,",")
+
+        # assert
+        assert expected==actual
+
+    def test_to_list_one_item(self):
+        # arrange
+        input=" a "
+        expected=["a"]
+
+        # act
+        actual=to_list(input,",")
+
+        # assert
+        assert expected==actual
+
+    def test_to_list_multiple_items(self):
+        # arrange
+        input=" a , b , c "
+        expected=["a","b","c"]
+
+        # act
+        actual=to_list(input,",")
+
+        # assert
+        assert expected==actual
 
 class OrganizeLinesInFileTests(unittest.TestCase):
 
