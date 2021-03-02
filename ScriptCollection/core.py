@@ -189,7 +189,7 @@ class ScriptCollection:
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         ensure_directory_does_not_exist(publishdirectory)
@@ -589,7 +589,7 @@ class ScriptCollection:
     # <miscellaneous>
 
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
-        folder=resolve_relative_path_from_current_working_directory(folder)
+        folder = resolve_relative_path_from_current_working_directory(folder)
         lines = list()
         path_prefix = len(folder)+1
         items = dict()
@@ -617,7 +617,7 @@ class ScriptCollection:
             user = splitted[2]
             permissions = splitted[3]
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
-                self.set_file_owner(full_path_of_file_or_folder, user,os.name != 'nt')
+                self.set_file_owner(full_path_of_file_or_folder, user, os.name != 'nt')
                 self.set_file_permission(full_path_of_file_or_folder, permissions)
             else:
                 if strict:
@@ -2322,7 +2322,8 @@ def _private_keyhook(event) -> None:
 def os_is_linux():
     return sys.platform == "linux" or sys.platform == "linux2"
 
-def to_list(list_as_string: str, separator:str=",") -> list:
+
+def to_list(list_as_string: str, separator: str = ",") -> list:
     result = list()
     if list_as_string is not None:
         list_as_string = list_as_string.strip()
