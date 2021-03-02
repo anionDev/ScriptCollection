@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.33"
+version = "2.0.34"
 __version__ = version
 
 
@@ -108,7 +108,7 @@ class ScriptCollection:
             write_message_to_stdout("Finished to create releases")
 
         if error_occurred:
-            write_message_to_stderr("Create release was not successful")
+            write_message_to_stderr("Creating release was not successful")
             if prepare:
                 self.git_merge_abort(repository)
                 self._private_undo_changes(repository)
@@ -123,8 +123,7 @@ class ScriptCollection:
                 if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
                     branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
                     self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
-                self.git_commit(self.get_item_from_configuration(configparser, 'other', 'releaserepository'), "Added "+self.get_item_from_configuration(configparser, 'general', 'productname')+" "+self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix')+repository_version)
-            write_message_to_stdout("Building wheel and running testcases was successful")
+            write_message_to_stdout("Creating release was successful")
             return 0
 
     def dotnet_build_executable_and_run_tests(self, configurationfile: str) -> None:
@@ -134,7 +133,7 @@ class ScriptCollection:
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
@@ -190,7 +189,7 @@ class ScriptCollection:
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, "normal", self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         ensure_directory_does_not_exist(publishdirectory)
@@ -215,8 +214,6 @@ class ScriptCollection:
         latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
         for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets'):
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory, 3600, verbose_argument)
-        for localnugettargetrepository in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargetrepositories'):
-            self.git_commit(localnugettargetrepository, f"Added {self.get_item_from_configuration(configparser,'general','productname')} .NET-release {self.get_item_from_configuration(configparser,'prepare','gittagprefix')}{repository_version}")
         if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile')):
             with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
@@ -754,7 +751,6 @@ class ScriptCollection:
         available_configuration_items.append(["dotnet", "testcsprojfile"])
         available_configuration_items.append(["dotnet", "testoutputfolder"])
         available_configuration_items.append(["dotnet", "localnugettargets"])
-        available_configuration_items.append(["dotnet", "localnugettargetrepositories"])
         available_configuration_items.append(["dotnet", "docfxfile"])
         available_configuration_items.append(["dotnet", "coveragefolder"])
         available_configuration_items.append(["dotnet", "coveragereportfolder"])
@@ -2326,17 +2322,17 @@ def _private_keyhook(event) -> None:
 def os_is_linux():
     return sys.platform == "linux" or sys.platform == "linux2"
 
-def to_list(input: str, separator:str=",") -> list:
+def to_list(list_as_string: str, separator:str=",") -> list:
     result = list()
-    if input is not None:
-        input = input.strip()
-        if input == "":
+    if list_as_string is not None:
+        list_as_string = list_as_string.strip()
+        if list_as_string == "":
             pass
-        elif separator in input:
-            for item in input.split(separator):
+        elif separator in list_as_string:
+            for item in list_as_string.split(separator):
                 result.append(item.strip())
         else:
-            result.append(input)
+            result.append(list_as_string)
     return result
 
 # <miscellaneous>
