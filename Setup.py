@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 productname = "ScriptCollection"
-version = "2.0.38"
+version = "2.0.39"
 
 packages = [package for package in find_packages() if not package.endswith("Tests")]
 
