@@ -131,12 +131,21 @@ class ScriptCollection:
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
+        sign_things=self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1])
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
+
+    def _private_get_sign_things(self, configparser: ConfigParser) -> tuple:
+        files_to_sign_raw_value=self.get_item_from_configuration(configparser, 'dotnet', 'filestosign')
+        if( string_is_none_or_whitespace(files_to_sign_raw_value)):
+            return [None,None]
+        else:
+            return [to_list(files_to_sign_raw_value,";"),self.get_item_from_configuration(configparser, 'dotnet', 'snkfile')]
+
 
     def dotnet_create_executable_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -187,9 +196,10 @@ class ScriptCollection:
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
+        sign_things=self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0],sign_things[1])
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         ensure_directory_does_not_exist(publishdirectory)
@@ -243,7 +253,7 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
 
-    def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, outputFilenameToSign: str = None, keyToSignForOutputfile: str = None) -> None:
+    def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, filesToSign: list = None, keyToSignForOutputfile: str = None) -> None:
         # TODO find a good way to include the merge-commit-id into the build
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             shutil.rmtree(outputDirectory)
@@ -263,8 +273,9 @@ class ScriptCollection:
         argument = argument + f' --output "{outputDirectory}"'
         # TODO remove /bin- and /obj-folder of project and of referenced projects
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
-        if(outputFilenameToSign is not None):
-            self.dotnet_sign(outputDirectory+os.path.sep+outputFilenameToSign, keyToSignForOutputfile, verbose)
+        if(filesToSign is not None):
+            for fileToSign in  filesToSign:
+                self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbose)
 
     def dotnet_run_tests(self, configurationfile: str) -> None:
         # TODO add possibility to set another buildconfiguration than for the real result-build
