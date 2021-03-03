@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.0.37"
+version = "2.0.38"
 __version__ = version
 
 
@@ -133,17 +133,10 @@ class ScriptCollection:
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self._private_get_file_to_sign(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
-
-    def _private_get_file_to_sign(self, configparser)->str:
-        result=self.get_item_from_configuration(configparser, 'dotnet', 'filestosign')
-        if result is "":
-            return None
-        else:
-            return result
 
     def dotnet_create_executable_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -196,7 +189,7 @@ class ScriptCollection:
             self.dotnet_run_tests(configurationfile)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'),  self._private_get_file_to_sign(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), self.get_item_from_configuration(configparser, 'dotnet', 'filestosign'), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile'))
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         ensure_directory_does_not_exist(publishdirectory)
