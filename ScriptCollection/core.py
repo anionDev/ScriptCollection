@@ -135,7 +135,7 @@ class ScriptCollection:
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
-        sign_things=self._private_get_sign_things(configparser)
+        sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1])
@@ -144,12 +144,11 @@ class ScriptCollection:
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
 
     def _private_get_sign_things(self, configparser: ConfigParser) -> tuple:
-        files_to_sign_raw_value=self.get_item_from_configuration(configparser, 'dotnet', 'filestosign')
-        if( string_is_none_or_whitespace(files_to_sign_raw_value)):
-            return [None,None]
+        files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign')
+        if(string_is_none_or_whitespace(files_to_sign_raw_value)):
+            return [None, None]
         else:
-            return [to_list(files_to_sign_raw_value,";"),self.get_item_from_configuration(configparser, 'dotnet', 'snkfile')]
-
+            return [to_list(files_to_sign_raw_value, ";"), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile')]
 
     def dotnet_create_executable_release(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -189,10 +188,12 @@ class ScriptCollection:
           <group targetFramework="__dotnetframework__" />
         </dependencies>
         __projecturl__
+        __icon__
       </metadata>
       <files>
         <file src="Binary/__productname__.dll" target="lib/__dotnetframework__" />
         <file src="Binary/__productname__.License.txt" target="lib/__dotnetframework__" />
+        __iconfile__
       </files>
     </package>"""
 
@@ -201,29 +202,40 @@ class ScriptCollection:
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             self.dotnet_run_tests(configurationfile)
-        sign_things=self._private_get_sign_things(configparser)
+        sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0],sign_things[1])
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1])
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         ensure_directory_does_not_exist(publishdirectory)
         ensure_directory_exists(publishdirectory_binary)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
-        replacements={}
-        self._private_add_optional_replacement(replacements,configparser,"other","projecturl")
-        nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser,replacements)
+        replacements = {}
+
+        if(configparser.has_option("other", "projecturl")):
+            replacements.update({"other": f"<projecturl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projecturl>"})
+        else:
+            replacements.update({"other": ""})
+
+        if(configparser.has_option("dotnet", "iconfile")):
+            has_icon = replacements.update({"dotnet": "<icon>images\\icon.png</icon>"})
+        else:
+            has_icon = replacements.update({"dotnet": ""})
+
+        nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
+
+        if has_icon:
+            shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), publishdirectory)
+            nuspec_content = nuspec_content.replace("__iconfile__", '<file src=".\\icon.png" target="images\\" />')
+        else:
+            nuspec_content = nuspec_content.replace("__iconfile__", "")
+
         nuspecfilename = self.get_item_from_configuration(configparser, 'general', 'productname')+".nuspec"
         nuspecfile = os.path.join(publishdirectory, nuspecfilename)
         with open(nuspecfile, encoding="utf-8", mode="w") as file_object:
             file_object.write(nuspec_content)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
-
-    def _private_add_optional_replacement(self, replacements:dict, configparser:ConfigParser, section:str, option:str):
-        if(configparser.has_option(section,option)):
-            default_data.update({option: self.get_item_from_configuration(configparser, section, option)})
-        else:
-            default_data.update({option: ""})
 
     def dotnet_release_nuget(self, configurationfile: str) -> None:
         configparser = ConfigParser()
@@ -287,7 +299,7 @@ class ScriptCollection:
         # TODO remove /bin- and /obj-folder of project and of referenced projects
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
         if(filesToSign is not None):
-            for fileToSign in  filesToSign:
+            for fileToSign in filesToSign:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbose)
 
     def dotnet_run_tests(self, configurationfile: str) -> None:
