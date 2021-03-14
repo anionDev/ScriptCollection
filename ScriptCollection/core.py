@@ -334,7 +334,7 @@ class ScriptCollection:
     def generic_create_script_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        return False  # TODO implement
+        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'program'), self.get_item_from_configuration(configparser, 'script', 'argument'), self.get_item_from_configuration(configparser, 'script', 'workingdirectory'))
 
     def python_create_wheel_release(self, configurationfile: str):
         configparser = ConfigParser()
