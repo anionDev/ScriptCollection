@@ -188,6 +188,7 @@ class ScriptCollection:
         <dependencies>
           <group targetFramework="__dotnetframework__" />
         </dependencies>
+        __projecturl__
       </metadata>
       <files>
         <file src="Binary/__productname__.dll" target="lib/__dotnetframework__" />
@@ -209,12 +210,20 @@ class ScriptCollection:
         ensure_directory_does_not_exist(publishdirectory)
         ensure_directory_exists(publishdirectory_binary)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
-        nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser)
+        replacements={}
+        self._private_add_optional_replacement(replacements,configparser,"other","projecturl")
+        nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser,replacements)
         nuspecfilename = self.get_item_from_configuration(configparser, 'general', 'productname')+".nuspec"
         nuspecfile = os.path.join(publishdirectory, nuspecfilename)
         with open(nuspecfile, encoding="utf-8", mode="w") as file_object:
             file_object.write(nuspec_content)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
+
+    def _private_add_optional_replacement(self, replacements:dict, configparser:ConfigParser, section:str, option:str):
+        if(configparser.has_option(section,option)):
+            default_data.update({option: self.get_item_from_configuration(configparser, section, option)})
+        else:
+            default_data.update({option: ""})
 
     def dotnet_release_nuget(self, configurationfile: str) -> None:
         configparser = ConfigParser()
