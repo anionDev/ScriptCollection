@@ -98,7 +98,11 @@ class ScriptCollection:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", lambda: self.flutterandroid_create_installer_release(configurationfile))
 
-        # TODO allow custom post-create-regex-replacements for certain or all files (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"->"![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)"
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
+                write_message_to_stdout("Start to create Script-release")
+                error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release", lambda: self.generic_create_script_release(configurationfile))
+
+            # TODO allow custom pre- and post-create-regex-replacements for certain or all files (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"->"![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)"
 
         except Exception as exception:
             error_occurred = True
@@ -323,6 +327,11 @@ class ScriptCollection:
         return False  # TODO implement
 
     def flutterandroid_create_installer_release(self, configurationfile: str) -> bool:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        return False  # TODO implement
+
+    def generic_create_script_release(self, configurationfile: str) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
