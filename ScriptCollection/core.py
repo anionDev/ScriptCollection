@@ -218,10 +218,11 @@ class ScriptCollection:
         else:
             replacements.update({"projecturl": ""})
 
-        if(configparser.has_option("dotnet", "iconfile")):
-            has_icon = replacements.update({"icon": "<icon>images\\icon.png</icon>"})
+        has_icon = configparser.has_option("dotnet", "iconfile")
+        if has_icon:
+            replacements.update({"icon": "<icon>images\\icon.png</icon>"})
         else:
-            has_icon = replacements.update({"icon": ""})
+            replacements.update({"icon": ""})
 
         nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
 
