@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.1.1"
+version = "2.1.2"
 __version__ = version
 
 
@@ -214,7 +214,7 @@ class ScriptCollection:
         replacements = {}
 
         if(configparser.has_option("other", "projecturl")):
-            replacements.update({"projecturl": f"<projecturl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projecturl>"})
+            replacements.update({"projecturl": f"<projectUrl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projectUrl>"})
         else:
             replacements.update({"projecturl": ""})
 
