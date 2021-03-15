@@ -214,19 +214,19 @@ class ScriptCollection:
         replacements = {}
 
         if(configparser.has_option("other", "projecturl")):
-            replacements.update({"other": f"<projecturl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projecturl>"})
+            replacements.update({"projecturl": f"<projecturl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projecturl>"})
         else:
-            replacements.update({"other": ""})
+            replacements.update({"projecturl": ""})
 
         if(configparser.has_option("dotnet", "iconfile")):
-            has_icon = replacements.update({"dotnet": "<icon>images\\icon.png</icon>"})
+            has_icon = replacements.update({"icon": "<icon>images\\icon.png</icon>"})
         else:
-            has_icon = replacements.update({"dotnet": ""})
+            has_icon = replacements.update({"icon": ""})
 
         nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
 
         if has_icon:
-            shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), publishdirectory)
+            shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), os.path.join(publishdirectory, "icon.png")
             nuspec_content = nuspec_content.replace("__iconfile__", '<file src=".\\icon.png" target="images\\" />')
         else:
             nuspec_content = nuspec_content.replace("__iconfile__", "")
