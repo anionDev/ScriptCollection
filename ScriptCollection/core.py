@@ -226,7 +226,7 @@ class ScriptCollection:
         nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
 
         if has_icon:
-            shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), os.path.join(publishdirectory, "icon.png")
+            shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), os.path.join(publishdirectory, "icon.png"))
             nuspec_content = nuspec_content.replace("__iconfile__", '<file src=".\\icon.png" target="images\\" />')
         else:
             nuspec_content = nuspec_content.replace("__iconfile__", "")
