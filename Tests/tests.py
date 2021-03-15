@@ -6,7 +6,7 @@ from ScriptCollection.core import get_ScriptCollection_version, string_is_none_o
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.1.0"
+version = "2.1.1"
 
 
 class MiscellaneousTests(unittest.TestCase):
