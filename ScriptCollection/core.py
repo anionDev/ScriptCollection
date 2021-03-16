@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.1.2"
+version = "2.2.0"
 __version__ = version
 
 
@@ -74,35 +74,51 @@ class ScriptCollection:
             self.git_checkout(repository, devbranch)
             self.git_merge(repository, devbranch, masterbranch, False, False)
 
-        # TODO allow custom pre-create-regex-replacements for certain or all files
-
         try:
+
+            commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
+                                        f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
+            current_release_information = {}
+            current_release_information["commitid"] = commit_id
+
+            # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
+            # (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"
+            # -> "![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)" in all "**/*.md"-files)
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
-                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release", lambda: self._private_create_dotnet_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
+                                                                              lambda: self._private_create_dotnet_release(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
-                error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release", lambda: self.python_create_wheel_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
+                                                                              lambda: self.python_create_wheel_release(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
-                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release", lambda: self.deb_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
+                                                                              lambda: self.deb_create_installer_release(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
                 write_message_to_stdout("Start to create DockerImage-release")
-                error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release", lambda: self.dockerimage_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
+                                                                              lambda: self.dockerimage_create_installer_release(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
-                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release", lambda: self.flutterandroid_create_installer_release(configurationfile))
+                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
+                                                                              lambda: self.flutterandroid_create_installer_release(configurationfile, current_release_information))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
+                write_message_to_stdout("Start to create FlutterIOS-release")
+                error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
+                                                                              lambda: self.flutterios_create_installer_release(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Script-release")
-                error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release", lambda: self.generic_create_script_release(configurationfile))
-
-            # TODO allow custom pre- and post-create-regex-replacements for certain or all files (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"->"![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)"
+                error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
+                                                                              lambda: self.generic_create_script_release(configurationfile, current_release_information))
 
         except Exception as exception:
             error_occurred = True
@@ -121,24 +137,26 @@ class ScriptCollection:
             return 1
         else:
             if prepare:
-                commit_id = self.git_commit(repository, "Merge branch '" + self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')+"' into '" + self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')+"'")
                 self.git_create_tag(repository, commit_id, self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version)
-                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'), self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
+                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
+                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
                 if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
                     branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
                     self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
             write_message_to_stdout("Creating release was successful")
             return 0
 
-    def dotnet_build_executable_and_run_tests(self, configurationfile: str) -> None:
+    def dotnet_build_executable_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile)
+            self.dotnet_run_tests(configurationfile, current_release_information)
         sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
-            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1])
+            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
+                              self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
+                              self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
@@ -150,26 +168,26 @@ class ScriptCollection:
         else:
             return [to_list(files_to_sign_raw_value, ";"), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile')]
 
-    def dotnet_create_executable_release(self, configurationfile: str) -> None:
+    def dotnet_create_executable_release(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        self.dotnet_build_executable_and_run_tests(configurationfile)
-        self.dotnet_reference(configurationfile)
+        self.dotnet_build_executable_and_run_tests(configurationfile, current_release_information)
+        self.dotnet_reference(configurationfile, current_release_information)
 
-    def dotnet_create_nuget_release(self, configurationfile: str) -> None:
+    def dotnet_create_nuget_release(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
-        self.dotnet_build_nuget_and_run_tests(configurationfile)
-        self.dotnet_reference(configurationfile)
-        self.dotnet_release_nuget(configurationfile)
+        self.dotnet_build_nuget_and_run_tests(configurationfile, current_release_information)
+        self.dotnet_reference(configurationfile, current_release_information)
+        self.dotnet_release_nuget(configurationfile, current_release_information)
 
     _private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
     <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
@@ -187,6 +205,7 @@ class ScriptCollection:
         <dependencies>
           <group targetFramework="__dotnetframework__" />
         </dependencies>
+        __repository__
         __projecturl__
         __icon__
       </metadata>
@@ -197,15 +216,18 @@ class ScriptCollection:
       </files>
     </package>"""
 
-    def dotnet_build_nuget_and_run_tests(self, configurationfile: str) -> None:
+    def dotnet_build_nuget_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile)
+            self.dotnet_run_tests(configurationfile, current_release_information)
         sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
-            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser), self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True, self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1])
+            self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
+                              self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
+                              self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'),
+                              sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         ensure_directory_does_not_exist(publishdirectory)
@@ -213,16 +235,24 @@ class ScriptCollection:
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
         replacements = {}
 
-        if(configparser.has_option("other", "projecturl")):
+        if(self.configuration_item_is_available(configparser, "other", "projecturl")):
             replacements.update({"projecturl": f"<projectUrl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projectUrl>"})
         else:
             replacements.update({"projecturl": ""})
 
-        has_icon = configparser.has_option("dotnet", "iconfile")
+        has_icon = self.configuration_item_is_available(configparser, "dotnet", "iconfile")
         if has_icon:
             replacements.update({"icon": "<icon>images\\icon.png</icon>"})
         else:
             replacements.update({"icon": ""})
+
+        if "commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
+            repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl')
+            branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
+            commitid = current_release_information["commitid"]
+            replacements.update({"repository": f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />'})
+        else:
+            replacements.update({"repository": ""})
 
         nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
 
@@ -236,9 +266,10 @@ class ScriptCollection:
         nuspecfile = os.path.join(publishdirectory, nuspecfilename)
         with open(nuspecfile, encoding="utf-8", mode="w") as file_object:
             file_object.write(nuspec_content)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600,
+                                                                  self._private_get_verbosity_for_exuecutor(configparser))
 
-    def dotnet_release_nuget(self, configurationfile: str) -> None:
+    def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
@@ -249,14 +280,16 @@ class ScriptCollection:
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
         for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets'):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}", publishdirectory, 3600, verbose_argument)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",
+                                                                      publishdirectory, 3600, verbose_argument)
         if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile')):
             with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
             nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource')
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}", publishdirectory, 3600, verbose_argument)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}",
+                                                                      publishdirectory, 3600, verbose_argument)
 
-    def dotnet_reference(self, configurationfile: str) -> None:
+    def dotnet_reference(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
@@ -274,13 +307,20 @@ class ScriptCollection:
             ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self._private_get_coverage_filename(configparser)
             shutil.copyfile(self._private_get_test_csprojfile_folder(configparser)+os.path.sep+self._private_get_coverage_filename(configparser), coverage_target_file)
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator", f'-reports:"{self._private_get_coverage_filename(configparser)}" -targetdir:"    {coveragefolder}" {verbose_argument_for_reportgenerator}', coveragefolder, 3600, verbose_argument)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator",
+                                                                      f'-reports:"{self._private_get_coverage_filename(configparser)}"'
+                                                                      f' -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}',
+                                                                      coveragefolder, 3600, verbose_argument)
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
-                self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename'), "master", "master", False, False)
+                self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
+                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename'),
+                              "master", "master", False, False)
 
-    def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str, clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, filesToSign: list = None, keyToSignForOutputfile: str = None) -> None:
-        # TODO find a good way to include the merge-commit-id into the build
+    def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
+                     clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, filesToSign: list = None, keyToSignForOutputfile: str = None,
+                     current_release_information: dict = {}) -> None:
+        # TODO include commit-id (only if available) which can be retrieved due to "current_release_information['commitid']"
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             shutil.rmtree(outputDirectory)
         ensure_directory_exists(outputDirectory)
@@ -297,13 +337,12 @@ class ScriptCollection:
         argument = argument + f' --runtime {runtimeId}'
         argument = argument + f' --verbosity {verbose_argument_for_dotnet}'
         argument = argument + f' --output "{outputDirectory}"'
-        # TODO remove /bin- and /obj-folder of project and of referenced projects
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
         if(filesToSign is not None):
             for fileToSign in filesToSign:
-                self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbose)
+                self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbose, current_release_information)
 
-    def dotnet_run_tests(self, configurationfile: str) -> None:
+    def dotnet_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         # TODO add possibility to set another buildconfiguration than for the real result-build
         # TODO remove the call to SCDotNetBuild
         configparser = ConfigParser()
@@ -315,12 +354,17 @@ class ScriptCollection:
         else:
             verbose_argument_for_dotnet = "normal"
             verbose_argument = 1
-        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser), self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime, self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", "test "+self._private_get_test_csprojfile_filename(configparser)+" -c " + self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration') +
-                                                                  f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput=" + self._private_get_coverage_filename(configparser)+" /p:CoverletOutputFormat=opencover", self._private_get_test_csprojfile_folder(configparser), 3600, verbose_argument, False, "Execute tests")
+        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
+                          self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
+                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime,
+                          self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None, current_release_information)
+        testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')} " \
+            f"--verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={self._private_get_coverage_filename(configparser)} " \
+            f"/p:CoverletOutputFormat=opencover"
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
+                                                                  3600, verbose_argument, False, "Execute tests")
 
-    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool) -> None:
+    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = resolve_relative_path_from_current_working_directory(snkfile)
         directory = os.path.dirname(dllOrExeFile)
@@ -333,32 +377,43 @@ class ScriptCollection:
             extension = "exe"
         else:
             raise Exception("Only .dll-files and .exe-files can be signed")
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("ildasm", f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"', directory, 3600, verbose, False, "Sign: ildasm")
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("ilasm", f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"', directory, 3600, verbose, False, "Sign: ilasm")
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("ildasm",
+                                                                  f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
+                                                                  directory, 3600, verbose, False, "Sign: ildasm")
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("ilasm",
+                                                                  f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
+                                                                  directory, 3600, verbose, False, "Sign: ilasm")
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
-    def deb_create_installer_release(self, configurationfile: str) -> bool:
+    def deb_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def dockerimage_create_installer_release(self, configurationfile: str) -> bool:
+    def dockerimage_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def flutterandroid_create_installer_release(self, configurationfile: str) -> bool:
+    def flutterandroid_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def generic_create_script_release(self, configurationfile: str) -> bool:
+    def flutterios_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'program'), self.get_item_from_configuration(configparser, 'script', 'argument'), self.get_item_from_configuration(configparser, 'script', 'workingdirectory'))
+        return False  # TODO implement
 
-    def python_create_wheel_release(self, configurationfile: str):
+    def generic_create_script_release(self, configurationfile: str, current_release_information: dict) -> bool:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'program'),
+                                                                  self.get_item_from_configuration(configparser, 'script', 'argument'),
+                                                                  self.get_item_from_configuration(configparser, 'script', 'workingdirectory'))
+
+    def python_create_wheel_release(self, configurationfile: str, current_release_information: dict):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
@@ -366,8 +421,8 @@ class ScriptCollection:
             for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
 
-        self.python_build_wheel_and_run_tests(configurationfile)
-        self.python_release_wheel(configurationfile)
+        self.python_build_wheel_and_run_tests(configurationfile, current_release_information)
+        self.python_release_wheel(configurationfile, current_release_information)
 
     def _private_execute_and_return_boolean(self, name: str, method) -> bool:
         try:
@@ -377,12 +432,12 @@ class ScriptCollection:
             write_exception_to_stderr_with_traceback(exception, traceback, f"'{name}' resulted in an error")
             return False
 
-    def python_build_wheel_and_run_tests(self, configurationfile: str) -> None:
-        self.python_run_tests(configurationfile)
-        self.python_lint(configurationfile)
-        self.python_build(configurationfile)
+    def python_build_wheel_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+        self.python_run_tests(configurationfile, current_release_information)
+        self.python_lint(configurationfile, current_release_information)
+        self.python_build(configurationfile, current_release_information)
 
-    def python_build(self, configurationfile: str) -> None:
+    def python_build(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         for folder in self.get_items_from_configuration(configparser, "python", "deletefolderbeforcreatewheel"):
@@ -392,21 +447,24 @@ class ScriptCollection:
         setuppyfilefolder = os.path.dirname(setuppyfile)
         publishdirectoryforwhlfile = self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile")
         ensure_directory_exists(publishdirectoryforwhlfile)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("python", setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"', setuppyfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("python",
+                                                                  setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
+                                                                  setuppyfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
 
-    def python_lint(self, configurationfile: str) -> None:
+    def python_lint(self, configurationfile: str, current_release_information: dict) -> None:
         pass  # TODO allow executing scripts like "pylint --rcfile=Build.pylintrc ScriptCollection/core.py"
 
-    def python_run_tests(self, configurationfile: str) -> None:
+    def python_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
             pythontestfile = self.get_item_from_configuration(configparser, 'python', 'pythontestfile')
             pythontestfilename = os.path.basename(pythontestfile)
             pythontestfilefolder = os.path.dirname(pythontestfile)
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600,
+                                                                      self._private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
 
-    def python_release_wheel(self, configurationfile: str) -> None:
+    def python_release_wheel(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'python', 'publishwhlfile'):
@@ -419,8 +477,11 @@ class ScriptCollection:
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
-            twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument, self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"), 3600, self._private_get_verbosity_for_exuecutor(configparser))
+            twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl" \
+                f" --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("twine",
+                                                                      twine_argument, self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"),
+                                                                      3600, self._private_get_verbosity_for_exuecutor(configparser))
 
     # </Build>
 
@@ -430,19 +491,26 @@ class ScriptCollection:
         result = self.start_program_synchronously("git", f"verify-commit {revision_identifier}", repository_folder)
         if(result[0] != 0):
             return False
-        if(not contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):  # TODO check whether this works on machines where gpg is installed in another langauge than english
+        if(not contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):
+            # TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
-        if(not contains_line(result[1].splitlines(), "gpg\\:\\ Good\\ signature\\ from")):  # TODO check whether this works on machines where gpg is installed in another langauge than english
+        if(not contains_line(result[1].splitlines(), "gpg\\:\\ Good\\ signature\\ from")):
+            # TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
         return True
 
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
-        return self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder)[1].replace("\r", "").replace("\n", "").    split(" ")
+        return self.execute_and_raise_exception_if_exit_code_is_not_zero("git",
+                                                                         f'log --pretty=%P -n 1 "{commit_id}"',
+                                                                         repository_folder)[1].replace("\r", "").replace("\n", "").split(" ")
 
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = datetime_to_string_for_git(since)
         until_as_string = datetime_to_string_for_git(until)
-        result = filter(lambda line: not string_is_none_or_whitespace(line), self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder)[1].split("\n").replace("\r", ""))
+        result = filter(lambda line: not string_is_none_or_whitespace(line),
+                        self.execute_and_raise_exception_if_exit_code_is_not_zero("git",
+                                                                                  f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
+                                                                                  repository_folder)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
@@ -548,7 +616,8 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'clean -df', directory, 3600, 1, False, "Discard", False)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'checkout -- .', directory, 3600, 1, False, "Discard", False)
 
-    def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, allow_empty_commits: bool = False) -> None:
+    def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
+                   allow_empty_commits: bool = False) -> None:
         author_name = str_none_safe(author_name).strip()
         author_email = str_none_safe(author_email).strip()
         if(string_has_content(author_name)):
@@ -573,7 +642,8 @@ class ScriptCollection:
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author_argument}{allowempty_argument}', directory, 600, 1, False, "Commit", False)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author_argument}{allowempty_argument}',
+                                                                      directory, 600, 1, False, "Commit", False)
 
         return self.git_get_current_commit_id(directory)
 
@@ -699,6 +769,16 @@ class ScriptCollection:
             pass
         return False
 
+    def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
+        if not configparser.has_option(sectioon, item):
+            return False
+        plain_value = configparser.get(sectioon, item)
+        if string_is_none_or_whitespace(plain_value):
+            return False
+        if plain_value == "<notavailable>":
+            return False
+        return True
+
     def get_item_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> str:
         result = self._private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
         result = strip_new_line_character(result)
@@ -802,7 +882,8 @@ class ScriptCollection:
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
         available_configuration_items.append(["other", "exportrepositoryremotename"])
-        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])  # TODO use minimalrequiredtestcoverageinpercent value when running testcases
+        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])
+        # TODO use minimalrequiredtestcoverageinpercent value when running testcases
 
         for item in available_configuration_items:
             if configparser.has_option(item[0], item[1]):
@@ -819,13 +900,13 @@ class ScriptCollection:
                     changed = True
         return result
 
-    def _private_create_dotnet_release(self, configurationfile: str):
+    def _private_create_dotnet_release(self, configurationfile: str, current_release_information: dict):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
-            self.dotnet_create_executable_release(configurationfile)
+            self.dotnet_create_executable_release(configurationfile, current_release_information)
         else:
-            self.dotnet_create_nuget_release(configurationfile)
+            self.dotnet_create_nuget_release(configurationfile, current_release_information)
 
     def _private_calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
@@ -906,7 +987,8 @@ class ScriptCollection:
             with open(file+".sha256", "w+") as f:
                 f.write(get_sha256_of_file(file))
 
-    def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False, remove_empty_lines: bool = True) -> int:
+    def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
+                                  remove_empty_lines: bool = True) -> int:
         if os.path.isfile(file):
 
             # read file
@@ -1061,7 +1143,12 @@ class ScriptCollection:
 
     def SCCalculateBitcoinBlockHash(self, block_version_number: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str) -> str:
         # Example-values:
-        # block_version_number: "00000020"; previousblockhash: "66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000"; transactionsmerkleroot:     "7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187"; timestamp: "51eb505a"; target: "c1910018"; nonce: "de19b302"
+        # block_version_number: "00000020"
+        # previousblockhash: "66720b99e07d284bd4fe67ff8c49a5db1dd8514fcdab61000000000000000000"
+        # transactionsmerkleroot: "7829844f4c3a41a537b3131ca992643eaa9d093b2383e4cdc060ad7dc5481187"
+        # timestamp: "51eb505a"
+        # target: "c1910018"
+        # nonce: "de19b302"
         header = str(block_version_number + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
         return binascii.hexlify(hashlib.sha256(hashlib.sha256(binascii.unhexlify(header)).digest()).digest()[::-1]).decode('utf-8')
 
@@ -1073,7 +1160,8 @@ class ScriptCollection:
         copy2(inputfile, outputfile)
         file = open(outputfile, 'a')
         # TODO use rcedit for .exe-files instead of appending valuetoappend ( https://github.com/electron/rcedit/ )
-        # background: you can retrieve the "original-filename" from the .exe-file like discussed here: https://security.stackexchange.com/questions/210843/    is-it-possible-to-change-original-filename-of-an-exe
+        # background: you can retrieve the "original-filename" from the .exe-file like discussed here:
+        # https://security.stackexchange.com/questions/210843/ is-it-possible-to-change-original-filename-of-an-exe
         # so removing the original filename with rcedit is probably a better way to make it more difficult to detect the programname.
         # this would obviously also change the hashvalue of the program so appending a whitespace is not required anymore.
         file.write(valuetoappend)
@@ -1292,8 +1380,13 @@ class ScriptCollection:
             start_argument_as_string = f"{program} {arguments}"
             return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
 
-    def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True, write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
-        result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
+    def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
+                                                             timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
+                                                             print_errors_as_information: bool = False, log_file: str = None,
+                                                             write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                                                             write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
+        result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
+                                                  addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if result[0] == 0:
             return result
         else:
@@ -1301,13 +1394,21 @@ class ScriptCollection:
                 write_message_to_stderr(result[2])
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
-    def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False, title: str = None, print_errors_as_information: bool = False, log_file: str = None, write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True, write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
-        result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
+    def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False,
+                title: str = None, print_errors_as_information: bool = False, log_file: str = None,
+                write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
+        result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
+                                                  addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
             write_message_to_stderr(result[2])
         return result[0]
 
-    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False, title: str = None, throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True, write_output_to_standard_output: bool = True, log_namespace: str = ""):
+    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
+                                    print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                                    addLogOverhead: bool = False, title: str = None,
+                                    throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True,
+                                    write_output_to_standard_output: bool = True, log_namespace: str = ""):
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)
@@ -1392,9 +1493,18 @@ class ScriptCollection:
 
     def verify_no_pending_mock_program_calls(self):
         if(len(self._private_mocked_program_calls) > 0):
-            raise AssertionError("The following mock-calls were not called:\n    "+",\n    ".join([f"'{r.workingdirectory}>{r.program} {r.argument}' (exitcode: {str_none_safe(str(r.exit_code))}, pid: {str_none_safe(str(r.pid))}, stdout: {str_none_safe(str(r.stdout))}, stderr: {str_none_safe(str(r.stderr))})" for r in self._private_mocked_program_calls]))
+            raise AssertionError(
+                "The following mock-calls were not called:\n    "+",\n    ".join([self._private_format_mock_program_call(r) for r in self._private_mocked_program_calls]))
 
-    def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str, result_pid: int, amount_of_expected_calls=1):
+    def _private_format_mock_program_call(self, r) -> str:
+        return f"'{r.workingdirectory}>{r.program} {r.argument}' (" \
+            f"exitcode: {str_none_safe(str(r.exit_code))}, " \
+            f"pid: {str_none_safe(str(r.pid))}, "\
+            f"stdout: {str_none_safe(str(r.stdout))}, " \
+            f"stderr: {str_none_safe(str(r.stderr))})"
+
+    def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str,
+                                   result_pid: int, amount_of_expected_calls=1):
         "This function is for test-purposes only"
         for _ in itertools.repeat(None, amount_of_expected_calls):
             mock_call = ScriptCollection._private_mock_program_call()
@@ -1410,7 +1520,9 @@ class ScriptCollection:
     def _private_get_mock_program_call(self, program: str, argument: str, workingdirectory: str):
         result: ScriptCollection._private_mock_program_call = None
         for mock_call in self._private_mocked_program_calls:
-            if(re.match(mock_call.program, program) is not None) and (re.match(mock_call.argument, argument) is not None) and (re.match(mock_call.workingdirectory, workingdirectory) is not None):
+            if((re.match(mock_call.program, program) is not None)
+               and (re.match(mock_call.argument, argument) is not None)
+               and (re.match(mock_call.workingdirectory, workingdirectory) is not None)):
                 result = mock_call
                 break
         if result is None:
@@ -1483,7 +1595,8 @@ class ScriptCollection:
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
         self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0, False, None, False, None, True, True, False, "")
-        return strip_new_line_character(self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0, False, None, False, None, True, True, False, "")[1])
+        return strip_new_line_character(self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0, False, None, False,
+                                                                                                  None, True, True, False, "")[1])
 
     # </miscellaneous>
 
@@ -1513,7 +1626,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_build_executable_and_run_tests(args.configurationfile)
+    return ScriptCollection().dotnet_build_executable_and_run_tests(args.configurationfile, {})
 
 
 def SCDotNetCreateExecutableRelease_cli() -> int:
@@ -1525,7 +1638,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_create_executable_release(args.configurationfile)
+    return ScriptCollection().dotnet_create_executable_release(args.configurationfile, {})
 
 
 def SCDotNetCreateNugetRelease_cli() -> int:
@@ -1537,7 +1650,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_create_nuget_release(args.configurationfile)
+    return ScriptCollection().dotnet_create_nuget_release(args.configurationfile, {})
 
 
 def SCDotNetBuildNugetAndRunTests_cli() -> int:
@@ -1549,7 +1662,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_build_nuget_and_run_tests(args.configurationfile)
+    return ScriptCollection().dotnet_build_nuget_and_run_tests(args.configurationfile, {})
 
 
 def SCDotNetReleaseNuget_cli() -> int:
@@ -1561,7 +1674,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_release_nuget(args.configurationfile)
+    return ScriptCollection().dotnet_release_nuget(args.configurationfile, {})
 
 
 def SCDotNetReference_cli() -> int:
@@ -1573,7 +1686,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_reference(args.configurationfile)
+    return ScriptCollection().dotnet_reference(args.configurationfile, {})
 
 
 def SCDotNetBuild_cli() -> int:
@@ -1593,7 +1706,8 @@ Requires the requirements of: TODO""")
     parser.add_argument("outputFilenameToSign")
     parser.add_argument("keyToSignForOutputfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_build(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework, args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile)
+    return ScriptCollection().dotnet_build(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework,
+                                           args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile, {})
 
 
 def SCDotNetRunTests_cli() -> int:
@@ -1605,7 +1719,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_run_tests(args.configurationfile)
+    return ScriptCollection().dotnet_run_tests(args.configurationfile, {})
 
 
 def SCDotNetsign_cli() -> int:
@@ -1614,7 +1728,7 @@ def SCDotNetsign_cli() -> int:
     parser.add_argument("snkfile")
     parser.add_argument("verbose", action='store_true')
     args = parser.parse_args()
-    return ScriptCollection().dotnet_sign(args.dllOrExefile, args.snkfile, args.verbose)
+    return ScriptCollection().dotnet_sign(args.dllOrExefile, args.snkfile, args.verbose, {})
 
 
 def SCDebCreateInstallerRelease_cli() -> int:
@@ -1626,7 +1740,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().deb_create_installer_release(args.configurationfile)
+    return ScriptCollection().deb_create_installer_release(args.configurationfile, {})
 
 
 def SCPythonCreateWheelRelease_cli() -> int:
@@ -1638,7 +1752,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().python_create_wheel_release(args.configurationfile)
+    return ScriptCollection().python_create_wheel_release(args.configurationfile, {})
 
 
 def SCPythonBuild_cli() -> int:
@@ -1650,7 +1764,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().python_build(args.configurationfile)
+    return ScriptCollection().python_build(args.configurationfile, {})
 
 
 def SCPythonRunTests_cli() -> int:
@@ -1662,7 +1776,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().python_run_tests(args.configurationfile)
+    return ScriptCollection().python_run_tests(args.configurationfile, {})
 
 
 def SCPythonReleaseWheel_cli() -> int:
@@ -1674,7 +1788,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().python_release_wheel(args.configurationfile)
+    return ScriptCollection().python_release_wheel(args.configurationfile, {})
 
 
 def SCPythonBuildWheelAndRunTests_cli() -> int:
@@ -1686,15 +1800,16 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().python_build_wheel_and_run_tests(args.configurationfile)
+    return ScriptCollection().python_build_wheel_and_run_tests(args.configurationfile, {})
 
 
 def SCFilenameObfuscator_cli() -> int:
-    parser = argparse.ArgumentParser(description='Obfuscates the names of all files in the given folder. Caution: This script can cause harm if you pass a     wrong inputfolder-argument.')
+    parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
+Caution: This script can cause harm if you pass a wrong inputfolder-argument.''')
 
-    parser.add_argument('--printtableheadline', type=string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the     name-mapping-csv-file')
+    parser.add_argument('--printtableheadline', type=string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
     parser.add_argument('--namemappingfile', default="NameMapping.csv", help='Specifies the file where the name-mapping will be written to')
-    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*"     to obfuscate all')
+    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
     parser.add_argument('--inputfolder', help='Specifies the foldere where the files are stored whose names should be obfuscated', required=True)
 
     args = parser.parse_args()
@@ -1703,13 +1818,14 @@ def SCFilenameObfuscator_cli() -> int:
 
 
 def SCCreateISOFileWithObfuscatedFiles_cli() -> int:
-    parser = argparse.ArgumentParser(description='Creates an iso file with the files in the given folder and changes their names and hash-values. This script     does not process subfolders transitively.')
+    parser = argparse.ArgumentParser(description='''Creates an iso file with the files in the given folder and changes their names and hash-values.
+This script does not process subfolders transitively.''')
 
     parser.add_argument('--inputfolder', help='Specifies the foldere where the files are stored which should be added to the iso-file', required=True)
     parser.add_argument('--outputfile', default="files.iso", help='Specifies the output-iso-file and its location')
     parser.add_argument('--printtableheadline', default=False, action='store_true', help='Prints column-titles in the name-mapping-csv-file')
     parser.add_argument('--createnoisofile', default=False, action='store_true', help="Create no iso file")
-    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*"     to obfuscate all')
+    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
     args = parser.parse_args()
 
     ScriptCollection().SCCreateISOFileWithObfuscatedFiles(args.inputfolder, args.outputfile, args.printtableheadline, not args.createnoisofile, args.extensions)
@@ -1735,13 +1851,14 @@ def SCCalculateBitcoinBlockHash_cli() -> int:
     args = parser.parse_args()
 
     args = parser.parse_args()
-    write_message_to_stdout(ScriptCollection().SCCalculateBitcoinBlockHash(args.version, args.previousblockhash, args.transactionsmerkleroot, args.timestamp, args.target, args.    nonce))
+    write_message_to_stdout(ScriptCollection().SCCalculateBitcoinBlockHash(args.version, args.previousblockhash,
+                                                                           args.transactionsmerkleroot, args.timestamp, args.target, args.nonce))
     return 0
 
 
 def SCFileIsAvailableOnFileHost_cli() -> int:
 
-    parser = argparse.ArgumentParser(description="""Determines whether a file on a filesharing-service supported by the UploadFile-function is still available.    """)
+    parser = argparse.ArgumentParser(description="Determines whether a file on a filesharing-service supported by the UploadFile-function is still available.")
     parser.add_argument('link')
     args = parser.parse_args()
     return ScriptCollection().SCFileIsAvailableOnFileHost(args.link)
@@ -1780,7 +1897,8 @@ def SCUpdateNugetpackagesInCsharpProject_cli() -> int:
 
 def SCShow2FAAsQRCode_cli():
 
-    parser = argparse.ArgumentParser(description="""Always when you use 2-factor-authentication you have the problem: Where to backup the secret-key so that it     is easy to re-setup them when you have a new phone?
+    parser = argparse.ArgumentParser(description="""Always when you use 2-factor-authentication you have the problem:
+Where to backup the secret-key so that it is easy to re-setup them when you have a new phone?
 Using this script is a solution. Always when you setup a 2fa you copy and store the secret in a csv-file.
 It should be obviously that this csv-file must be stored encrypted!
 Now if you want to move your 2fa-codes to a new phone you simply call "SCShow2FAAsQRCode 2FA.csv"
@@ -1802,7 +1920,8 @@ Hints:
 
 
 def SCSearchInFiles_cli() -> int:
-    parser = argparse.ArgumentParser(description='Searchs for the given searchstrings in the content of all files in the given folder. This program prints all     files where the given searchstring was found to the console')
+    parser = argparse.ArgumentParser(description='''Searchs for the given searchstrings in the content of all files in the given folder.
+This program prints all files where the given searchstring was found to the console''')
 
     parser.add_argument('folder', help='Folder for search')
     parser.add_argument('searchstring', help='string to look for')
@@ -1818,7 +1937,8 @@ def SCReplaceSubstringsInFilenames_cli() -> int:
     parser.add_argument('folder', help='Folder where the files are stored which should be renamed')
     parser.add_argument('substringInFilename', help='String to be replaced')
     parser.add_argument('newSubstringInFilename', help='new string value for filename')
-    parser.add_argument('conflictResolveMode', help='Set a method how to handle cases where a file with the new filename already exits and the files have not     the same content. Possible values are: ignore, preservenewest, merge')
+    parser.add_argument('conflictResolveMode', help='''Set a method how to handle cases where a file with the new filename already exits and
+    the files have not the same content. Possible values are: ignore, preservenewest, merge''')
 
     args = parser.parse_args()
 
@@ -1852,7 +1972,7 @@ def SCOrganizeLinesInFile_cli() -> int:
 
 
 def SCCreateHashOfAllFiles_cli() -> int:
-    parser = argparse.ArgumentParser(description='Calculates the SHA-256-value of all files in the given folder and stores the hash-value in a file next to the     hashed file.')
+    parser = argparse.ArgumentParser(description='Calculates the SHA-256-value of all files in the given folder and stores the hash-value in a file next to the hashed file.')
     parser.add_argument('folder', help='Folder where the files are stored which should be hashed')
     args = parser.parse_args()
     ScriptCollection().SCCreateHashOfAllFiles(args.folder)
@@ -1879,7 +1999,8 @@ def SCShowMissingFiles_cli() -> int:
 def SCMergePDFs_cli() -> int:
     parser = argparse.ArgumentParser(description='merges pdf-files')
     parser.add_argument('files', help='Comma-separated filenames')
-    parser = argparse.ArgumentParser(description='Takes some pdf-files and merge them to one single pdf-file. Usage: "python MergePDFs.py myfile1.pdf,myfile2.    pdf,myfile3.pdf result.pdf"')
+    parser = argparse.ArgumentParser(description='''Takes some pdf-files and merge them to one single pdf-file.
+Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"''')
     parser.add_argument('outputfile', help='File for the resulting pdf-document')
     args = parser.parse_args()
     ScriptCollection().merge_pdf_files(args.files.split(','), args.outputfile)
@@ -1906,11 +2027,15 @@ def SCGenerateThumbnail_cli() -> int:
 
 
 def SCObfuscateFilesFolder_cli() -> int:
-    parser = argparse.ArgumentParser(description='Changes the hash-value of the files in the given folder and renames them to obfuscated names. This script     does not process subfolders transitively. Caution: This script can cause harm if you pass a wrong inputfolder-argument.')
+    parser = argparse.ArgumentParser(description='''Changes the hash-value of the files in the given folder and renames them to obfuscated names.
+This script does not process subfolders transitively.
+Caution: This script can cause harm if you pass a wrong inputfolder-argument.''')
 
-    parser.add_argument('--printtableheadline', type=string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the     name-mapping-csv-file')
+    parser.add_argument('--printtableheadline', type=string_to_boolean, const=True,
+                        default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
     parser.add_argument('--namemappingfile', default="NameMapping.csv", help='Specifies the file where the name-mapping will be written to')
-    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*"     to obfuscate all')
+    parser.add_argument('--extensions', default="exe,py,sh",
+                        help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
     parser.add_argument('--inputfolder', help='Specifies the folder where the files are stored whose names should be obfuscated', required=True)
 
     args = parser.parse_args()
