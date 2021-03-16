@@ -942,15 +942,18 @@ class ScriptCollection:
         available_configuration_items.append(["dotnet", "referencerepository"])
         available_configuration_items.append(["dotnet", "exportreferenceremotename"])
         available_configuration_items.append(["dotnet", "nugetsource"])
+        available_configuration_items.append(["dotnet", "iconfile"])
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
+        available_configuration_items.append(["other", "projecturl"])
+        available_configuration_items.append(["other", "repositoryurl"])
         available_configuration_items.append(["other", "exportrepositoryremotename"])
         available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])
         # TODO use minimalrequiredtestcoverageinpercent value when running testcases
 
         for item in available_configuration_items:
             if configparser.has_option(item[0], item[1]):
-                replacements[item[1]] = configparser.get(item[0], item[1])
+                replacements[f"{item[0]}.{item[1]}"] = configparser.get(item[0], item[1])
 
         changed = True
         result = string
@@ -958,7 +961,7 @@ class ScriptCollection:
             changed = False
             for key, value in replacements.items():
                 previousValue = result
-                result = result.replace(f"__{key}__", value)
+                result = result.replace(f"__.{key}.__", value)
                 if(not result == previousValue):
                     changed = True
         return result
