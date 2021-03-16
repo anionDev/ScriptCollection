@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.2.1"
+version = "2.3.1"
 __version__ = version
 
 
@@ -95,17 +95,20 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
                 write_message_to_stdout("Start to create DockerImage-release")
                 error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
-                                                                              lambda: self.dockerimage_create_installer_release_premerge(configurationfile, current_release_information))
+                                                                              lambda: self.dockerimage_create_installer_release_premerge(configurationfile,
+                                                                              current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                              lambda: self.flutterandroid_create_installer_release_premerge(configurationfile, current_release_information))
+                                                                              lambda: self.flutterandroid_create_installer_release_premerge(configurationfile,
+                                                                              current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterIOS-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                              lambda: self.flutterios_create_installer_release_premerge(configurationfile, current_release_information))
+                                                                              lambda: self.flutterios_create_installer_release_premerge(configurationfile,
+                                                                              current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Script-release")
@@ -138,17 +141,20 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
                 write_message_to_stdout("Start to create DockerImage-release")
                 error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
-                                                                              lambda: self.dockerimage_create_installer_release_postmerge(configurationfile, current_release_information))
+                                                                              lambda: self.dockerimage_create_installer_release_postmerge(configurationfile,
+                                                                              current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                              lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile, current_release_information))
+                                                                              lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
+                                                                              current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterIOS-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                              lambda: self.flutterios_create_installer_release_postmerge(configurationfile, current_release_information))
+                                                                              lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
+                                                                              current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Script-release")
@@ -474,9 +480,6 @@ class ScriptCollection:
                                                                   self.get_item_from_configuration(configparser, 'script', 'post_mergeworkingdirectory'))
 
     def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict):
-        pass
-
-    def python_create_wheel_release_postmerge(self, configurationfile: str, current_release_information: dict):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
@@ -484,6 +487,9 @@ class ScriptCollection:
             for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
 
+    def python_create_wheel_release_postmerge(self, configurationfile: str, current_release_information: dict):
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         self.python_build_wheel_and_run_tests(configurationfile, current_release_information)
         self.python_release_wheel(configurationfile, current_release_information)
 
