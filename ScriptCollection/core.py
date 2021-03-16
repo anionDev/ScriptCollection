@@ -478,7 +478,7 @@ class ScriptCollection:
             else:
                 verbose_argument = ""
             twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl" \
-                " --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
+                f" --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
             self.execute_and_raise_exception_if_exit_code_is_not_zero("twine",
                                                                       twine_argument, self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"),
                                                                       3600, self._private_get_verbosity_for_exuecutor(configparser))
@@ -882,7 +882,8 @@ class ScriptCollection:
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
         available_configuration_items.append(["other", "exportrepositoryremotename"])
-        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])  # TODO use minimalrequiredtestcoverageinpercent value when running testcases
+        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])
+        # TODO use minimalrequiredtestcoverageinpercent value when running testcases
 
         for item in available_configuration_items:
             if configparser.has_option(item[0], item[1]):
