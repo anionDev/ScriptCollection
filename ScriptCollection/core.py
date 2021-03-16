@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.3.1"
+version = "2.3.2"
 __version__ = version
 
 
@@ -96,19 +96,19 @@ class ScriptCollection:
                 write_message_to_stdout("Start to create DockerImage-release")
                 error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
                                                                               lambda: self.dockerimage_create_installer_release_premerge(configurationfile,
-                                                                              current_release_information))
+                                                                                                                                         current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
                                                                               lambda: self.flutterandroid_create_installer_release_premerge(configurationfile,
-                                                                              current_release_information))
+                                                                                                                                            current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterIOS-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
                                                                               lambda: self.flutterios_create_installer_release_premerge(configurationfile,
-                                                                              current_release_information))
+                                                                                                                                        current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Script-release")
@@ -142,19 +142,19 @@ class ScriptCollection:
                 write_message_to_stdout("Start to create DockerImage-release")
                 error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
                                                                               lambda: self.dockerimage_create_installer_release_postmerge(configurationfile,
-                                                                              current_release_information))
+                                                                                                                                          current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
                                                                               lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
-                                                                              current_release_information))
+                                                                                                                                             current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterIOS-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
                                                                               lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
-                                                                              current_release_information))
+                                                                                                                                         current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Script-release")
@@ -239,27 +239,27 @@ class ScriptCollection:
     _private_nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
     <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
       <metadata minClientVersion="2.12">
-        <id>__productname__</id>
-        <version>__version__</version>
-        <title>__productname__</title>
-        <authors>__author__</authors>
-        <owners>__author__</owners>
+        <id>__.general.productname.__</id>
+        <version>__.builtin.version.__</version>
+        <title>__.general.productname.__</title>
+        <authors>__.general.author.__</authors>
+        <owners>__.general.author.__</owners>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
-        <copyright>Copyright © __year__ by __author__</copyright>
-        <description>__description__</description>
-        <summary>__description__</summary>
-        <license type="file">lib/__dotnetframework__/__productname__.License.txt</license>
+        <copyright>Copyright © __.builtin.year.__ by __.general.author.__</copyright>
+        <description>__.general.description.__</description>
+        <summary>__.general.description.__</summary>
+        <license type="file">lib/__.dotnet.dotnetframework.__/__.general.productname.__.License.txt</license>
         <dependencies>
-          <group targetFramework="__dotnetframework__" />
+          <group targetFramework="__.dotnet.dotnetframework.__" />
         </dependencies>
-        __repositoryentry__
-        __projecturl__
-        __icon__
+        __.internal.projecturlentry.__
+        __.internal.repositoryentry.__
+        __.internal.iconentry.__
       </metadata>
       <files>
-        <file src="Binary/__productname__.dll" target="lib/__dotnetframework__" />
-        <file src="Binary/__productname__.License.txt" target="lib/__dotnetframework__" />
-        __iconfileentry__
+        <file src="Binary/__.general.productname.__.dll" target="lib/__.dotnet.dotnetframework.__" />
+        <file src="Binary/__.general.productname.__.License.txt" target="lib/__.dotnet.dotnetframework.__" />
+        __.internal.iconfileentry.__
       </files>
     </package>"""
 
@@ -282,32 +282,29 @@ class ScriptCollection:
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
         replacements = {}
 
-        if(self.configuration_item_is_available(configparser, "other", "projecturl")):
-            replacements.update({"projecturl": f"<projectUrl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projectUrl>"})
-        else:
-            replacements.update({"projecturl": ""})
-
-        has_icon = self.configuration_item_is_available(configparser, "dotnet", "iconfile")
-        if has_icon:
-            replacements.update({"icon": "<icon>images\\icon.png</icon>"})
-        else:
-            replacements.update({"icon": ""})
-
         nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
+
+        if(self.configuration_item_is_available(configparser, "other", "projecturl")):
+            nuspec_content = nuspec_content.replace("__.internal.projecturlentry.__",
+                                                    f"<projectUrl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projectUrl>")
+        else:
+            nuspec_content = nuspec_content.replace("__.internal.projecturlentry.__", "")
 
         if "commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
             repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl')
             branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
             commitid = current_release_information["commitid"]
-            nuspec_content = nuspec_content.replace("__repositoryentry__", f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />')
+            nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />')
         else:
-            nuspec_content = nuspec_content.replace("__repositoryentry__", "")
+            nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", "")
 
-        if has_icon:
+        if self.configuration_item_is_available(configparser, "dotnet", "iconfile"):
             shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), os.path.join(publishdirectory, "icon.png"))
-            nuspec_content = nuspec_content.replace("__iconfileentry__", '<file src=".\\icon.png" target="images\\" />')
+            nuspec_content = nuspec_content.replace("__.internal.iconentry.__", '<icon>images\\icon.png</icon>')
+            nuspec_content = nuspec_content.replace("__.internal.iconfileentry.__", '<file src=".\\icon.png" target="images\\" />')
         else:
-            nuspec_content = nuspec_content.replace("__iconfileentry__", "")
+            nuspec_content = nuspec_content.replace("__.internal.iconentry.__", "")
+            nuspec_content = nuspec_content.replace("__.internal.iconfileentry.__", "")
 
         nuspecfilename = self.get_item_from_configuration(configparser, 'general', 'productname')+".nuspec"
         nuspecfile = os.path.join(publishdirectory, nuspecfilename)
@@ -907,9 +904,9 @@ class ScriptCollection:
             file_object.write(text)
 
     def _private_replace_underscores_for_buildconfiguration(self, string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True) -> str:
-        replacements["year"] = str(datetime.now().year)
+        replacements["builtin.year"] = str(datetime.now().year)
         if include_version:
-            replacements["version"] = self.get_version_for_buildscripts(configparser)
+            replacements["builtin.version"] = self.get_version_for_buildscripts(configparser)
 
         available_configuration_items = []
 
