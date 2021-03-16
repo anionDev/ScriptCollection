@@ -75,10 +75,45 @@ class ScriptCollection:
             self.git_merge(repository, devbranch, masterbranch, False, False)
 
         try:
+            current_release_information = {}
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
+                write_message_to_stdout("Start to create .NET-release")
+                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
+                                                                              lambda: self._private_create_dotnet_release_premerge(configurationfile, current_release_information))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
+                write_message_to_stdout("Start to create Python-release")
+                error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
+                                                                              lambda: self.python_create_wheel_release_premerge(configurationfile, current_release_information))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
+                write_message_to_stdout("Start to create Deb-release")
+                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
+                                                                              lambda: self.deb_create_installer_release_premerge(configurationfile, current_release_information))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
+                write_message_to_stdout("Start to create DockerImage-release")
+                error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
+                                                                              lambda: self.dockerimage_create_installer_release_premerge(configurationfile, current_release_information))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
+                write_message_to_stdout("Start to create FlutterAndroid-release")
+                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
+                                                                              lambda: self.flutterandroid_create_installer_release_premerge(configurationfile, current_release_information))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
+                write_message_to_stdout("Start to create FlutterIOS-release")
+                error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
+                                                                              lambda: self.flutterios_create_installer_release_premerge(configurationfile, current_release_information))
+
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
+                write_message_to_stdout("Start to create Script-release")
+                error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
+                                                                              lambda: self.generic_create_script_release_premerge(configurationfile, current_release_information))
 
             commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
                                         f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
-            current_release_information = {}
             current_release_information["commitid"] = commit_id
 
             # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
@@ -88,37 +123,37 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                 write_message_to_stdout("Start to create .NET-release")
                 error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
-                                                                              lambda: self._private_create_dotnet_release(configurationfile, current_release_information))
+                                                                              lambda: self._private_create_dotnet_release_postmerge(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Python-release")
                 error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
-                                                                              lambda: self.python_create_wheel_release(configurationfile, current_release_information))
+                                                                              lambda: self.python_create_wheel_release_postmerge(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Deb-release")
                 error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
-                                                                              lambda: self.deb_create_installer_release(configurationfile, current_release_information))
+                                                                              lambda: self.deb_create_installer_release_postmerge(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
                 write_message_to_stdout("Start to create DockerImage-release")
                 error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
-                                                                              lambda: self.dockerimage_create_installer_release(configurationfile, current_release_information))
+                                                                              lambda: self.dockerimage_create_installer_release_postmerge(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                              lambda: self.flutterandroid_create_installer_release(configurationfile, current_release_information))
+                                                                              lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterIOS-release")
                 error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                              lambda: self.flutterios_create_installer_release(configurationfile, current_release_information))
+                                                                              lambda: self.flutterios_create_installer_release_postmerge(configurationfile, current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                 write_message_to_stdout("Start to create Script-release")
                 error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
-                                                                              lambda: self.generic_create_script_release(configurationfile, current_release_information))
+                                                                              lambda: self.generic_create_script_release_postmerge(configurationfile, current_release_information))
 
         except Exception as exception:
             error_occurred = True
@@ -168,23 +203,29 @@ class ScriptCollection:
         else:
             return [to_list(files_to_sign_raw_value, ";"), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile')]
 
-    def dotnet_create_executable_release(self, configurationfile: str, current_release_information: dict) -> None:
+    def dotnet_create_executable_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
+    def dotnet_create_executable_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         self.dotnet_build_executable_and_run_tests(configurationfile, current_release_information)
         self.dotnet_reference(configurationfile, current_release_information)
 
-    def dotnet_create_nuget_release(self, configurationfile: str, current_release_information: dict) -> None:
+    def dotnet_create_nuget_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
 
+    def dotnet_create_nuget_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         self.dotnet_build_nuget_and_run_tests(configurationfile, current_release_information)
         self.dotnet_reference(configurationfile, current_release_information)
         self.dotnet_release_nuget(configurationfile, current_release_information)
@@ -205,14 +246,14 @@ class ScriptCollection:
         <dependencies>
           <group targetFramework="__dotnetframework__" />
         </dependencies>
-        __repository__
+        __repositoryentry__
         __projecturl__
         __icon__
       </metadata>
       <files>
         <file src="Binary/__productname__.dll" target="lib/__dotnetframework__" />
         <file src="Binary/__productname__.License.txt" target="lib/__dotnetframework__" />
-        __iconfile__
+        __iconfileentry__
       </files>
     </package>"""
 
@@ -246,21 +287,21 @@ class ScriptCollection:
         else:
             replacements.update({"icon": ""})
 
+        nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
+
         if "commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
             repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl')
             branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
             commitid = current_release_information["commitid"]
-            replacements.update({"repository": f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />'})
+            nuspec_content = nuspec_content.replace("__repositoryentry__", f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />')
         else:
-            replacements.update({"repository": ""})
-
-        nuspec_content = self._private_replace_underscores_for_buildconfiguration(self._private_nuget_template, configparser, replacements)
+            nuspec_content = nuspec_content.replace("__repositoryentry__", "")
 
         if has_icon:
             shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), os.path.join(publishdirectory, "icon.png"))
-            nuspec_content = nuspec_content.replace("__iconfile__", '<file src=".\\icon.png" target="images\\" />')
+            nuspec_content = nuspec_content.replace("__iconfileentry__", '<file src=".\\icon.png" target="images\\" />')
         else:
-            nuspec_content = nuspec_content.replace("__iconfile__", "")
+            nuspec_content = nuspec_content.replace("__iconfileentry__", "")
 
         nuspecfilename = self.get_item_from_configuration(configparser, 'general', 'productname')+".nuspec"
         nuspecfile = os.path.join(publishdirectory, nuspecfilename)
@@ -386,34 +427,56 @@ class ScriptCollection:
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
-    def deb_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
+    def deb_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+        pass
+
+    def deb_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def dockerimage_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
+    def dockerimage_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+        pass
+
+    def dockerimage_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def flutterandroid_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
+    def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+        pass
+
+    def flutterandroid_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def flutterios_create_installer_release(self, configurationfile: str, current_release_information: dict) -> bool:
+    def flutterios_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+        pass
+
+    def flutterios_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def generic_create_script_release(self, configurationfile: str, current_release_information: dict) -> bool:
+    def generic_create_script_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'program'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'argument'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'workingdirectory'))
+        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program'),
+                                                                  self.get_item_from_configuration(configparser, 'script', 'premerge_argument'),
+                                                                  self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory'))
 
-    def python_create_wheel_release(self, configurationfile: str, current_release_information: dict):
+    def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'post_mergeprogram'),
+                                                                  self.get_item_from_configuration(configparser, 'script', 'post_mergeargument'),
+                                                                  self.get_item_from_configuration(configparser, 'script', 'post_mergeworkingdirectory'))
+
+    def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict):
+        pass
+
+    def python_create_wheel_release_postmerge(self, configurationfile: str, current_release_information: dict):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
@@ -900,13 +963,21 @@ class ScriptCollection:
                     changed = True
         return result
 
-    def _private_create_dotnet_release(self, configurationfile: str, current_release_information: dict):
+    def _private_create_dotnet_release_premerge(self, configurationfile: str, current_release_information: dict):
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
-            self.dotnet_create_executable_release(configurationfile, current_release_information)
+            self.dotnet_create_executable_release_premerge(configurationfile, current_release_information)
         else:
-            self.dotnet_create_nuget_release(configurationfile, current_release_information)
+            self.dotnet_create_nuget_release_premerge(configurationfile, current_release_information)
+
+    def _private_create_dotnet_release_postmerge(self, configurationfile: str, current_release_information: dict):
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
+            self.dotnet_create_executable_release_postmerge(configurationfile, current_release_information)
+        else:
+            self.dotnet_create_nuget_release_postmerge(configurationfile, current_release_information)
 
     def _private_calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "'+filename+'"'
@@ -1638,7 +1709,10 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_create_executable_release(args.configurationfile, {})
+    sc = ScriptCollection()
+    sc.dotnet_create_executable_release_premerge(args.configurationfile, {})
+    sc.dotnet_create_executable_release_postmerge(args.configurationfile, {})
+    return 0
 
 
 def SCDotNetCreateNugetRelease_cli() -> int:
@@ -1650,7 +1724,10 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_create_nuget_release(args.configurationfile, {})
+    sc = ScriptCollection()
+    sc.dotnet_create_nuget_release_premerge(args.configurationfile, {})
+    sc.dotnet_create_nuget_release_postmerge(args.configurationfile, {})
+    return 0
 
 
 def SCDotNetBuildNugetAndRunTests_cli() -> int:
@@ -1740,7 +1817,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().deb_create_installer_release(args.configurationfile, {})
+    return ScriptCollection().deb_create_installer_release_postmerge(args.configurationfile, {})
 
 
 def SCPythonCreateWheelRelease_cli() -> int:
@@ -1752,7 +1829,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().python_create_wheel_release(args.configurationfile, {})
+    return ScriptCollection().python_create_wheel_release_postmerge(args.configurationfile, {})
 
 
 def SCPythonBuild_cli() -> int:
