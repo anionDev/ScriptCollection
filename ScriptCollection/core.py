@@ -932,6 +932,7 @@ class ScriptCollection:
         available_configuration_items.append(["prepare", "masterbranchname"])
         available_configuration_items.append(["prepare", "gittagprefix"])
         available_configuration_items.append(["python", "readmefile"])
+        available_configuration_items.append(["python", "lintcheckfiles"])
         available_configuration_items.append(["python", "pythontestfile"])
         available_configuration_items.append(["python", "pythonsetuppyfile"])
         available_configuration_items.append(["python", "filesforupdatingversion"])
