@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.3.2"
+version = "2.3.3"
 __version__ = version
 
 
@@ -476,13 +476,29 @@ class ScriptCollection:
                                                                   self.get_item_from_configuration(configparser, 'script', 'post_mergeargument'),
                                                                   self.get_item_from_configuration(configparser, 'script', 'post_mergeworkingdirectory'))
 
-    def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict):
+    def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict)->None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         repository_version = self.get_version_for_buildscripts(configparser)
+
+        # Update version
         if(self.get_boolean_value_from_configuration(configparser, 'python', 'updateversion')):
             for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion'):
                 replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
+
+        # lint-checks
+        errors_found=False
+        for file in self.get_items_from_configuration(configparser, "python", "lintcheckfiles"):
+            linting_result=self.python_file_has_errors(file)
+            if (linting_result[0]):
+                errors_found=True
+                for error in linting_result[1]:
+                    write_message_to_stderr(error)
+        if (errors_found):
+            raise Exception("Can not continue due to linting-issues")
+
+        # Run testcases
+        self.python_run_tests(configurationfile, current_release_information)
 
     def python_create_wheel_release_postmerge(self, configurationfile: str, current_release_information: dict):
         configparser = ConfigParser()
@@ -500,7 +516,6 @@ class ScriptCollection:
 
     def python_build_wheel_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         self.python_run_tests(configurationfile, current_release_information)
-        self.python_lint(configurationfile, current_release_information)
         self.python_build(configurationfile, current_release_information)
 
     def python_build(self, configurationfile: str, current_release_information: dict) -> None:
@@ -516,9 +531,6 @@ class ScriptCollection:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("python",
                                                                   setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
                                                                   setuppyfilefolder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
-
-    def python_lint(self, configurationfile: str, current_release_information: dict) -> None:
-        pass  # TODO allow executing scripts like "pylint --rcfile=Build.pylintrc ScriptCollection/core.py"
 
     def python_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
@@ -1362,6 +1374,32 @@ class ScriptCollection:
     def file_is_available_on_file_host(self, file) -> int:
         # TODO implement
         return 1
+
+    def python_file_has_errors(self, file,treat_warnings_as_errors:bool=True) -> (bool,list):
+        errors=list()
+
+        # Syntax
+        (exit_code, stdout, stderr, _)=self.start_program_synchronously("python",file)
+        errors.append(f"Found the following issues in {file}:")
+        if(exit_code!=0):
+            errors.append("Syntax-errors:")
+            errors.append(f"Python-exitcode: {exit_code}")
+            errors=errors+stdout+stderr
+            return (True,errors)
+
+        # Linting
+        if treat_warnings_as_errors:
+            errorsonly_argument=""
+        else:
+            errorsonly_argument=" --errors-only"
+        (exit_code, stdout, stderr, _)=self.start_program_synchronously("pylint",file+errorsonly_argument)
+        if(exit_code!=0):
+            errors.append("Linting-issues:")
+            errors.append(f"Pylint-exitcode: {exit_code}")
+            errors=errors+stdout+stderr
+            return (True,errors)
+
+        return (False,errors)
 
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'restore --disable-parallel --force --force-evaluate "{csproj_file}"')
