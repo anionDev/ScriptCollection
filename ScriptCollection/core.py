@@ -1381,16 +1381,6 @@ class ScriptCollection:
         folder = os.path.dirname(file)
         filename = os.path.basename(file)
 
-        # Syntax
-        (exit_code, stdout, stderr, _) = self.start_program_synchronously("python", filename, folder)
-        errors.append(f"Found the following issues in {file}:")
-        if(exit_code != 0):
-            errors.append("Syntax-errors:")
-            errors.append(f"Python-exitcode: {exit_code}")
-            errors = errors+stdout+stderr
-            return (True, errors)
-
-        # Linting
         if treat_warnings_as_errors:
             errorsonly_argument = ""
         else:
@@ -1399,7 +1389,10 @@ class ScriptCollection:
         if(exit_code != 0):
             errors.append("Linting-issues:")
             errors.append(f"Pylint-exitcode: {exit_code}")
-            errors = errors+stdout+stderr
+            for line in string_to_lines(stdout):
+                errors.append(line)
+            for line in string_to_lines(stderr):
+                errors.append(line)
             return (True, errors)
 
         return (False, errors)
@@ -2149,7 +2142,6 @@ def SCGenerateThumbnail_cli() -> int:
         write_exception_to_stderr_with_traceback(exception, traceback)
         return 1
 
-
 def SCObfuscateFilesFolder_cli() -> int:
     parser = argparse.ArgumentParser(description='''Changes the hash-value of the files in the given folder and renames them to obfuscated names.
 This script does not process subfolders transitively.
@@ -2171,6 +2163,26 @@ Caution: This script can cause harm if you pass a wrong inputfolder-argument.'''
 
 
 # <miscellaneous>
+
+def string_to_lines(string:str,add_empty_lines:bool=True, adapt_lines:bool=True)->list:
+    result=list()
+    if(string is not None):
+        lines=list()
+        if("\n" in string):
+            lines=string.splitlines()
+        else:
+            lines.append(string)
+    for rawline in lines:
+        if adapt_lines:
+            line=rawline.replace("\r","\n").trim()
+        else:
+            line=rawline
+        if string_is_none_or_whitespace(line):
+            if add_empty_lines:
+                result.append(line)
+        else:
+            result.append(line)
+    return result
 
 def move_content_of_folder(srcDir, dstDir) -> None:
     srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
