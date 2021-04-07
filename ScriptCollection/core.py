@@ -1380,7 +1380,7 @@ class ScriptCollection:
         errors = list()
         folder = os.path.dirname(file)
         filename = os.path.basename(file)
-
+        write_message_to_stdout(f"Start error-check in {file}")
         if treat_warnings_as_errors:
             errorsonly_argument = ""
         else:

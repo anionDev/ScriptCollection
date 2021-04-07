@@ -1,4 +1,8 @@
-# ScriptCollection ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
+# ScriptCollection
+
+![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
+[![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/master)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/master)
+![Generic badge](https://img.shields.io/badge/coverage-1%25-green)
 
 This repository is the place for little scripts which are also useful in future so that someone does not have remember them and write them new from scratch. You can simply use the scripts.
 
