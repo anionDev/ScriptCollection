@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.3.6"
+version = "2.3.7"
 __version__ = version
 
 
@@ -1380,7 +1380,7 @@ class ScriptCollection:
         errors = list()
         folder = os.path.dirname(file)
         filename = os.path.basename(file)
-
+        write_message_to_stdout(f"Start error-check in {file}")
         if treat_warnings_as_errors:
             errorsonly_argument = ""
         else:
@@ -1489,7 +1489,7 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
+            return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False).pid
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
@@ -1587,7 +1587,7 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
+            process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False)
             pid = process.pid
             stdout, stderr = process.communicate()
             exit_code = process.wait()
