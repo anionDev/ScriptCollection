@@ -1489,7 +1489,7 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False).pid
+            return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
@@ -1587,7 +1587,7 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False)
+            process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
             pid = process.pid
             stdout, stderr = process.communicate()
             exit_code = process.wait()
