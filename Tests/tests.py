@@ -7,7 +7,7 @@ from ScriptCollection.core import string_is_none_or_empty, write_lines_to_file, 
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.3.7"
+version = "2.3.8"
 
 
 class MiscellaneousTests(unittest.TestCase):
