@@ -2184,13 +2184,19 @@ def string_to_lines(string:str,add_empty_lines:bool=True, adapt_lines:bool=True)
             result.append(line)
     return result
 
-def move_content_of_folder(srcDir, dstDir) -> None:
+def move_content_of_folder(srcDir, dstDir,overwrite_existing_files=False) -> None:
     srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
     dstDirFull = resolve_relative_path_from_current_working_directory(dstDir)
-    for file in get_direct_files_of_folder(srcDirFull):
-        shutil.move(file, dstDirFull)
-    for sub_folder in get_direct_folders_of_folder(srcDirFull):
-        shutil.move(sub_folder, dstDirFull)
+    if(os.path.isdir(srcDir):
+        ensure_directory_exists(dstDir)
+        for file in get_direct_files_of_folder(srcDirFull):
+            shutil.move(file, dstDirFull)
+        for sub_folder in get_direct_folders_of_folder(srcDirFull):
+            sub_target=os.path.join( dstDirFull,foldername)
+            move_content_of_folder(sub_folder,sub_target)
+            ensure_folder_does_not_exist(sub_target)
+    else:x
+        raise ValueError(f"Folder '{srcDir}' does not exist")
 
 
 def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
