@@ -1079,7 +1079,7 @@ class ScriptCollection:
                 f.write(get_sha256_of_file(file))
 
     def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
-                                  remove_empty_lines: bool = True,ignored_start_character:list=list()) -> int:
+                                  remove_empty_lines: bool = True, ignored_start_character: list = list()) -> int:
         if os.path.isfile(file):
 
             # read file
@@ -1106,7 +1106,7 @@ class ScriptCollection:
 
             # sort lines if desired
             if sort:
-                lines = sorted(lines, key=str.casefold)# TODO consider ignored_start_character
+                lines = sorted(lines, key=str.casefold)  # TODO consider ignored_start_character
 
             # reinsert first line
             if ignore_first_line:
@@ -1498,7 +1498,7 @@ class ScriptCollection:
                                                              print_errors_as_information: bool = False, log_file: str = None,
                                                              write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                                                              write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
-                                                             # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
+        # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if result[0] == 0:
@@ -1512,7 +1512,7 @@ class ScriptCollection:
                 title: str = None, print_errors_as_information: bool = False, log_file: str = None,
                 write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                 write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
-                # TODO remove this function
+        # TODO remove this function
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
@@ -2091,8 +2091,8 @@ def SCOrganizeLinesInFile_cli() -> int:
 
     args = parser.parse_args()
     return ScriptCollection().sc_organize_lines_in_file(args.file, args.encoding,
-    args.sort, args.remove_duplicated_lines, args.ignore_first_line,
-    args.remove_empty_lines,args.ignored_start_character)
+                                                        args.sort, args.remove_duplicated_lines, args.ignore_first_line,
+                                                        args.remove_empty_lines, args.ignored_start_character)
 
 
 def SCCreateHashOfAllFiles_cli() -> int:
@@ -2149,6 +2149,7 @@ def SCGenerateThumbnail_cli() -> int:
         write_exception_to_stderr_with_traceback(exception, traceback)
         return 1
 
+
 def SCObfuscateFilesFolder_cli() -> int:
     parser = argparse.ArgumentParser(description='''Changes the hash-value of the files in the given folder and renames them to obfuscated names.
 This script does not process subfolders transitively.
@@ -2169,25 +2170,27 @@ Caution: This script can cause harm if you pass a wrong inputfolder-argument.'''
 
 # <miscellaneous>
 
-def string_to_lines(string:str,add_empty_lines:bool=True, adapt_lines:bool=True)->list:
-    result=list()
+
+def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list:
+    result = list()
     if(string is not None):
-        lines=list()
+        lines = list()
         if("\n" in string):
-            lines=string.splitlines()
+            lines = string.splitlines()
         else:
             lines.append(string)
     for rawline in lines:
         if adapt_lines:
-            line=rawline.replace("\r","\n").trim()
+            line = rawline.replace("\r", "\n").trim()
         else:
-            line=rawline
+            line = rawline
         if string_is_none_or_whitespace(line):
             if add_empty_lines:
                 result.append(line)
         else:
             result.append(line)
     return result
+
 
 def move_content_of_folder(srcDir, dstDir) -> None:
     srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
