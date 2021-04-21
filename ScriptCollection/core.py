@@ -9,6 +9,7 @@ import hashlib
 import pathlib
 import re
 import os
+import shlex
 import shutil
 import stat
 import sys
@@ -1078,7 +1079,7 @@ class ScriptCollection:
                 f.write(get_sha256_of_file(file))
 
     def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
-                                  remove_empty_lines: bool = True) -> int:
+                                  remove_empty_lines: bool = True,ignored_start_character:list=list()) -> int:
         if os.path.isfile(file):
 
             # read file
@@ -1086,7 +1087,8 @@ class ScriptCollection:
             if(len(lines) == 0):
                 return 0
 
-            # store first line if desired
+            # store first line if desiredpopd
+
             if(ignore_first_line):
                 first_line = lines.pop(0)
 
@@ -1104,7 +1106,7 @@ class ScriptCollection:
 
             # sort lines if desired
             if sort:
-                lines = sorted(lines, key=str.casefold)
+                lines = sorted(lines, key=str.casefold)# TODO consider ignored_start_character
 
             # reinsert first line
             if ignore_first_line:
@@ -1489,13 +1491,14 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            return Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True).pid
+            return Popen(shlex.split(start_argument_as_string), stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False).pid
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
                                                              print_errors_as_information: bool = False, log_file: str = None,
                                                              write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                                                              write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
+                                                             # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if result[0] == 0:
@@ -1509,6 +1512,7 @@ class ScriptCollection:
                 title: str = None, print_errors_as_information: bool = False, log_file: str = None,
                 write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                 write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
+                # TODO remove this function
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
@@ -1587,7 +1591,7 @@ class ScriptCollection:
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
-            process = Popen(start_argument_as_string, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=True)
+            process = Popen(shlex.split(start_argument_as_string), stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False)
             pid = process.pid
             stdout, stderr = process.communicate()
             exit_code = process.wait()
@@ -2083,9 +2087,12 @@ def SCOrganizeLinesInFile_cli() -> int:
     parser.add_argument("--remove_duplicated_lines", help="Remove duplicate lines", action='store_true')
     parser.add_argument("--ignore_first_line", help="Ignores the first line in the file", action='store_true')
     parser.add_argument("--remove_empty_lines", help="Removes lines which are empty or contains only whitespaces", action='store_true')
+    parser.add_argument('--ignored_start_character', default="", help='Characters which should not be considered at the begin of a line')
 
     args = parser.parse_args()
-    return ScriptCollection().sc_organize_lines_in_file(args.file, args.encoding, args.sort, args.remove_duplicated_lines, args.ignore_first_line, args.remove_empty_lines)
+    return ScriptCollection().sc_organize_lines_in_file(args.file, args.encoding,
+    args.sort, args.remove_duplicated_lines, args.ignore_first_line,
+    args.remove_empty_lines,args.ignored_start_character)
 
 
 def SCCreateHashOfAllFiles_cli() -> int:
@@ -2158,9 +2165,7 @@ Caution: This script can cause harm if you pass a wrong inputfolder-argument.'''
     ScriptCollection().SCObfuscateFilesFolder(args.inputfolder, args.printtableheadline, args.namemappingfile, args.extensions)
     return 0
 
-
 # </CLI-scripts>
-
 
 # <miscellaneous>
 
