@@ -2,8 +2,20 @@ import os
 import unittest
 import tempfile
 import re
-from ScriptCollection.core import get_ScriptCollection_version, string_is_none_or_whitespace
-from ScriptCollection.core import string_is_none_or_empty, write_lines_to_file, read_lines_from_file, ScriptCollection, to_list
+import importlib.util
+
+scriptcollection_module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"..{os.path.sep}ScriptCollection{os.path.sep}core.py"))
+spec = importlib.util.spec_from_file_location("core", scriptcollection_module_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+get_ScriptCollection_version = getattr(module, "get_ScriptCollection_version")
+string_is_none_or_whitespace = getattr(module, "string_is_none_or_whitespace")
+string_is_none_or_empty = getattr(module, "string_is_none_or_empty")
+write_lines_to_file = getattr(module, "write_lines_to_file")
+read_lines_from_file = getattr(module, "read_lines_from_file")
+to_list = getattr(module, "to_list")
+ScriptCollection = getattr(module, "ScriptCollection")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
