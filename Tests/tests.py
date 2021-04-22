@@ -146,7 +146,8 @@ class OrganizeLinesInFileTests(unittest.TestCase):
             write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)
+            # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
             assert expected_output == read_lines_from_file(testfile)
@@ -162,7 +163,8 @@ class OrganizeLinesInFileTests(unittest.TestCase):
             write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)
+            # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
             assert expected_output == read_lines_from_file(testfile)
@@ -178,7 +180,25 @@ class OrganizeLinesInFileTests(unittest.TestCase):
             write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True)  # sort,remove_duplicated_lines,ignore_first_line,remove_empty_lines
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True, [])
+            # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
+
+            # assert
+            assert expected_output == read_lines_from_file(testfile)
+        finally:
+            os.remove(testfile)
+
+    def test_sc_organize_lines_in_file_with_ignored_character(self) -> None:
+        # arrange
+        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
+        try:
+            example_input = ["line5"," line4", "line3", "#line2","# line6","line7", "line1"]
+            expected_output = ["line1", "#line2", "line3", " line4", "line5", "# line6", "line7"]
+            write_lines_to_file(testfile, example_input)
+
+            # act
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True,["#"," "])
+            # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
             assert expected_output == read_lines_from_file(testfile)

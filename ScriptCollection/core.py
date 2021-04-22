@@ -1106,7 +1106,7 @@ class ScriptCollection:
 
             # sort lines if desired
             if sort:
-                lines = sorted(lines, key=str.casefold)  # TODO consider ignored_start_character
+                lines = sorted(lines, key=lambda singleline: self._private_adapt_line_for_sorting(singleline, ignored_start_character))
 
             # reinsert first line
             if ignore_first_line:
@@ -1119,6 +1119,12 @@ class ScriptCollection:
         else:
             write_message_to_stdout(f"File '{file}' does not exist")
             return 1
+
+    def _private_adapt_line_for_sorting(self, line: str, ignored_start_characters: list):
+        result = line.lower()
+        while len(result) > 0 and result[0] in ignored_start_characters:
+            result = result[1:]
+        return result
 
     def SCGenerateSnkFiles(self, outputfolder, keysize=4096, amountofkeys=10) -> int:
         ensure_directory_exists(outputfolder)
