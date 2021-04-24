@@ -2198,7 +2198,7 @@ def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool
             lines.append(string)
     for rawline in lines:
         if adapt_lines:
-            line = rawline.replace("\r", "\n").trim()
+            line = rawline.replace("\r", "\n").strip()
         else:
             line = rawline
         if string_is_none_or_whitespace(line):
