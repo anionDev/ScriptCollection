@@ -3,6 +3,7 @@ import unittest
 import tempfile
 import re
 import importlib.util
+import uuid
 
 scriptcollection_module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"..{os.path.sep}ScriptCollection{os.path.sep}core.py"))
 spec = importlib.util.spec_from_file_location("core", scriptcollection_module_path)
@@ -15,7 +16,11 @@ string_is_none_or_empty = getattr(module, "string_is_none_or_empty")
 write_lines_to_file = getattr(module, "write_lines_to_file")
 read_lines_from_file = getattr(module, "read_lines_from_file")
 to_list = getattr(module, "to_list")
+ensure_directory_exists = getattr(module, "ensure_directory_exists")
+ensure_directory_does_not_exist = getattr(module, "ensure_directory_does_not_exist")
 ScriptCollection = getattr(module, "ScriptCollection")
+ensure_file_exists = getattr(module, "ensure_file_exists")
+write_lines_to_file = getattr(module, "write_lines_to_file")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
@@ -192,18 +197,44 @@ class OrganizeLinesInFileTests(unittest.TestCase):
         # arrange
         testfile = testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
         try:
-            example_input = ["line5"," line4", "line3", "#line2","# line6","line7", "line1"]
+            example_input = ["line5", " line4", "line3", "#line2", "# line6", "line7", "line1"]
             expected_output = ["line1", "#line2", "line3", " line4", "line5", "# line6", "line7"]
             write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True,["#"," "])
+            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True, ["#", " "])
             # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
             assert expected_output == read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
+
+    def test_file_is_git_ignored_(self) -> None:
+        tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
+        ensure_directory_exists(tests_folder)
+        sc = ScriptCollection()
+        sc.start_program_synchronously("git", "init", tests_folder)
+
+        ignored_logfolder_name = "logfolder"
+        ignored_logfolder = tests_folder+os.path.sep+ignored_logfolder_name
+        ensure_directory_exists(ignored_logfolder)
+
+        gitignore_file = tests_folder+os.path.sep+".gitignore"
+        ensure_file_exists(gitignore_file)
+        write_lines_to_file(gitignore_file, [ignored_logfolder_name+"/**", "!"+ignored_logfolder_name+"/.gitkeep"])
+
+        gitkeep_file = ignored_logfolder+os.path.sep+".gitkeep"
+        ensure_file_exists(gitkeep_file)
+
+        log_file = ignored_logfolder+os.path.sep+"logfile.log"
+        ensure_file_exists(log_file)
+
+        assert not sc.file_is_git_ignored(gitignore_file)
+        assert not sc.file_is_git_ignored(gitkeep_file)
+        assert sc.file_is_git_ignored(log_file)
+
+        ensure_directory_does_not_exist(tests_folder)
 
 
 class ExecuteProgramTests(unittest.TestCase):

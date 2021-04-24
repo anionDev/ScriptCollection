@@ -764,13 +764,15 @@ class ScriptCollection:
         else:
             return False
 
-    def file_is_git_ignored(self, repository: str, file: str) -> None:
-        exit_code = self.start_program_synchronously("git", "check-ignore "+file, repository, 0, False, None, 120, False)[0]
+    def file_is_git_ignored(self, file: str) -> None:
+        filename = os.path.basename(file)
+        folder = os.path.dirname(file)
+        exit_code = self.start_program_synchronously("git", f'check-ignore "{filename}"', folder, 0, False, None, 120, False)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
             return False
-        raise Exception(f"Unable to calculate if '{file}' is ignored in repository '{repository} 'or not due to exitcode {exit_code}.")
+        raise Exception(f"Unable to calculate if '{file}' is ignored due to exitcode {exit_code}.")
 
     def discard_all_changes(self, repository: str) -> None:
         self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset HEAD -- .", repository)
@@ -1453,27 +1455,27 @@ class ScriptCollection:
         ls_output = self._private_ls(file)
         return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
 
-    def _private_escape_special_character(self, file: str,escape_special_character:bool=True) -> str:
-        return file.replace('$','\\$')
+    def _private_escape_special_character(self, file: str, escape_special_character: bool = True) -> str:
+        return file.replace('$', '\\$')
 
-    def _private_ls(self, file: str, escape_special_character:bool=True) -> str:
+    def _private_ls(self, file: str, escape_special_character: bool = True) -> str:
         if (escape_special_character):
-            file=self._private_escape_special_character(file)
+            file = self._private_escape_special_character(file)
         return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
 
-    def set_file_permission(self, file: str, permissions: str, recursive: bool = False, escape_special_character:bool=True) -> None:
+    def set_file_permission(self, file: str, permissions: str, recursive: bool = False, escape_special_character: bool = True) -> None:
         """This function expects an usual octet-triple, for example "0700"."""
         if (escape_special_character):
-            file=self._private_escape_special_character(file)
+            file = self._private_escape_special_character(file)
         argument = f'{permissions} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
 
-    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False, escape_special_character:bool=True) -> None:
+    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False, escape_special_character: bool = True) -> None:
         """This function expects the user and the group in the format "user:group"."""
         if (escape_special_character):
-            file=self._private_escape_special_character(file)
+            file = self._private_escape_special_character(file)
         argument = f'{owner} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
@@ -2206,7 +2208,8 @@ def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool
             result.append(line)
     return result
 
-def move_content_of_folder(srcDir, dstDir,overwrite_existing_files=False) -> None:
+
+def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> None:
     srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
     dstDirFull = resolve_relative_path_from_current_working_directory(dstDir)
     if(os.path.isdir(srcDir)):
@@ -2214,9 +2217,9 @@ def move_content_of_folder(srcDir, dstDir,overwrite_existing_files=False) -> Non
         for file in get_direct_files_of_folder(srcDirFull):
             shutil.move(file, dstDirFull)
         for sub_folder in get_direct_folders_of_folder(srcDirFull):
-            foldername=os.path.basename(sub_folder)
-            sub_target=os.path.join( dstDirFull,foldername)
-            move_content_of_folder(sub_folder,sub_target)
+            foldername = os.path.basename(sub_folder)
+            sub_target = os.path.join(dstDirFull, foldername)
+            move_content_of_folder(sub_folder, sub_target)
             ensure_directory_does_not_exist(sub_target)
     else:
         raise ValueError(f"Folder '{srcDir}' does not exist")
