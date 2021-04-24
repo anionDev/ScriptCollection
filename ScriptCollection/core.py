@@ -1453,18 +1453,27 @@ class ScriptCollection:
         ls_output = self._private_ls(file)
         return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
 
-    def _private_ls(self, file: str) -> str:
+    def _private_escape_special_character(self, file: str,escape_special_character:bool=True) -> str:
+        return file.replace('$','\\$')
+
+    def _private_ls(self, file: str, escape_special_character:bool=True) -> str:
+        if (escape_special_character):
+            file=self._private_escape_special_character(file)
         return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
 
-    def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
+    def set_file_permission(self, file: str, permissions: str, recursive: bool = False, escape_special_character:bool=True) -> None:
         """This function expects an usual octet-triple, for example "0700"."""
+        if (escape_special_character):
+            file=self._private_escape_special_character(file)
         argument = f'{permissions} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
 
-    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
+    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False, escape_special_character:bool=True) -> None:
         """This function expects the user and the group in the format "user:group"."""
+        if (escape_special_character):
+            file=self._private_escape_special_character(file)
         argument = f'{owner} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
@@ -2197,14 +2206,20 @@ def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool
             result.append(line)
     return result
 
-
-def move_content_of_folder(srcDir, dstDir) -> None:
+def move_content_of_folder(srcDir, dstDir,overwrite_existing_files=False) -> None:
     srcDirFull = resolve_relative_path_from_current_working_directory(srcDir)
     dstDirFull = resolve_relative_path_from_current_working_directory(dstDir)
-    for file in get_direct_files_of_folder(srcDirFull):
-        shutil.move(file, dstDirFull)
-    for sub_folder in get_direct_folders_of_folder(srcDirFull):
-        shutil.move(sub_folder, dstDirFull)
+    if(os.path.isdir(srcDir)):
+        ensure_directory_exists(dstDir)
+        for file in get_direct_files_of_folder(srcDirFull):
+            shutil.move(file, dstDirFull)
+        for sub_folder in get_direct_folders_of_folder(srcDirFull):
+            foldername=os.path.basename(sub_folder)
+            sub_target=os.path.join( dstDirFull,foldername)
+            move_content_of_folder(sub_folder,sub_target)
+            ensure_directory_does_not_exist(sub_target)
+    else:
+        raise ValueError(f"Folder '{srcDir}' does not exist")
 
 
 def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
