@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.2"
+version = "2.4.3"
 __version__ = version
 
 
@@ -1455,27 +1455,18 @@ class ScriptCollection:
         ls_output = self._private_ls(file)
         return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
 
-    def _private_escape_special_character(self, file: str, escape_special_character: bool = True) -> str:
-        return file.replace('$', '\\$')
-
-    def _private_ls(self, file: str, escape_special_character: bool = True) -> str:
-        if (escape_special_character):
-            file = self._private_escape_special_character(file)
+    def _private_ls(self, file: str) -> str:
         return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
 
-    def set_file_permission(self, file: str, permissions: str, recursive: bool = False, escape_special_character: bool = True) -> None:
+    def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
         """This function expects an usual octet-triple, for example "0700"."""
-        if (escape_special_character):
-            file = self._private_escape_special_character(file)
         argument = f'{permissions} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
 
-    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False, escape_special_character: bool = True) -> None:
+    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
         """This function expects the user and the group in the format "user:group"."""
-        if (escape_special_character):
-            file = self._private_escape_special_character(file)
         argument = f'{owner} "{file}"'
         if recursive:
             argument = f" --recursive {argument}"
