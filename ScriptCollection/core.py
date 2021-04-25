@@ -328,7 +328,7 @@ class ScriptCollection:
                 api_key = apikeyfile.read()
             nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource')
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}",
-                                                                      publishdirectory, 3600, verbose_argument)
+                                                                      publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
 
     def dotnet_reference(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
@@ -336,14 +336,12 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
             if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
                 verbose_argument_for_reportgenerator = "-verbosity:Verbose"
-                verbose_argument = 2
             else:
                 verbose_argument_for_reportgenerator = "-verbosity:Info"
-                verbose_argument = 1
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile')
             docfx_folder = os.path.dirname(docfx_file)
             ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder, 3600, verbose_argument)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
             coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')
             ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self._private_get_coverage_filename(configparser)
@@ -351,7 +349,7 @@ class ScriptCollection:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator",
                                                                       f'-reports:"{self._private_get_coverage_filename(configparser)}"'
                                                                       f' -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}',
-                                                                      coveragefolder, 3600, verbose_argument)
+                                                                      coveragefolder, 3600,  self._private_get_verbosity_for_exuecutor(configparser))
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
@@ -817,18 +815,15 @@ class ScriptCollection:
                         filetype_full = "Directory"
                     raise Exception(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
-    def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-            return 2
-        else:
-            return 1
-
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
+        if self._private_get_verbosity_for_exuecutor(configparser)>0:
             for item in queried_items:
                 if item == "<notavailable>":
-                    write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
+                    write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. This may result in errors or involuntary behavior")
                     print_stacktrace()
+
+    def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
+        return self.get_number_value_from_configuration(configparser, 'other', 'verbose')
 
     def _private_get_buildoutputdirectory(self, configparser: ConfigParser, runtime: str) -> str:
         result = self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory')
@@ -846,6 +841,9 @@ class ScriptCollection:
         except:
             pass
         return False
+
+    def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
+        return int(configparser.get.getboolean(section, propertyname))
 
     def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
         if not configparser.has_option(sectioon, item):
@@ -1508,8 +1506,6 @@ class ScriptCollection:
         if result[0] == 0:
             return result
         else:
-            if(write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero):
-                write_message_to_stderr(result[2])
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
     def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False,
