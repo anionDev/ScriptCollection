@@ -317,16 +317,12 @@ class ScriptCollection:
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-            verbose_argument = 2
-        else:
-            verbose_argument = 1
         repository_version = self.get_version_for_buildscripts(configparser)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
         for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets'):
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",
-                                                                      publishdirectory, 3600, verbose_argument)
+                                                                      publishdirectory, 3600,  self._private_get_verbosity_for_exuecutor(configparser))
         if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile')):
             with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
@@ -1495,7 +1491,7 @@ class ScriptCollection:
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if use_epew:
             raise Exception("start_program_asynchronously using epew is not implemented yet. Set use_epew=False to use this function.")
-        else:
+        else:# TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
@@ -1504,7 +1500,7 @@ class ScriptCollection:
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
                                                              print_errors_as_information: bool = False, log_file: str = None,
-                                                             write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                                                             write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                                                              write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
         # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
@@ -1512,25 +1508,25 @@ class ScriptCollection:
         if result[0] == 0:
             return result
         else:
-            if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
+            if(write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero):
                 write_message_to_stderr(result[2])
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
     def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False,
                 title: str = None, print_errors_as_information: bool = False, log_file: str = None,
-                write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                 write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
         # TODO remove this function
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
-        if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
+        if(write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero):
             write_message_to_stderr(result[2])
         return result[0]
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
-                                    throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True,
+                                    throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
                                     write_output_to_standard_output: bool = True, log_namespace: str = ""):
         if self.mock_program_calls:
             try:
@@ -1550,12 +1546,10 @@ class ScriptCollection:
             title_argument = title_argument.replace("\"", "'").replace("\\", "/")
             title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
             tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-            if verbosity == 2:
-                write_message_to_stdout(f"Start executing '{title_local}' (temp: '{tempdir}')")
-            output_file_for_stdout = tempdir + ".stdout-epew-temp.txt"
-            output_file_for_stderr = tempdir + ".stderr-epew-temp.txt"
-            output_file_for_exit_code = tempdir + ".exitcode-epew-temp.txt"
-            output_file_for_pid = tempdir + ".pid-epew-temp.txt"
+            output_file_for_stdout = tempdir + ".epew.stdout.txt"
+            output_file_for_stderr = tempdir + ".epew.stderr.txt"
+            output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
+            output_file_for_pid = tempdir + ".epew.pid.txt"
             base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
             argument = f'--Program "{program}"'
             argument = argument+f' --Argument {base64argument}'
@@ -1571,8 +1565,6 @@ class ScriptCollection:
             if not string_is_none_or_whitespace(log_file):
                 argument = argument+f' --LogFile "{log_file}"'
             if write_output_to_standard_output:
-                argument = argument+' --WriteOutputToConsole'
-            if print_errors_as_information:
                 argument = argument+" --PrintErrorsAsInformation"
             if addLogOverhead:
                 argument = argument+" --AddLogOverhead"
@@ -1581,21 +1573,25 @@ class ScriptCollection:
             if verbosity == 1:
                 argument = argument+" --Verbosity Normal"
             if verbosity == 2:
+                argument = argument+" --Verbosity Full"
+            if verbosity == 3:
                 argument = argument+" --Verbosity Verbose"
-            if verbosity == 2:
-                write_message_to_stdout(f"Start executing '{title_local}'")
-            if verbosity == 2:
-                write_message_to_stdout(f"Plain epew-call: 'epew {argument}'")
-            process = Popen(f'epew {argument}')
+
+            epew_call=f'epew {argument}'
+            if verbosity ==3:
+                argument = argument+" --Verbosity Verbose"
+                write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
+            process = Popen(epew_call)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
             stderr = self._private_load_text(output_file_for_stderr)
             exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
             pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
-            if verbosity == 2:
+            ensure_directory_does_not_exist(tempdir)
+            if verbosity == 3:
                 write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
             return (exit_code, stdout, stderr, pid)
-        else:
+        else:# TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
