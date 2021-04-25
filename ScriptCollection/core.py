@@ -1506,25 +1506,25 @@ class ScriptCollection:
                                                              print_errors_as_information: bool = False, log_file: str = None,
                                                              write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                                                              write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
-        # TODO remove parameter write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero
         # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if result[0] == 0:
             return result
         else:
-            write_message_to_stderr(result[2])
+            if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
+                write_message_to_stderr(result[2])
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
     def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False,
                 title: str = None, print_errors_as_information: bool = False, log_file: str = None,
                 write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
                 write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
-        # TODO remove parameter write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero
         # TODO remove this function
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
-        write_message_to_stderr(result[2])
+        if(write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero):
+            write_message_to_stderr(result[2])
         return result[0]
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
