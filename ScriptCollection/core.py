@@ -191,14 +191,15 @@ class ScriptCollection:
     def dotnet_build_executable_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        verbosity=self._private_get_verbosity_for_exuecutor(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information)
+            self.dotnet_run_tests(configurationfile, current_release_information,verbosity)
         sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
                               self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
-                              self._private_get_verbosity_for_exuecutor(configparser), sign_things[0], sign_things[1], current_release_information)
+                              verbosity, sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
@@ -268,7 +269,7 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information)
+            self.dotnet_run_tests(configurationfile, current_release_information,self._private_get_verbosity_for_exuecutor(configparser))
         sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
@@ -367,7 +368,7 @@ class ScriptCollection:
                      current_release_information: dict = {}) -> None:
         # TODO include commit-id (only if available) which can be retrieved due to "current_release_information['commitid']"
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
-            shutil.rmtree(outputDirectory)
+            ensure_directory_does_not_exist(outputDirectory)
         ensure_directory_exists(outputDirectory)
         if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
@@ -389,7 +390,7 @@ class ScriptCollection:
             for fileToSign in filesToSign:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
-    def dotnet_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+    def dotnet_run_tests(self, configurationfile: str, current_release_information: dict, verbosity: int = 1) -> None:
         # TODO add possibility to set another buildconfiguration than for the real result-build
         # TODO remove the call to SCDotNetBuild
         configparser = ConfigParser()
@@ -1562,8 +1563,6 @@ class ScriptCollection:
                 argument = argument+" --AddLogOverhead"
             argument = argument+" --Verbosity "+str(verbosity)
             epew_call = f'epew {argument}'
-            if verbosity == 3:
-                argument = argument+" --Verbosity Verbose"
             write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
             process = Popen(epew_call)
             process.wait()
@@ -1825,7 +1824,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_run_tests(args.configurationfile, {})
+    return ScriptCollection().dotnet_run_tests(args.configurationfile, {},1)
 
 
 def SCDotNetsign_cli() -> int:
