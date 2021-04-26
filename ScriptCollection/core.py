@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.9"
+version = "2.4.10"
 __version__ = version
 
 
@@ -396,7 +396,6 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         runtime = self.get_item_from_configuration(configparser, 'dotnet', 'testruntime')
-        verbosity = self.get_boolean_value_from_configuration(configparser, 'other', 'verbose')
         if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
         if verbosity == 1:
