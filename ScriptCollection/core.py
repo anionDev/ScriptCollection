@@ -559,8 +559,8 @@ class ScriptCollection:
             gpgidentity = self.get_item_from_configuration(configparser, 'other', 'gpgidentity')
             repository_version = self.get_version_for_buildscripts(configparser)
             productname = self.get_item_from_configuration(configparser, 'general', 'productname')
-            verbosity = self._private_get_verbosity_for_exuecutor(configparser) > 1
-            if verbosity:
+            verbosity = self._private_get_verbosity_for_exuecutor(configparser)
+            if verbosity> 2:
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
