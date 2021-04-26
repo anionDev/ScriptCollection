@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.7"
+version = "2.4.8"
 __version__ = version
 
 
@@ -376,7 +376,7 @@ class ScriptCollection:
         if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
-            verbose_argument_for_dotnet = "detailled"
+            verbose_argument_for_dotnet = "detailed"
         argument = csprojFilename
         argument = argument + ' --no-incremental'
         argument = argument + f' --configuration {buildConfiguration}'
@@ -403,7 +403,7 @@ class ScriptCollection:
         if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
-            verbose_argument_for_dotnet = "detailled"
+            verbose_argument_for_dotnet = "detailed"
         self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
                           self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
                           self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime,
@@ -1564,7 +1564,7 @@ class ScriptCollection:
             epew_call = f'epew {argument}'
             if verbosity == 3:
                 argument = argument+" --Verbosity Verbose"
-                write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
+            write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
             process = Popen(epew_call)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
