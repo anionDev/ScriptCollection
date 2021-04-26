@@ -855,7 +855,7 @@ class ScriptCollection:
                 return False
 
     def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
-        return int(configparser.get.getboolean(section, propertyname))
+        return int(configparser.getboolean(section, propertyname))
 
     def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
         if not configparser.has_option(sectioon, item):
