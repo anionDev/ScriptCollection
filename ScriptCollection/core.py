@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.10"
+version = "2.4.11"
 __version__ = version
 
 
@@ -559,8 +559,8 @@ class ScriptCollection:
             gpgidentity = self.get_item_from_configuration(configparser, 'other', 'gpgidentity')
             repository_version = self.get_version_for_buildscripts(configparser)
             productname = self.get_item_from_configuration(configparser, 'general', 'productname')
-            verbosity = self._private_get_verbosity_for_exuecutor(configparser) > 1
-            if verbosity:
+            verbosity = self._private_get_verbosity_for_exuecutor(configparser)
+            if verbosity> 2:
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
@@ -1562,7 +1562,8 @@ class ScriptCollection:
                 argument = argument+" --AddLogOverhead"
             argument = argument+" --Verbosity "+str(verbosity)
             epew_call = f'epew {argument}'
-            write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
+            if verbosity == 3:
+                write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
             process = Popen(epew_call)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
@@ -1692,8 +1693,8 @@ class ScriptCollection:
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 2)
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 2)
+        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 1)
+        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 1)
         return strip_new_line_character(result[1])
 
     # </miscellaneous>
