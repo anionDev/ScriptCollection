@@ -198,7 +198,7 @@ class ScriptCollection:
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
                               self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
-                              self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1], current_release_information)
+                              self._private_get_verbosity_for_exuecutor(configparser), sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
@@ -274,7 +274,7 @@ class ScriptCollection:
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
                               self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
-                              self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'),
+                              self._private_get_verbosity_for_exuecutor(configparser),
                               sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
@@ -334,15 +334,20 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
-            if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-                verbose_argument_for_reportgenerator = "-verbosity:Verbose"
-            else:
+            verbosity=self._private_get_verbosity_for_exuecutor(configparser)
+            if verbosity==0:
+                verbose_argument_for_reportgenerator = "-verbosity:Off"
+            if verbosity==1:
+                verbose_argument_for_reportgenerator = "-verbosity:Error"
+            if verbosity==2:
                 verbose_argument_for_reportgenerator = "-verbosity:Info"
+            if verbosity==3:
+                verbose_argument_for_reportgenerator = "-verbosity:Verbose"
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile')
             docfx_folder = os.path.dirname(docfx_file)
             ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
             self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx",
-                                                                      os.path.basename(docfx_file), docfx_folder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
+                                                                      os.path.basename(docfx_file), docfx_folder, 3600, verbosity)
             coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')
             ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self._private_get_coverage_filename(configparser)
@@ -350,7 +355,7 @@ class ScriptCollection:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator",
                                                                       f'-reports:"{self._private_get_coverage_filename(configparser)}"'
                                                                       f' -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}',
-                                                                      coveragefolder, 3600,  self._private_get_verbosity_for_exuecutor(configparser))
+                                                                      coveragefolder, 3600, verbosity)
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
@@ -358,18 +363,20 @@ class ScriptCollection:
                               "master", "master", False, False)
 
     def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
-                     clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, filesToSign: list = None, keyToSignForOutputfile: str = None,
+                     clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None,
                      current_release_information: dict = {}) -> None:
         # TODO include commit-id (only if available) which can be retrieved due to "current_release_information['commitid']"
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             shutil.rmtree(outputDirectory)
         ensure_directory_exists(outputDirectory)
-        if verbose:
-            verbose_argument = 2
-            verbose_argument_for_dotnet = "detailed"
-        else:
-            verbose_argument = 1
+        if verbosity==0:
+            verbose_argument_for_dotnet = "quiet"
+        if verbosity==1:
+            verbose_argument_for_dotnet = "minimal"
+        if verbosity==2:
             verbose_argument_for_dotnet = "normal"
+        if verbosity==3:
+            verbose_argument_for_dotnet = "detailled"
         argument = csprojFilename
         argument = argument + ' --no-incremental'
         argument = argument + f' --configuration {buildConfiguration}'
@@ -377,10 +384,10 @@ class ScriptCollection:
         argument = argument + f' --runtime {runtimeId}'
         argument = argument + f' --verbosity {verbose_argument_for_dotnet}'
         argument = argument + f' --output "{outputDirectory}"'
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbosity, False, "Build")
         if(filesToSign is not None):
             for fileToSign in filesToSign:
-                self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbose, current_release_information)
+                self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
     def dotnet_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         # TODO add possibility to set another buildconfiguration than for the real result-build
@@ -388,23 +395,26 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         runtime = self.get_item_from_configuration(configparser, 'dotnet', 'testruntime')
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-            verbose_argument_for_dotnet = "detailed"
-            verbose_argument = 2
-        else:
+        verbosity=self.get_boolean_value_from_configuration(configparser, 'other', 'verbose')
+        if verbosity==0:
+            verbose_argument_for_dotnet = "quiet"
+        if verbosity==1:
+            verbose_argument_for_dotnet = "minimal"
+        if verbosity==2:
             verbose_argument_for_dotnet = "normal"
-            verbose_argument = 1
+        if verbosity==3:
+            verbose_argument_for_dotnet = "detailled"
         self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
                           self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
                           self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime,
-                          self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None, current_release_information)
+                          self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbosity, None, None, current_release_information)
         testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')} " \
             f"--verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={self._private_get_coverage_filename(configparser)} " \
             f"/p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
-                                                                  3600, verbose_argument, False, "Execute tests")
+                                                                  3600, verbosity, False, "Execute tests")
 
-    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool, current_release_information: dict = {}) -> None:
+    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = resolve_relative_path_from_current_working_directory(snkfile)
         directory = os.path.dirname(dllOrExeFile)
@@ -419,10 +429,10 @@ class ScriptCollection:
             raise Exception("Only .dll-files and .exe-files can be signed")
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ildasm",
                                                                   f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
-                                                                  directory, 3600, verbose, False, "Sign: ildasm")
+                                                                  directory, 3600, verbosity, False, "Sign: ildasm")
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ilasm",
                                                                   f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
-                                                                  directory, 3600, verbose, False, "Sign: ilasm")
+                                                                  directory, 3600, verbosity, False, "Sign: ilasm")
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
@@ -536,6 +546,7 @@ class ScriptCollection:
             pythontestfile = self.get_item_from_configuration(configparser, 'python', 'pythontestfile')
             pythontestfilename = os.path.basename(pythontestfile)
             pythontestfilefolder = os.path.dirname(pythontestfile)
+            # TODO set verbosity-level for pytest
             self.execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600,
                                                                       self._private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
 
@@ -548,15 +559,16 @@ class ScriptCollection:
             gpgidentity = self.get_item_from_configuration(configparser, 'other', 'gpgidentity')
             repository_version = self.get_version_for_buildscripts(configparser)
             productname = self.get_item_from_configuration(configparser, 'general', 'productname')
-            if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
+            verbosity=self._private_get_verbosity_for_exuecutor(configparser)>1
+            if verbosity:
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
             twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl" \
                 f" --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("twine",
-                                                                      twine_argument, self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"),
-                                                                      3600, self._private_get_verbosity_for_exuecutor(configparser))
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument,
+                                                                      self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"),
+                                                                      3600, verbosity)
 
     # </Build>
 
