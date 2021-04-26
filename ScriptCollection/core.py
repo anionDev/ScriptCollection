@@ -341,7 +341,8 @@ class ScriptCollection:
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile')
             docfx_folder = os.path.dirname(docfx_file)
             ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx",
+                                                                      os.path.basename(docfx_file), docfx_folder, 3600, self._private_get_verbosity_for_exuecutor(configparser))
             coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')
             ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self._private_get_coverage_filename(configparser)
@@ -816,10 +817,11 @@ class ScriptCollection:
                     raise Exception(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
-        if self._private_get_verbosity_for_exuecutor(configparser)>0:
+        if self._private_get_verbosity_for_exuecutor(configparser) > 0:
             for item in queried_items:
                 if item == "<notavailable>":
-                    write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. This may result in errors or involuntary behavior")
+                    write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. "
+                                            + "This may result in errors or involuntary behavior")
                     print_stacktrace()
 
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
@@ -835,12 +837,10 @@ class ScriptCollection:
         try:
             return configparser.getboolean(section, propertyname)
         except:
-            pass
-        try:
-            return string_to_boolean(self.get_item_from_configuration(configparser, section, propertyname, {}, False))
-        except:
-            pass
-        return False
+            try:
+                return string_to_boolean(self.get_item_from_configuration(configparser, section, propertyname, {}, False))
+            except:
+                return False
 
     def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
         return int(configparser.get.getboolean(section, propertyname))
@@ -1478,7 +1478,7 @@ class ScriptCollection:
         if(verbosity == 2):
             write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
 
-    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False) -> int:
+    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False) -> int:
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
@@ -1487,9 +1487,9 @@ class ScriptCollection:
                     raise
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
-        if use_epew:
-            raise Exception("start_program_asynchronously using epew is not implemented yet. Set use_epew=False to use this function.")
-        else:# TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
+        if (epew_is_available() and not prevent_using_epew):
+            raise Exception("start_program_asynchronously using epew is not implemented yet. Set prevent_using_epew=True to use this function.")
+        else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
@@ -1498,7 +1498,7 @@ class ScriptCollection:
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
                                                              print_errors_as_information: bool = False, log_file: str = None,
-                                                             write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                                                             write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
                                                              write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
         # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
@@ -1510,7 +1510,7 @@ class ScriptCollection:
 
     def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False,
                 title: str = None, print_errors_as_information: bool = False, log_file: str = None,
-                write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
                 write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
         # TODO remove this function
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
@@ -1564,17 +1564,9 @@ class ScriptCollection:
                 argument = argument+" --PrintErrorsAsInformation"
             if addLogOverhead:
                 argument = argument+" --AddLogOverhead"
-            if verbosity == 0:
-                argument = argument+" --Verbosity Quiet"
-            if verbosity == 1:
-                argument = argument+" --Verbosity Normal"
-            if verbosity == 2:
-                argument = argument+" --Verbosity Full"
+            argument = argument+" --Verbosity "+str(verbosity)
+            epew_call = f'epew {argument}'
             if verbosity == 3:
-                argument = argument+" --Verbosity Verbose"
-
-            epew_call=f'epew {argument}'
-            if verbosity ==3:
                 argument = argument+" --Verbosity Verbose"
                 write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
             process = Popen(epew_call)
@@ -1587,7 +1579,7 @@ class ScriptCollection:
             if verbosity == 3:
                 write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
             return (exit_code, stdout, stderr, pid)
-        else:# TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
+        else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
