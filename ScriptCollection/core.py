@@ -1562,7 +1562,8 @@ class ScriptCollection:
                 argument = argument+" --AddLogOverhead"
             argument = argument+" --Verbosity "+str(verbosity)
             epew_call = f'epew {argument}'
-            write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
+            if verbosity == 3:
+                write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
             process = Popen(epew_call)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
@@ -1692,8 +1693,8 @@ class ScriptCollection:
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 2)
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 2)
+        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 1)
+        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 1)
         return strip_new_line_character(result[1])
 
     # </miscellaneous>
