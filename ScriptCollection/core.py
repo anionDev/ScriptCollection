@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.5"
+version = "2.4.6"
 __version__ = version
 
 
@@ -334,14 +334,14 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
-            verbosity=self._private_get_verbosity_for_exuecutor(configparser)
-            if verbosity==0:
+            verbosity = self._private_get_verbosity_for_exuecutor(configparser)
+            if verbosity == 0:
                 verbose_argument_for_reportgenerator = "-verbosity:Off"
-            if verbosity==1:
+            if verbosity == 1:
                 verbose_argument_for_reportgenerator = "-verbosity:Error"
-            if verbosity==2:
+            if verbosity == 2:
                 verbose_argument_for_reportgenerator = "-verbosity:Info"
-            if verbosity==3:
+            if verbosity == 3:
                 verbose_argument_for_reportgenerator = "-verbosity:Verbose"
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile')
             docfx_folder = os.path.dirname(docfx_file)
@@ -369,13 +369,13 @@ class ScriptCollection:
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             shutil.rmtree(outputDirectory)
         ensure_directory_exists(outputDirectory)
-        if verbosity==0:
+        if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
-        if verbosity==1:
+        if verbosity == 1:
             verbose_argument_for_dotnet = "minimal"
-        if verbosity==2:
+        if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
-        if verbosity==3:
+        if verbosity == 3:
             verbose_argument_for_dotnet = "detailled"
         argument = csprojFilename
         argument = argument + ' --no-incremental'
@@ -395,14 +395,14 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         runtime = self.get_item_from_configuration(configparser, 'dotnet', 'testruntime')
-        verbosity=self.get_boolean_value_from_configuration(configparser, 'other', 'verbose')
-        if verbosity==0:
+        verbosity = self.get_boolean_value_from_configuration(configparser, 'other', 'verbose')
+        if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
-        if verbosity==1:
+        if verbosity == 1:
             verbose_argument_for_dotnet = "minimal"
-        if verbosity==2:
+        if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
-        if verbosity==3:
+        if verbosity == 3:
             verbose_argument_for_dotnet = "detailled"
         self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
                           self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
@@ -559,7 +559,7 @@ class ScriptCollection:
             gpgidentity = self.get_item_from_configuration(configparser, 'other', 'gpgidentity')
             repository_version = self.get_version_for_buildscripts(configparser)
             productname = self.get_item_from_configuration(configparser, 'general', 'productname')
-            verbosity=self._private_get_verbosity_for_exuecutor(configparser)>1
+            verbosity = self._private_get_verbosity_for_exuecutor(configparser) > 1
             if verbosity:
                 verbose_argument = "--verbose"
             else:
@@ -632,16 +632,16 @@ class ScriptCollection:
         result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
         return result[1].replace('\r', '').replace('\n', '')
 
-    def git_fetch(self, folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, 1, False, None, printErrorsAsInformation)
+    def git_fetch(self, folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True, verbosity=1) -> None:
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, verbosity, False, None, printErrorsAsInformation)
 
-    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False) -> None:
+    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = f"push {remotename} {localbranchname}:{remotebranchname}"
         if (forcepush):
             argument = argument+" --force"
         if (pushalltags):
             argument = argument+" --tags"
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, 1, False, None, True)
+        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, verbosity, False, None, True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
@@ -855,7 +855,7 @@ class ScriptCollection:
                 return False
 
     def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
-        return int(configparser.get.getboolean(section, propertyname))
+        return int(configparser.getboolean(section, propertyname))
 
     def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
         if not configparser.has_option(sectioon, item):
@@ -1139,7 +1139,7 @@ class ScriptCollection:
         for _ in range(amountofkeys):
             file = os.path.join(outputfolder, str(uuid.uuid4())+".snk")
             argument = f"-k {keysize} {file}"
-            self.execute("sn", argument, outputfolder)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("sn", argument, outputfolder)
 
     def _private_merge_files(self, sourcefile: str, targetfile: str) -> None:
         with open(sourcefile, "rb") as f:
@@ -1509,33 +1509,17 @@ class ScriptCollection:
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
-                                                             print_errors_as_information: bool = False, log_file: str = None,
-                                                             write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
-                                                             write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
-        # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
-        result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
-                                                  addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
-        if result[0] == 0:
-            return result
-        else:
-            raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
-
-    def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False,
-                title: str = None, print_errors_as_information: bool = False, log_file: str = None,
-                write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
-                write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
+                                                             print_errors_as_information: bool = False, log_file: str = None, prevent_using_epew: bool = False,
+                                                             log_namespace: str = "") -> None:
         # TODO remove this function
-        result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
-                                                  addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
-        if(write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero):
-            write_message_to_stderr(result[2])
-        return result[0]
+        return self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
+                                                addLogOverhead, title, True, prevent_using_epew, log_namespace)
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
                                     throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
-                                    write_output_to_standard_output: bool = True, log_namespace: str = ""):
+                                    log_namespace: str = ""):
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)
@@ -1572,7 +1556,7 @@ class ScriptCollection:
             argument = argument+f' --LogNamespace "{log_namespace}"'
             if not string_is_none_or_whitespace(log_file):
                 argument = argument+f' --LogFile "{log_file}"'
-            if write_output_to_standard_output:
+            if print_errors_as_information:
                 argument = argument+" --PrintErrorsAsInformation"
             if addLogOverhead:
                 argument = argument+" --AddLogOverhead"
@@ -1590,6 +1574,8 @@ class ScriptCollection:
             ensure_directory_does_not_exist(tempdir)
             if verbosity == 3:
                 write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
+            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+                raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
             return (exit_code, stdout, stderr, pid)
         else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
@@ -1601,11 +1587,6 @@ class ScriptCollection:
             exit_code = process.wait()
             stdout = bytes_to_string(stdout).replace('\r', '')
             stderr = bytes_to_string(stderr).replace('\r', '')
-            if write_output_to_standard_output:
-                for line in stdout.splitlines():
-                    write_message_to_stdout(line)
-                for line in stderr.splitlines():
-                    write_message_to_stderr(line)
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                 raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
             return (exit_code, stdout, stderr, pid)
@@ -1686,7 +1667,7 @@ class ScriptCollection:
             argument = f"{argument} -p\"{password}\""
         argument = f"{argument} -o {output_directory}"
         argument = f"{argument} {file_name}"
-        return self.execute(unzip_program_file, argument, file_folder)
+        return self.execute_and_raise_exception_if_exit_code_is_not_zero(unzip_program_file, argument, file_folder)
 
     def get_internet_time(self) -> datetime:
         response = ntplib.NTPClient().request('pool.ntp.org')
@@ -1713,9 +1694,9 @@ class ScriptCollection:
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0, False, None, False, None, True, True, False, "")
-        return strip_new_line_character(self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 0, False, None, False,
-                                                                                                  None, True, True, False, "")[1])
+        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 2)
+        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 2)
+        return strip_new_line_character(result[1])
 
     # </miscellaneous>
 
