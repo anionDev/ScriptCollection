@@ -1564,7 +1564,7 @@ class ScriptCollection:
             epew_call = f'epew {argument}'
             if verbosity == 3:
                 argument = argument+" --Verbosity Verbose"
-                write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
+            write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
             process = Popen(epew_call)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
