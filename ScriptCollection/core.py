@@ -376,7 +376,7 @@ class ScriptCollection:
         if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
-            verbose_argument_for_dotnet = "detailled"
+            verbose_argument_for_dotnet = "detailed"
         argument = csprojFilename
         argument = argument + ' --no-incremental'
         argument = argument + f' --configuration {buildConfiguration}'
@@ -403,7 +403,7 @@ class ScriptCollection:
         if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
-            verbose_argument_for_dotnet = "detailled"
+            verbose_argument_for_dotnet = "detailed"
         self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
                           self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
                           self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime,
