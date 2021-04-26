@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.4"
+version = "2.4.5"
 __version__ = version
 
 
@@ -198,7 +198,7 @@ class ScriptCollection:
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
                               self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
-                              self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'), sign_things[0], sign_things[1], current_release_information)
+                              self._private_get_verbosity_for_exuecutor(configparser), sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
@@ -274,7 +274,7 @@ class ScriptCollection:
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
                               self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
-                              self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'),
+                              self._private_get_verbosity_for_exuecutor(configparser),
                               sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
@@ -317,37 +317,37 @@ class ScriptCollection:
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-            verbose_argument = 2
-        else:
-            verbose_argument = 1
         repository_version = self.get_version_for_buildscripts(configparser)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
         for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets'):
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",
-                                                                      publishdirectory, 3600, verbose_argument)
+                                                                      publishdirectory, 3600,  self._private_get_verbosity_for_exuecutor(configparser))
         if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile')):
             with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
             nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource')
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}",
-                                                                      publishdirectory, 3600, verbose_argument)
+                                                                      publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
 
     def dotnet_reference(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
-            if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-                verbose_argument_for_reportgenerator = "-verbosity:Verbose"
-                verbose_argument = 2
-            else:
+            verbosity=self._private_get_verbosity_for_exuecutor(configparser)
+            if verbosity==0:
+                verbose_argument_for_reportgenerator = "-verbosity:Off"
+            if verbosity==1:
+                verbose_argument_for_reportgenerator = "-verbosity:Error"
+            if verbosity==2:
                 verbose_argument_for_reportgenerator = "-verbosity:Info"
-                verbose_argument = 1
+            if verbosity==3:
+                verbose_argument_for_reportgenerator = "-verbosity:Verbose"
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile')
             docfx_folder = os.path.dirname(docfx_file)
             ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx", os.path.basename(docfx_file), docfx_folder, 3600, verbose_argument)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx",
+                                                                      os.path.basename(docfx_file), docfx_folder, 3600, verbosity)
             coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')
             ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self._private_get_coverage_filename(configparser)
@@ -355,7 +355,7 @@ class ScriptCollection:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator",
                                                                       f'-reports:"{self._private_get_coverage_filename(configparser)}"'
                                                                       f' -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}',
-                                                                      coveragefolder, 3600, verbose_argument)
+                                                                      coveragefolder, 3600, verbosity)
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
@@ -363,18 +363,20 @@ class ScriptCollection:
                               "master", "master", False, False)
 
     def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
-                     clearOutputDirectoryBeforeBuild: bool = True, verbose: bool = True, filesToSign: list = None, keyToSignForOutputfile: str = None,
+                     clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None,
                      current_release_information: dict = {}) -> None:
         # TODO include commit-id (only if available) which can be retrieved due to "current_release_information['commitid']"
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             shutil.rmtree(outputDirectory)
         ensure_directory_exists(outputDirectory)
-        if verbose:
-            verbose_argument = 2
-            verbose_argument_for_dotnet = "detailed"
-        else:
-            verbose_argument = 1
+        if verbosity==0:
+            verbose_argument_for_dotnet = "quiet"
+        if verbosity==1:
+            verbose_argument_for_dotnet = "minimal"
+        if verbosity==2:
             verbose_argument_for_dotnet = "normal"
+        if verbosity==3:
+            verbose_argument_for_dotnet = "detailled"
         argument = csprojFilename
         argument = argument + ' --no-incremental'
         argument = argument + f' --configuration {buildConfiguration}'
@@ -382,10 +384,10 @@ class ScriptCollection:
         argument = argument + f' --runtime {runtimeId}'
         argument = argument + f' --verbosity {verbose_argument_for_dotnet}'
         argument = argument + f' --output "{outputDirectory}"'
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbose_argument, False, "Build")
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbosity, False, "Build")
         if(filesToSign is not None):
             for fileToSign in filesToSign:
-                self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbose, current_release_information)
+                self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
     def dotnet_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         # TODO add possibility to set another buildconfiguration than for the real result-build
@@ -393,23 +395,26 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         runtime = self.get_item_from_configuration(configparser, 'dotnet', 'testruntime')
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-            verbose_argument_for_dotnet = "detailed"
-            verbose_argument = 2
-        else:
+        verbosity=self.get_boolean_value_from_configuration(configparser, 'other', 'verbose')
+        if verbosity==0:
+            verbose_argument_for_dotnet = "quiet"
+        if verbosity==1:
+            verbose_argument_for_dotnet = "minimal"
+        if verbosity==2:
             verbose_argument_for_dotnet = "normal"
-            verbose_argument = 1
+        if verbosity==3:
+            verbose_argument_for_dotnet = "detailled"
         self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
                           self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
                           self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime,
-                          self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbose_argument, None, None, current_release_information)
+                          self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbosity, None, None, current_release_information)
         testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')} " \
             f"--verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={self._private_get_coverage_filename(configparser)} " \
             f"/p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
-                                                                  3600, verbose_argument, False, "Execute tests")
+                                                                  3600, verbosity, False, "Execute tests")
 
-    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbose: bool, current_release_information: dict = {}) -> None:
+    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = resolve_relative_path_from_current_working_directory(snkfile)
         directory = os.path.dirname(dllOrExeFile)
@@ -424,10 +429,10 @@ class ScriptCollection:
             raise Exception("Only .dll-files and .exe-files can be signed")
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ildasm",
                                                                   f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
-                                                                  directory, 3600, verbose, False, "Sign: ildasm")
+                                                                  directory, 3600, verbosity, False, "Sign: ildasm")
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ilasm",
                                                                   f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
-                                                                  directory, 3600, verbose, False, "Sign: ilasm")
+                                                                  directory, 3600, verbosity, False, "Sign: ilasm")
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
@@ -541,6 +546,7 @@ class ScriptCollection:
             pythontestfile = self.get_item_from_configuration(configparser, 'python', 'pythontestfile')
             pythontestfilename = os.path.basename(pythontestfile)
             pythontestfilefolder = os.path.dirname(pythontestfile)
+            # TODO set verbosity-level for pytest
             self.execute_and_raise_exception_if_exit_code_is_not_zero("pytest", pythontestfilename, pythontestfilefolder, 3600,
                                                                       self._private_get_verbosity_for_exuecutor(configparser), False, "Pytest")
 
@@ -553,15 +559,16 @@ class ScriptCollection:
             gpgidentity = self.get_item_from_configuration(configparser, 'other', 'gpgidentity')
             repository_version = self.get_version_for_buildscripts(configparser)
             productname = self.get_item_from_configuration(configparser, 'general', 'productname')
-            if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
+            verbosity=self._private_get_verbosity_for_exuecutor(configparser)>1
+            if verbosity:
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
             twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl" \
                 f" --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("twine",
-                                                                      twine_argument, self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"),
-                                                                      3600, self._private_get_verbosity_for_exuecutor(configparser))
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument,
+                                                                      self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"),
+                                                                      3600, verbosity)
 
     # </Build>
 
@@ -821,18 +828,16 @@ class ScriptCollection:
                         filetype_full = "Directory"
                     raise Exception(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
-    def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
-            return 2
-        else:
-            return 1
-
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'verbose'):
+        if self._private_get_verbosity_for_exuecutor(configparser) > 0:
             for item in queried_items:
                 if item == "<notavailable>":
-                    write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried")
+                    write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. "
+                                            + "This may result in errors or involuntary behavior")
                     print_stacktrace()
+
+    def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
+        return self.get_number_value_from_configuration(configparser, 'other', 'verbose')
 
     def _private_get_buildoutputdirectory(self, configparser: ConfigParser, runtime: str) -> str:
         result = self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory')
@@ -844,12 +849,13 @@ class ScriptCollection:
         try:
             return configparser.getboolean(section, propertyname)
         except:
-            pass
-        try:
-            return string_to_boolean(self.get_item_from_configuration(configparser, section, propertyname, {}, False))
-        except:
-            pass
-        return False
+            try:
+                return string_to_boolean(self.get_item_from_configuration(configparser, section, propertyname, {}, False))
+            except:
+                return False
+
+    def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
+        return int(configparser.get.getboolean(section, propertyname))
 
     def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
         if not configparser.has_option(sectioon, item):
@@ -1484,7 +1490,7 @@ class ScriptCollection:
         if(verbosity == 2):
             write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
 
-    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, use_epew: bool = False) -> int:
+    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False) -> int:
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
@@ -1493,9 +1499,9 @@ class ScriptCollection:
                     raise
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
-        if use_epew:
-            raise Exception("start_program_asynchronously using epew is not implemented yet. Set use_epew=False to use this function.")
-        else:
+        if (epew_is_available() and not prevent_using_epew):
+            raise Exception("start_program_asynchronously using epew is not implemented yet. Set prevent_using_epew=True to use this function.")
+        else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
@@ -1504,33 +1510,31 @@ class ScriptCollection:
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
                                                              print_errors_as_information: bool = False, log_file: str = None,
-                                                             write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                                                             write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
                                                              write_output_to_standard_output: bool = False, log_namespace: str = "") -> None:
-        # TODO remove parameter write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero
         # TODO rename this function to start_program_synchronously_and_raise_exception_if_exit_code_is_not_zero
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, True, prevent_using_epew, write_output_to_standard_output, log_namespace)
         if result[0] == 0:
             return result
         else:
-            write_message_to_stderr(result[2])
             raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(result[0])}")
 
     def execute(self, program: str, arguments: str, workingdirectory: str = "", timeoutInSeconds: int = 3600, verbosity=1, addLogOverhead: bool = False,
                 title: str = None, print_errors_as_information: bool = False, log_file: str = None,
-                write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = True,
+                write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
                 write_output_to_standard_output: bool = False, log_namespace: str = "") -> int:
-        # TODO remove parameter write_strerr_of_program_to_local_strerr_when_exitcode_is_not_zero
         # TODO remove this function
         result = self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
                                                   addLogOverhead, title, False, prevent_using_epew, write_output_to_standard_output, log_namespace)
-        write_message_to_stderr(result[2])
+        if(write_stderr_of_program_to_local_stderr_when_exitcode_is_not_zero):
+            write_message_to_stderr(result[2])
         return result[0]
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
-                                    throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = True,
+                                    throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
                                     write_output_to_standard_output: bool = True, log_namespace: str = ""):
         if self.mock_program_calls:
             try:
@@ -1550,12 +1554,10 @@ class ScriptCollection:
             title_argument = title_argument.replace("\"", "'").replace("\\", "/")
             title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
             tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-            if verbosity == 2:
-                write_message_to_stdout(f"Start executing '{title_local}' (temp: '{tempdir}')")
-            output_file_for_stdout = tempdir + ".stdout-epew-temp.txt"
-            output_file_for_stderr = tempdir + ".stderr-epew-temp.txt"
-            output_file_for_exit_code = tempdir + ".exitcode-epew-temp.txt"
-            output_file_for_pid = tempdir + ".pid-epew-temp.txt"
+            output_file_for_stdout = tempdir + ".epew.stdout.txt"
+            output_file_for_stderr = tempdir + ".epew.stderr.txt"
+            output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
+            output_file_for_pid = tempdir + ".epew.pid.txt"
             base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
             argument = f'--Program "{program}"'
             argument = argument+f' --Argument {base64argument}'
@@ -1571,31 +1573,25 @@ class ScriptCollection:
             if not string_is_none_or_whitespace(log_file):
                 argument = argument+f' --LogFile "{log_file}"'
             if write_output_to_standard_output:
-                argument = argument+' --WriteOutputToConsole'
-            if print_errors_as_information:
                 argument = argument+" --PrintErrorsAsInformation"
             if addLogOverhead:
                 argument = argument+" --AddLogOverhead"
-            if verbosity == 0:
-                argument = argument+" --Verbosity Quiet"
-            if verbosity == 1:
-                argument = argument+" --Verbosity Normal"
-            if verbosity == 2:
+            argument = argument+" --Verbosity "+str(verbosity)
+            epew_call = f'epew {argument}'
+            if verbosity == 3:
                 argument = argument+" --Verbosity Verbose"
-            if verbosity == 2:
-                write_message_to_stdout(f"Start executing '{title_local}'")
-            if verbosity == 2:
-                write_message_to_stdout(f"Plain epew-call: 'epew {argument}'")
-            process = Popen(f'epew {argument}')
+                write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
+            process = Popen(epew_call)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
             stderr = self._private_load_text(output_file_for_stderr)
             exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
             pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
-            if verbosity == 2:
+            ensure_directory_does_not_exist(tempdir)
+            if verbosity == 3:
                 write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
             return (exit_code, stdout, stderr, pid)
-        else:
+        else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
             start_argument_as_array.extend(arguments.split())
             start_argument_as_string = f"{program} {arguments}"
