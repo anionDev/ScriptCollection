@@ -6,6 +6,8 @@
 
 This repository is the place for little scripts which are also useful in future so that someone does not have remember them and write them new from scratch. You can simply use the scripts.
 
+When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
+
 ## Functions
 
 TODO
