@@ -469,7 +469,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         imagename = self.get_item_from_configuration(configparser, "general", "productname").lower()
         dockerfile_filename = self.get_item_from_configuration(configparser, "docker", "dockerfile")
         repository_version = self.get_version_for_buildscripts(configparser)
+        use_anytemplate_dockerfile = False
+        use_dotnet_dockerfile = False
+        dockerfile_with_path = "<notavailable>"
         if dockerfile_filename == self._private_constants_build_template_dockerfile_dotnet:
+            use_anytemplate_dockerfile = True
+            use_dotnet_dockerfile = True
+        if use_dotnet_dockerfile:
             dockerfile_content = self._private_replace_underscores_for_buildconfiguration(self._prvate_template_dockerfile_dotnet, configparser, {})
             dockerfile_filename = "Dockerfile"
             dockerfile_with_path = os.path.join(contextfolder, dockerfile_filename)
@@ -479,6 +485,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                                   f"image build --tag {imagename}:{repository_version} --tag {imagename}:latest "
                                                                   + f"--no-cache --file {dockerfile_filename} .",
                                                                   contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+        if use_anytemplate_dockerfile:
+            ensure_file_does_not_exist(dockerfile_with_path)
 
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         pass
