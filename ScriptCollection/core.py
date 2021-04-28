@@ -476,7 +476,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             ensure_file_exists(dockerfile_with_path)
             write_text_to_file(dockerfile_with_path, dockerfile_content)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("docker",
-                                                                  f"image build --tag {imagename}:{repository_version} --tag {imagename}:latest --no-cache --file {dockerfile_filename} .",
+                                                                  f"image build --tag {imagename}:{repository_version} --tag {imagename}:latest "
+                                                                  + f"--no-cache --file {dockerfile_filename} .",
                                                                   contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser))
 
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
