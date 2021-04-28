@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.12"
+version = "2.4.13"
 __version__ = version
 
 
@@ -47,6 +47,7 @@ class ScriptCollection:
     mock_program_calls: bool = False  # This property is for test-purposes only
     execute_programy_really_if_no_mock_call_is_defined: bool = False  # This property is for test-purposes only
     _private_mocked_program_calls: list = list()
+    _private_constants_build_template_dockerfile_dotnet = "template://dockerfile_dotnet"
 
     # </Properties>
 
@@ -93,11 +94,11 @@ class ScriptCollection:
                 error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
                                                                               lambda: self.deb_create_installer_release_premerge(configurationfile, current_release_information))
 
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
-                write_message_to_stdout("Start to create DockerImage-release")
-                error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
-                                                                              lambda: self.dockerimage_create_installer_release_premerge(configurationfile,
-                                                                                                                                         current_release_information))
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
+                write_message_to_stdout("Start to create docker-release")
+                error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
+                                                                              lambda: self.docker_create_installer_release_premerge(configurationfile,
+                                                                                                                                    current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
@@ -139,11 +140,11 @@ class ScriptCollection:
                 error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
                                                                               lambda: self.deb_create_installer_release_postmerge(configurationfile, current_release_information))
 
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerimagerelease') and not error_occurred:
-                write_message_to_stdout("Start to create DockerImage-release")
-                error_occurred = not self._private_execute_and_return_boolean("dockerimage_create_installer_release",
-                                                                              lambda: self.dockerimage_create_installer_release_postmerge(configurationfile,
-                                                                                                                                          current_release_information))
+            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
+                write_message_to_stdout("Start to create docker-release")
+                error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
+                                                                              lambda: self.docker_create_installer_release_postmerge(configurationfile,
+                                                                                                                                     current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
@@ -191,9 +192,9 @@ class ScriptCollection:
     def dotnet_build_executable_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        verbosity=self._private_get_verbosity_for_exuecutor(configparser)
+        verbosity = self._private_get_verbosity_for_exuecutor(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information,verbosity)
+            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
         sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
@@ -269,7 +270,7 @@ class ScriptCollection:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information,self._private_get_verbosity_for_exuecutor(configparser))
+            self.dotnet_run_tests(configurationfile, current_release_information, self._private_get_verbosity_for_exuecutor(configparser))
         sign_things = self._private_get_sign_things(configparser)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
@@ -436,46 +437,81 @@ class ScriptCollection:
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
-    def deb_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    def deb_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         pass
 
-    def deb_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    def deb_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def dockerimage_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    def docker_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         pass
 
-    def dockerimage_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    _prvate_template_dockerfile_dotnet = """FROM debian:stable-slim
+RUN apt-get update
+RUN apt-get -y install wget
+RUN apt-get -y install dpkg
+RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+RUN dpkg -i packages-microsoft-prod.deb
+RUN apt-get update
+RUN apt-get -y install dotnet-runtime-5.0
+COPY __.docker.contextfolder.__/__.docker.artefactdirectory.__/ App/
+WORKDIR /App
+# TODO do hardening
+ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
+"""
+
+    def docker_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        contextfolder = self.get_item_from_configuration(configparser, "docker", "contextfolder")
+        imagename = self.get_item_from_configuration(configparser, "general", "productname").lower()
+        dockerfile_filename = self.get_item_from_configuration(configparser, "docker", "dockerfile")
+        repository_version = self.get_version_for_buildscripts(configparser)
+        use_anytemplate_dockerfile = False
+        use_dotnet_dockerfile = False
+        dockerfile_with_path = "<notavailable>"
+        if dockerfile_filename == self._private_constants_build_template_dockerfile_dotnet:
+            use_anytemplate_dockerfile = True
+            use_dotnet_dockerfile = True
+        if use_dotnet_dockerfile:
+            dockerfile_content = self._private_replace_underscores_for_buildconfiguration(self._prvate_template_dockerfile_dotnet, configparser, {})
+            dockerfile_filename = "Dockerfile"
+            dockerfile_with_path = os.path.join(contextfolder, dockerfile_filename)
+            ensure_file_exists(dockerfile_with_path)
+            write_text_to_file(dockerfile_with_path, dockerfile_content)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker",
+                                                                  f"image build --tag {imagename}:{repository_version} --tag {imagename}:latest "
+                                                                  + f"--no-cache --file {dockerfile_filename} .",
+                                                                  contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+        if use_anytemplate_dockerfile:
+            ensure_file_does_not_exist(dockerfile_with_path)
+
+    def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
+        pass
+
+    def flutterandroid_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    def flutterios_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         pass
 
-    def flutterandroid_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    def flutterios_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def flutterios_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
-        pass
-
-    def flutterios_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
-        configparser = ConfigParser()
-        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        return False  # TODO implement
-
-    def generic_create_script_release_premerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    def generic_create_script_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program'),
                                                                   self.get_item_from_configuration(configparser, 'script', 'premerge_argument'),
                                                                   self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory'))
 
-    def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict) -> bool:
+    def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'post_mergeprogram'),
@@ -560,7 +596,7 @@ class ScriptCollection:
             repository_version = self.get_version_for_buildscripts(configparser)
             productname = self.get_item_from_configuration(configparser, 'general', 'productname')
             verbosity = self._private_get_verbosity_for_exuecutor(configparser)
-            if verbosity> 2:
+            if verbosity > 2:
                 verbose_argument = "--verbose"
             else:
                 verbose_argument = ""
@@ -927,28 +963,15 @@ class ScriptCollection:
 
     def _private_replace_underscores_for_buildconfiguration(self, string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True) -> str:
         replacements["builtin.year"] = str(datetime.now().year)
+        replacements["builtin.template_dockerfile_dotnet"] = self._private_constants_build_template_dockerfile_dotnet
         if include_version:
             replacements["builtin.version"] = self.get_version_for_buildscripts(configparser)
 
         available_configuration_items = []
 
-        available_configuration_items.append(["general", "productname"])
-        available_configuration_items.append(["general", "basefolder"])
-        available_configuration_items.append(["general", "logfilefolder"])
-        available_configuration_items.append(["general", "repository"])
-        available_configuration_items.append(["general", "author"])
-        available_configuration_items.append(["general", "description"])
-        available_configuration_items.append(["prepare", "developmentbranchname"])
-        available_configuration_items.append(["prepare", "masterbranchname"])
-        available_configuration_items.append(["prepare", "gittagprefix"])
-        available_configuration_items.append(["python", "readmefile"])
-        available_configuration_items.append(["python", "lintcheckfiles"])
-        available_configuration_items.append(["python", "pythontestfile"])
-        available_configuration_items.append(["python", "pythonsetuppyfile"])
-        available_configuration_items.append(["python", "filesforupdatingversion"])
-        available_configuration_items.append(["python", "pypiapikeyfile"])
-        available_configuration_items.append(["python", "deletefolderbeforcreatewheel"])
-        available_configuration_items.append(["python", "publishdirectoryforwhlfile"])
+        available_configuration_items.append(["docker", "artefactdirectory"])
+        available_configuration_items.append(["docker", "contextfolder"])
+        available_configuration_items.append(["docker", "dockerfile"])
         available_configuration_items.append(["dotnet", "csprojfile"])
         available_configuration_items.append(["dotnet", "buildoutputdirectory"])
         available_configuration_items.append(["dotnet", "publishdirectory"])
@@ -969,12 +992,29 @@ class ScriptCollection:
         available_configuration_items.append(["dotnet", "exportreferenceremotename"])
         available_configuration_items.append(["dotnet", "nugetsource"])
         available_configuration_items.append(["dotnet", "iconfile"])
+        available_configuration_items.append(["general", "productname"])
+        available_configuration_items.append(["general", "basefolder"])
+        available_configuration_items.append(["general", "logfilefolder"])
+        available_configuration_items.append(["general", "repository"])
+        available_configuration_items.append(["general", "author"])
+        available_configuration_items.append(["general", "description"])
+        available_configuration_items.append(["prepare", "developmentbranchname"])
+        available_configuration_items.append(["prepare", "masterbranchname"])
+        available_configuration_items.append(["prepare", "gittagprefix"])
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
         available_configuration_items.append(["other", "projecturl"])
         available_configuration_items.append(["other", "repositoryurl"])
         available_configuration_items.append(["other", "exportrepositoryremotename"])
         available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])
+        available_configuration_items.append(["python", "readmefile"])
+        available_configuration_items.append(["python", "lintcheckfiles"])
+        available_configuration_items.append(["python", "pythontestfile"])
+        available_configuration_items.append(["python", "pythonsetuppyfile"])
+        available_configuration_items.append(["python", "filesforupdatingversion"])
+        available_configuration_items.append(["python", "pypiapikeyfile"])
+        available_configuration_items.append(["python", "deletefolderbeforcreatewheel"])
+        available_configuration_items.append(["python", "publishdirectoryforwhlfile"])
 
         for item in available_configuration_items:
             if configparser.has_option(item[0], item[1]):
@@ -1824,7 +1864,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollection().dotnet_run_tests(args.configurationfile, {},1)
+    return ScriptCollection().dotnet_run_tests(args.configurationfile, {}, 1)
 
 
 def SCDotNetsign_cli() -> int:

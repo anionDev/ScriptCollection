@@ -24,7 +24,7 @@ write_lines_to_file = getattr(module, "write_lines_to_file")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.4.12"
+version = "2.4.13"
 
 
 class MiscellaneousTests(unittest.TestCase):
