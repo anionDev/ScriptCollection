@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.13"
+version = "2.4.14"
 __version__ = version
 
 
@@ -456,7 +456,7 @@ RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod
 RUN dpkg -i packages-microsoft-prod.deb
 RUN apt-get update
 RUN apt-get -y install dotnet-runtime-5.0
-COPY __.docker.contextfolder.__/__.docker.artefactdirectory.__/ App/
+COPY __.internal.artefactdirectory.__/ App/
 WORKDIR /App
 # TODO do hardening
 ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
@@ -477,6 +477,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             use_dotnet_dockerfile = True
         if use_dotnet_dockerfile:
             dockerfile_content = self._private_replace_underscores_for_buildconfiguration(self._prvate_template_dockerfile_dotnet, configparser, {})
+            dockerfile_content = dockerfile_content.replace("__.internal.artefactdirectory.__",
+                                                    self.get_item_from_configuration(configparser, 'docker', 'artefactdirectory').replace("\\","/"))
             dockerfile_filename = "Dockerfile"
             dockerfile_with_path = os.path.join(contextfolder, dockerfile_filename)
             ensure_file_exists(dockerfile_with_path)
