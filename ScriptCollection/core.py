@@ -478,7 +478,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if use_dotnet_dockerfile:
             dockerfile_content = self._private_replace_underscores_for_buildconfiguration(self._prvate_template_dockerfile_dotnet, configparser, {})
             dockerfile_content = dockerfile_content.replace("__.internal.artefactdirectory.__",
-                                                    self.get_item_from_configuration(configparser, 'docker', 'artefactdirectory').replace("\\","/"))
+                                                            self.get_item_from_configuration(configparser, 'docker', 'artefactdirectory').replace("\\", "/"))
             dockerfile_filename = "Dockerfile"
             dockerfile_with_path = os.path.join(contextfolder, dockerfile_filename)
             ensure_file_exists(dockerfile_with_path)
@@ -486,7 +486,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         self.execute_and_raise_exception_if_exit_code_is_not_zero("docker",
                                                                   f"image build --tag {imagename}:{repository_version} --tag {imagename}:latest "
                                                                   + f"--no-cache --file {dockerfile_filename} .",
-                                                                  contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+                                                                  contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser),
+                                                                  print_errors_as_information=True)
         if use_anytemplate_dockerfile:
             ensure_file_does_not_exist(dockerfile_with_path)
 
