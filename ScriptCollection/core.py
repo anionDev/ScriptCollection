@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.15"
+version = "2.4.16"
 __version__ = version
 
 
@@ -1581,7 +1581,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 title_for_message = f"for task '{title}' "
                 title_argument = title
             title_argument = title_argument.replace("\"", "'").replace("\\", "/")
-            title_local = f"epew {title_for_message}('{workingdirectory}>{program} {arguments}')"
+            cmdcall=f"{workingdirectory}>{program} {arguments}"
+            write_message_to_stdout("Run "+cmdcall)
+            title_local = f"epew {title_for_message}('{cmdcall}')"
             tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
             output_file_for_stdout = tempdir + ".epew.stdout.txt"
             output_file_for_stderr = tempdir + ".epew.stderr.txt"
@@ -1609,7 +1611,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             epew_call = f'epew {argument}'
             if verbosity == 3:
                 write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
-            process = Popen(epew_call, stdout=PIPE, stderr=PIPE, shell=False)
+            process = Popen(epew_call, shell=False)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
             stderr = self._private_load_text(output_file_for_stderr)
@@ -1619,7 +1621,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             if verbosity == 3:
                 write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
+                raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
             return (exit_code, stdout, stderr, pid)
         else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
             start_argument_as_array = [program]
