@@ -1570,6 +1570,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
+        if(arguments is None):
+            arguments = ""
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if (epew_is_available() and not prevent_using_epew):
             if string_is_none_or_whitespace(title):
@@ -1587,7 +1589,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             output_file_for_pid = tempdir + ".epew.pid.txt"
             base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
             argument = f'--Program "{program}"'
-            argument = argument+f' --Argument {base64argument}'
+            argument = argument+f' --Argument "{base64argument}"'
             argument = argument+' --ArgumentIsBase64Encoded'
             argument = argument+f' --Workingdirectory "{workingdirectory}"'
             argument = argument+f' --StdOutFile "{output_file_for_stdout}"'
