@@ -1609,7 +1609,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             epew_call = f'epew {argument}'
             if verbosity == 3:
                 write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
-            process = Popen(epew_call)
+            process = Popen(epew_call, stdout=PIPE, stderr=PIPE, shell=False)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
             stderr = self._private_load_text(output_file_for_stderr)
@@ -2413,7 +2413,7 @@ def ensure_file_does_not_exist(path: str) -> None:
 
 
 def format_xml_file(filepath: str) -> None:
-    format_xml_file(file_is_empty, "utf-8")
+    format_xml_file_with_encoding(file_is_empty, "utf-8")
 
 
 def format_xml_file_with_encoding(filepath: str, encoding: str) -> None:
