@@ -17,7 +17,6 @@ import tempfile
 import time
 import traceback
 import uuid
-import xml.dom.minidom
 from datetime import datetime, timedelta
 from configparser import ConfigParser
 from distutils.dir_util import copy_tree
@@ -30,13 +29,14 @@ from pathlib import Path
 from random import randrange
 from shutil import copy2, copyfile
 from subprocess import Popen, PIPE, call
+from defusedxml.minidom import parse
 from PyPDF2 import PdfFileMerger
 import keyboard
 import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.14"
+version = "2.4.15"
 __version__ = version
 
 
@@ -478,7 +478,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if use_dotnet_dockerfile:
             dockerfile_content = self._private_replace_underscores_for_buildconfiguration(self._prvate_template_dockerfile_dotnet, configparser, {})
             dockerfile_content = dockerfile_content.replace("__.internal.artefactdirectory.__",
-                                                    self.get_item_from_configuration(configparser, 'docker', 'artefactdirectory').replace("\\","/"))
+                                                            self.get_item_from_configuration(configparser, 'docker', 'artefactdirectory').replace("\\", "/"))
             dockerfile_filename = "Dockerfile"
             dockerfile_with_path = os.path.join(contextfolder, dockerfile_filename)
             ensure_file_exists(dockerfile_with_path)
@@ -486,7 +486,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         self.execute_and_raise_exception_if_exit_code_is_not_zero("docker",
                                                                   f"image build --tag {imagename}:{repository_version} --tag {imagename}:latest "
                                                                   + f"--no-cache --file {dockerfile_filename} .",
-                                                                  contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+                                                                  contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser),
+                                                                  print_errors_as_information=True)
         if use_anytemplate_dockerfile:
             ensure_file_does_not_exist(dockerfile_with_path)
 
@@ -1569,6 +1570,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
+        if(arguments is None):
+            arguments = ""
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if (epew_is_available() and not prevent_using_epew):
             if string_is_none_or_whitespace(title):
@@ -1586,7 +1589,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             output_file_for_pid = tempdir + ".epew.pid.txt"
             base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
             argument = f'--Program "{program}"'
-            argument = argument+f' --Argument {base64argument}'
+            argument = argument+f' --Argument "{base64argument}"'
             argument = argument+' --ArgumentIsBase64Encoded'
             argument = argument+f' --Workingdirectory "{workingdirectory}"'
             argument = argument+f' --StdOutFile "{output_file_for_stdout}"'
@@ -1606,7 +1609,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             epew_call = f'epew {argument}'
             if verbosity == 3:
                 write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
-            process = Popen(epew_call)
+            process = Popen(epew_call, stdout=PIPE, stderr=PIPE, shell=False)
             process.wait()
             stdout = self._private_load_text(output_file_for_stdout)
             stderr = self._private_load_text(output_file_for_stderr)
@@ -2366,34 +2369,33 @@ def string_is_none_or_whitespace(string: str) -> bool:
         return string.strip() == ""
 
 
-def strip_new_line_character(value: str):
-    value = value.strip().strip('\n').strip('\r').strip()
-    return value
+def strip_new_line_character(value: str) -> str:
+    return value.strip().strip('\n').strip('\r').strip()
 
 
-def append_line_to_file(file: str, line: str, encoding: str = "utf-8"):
+def append_line_to_file(file: str, line: str, encoding: str = "utf-8") -> None:
     if not file_is_empty(file):
         line = os.linesep+line
     append_to_file(file, line, encoding)
 
 
-def append_to_file(file: str, content: str, encoding: str = "utf-8"):
+def append_to_file(file: str, content: str, encoding: str = "utf-8") -> None:
     with open(file, "a", encoding=encoding) as fileObject:
         fileObject.write(content)
 
 
-def ensure_directory_exists(path: str):
+def ensure_directory_exists(path: str) -> None:
     if not os.path.isdir(path):
         os.makedirs(path)
 
 
-def ensure_file_exists(path: str):
+def ensure_file_exists(path: str) -> None:
     if(not os.path.isfile(path)):
         with open(path, "a+"):
             pass
 
 
-def ensure_directory_does_not_exist(path: str):
+def ensure_directory_does_not_exist(path: str) -> None:
     if(os.path.isdir(path)):
         for root, dirs, files in os.walk(path, topdown=False):
             for name in files:
@@ -2405,20 +2407,24 @@ def ensure_directory_does_not_exist(path: str):
         os.rmdir(path)
 
 
-def ensure_file_does_not_exist(path: str):
+def ensure_file_does_not_exist(path: str) -> None:
     if(os.path.isfile(path)):
         os.remove(path)
 
 
-def format_xml_file(filepath: str, encoding: str):
+def format_xml_file(filepath: str) -> None:
+    format_xml_file_with_encoding(file_is_empty, "utf-8")
+
+
+def format_xml_file_with_encoding(filepath: str, encoding: str) -> None:
     with codecs.open(filepath, 'r', encoding=encoding) as file:
         text = file.read()
-    text = xml.dom.minidom.parseString(text).toprettyxml()
+    text = parse(text).toprettyxml()
     with codecs.open(filepath, 'w', encoding=encoding) as file:
         file.write(text)
 
 
-def get_clusters_and_sectors_of_disk(diskpath: str):
+def get_clusters_and_sectors_of_disk(diskpath: str) -> None:
     sectorsPerCluster = ctypes.c_ulonglong(0)
     bytesPerSector = ctypes.c_ulonglong(0)
     rootPathName = ctypes.c_wchar_p(diskpath)
@@ -2446,15 +2452,15 @@ def get_missing_files(folderA: str, folderB: str) -> list:
     return result
 
 
-def write_lines_to_file(file: str, lines: list, encoding="utf-8"):
+def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
     write_text_to_file(file, os.linesep.join(lines), encoding)
 
 
-def write_text_to_file(file: str, content: str, encoding="utf-8"):
+def write_text_to_file(file: str, content: str, encoding="utf-8") -> None:
     write_binary_to_file(file, bytearray(content, encoding))
 
 
-def write_binary_to_file(file: str, content: bytearray):
+def write_binary_to_file(file: str, content: bytearray) -> None:
     with open(file, "wb") as file_object:
         file_object.write(content)
 
@@ -2599,7 +2605,7 @@ def remove_duplicates(input_list) -> list:
     return result
 
 
-def print_stacktrace():
+def print_stacktrace() -> None:
     for line in traceback.format_stack():
         write_message_to_stdout(line.strip())
 
