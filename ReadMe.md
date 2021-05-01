@@ -24,9 +24,9 @@ Some functions are not entirely available on windows or require common third-par
 
 ### Installation via pip
 
-`pip install ScriptCollection`
+`pip3 install ScriptCollection`
 
-pip requires [Python](https://www.python.org) 3. See the [PyPI-site for ScriptCollection](https://pypi.org/project/ScriptCollection)
+pip3 requires [Python](https://www.python.org) 3. See the [PyPI-site for ScriptCollection](https://pypi.org/project/ScriptCollection)
 
 ### Download sourcecode using git
 
@@ -38,7 +38,7 @@ It may be more easy to pip-install the ScriptCollection but technically pip is n
 
 ## Troubleshooting
 
-It is recommended to always use only the newest version of the ScriptCollection. If you have an older version: Update it (e. g. using `pip install ScriptCollection --upgrade` if you installed the ScriptCollection via pip). If you still have problems, then feel free to create an [issue](https://github.com/anionDev/ScriptCollection/issues).
+It is recommended to always use only the newest version of the ScriptCollection. If you have an older version: Update it (e. g. using `pip3 install ScriptCollection --upgrade` if you installed the ScriptCollection via pip). If you still have problems, then feel free to create an [issue](https://github.com/anionDev/ScriptCollection/issues).
 
 If you have installed the ScriptCollection as pip-package you can simply check the version using Python with the following commands:
 
@@ -47,7 +47,7 @@ from ScriptCollection.core import get_ScriptCollection_version
 get_ScriptCollection_version()
 ```
 
-Or you can simply run `pip freeze` folder to get information about (all) currently installed pip-packages.
+Or you can simply run `pip3 freeze` folder to get information about (all) currently installed pip-packages.
 
 ## Development
 
@@ -56,20 +56,21 @@ Or you can simply run `pip freeze` folder to get information about (all) current
 To develop ScriptCollection it is obviously required that the following commandline-commands are available on your system:
 
 - `python` (on some systems `python3`)
-- `pip` (on some systems `pip3`)
+- `pip3`
 
 To install all required pip-packages simply execute the following commands:
 
 ```lang-bash
-pip install "keyboard>=0.13.5"
-pip install "ntplib>=0.3.4"
-pip install "pycdlib>=1.10.0"
-pip install "PyPDF2>=1.26.0"
-pip install "qrcode>=6.1"
-pip install "send2trash>=1.5.0"
-pip install "pylint>=2.6.0"
-pip install "pytest>=6.1.2"
-pip install "wheel>=0.35.1"
+pip3 install "defusedxml>=0.7.1"
+pip3 install "keyboard>=0.13.5"
+pip3 install "ntplib>=0.3.4"
+pip3 install "pycdlib>=1.10.0"
+pip3 install "PyPDF2>=1.26.0"
+pip3 install "qrcode>=6.1"
+pip3 install "send2trash>=1.5.0"
+pip3 install "pylint>=2.6.0"
+pip3 install "pytest>=6.1.2"
+pip3 install "wheel>=0.35.1"
 ```
 
 ### IDE

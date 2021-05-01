@@ -35,6 +35,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
+        "defusedxml>=0.7.1",
         "keyboard>=0.13.5",
         "ntplib>=0.3.4",
         "pycdlib>=1.10.0",
