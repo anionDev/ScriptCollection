@@ -36,7 +36,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.16"
+version = "2.4.17"
 __version__ = version
 
 
@@ -1497,8 +1497,11 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return self._private_get_file_owner_helper(ls_output)
 
     def _private_get_file_owner_helper(self, ls_output: str) -> str:
-        splitted = ' '.join(ls_output.split()).split(' ')
-        return f"{splitted[2]}:{splitted[3]}"
+        try:
+            splitted = ' '.join(ls_output.split()).split(' ')
+            return f"{splitted[2]}:{splitted[3]}"
+        except Exception as exception:
+            raise ValueError(f"ls-output '{ls_output}' not parsable") from exception
 
     def get_file_owner_and_file_permission(self, file: str) -> str:
         ls_output = self._private_ls(file)
