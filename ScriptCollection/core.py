@@ -9,7 +9,6 @@ import hashlib
 import pathlib
 import re
 import os
-import shlex
 import shutil
 import stat
 import sys
@@ -28,7 +27,7 @@ from os.path import isfile, join, isdir
 from pathlib import Path
 from random import randrange
 from shutil import copy2, copyfile
-from subprocess import Popen, PIPE, call
+from subprocess import Popen, call
 from defusedxml.minidom import parse
 from PyPDF2 import PdfFileMerger
 import keyboard
@@ -1536,22 +1535,11 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if(verbosity == 2):
             write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
 
-    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False) -> int:
-        if self.mock_program_calls:
-            try:
-                return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
-            except LookupError:
-                if not self.execute_programy_really_if_no_mock_call_is_defined:
-                    raise
-        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
-        self._private_log_program_start(program, arguments, workingdirectory, verbosity)
-        if (epew_is_available() and not prevent_using_epew):
-            raise Exception("start_program_asynchronously using epew is not implemented yet. Set prevent_using_epew=True to use this function.")
-        else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
-            start_argument_as_array = [program]
-            start_argument_as_array.extend(arguments.split())
-            start_argument_as_string = f"{program} {arguments}"
-            return Popen(shlex.split(start_argument_as_string), stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False).pid
+    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "") -> int:
+        self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead,
+                                    title, log_namespace, None, None, None, None)
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
@@ -1566,6 +1554,35 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                     addLogOverhead: bool = False, title: str = None,
                                     throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
                                     log_namespace: str = ""):
+        tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        output_file_for_stdout = tempdir + ".epew.stdout.txt"
+        output_file_for_stderr = tempdir + ".epew.stderr.txt"
+        output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
+        output_file_for_pid = tempdir + ".epew.pid.txt"
+        process = self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
+                                              addLogOverhead, title,log_namespace, output_file_for_stdout, output_file_for_stderr, output_file_for_pid, output_file_for_exit_code)
+        process.wait()
+        stdout = self._private_load_text(output_file_for_stdout)
+        stderr = self._private_load_text(output_file_for_stderr)
+        exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
+        pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
+        ensure_directory_does_not_exist(tempdir)
+        if string_is_none_or_whitespace(title):
+            title_for_message = ""
+        else:
+            title_for_message = f"for task '{title}' "
+        cmdcall = f"{workingdirectory}>{program} {arguments}"
+        title_local = f"epew {title_for_message}('{cmdcall}')"
+        if verbosity == 3:
+            write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
+        if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+            raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
+        return (exit_code, stdout, stderr, pid)
+
+    def _private_start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
+                               print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                               addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
+                               stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)
@@ -1576,69 +1593,45 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if(arguments is None):
             arguments = ""
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
-        if (epew_is_available() and not prevent_using_epew):
-            if string_is_none_or_whitespace(title):
-                title_for_message = ""
-                title_argument = f'{workingdirectory}>{program} {arguments}'
-            else:
-                title_for_message = f"for task '{title}' "
-                title_argument = title
-            title_argument = title_argument.replace("\"", "'").replace("\\", "/")
-            cmdcall=f"{workingdirectory}>{program} {arguments}"
-            write_message_to_stdout("Run "+cmdcall)
-            title_local = f"epew {title_for_message}('{cmdcall}')"
-            tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-            output_file_for_stdout = tempdir + ".epew.stdout.txt"
-            output_file_for_stderr = tempdir + ".epew.stderr.txt"
-            output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
-            output_file_for_pid = tempdir + ".epew.pid.txt"
-            base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-            argument = f'--Program "{program}"'
-            argument = argument+f' --Argument "{base64argument}"'
-            argument = argument+' --ArgumentIsBase64Encoded'
-            argument = argument+f' --Workingdirectory "{workingdirectory}"'
-            argument = argument+f' --StdOutFile "{output_file_for_stdout}"'
-            argument = argument+f' --StdErrFile "{output_file_for_stderr}"'
-            argument = argument+f' --ExitCodeFile "{output_file_for_exit_code}"'
-            argument = argument+f' --ProcessIdFile "{output_file_for_pid}"'
-            argument = argument+f' --TimeoutInMilliseconds {str(timeoutInSeconds*1000)}'
-            argument = argument+f' --Title "{title_argument}"'
-            argument = argument+f' --LogNamespace "{log_namespace}"'
-            if not string_is_none_or_whitespace(log_file):
-                argument = argument+f' --LogFile "{log_file}"'
-            if print_errors_as_information:
-                argument = argument+" --PrintErrorsAsInformation"
-            if addLogOverhead:
-                argument = argument+" --AddLogOverhead"
-            argument = argument+" --Verbosity "+str(verbosity)
-            epew_call = f'epew {argument}'
-            if verbosity == 3:
-                write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
-            process = Popen(epew_call, shell=False)
-            process.wait()
-            stdout = self._private_load_text(output_file_for_stdout)
-            stderr = self._private_load_text(output_file_for_stderr)
-            exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
-            pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
-            ensure_directory_does_not_exist(tempdir)
-            if verbosity == 3:
-                write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
-            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
-            return (exit_code, stdout, stderr, pid)
-        else:  # TODO remove this part and use always epew when epew is available via winget and apt or something like is so that epew can be used
-            start_argument_as_array = [program]
-            start_argument_as_array.extend(arguments.split())
-            start_argument_as_string = f"{program} {arguments}"
-            process = Popen(shlex.split(start_argument_as_string), stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False)
-            pid = process.pid
-            stdout, stderr = process.communicate()
-            exit_code = process.wait()
-            stdout = bytes_to_string(stdout).replace('\r', '')
-            stderr = bytes_to_string(stderr).replace('\r', '')
-            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                raise Exception(f"'{workingdirectory}>{program} {arguments}' had exitcode {str(exit_code)}")
-            return (exit_code, stdout, stderr, pid)
+        if string_is_none_or_whitespace(title):
+            title_for_message = ""
+            title_argument = f'{workingdirectory}>{program} {arguments}'
+        else:
+            title_for_message = f"for task '{title}' "
+            title_argument = title
+        title_argument = title_argument.replace("\"", "'").replace("\\", "/")
+        cmdcall = f"{workingdirectory}>{program} {arguments}"
+        write_message_to_stdout("Run "+cmdcall)
+        title_local = f"epew {title_for_message}('{cmdcall}')"
+        base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
+        argument=""
+        argument=argument+f' --Program {program}'
+        argument=argument+f' --Argument {base64argument}'
+        argument=argument+f' --ArgumentIsBase64Encoded'
+        argument=argument+f' --Workingdirectory "{workingdirectory}"'
+        if stdoutfile is not None:
+            argument=argument+f' --StdOutFile {stdoutfile}'
+        if stderrfile is not None:
+            argument=argument+f' --StdErrFile {stderrfile}'
+        if exitcodefile is not None:
+            argument=argument+f' --ExitCodeFile {exitcodefile}'
+        if pidfile is not None:
+            argument=argument+f' --ProcessIdFile {pidfile}'
+        argument = argument+f' --TimeoutInMilliseconds {str(timeoutInSeconds*1000)}'
+        argument = argument+f' --Title "{title_argument}"'
+        argument = argument+f' --LogNamespace "{log_namespace}"'
+        if not string_is_none_or_whitespace(log_file):
+            argument = argument+f' --LogFile "{log_file}"'
+        if print_errors_as_information:
+            argument = argument+" --PrintErrorsAsInformation"
+        if addLogOverhead:
+            argument = argument+" --AddLogOverhead"
+        argument = argument+" --Verbosity "+str(verbosity)
+        epew_call = f'epew {argument}'
+        if verbosity == 3:
+            write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
+        process = Popen(epew_call, shell=False)
+        return process
 
     def verify_no_pending_mock_program_calls(self):
         if(len(self._private_mocked_program_calls) > 0):
