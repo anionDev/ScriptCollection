@@ -24,7 +24,7 @@ write_lines_to_file = getattr(module, "write_lines_to_file")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.4.17"
+version = "2.4.18"
 
 
 class MiscellaneousTests(unittest.TestCase):
@@ -254,3 +254,14 @@ class ExecuteProgramTests(unittest.TestCase):
         assert result1 == (0, "out 1", "err 1", 40)
         assert result2 == (0, "out 2", "err 2", 44)
         sc.verify_no_pending_mock_program_calls()
+
+    def test_simple_program_call(self) -> None:
+        # arrange
+        sc = ScriptCollection()
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+
+        # act
+        (exit_code, _, _2, _3)=sc.start_program_synchronously("git","status",dir_path,throw_exception_if_exitcode_is_not_zero=False)
+
+        # assert
+        assert exit_code==0
