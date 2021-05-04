@@ -1538,6 +1538,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "") -> int:
+        if self.mock_program_calls:
+            try:
+                return self._private_get_mock_program_call(program, arguments, workingdirectory)
+            except LookupError:
+                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                    raise
         self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead,
                                     title, log_namespace, None, None, None, None)
 
@@ -1554,6 +1560,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                     addLogOverhead: bool = False, title: str = None,
                                     throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
                                     log_namespace: str = ""):
+        if self.mock_program_calls:
+            try:
+                return self._private_get_mock_program_call(program, arguments, workingdirectory)
+            except LookupError:
+                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                    raise
         tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
         output_file_for_stdout = tempdir + ".epew.stdout.txt"
         output_file_for_stderr = tempdir + ".epew.stderr.txt"
@@ -1583,12 +1595,6 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
                                stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
-        if self.mock_program_calls:
-            try:
-                return self._private_get_mock_program_call(program, arguments, workingdirectory)
-            except LookupError:
-                if not self.execute_programy_really_if_no_mock_call_is_defined:
-                    raise
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if(arguments is None):
             arguments = ""
