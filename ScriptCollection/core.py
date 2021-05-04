@@ -1607,7 +1607,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         argument=""
         argument=argument+f' --Program {program}'
         argument=argument+f' --Argument {base64argument}'
-        argument=argument+f' --ArgumentIsBase64Encoded'
+        argument=argument+' --ArgumentIsBase64Encoded'
         argument=argument+f' --Workingdirectory "{workingdirectory}"'
         if stdoutfile is not None:
             argument=argument+f' --StdOutFile {stdoutfile}'
