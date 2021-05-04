@@ -1540,19 +1540,20 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                      title: str = None, log_namespace: str = "") -> int:
         if self.mock_program_calls:
             try:
-                return self._private_get_mock_program_call(program, arguments, workingdirectory)
+                return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
-        self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead,
-                                    title, log_namespace, None, None, None, None)
+        return self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
+         log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
                                                              print_errors_as_information: bool = False, log_file: str = None, prevent_using_epew: bool = False,
                                                              log_namespace: str = "") -> None:
         # TODO remove this function
-        return self.start_program_synchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
+        return self.start_program_synchronously(program, arguments, workingdirectory, verbosity,
+                                                print_errors_as_information, log_file, timeoutInSeconds,
                                                 addLogOverhead, title, True, prevent_using_epew, log_namespace)
 
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
@@ -1572,7 +1573,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
         output_file_for_pid = tempdir + ".epew.pid.txt"
         process = self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
-                                              addLogOverhead, title,log_namespace, output_file_for_stdout, output_file_for_stderr, output_file_for_pid, output_file_for_exit_code)
+                                              addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr, output_file_for_pid, output_file_for_exit_code)
         process.wait()
         stdout = self._private_load_text(output_file_for_stdout)
         stderr = self._private_load_text(output_file_for_stderr)
@@ -1610,19 +1611,19 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         write_message_to_stdout("Run "+cmdcall)
         title_local = f"epew {title_for_message}('{cmdcall}')"
         base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-        argument=""
-        argument=argument+f' --Program {program}'
-        argument=argument+f' --Argument {base64argument}'
-        argument=argument+' --ArgumentIsBase64Encoded'
-        argument=argument+f' --Workingdirectory "{workingdirectory}"'
+        argument = ""
+        argument = argument+f' --Program {program}'
+        argument = argument+f' --Argument {base64argument}'
+        argument = argument+' --ArgumentIsBase64Encoded'
+        argument = argument+f' --Workingdirectory "{workingdirectory}"'
         if stdoutfile is not None:
-            argument=argument+f' --StdOutFile {stdoutfile}'
+            argument = argument+f' --StdOutFile {stdoutfile}'
         if stderrfile is not None:
-            argument=argument+f' --StdErrFile {stderrfile}'
+            argument = argument+f' --StdErrFile {stderrfile}'
         if exitcodefile is not None:
-            argument=argument+f' --ExitCodeFile {exitcodefile}'
+            argument = argument+f' --ExitCodeFile {exitcodefile}'
         if pidfile is not None:
-            argument=argument+f' --ProcessIdFile {pidfile}'
+            argument = argument+f' --ProcessIdFile {pidfile}'
         argument = argument+f' --TimeoutInMilliseconds {str(timeoutInSeconds*1000)}'
         argument = argument+f' --Title "{title_argument}"'
         argument = argument+f' --LogNamespace "{log_namespace}"'
