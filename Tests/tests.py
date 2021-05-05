@@ -24,7 +24,7 @@ write_lines_to_file = getattr(module, "write_lines_to_file")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.4.18"
+version = "2.4.19"
 
 
 class MiscellaneousTests(unittest.TestCase):
@@ -261,7 +261,7 @@ class ExecuteProgramTests(unittest.TestCase):
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
-        (exit_code, _, _2, _3)=sc.start_program_synchronously("git","status",dir_path,throw_exception_if_exitcode_is_not_zero=False)
+        (exit_code, _, _2, _3)=sc.start_program_synchronously("git","status",dir_path,throw_exception_if_exitcode_is_not_zero=False,verbosity=3)
 
         # assert
         assert exit_code==0

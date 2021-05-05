@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.18"
+version = "2.4.19"
 __version__ = version
 
 
@@ -1611,33 +1611,33 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         write_message_to_stdout("Run "+cmdcall)
         title_local = f"epew {title_for_message}('{cmdcall}')"
         base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-        argument = ""
-        argument = argument+f' --Program {program}'
-        argument = argument+f' --Argument {base64argument}'
-        argument = argument+' --ArgumentIsBase64Encoded'
-        argument = argument+f' --Workingdirectory "{workingdirectory}"'
+        args=["epew"]
+        args.append(f'-p "{program}"')
+        args.append(f'-a {base64argument}')
+        args.append('-b')
+        args.append(f'-w "{workingdirectory}"')
         if stdoutfile is not None:
-            argument = argument+f' --StdOutFile {stdoutfile}'
+            args.append(f'-o {stdoutfile}')
         if stderrfile is not None:
-            argument = argument+f' --StdErrFile {stderrfile}'
+            args.append(f'-e {stderrfile}')
         if exitcodefile is not None:
-            argument = argument+f' --ExitCodeFile {exitcodefile}'
+            args.append(f'-x {exitcodefile}')
         if pidfile is not None:
-            argument = argument+f' --ProcessIdFile {pidfile}'
-        argument = argument+f' --TimeoutInMilliseconds {str(timeoutInSeconds*1000)}'
-        argument = argument+f' --Title "{title_argument}"'
-        argument = argument+f' --LogNamespace "{log_namespace}"'
+            args.append(f'-r {pidfile}')
+        args.append(f'-d {str(timeoutInSeconds*1000)}')
+        args.append(f'-t "{title_argument}"')
+        #args.append(f'-l "{log_namespace}"')
         if not string_is_none_or_whitespace(log_file):
-            argument = argument+f' --LogFile "{log_file}"'
+            args.append(f'-f "{log_file}"')
         if print_errors_as_information:
-            argument = argument+" --PrintErrorsAsInformation"
+            args.append("-i")
         if addLogOverhead:
-            argument = argument+" --AddLogOverhead"
-        argument = argument+" --Verbosity "+str(verbosity)
-        epew_call = f'epew {argument}'
+            args.append("-h")
+        args.append("-v "+str(verbosity))
         if verbosity == 3:
-            write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{epew_call}')")
-        process = Popen(epew_call, shell=False)
+            args_as_string=" ".join(args)
+            write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
+        process = Popen(args, shell=False)
         return process
 
     def verify_no_pending_mock_program_calls(self):
