@@ -1626,7 +1626,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             args.append(f'-r {pidfile}')
         args.append(f'-d {str(timeoutInSeconds*1000)}')
         args.append(f'-t "{title_argument}"')
-        #args.append(f'-l "{log_namespace}"')
+        args.append(f'-l "{log_namespace}"')
         if not string_is_none_or_whitespace(log_file):
             args.append(f'-f "{log_file}"')
         if print_errors_as_information:
