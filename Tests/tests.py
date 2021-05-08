@@ -265,3 +265,5 @@ class ExecuteProgramTests(unittest.TestCase):
 
         # assert
         assert exit_code==0
+
+# TODO all testcases should be independent of epew
