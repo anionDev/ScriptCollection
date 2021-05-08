@@ -1627,6 +1627,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if(arguments is None):
             arguments = ""
         if string_is_none_or_whitespace(title):
+            title=""
             title_for_message = ""
             title_argument = cmd
         title_for_message = f"for task '{title}' "
