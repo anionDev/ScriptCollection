@@ -27,7 +27,7 @@ from os.path import isfile, join, isdir
 from pathlib import Path
 from random import randrange
 from shutil import copy2, copyfile
-from subprocess import Popen, call
+from subprocess import Popen, call, PIPE
 from defusedxml.minidom import parse
 from PyPDF2 import PdfFileMerger
 import keyboard
@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.19"
+version = "2.4.20"
 __version__ = version
 
 
@@ -118,7 +118,7 @@ class ScriptCollection:
 
             commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
                                         f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
-            current_release_information["commitid"] = commit_id
+            current_release_information["builtin.mergecommitid"] = commit_id
 
             # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
             # (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"
@@ -292,10 +292,10 @@ class ScriptCollection:
         else:
             nuspec_content = nuspec_content.replace("__.internal.projecturlentry.__", "")
 
-        if "commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
+        if "builtin.commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
             repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl')
             branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
-            commitid = current_release_information["commitid"]
+            commitid = current_release_information["builtin.commitid"]
             nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />')
         else:
             nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", "")
@@ -337,25 +337,29 @@ class ScriptCollection:
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
             verbosity = self._private_get_verbosity_for_exuecutor(configparser)
             if verbosity == 0:
-                verbose_argument_for_reportgenerator = "-verbosity:Off"
+                verbose_argument_for_reportgenerator = "Off"
+                verbose_argument_for_docfx = "Error"
             if verbosity == 1:
-                verbose_argument_for_reportgenerator = "-verbosity:Error"
+                verbose_argument_for_reportgenerator = "Error"
+                verbose_argument_for_docfx = "Warning"
             if verbosity == 2:
-                verbose_argument_for_reportgenerator = "-verbosity:Info"
+                verbose_argument_for_reportgenerator = "Info"
+                verbose_argument_for_docfx = "Info"
             if verbosity == 3:
-                verbose_argument_for_reportgenerator = "-verbosity:Verbose"
+                verbose_argument_for_reportgenerator = "Verbose"
+                verbose_argument_for_docfx = "verbose"
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile')
             docfx_folder = os.path.dirname(docfx_file)
             ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
             self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx",
-                                                                      os.path.basename(docfx_file), docfx_folder, 3600, verbosity)
+                                                                      f'"{os.path.basename(docfx_file)}" --loglevel {verbose_argument_for_docfx}', docfx_folder, 3600, verbosity)
             coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')
             ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self._private_get_coverage_filename(configparser)
             shutil.copyfile(self._private_get_test_csprojfile_folder(configparser)+os.path.sep+self._private_get_coverage_filename(configparser), coverage_target_file)
             self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator",
                                                                       f'-reports:"{self._private_get_coverage_filename(configparser)}"'
-                                                                      f' -targetdir:"{coveragefolder}" {verbose_argument_for_reportgenerator}',
+                                                                      f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
                                                                       coveragefolder, 3600, verbosity)
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
@@ -1507,7 +1511,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
 
     def _private_ls(self, file: str) -> str:
-        return self.execute_and_raise_exception_if_exit_code_is_not_zero("ls", f'-ld "{file}"')[1]
+        assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
+        result = self._private_start_internal_for_helper("ls", f'-ld "{file}"')
+        assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
+        return result[1]
 
     def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
         """This function expects an usual octet-triple, for example "0700"."""
@@ -1545,7 +1552,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
         return self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
-         log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
+                                           log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
@@ -1556,62 +1563,82 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                 print_errors_as_information, log_file, timeoutInSeconds,
                                                 addLogOverhead, title, True, prevent_using_epew, log_namespace)
 
+    def _private_start_internal_for_helper(self, program: str, arguments: str, workingdirectory: str = None):
+        return self.start_program_synchronously(program, arguments,
+                                                workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
+
     def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
                                     throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
-                                    log_namespace: str = ""):
+                                    log_namespace: str = "", use_shell: bool = False):
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
-        tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-        output_file_for_stdout = tempdir + ".epew.stdout.txt"
-        output_file_for_stderr = tempdir + ".epew.stderr.txt"
-        output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
-        output_file_for_pid = tempdir + ".epew.pid.txt"
-        process = self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information, log_file, timeoutInSeconds,
-                                              addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr, output_file_for_pid, output_file_for_exit_code)
-        process.wait()
-        stdout = self._private_load_text(output_file_for_stdout)
-        stderr = self._private_load_text(output_file_for_stderr)
-        exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
-        pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
-        ensure_directory_does_not_exist(tempdir)
-        if string_is_none_or_whitespace(title):
-            title_for_message = ""
+        cmd = f'{workingdirectory}>{program} {arguments}'
+        if (epew_is_available() and not prevent_using_epew):
+            tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+            output_file_for_stdout = tempdir + ".epew.stdout.txt"
+            output_file_for_stderr = tempdir + ".epew.stderr.txt"
+            output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
+            output_file_for_pid = tempdir + ".epew.pid.txt"
+            process = self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
+                                                  log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr,
+                                                  output_file_for_pid, output_file_for_exit_code)
+            process.wait()
+            stdout = self._private_load_text(output_file_for_stdout)
+            stderr = self._private_load_text(output_file_for_stderr)
+            exit_code = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_exit_code))
+            pid = self._private_get_number_from_filecontent(self._private_load_text(output_file_for_pid))
+            ensure_directory_does_not_exist(tempdir)
+            if string_is_none_or_whitespace(title):
+                title_for_message = ""
+            else:
+                title_for_message = f"for task '{title}' "
+            cmdcall = f"{workingdirectory}>{program} {arguments}"
+            title_local = f"epew {title_for_message}('{cmdcall}')"
+            result = (exit_code, stdout, stderr, pid)
         else:
-            title_for_message = f"for task '{title}' "
-        cmdcall = f"{workingdirectory}>{program} {arguments}"
-        title_local = f"epew {title_for_message}('{cmdcall}')"
+            process = Popen(cmd, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell)
+            pid = process.pid
+            stdout, stderr = process.communicate()
+            exit_code = process.wait()
+            stdout = bytes_to_string(stdout).replace('\r', '')
+            stderr = bytes_to_string(stderr).replace('\r', '')
+            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+                raise Exception(f"'{cmd}' had exitcode {str(exit_code)}")
+            result = (exit_code, stdout, stderr, pid)
         if verbosity == 3:
             write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
             raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
-        return (exit_code, stdout, stderr, pid)
+        else:
+            return result
 
     def _private_start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
                                stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
         workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
+        cmd = f'{workingdirectory}>{program} {arguments}'
         if(arguments is None):
             arguments = ""
-        self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         if string_is_none_or_whitespace(title):
+            title=""
             title_for_message = ""
-            title_argument = f'{workingdirectory}>{program} {arguments}'
-        else:
-            title_for_message = f"for task '{title}' "
-            title_argument = title
+            title_argument = cmd
+        title_for_message = f"for task '{title}' "
+        title_argument = title
+        self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         title_argument = title_argument.replace("\"", "'").replace("\\", "/")
         cmdcall = f"{workingdirectory}>{program} {arguments}"
         write_message_to_stdout("Run "+cmdcall)
         title_local = f"epew {title_for_message}('{cmdcall}')"
         base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-        args=["epew"]
+        args = ["epew"]
         args.append(f'-p "{program}"')
         args.append(f'-a {base64argument}')
         args.append('-b')
@@ -1626,7 +1653,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             args.append(f'-r {pidfile}')
         args.append(f'-d {str(timeoutInSeconds*1000)}')
         args.append(f'-t "{title_argument}"')
-        #args.append(f'-l "{log_namespace}"')
+        args.append(f'-l "{log_namespace}"')
         if not string_is_none_or_whitespace(log_file):
             args.append(f'-f "{log_file}"')
         if print_errors_as_information:
@@ -1635,7 +1662,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             args.append("-h")
         args.append("-v "+str(verbosity))
         if verbosity == 3:
-            args_as_string=" ".join(args)
+            args_as_string = " ".join(args)
             write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
         process = Popen(args, shell=False)
         return process
@@ -1743,8 +1770,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 1)
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("gitversion", "/showVariable "+variable, folder, 30, 1)
+        result = self._private_start_internal_for_helper("gitversion", "/showVariable "+variable, folder)
+        result = self._private_start_internal_for_helper("gitversion", "/showVariable "+variable, folder)
         return strip_new_line_character(result[1])
 
     # </miscellaneous>
@@ -2690,6 +2717,11 @@ def to_list(list_as_string: str, separator: str = ",") -> list:
         else:
             result.append(list_as_string)
     return result
+
+
+def assert_condition(condition: bool, information: str):
+    if(not condition):
+        raise ValueError("Condition failed. "+information)
 
 # <miscellaneous>
 
