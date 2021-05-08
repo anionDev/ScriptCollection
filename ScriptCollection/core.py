@@ -1611,12 +1611,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                 raise Exception(f"'{cmd}' had exitcode {str(exit_code)}")
             result = (exit_code, stdout, stderr, pid)
-            if verbosity == 3:
-                write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
-            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
-            else:
-                return result
+        if verbosity == 3:
+            write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
+        if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+            raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
+        else:
+            return result
 
     def _private_start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
