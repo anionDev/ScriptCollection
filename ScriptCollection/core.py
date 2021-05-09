@@ -35,7 +35,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.20"
+version = "2.4.21"
 __version__ = version
 
 
@@ -1602,7 +1602,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             title_local = f"epew {title_for_message}('{cmdcall}')"
             result = (exit_code, stdout, stderr, pid)
         else:
-            process = Popen(cmd, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell)
+            process = Popen(f"{program} {arguments}", stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell)
             pid = process.pid
             stdout, stderr = process.communicate()
             exit_code = process.wait()
@@ -1627,7 +1627,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if(arguments is None):
             arguments = ""
         if string_is_none_or_whitespace(title):
-            title=""
+            title = ""
             title_for_message = ""
             title_argument = cmd
         title_for_message = f"for task '{title}' "
@@ -2354,6 +2354,8 @@ def write_exception_to_stderr_with_traceback(exception: Exception, current_trace
     write_message_to_stderr("Message: "+str(exception))
     if str is not None:
         write_message_to_stderr("Extra-message: "+str(extra_message))
+    if isinstance(exception, FileNotFoundError):
+        write_message_to_stderr("File which could not be found: "+exception.filename)
     write_message_to_stderr("Traceback: "+current_traceback.format_exc())
     write_message_to_stderr(")")
 

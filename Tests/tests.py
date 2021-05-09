@@ -24,7 +24,7 @@ write_lines_to_file = getattr(module, "write_lines_to_file")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.4.20"
+version = "2.4.21"
 
 
 class MiscellaneousTests(unittest.TestCase):
@@ -265,3 +265,5 @@ class ExecuteProgramTests(unittest.TestCase):
 
         # assert
         assert exit_code==0
+
+# TODO all testcases should be independent of epew
