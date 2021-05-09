@@ -1602,7 +1602,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             title_local = f"epew {title_for_message}('{cmdcall}')"
             result = (exit_code, stdout, stderr, pid)
         else:
-            process = Popen(cmd, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell)
+            process = Popen(f"{program} {arguments}", stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell)
             pid = process.pid
             stdout, stderr = process.communicate()
             exit_code = process.wait()
