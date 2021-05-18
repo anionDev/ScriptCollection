@@ -668,14 +668,15 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return False
 
     def _private_git_repository_has_uncommitted_changes(self, repository_folder: str, argument: str) -> bool:
-        return not string_is_none_or_whitespace(self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
+        return not string_is_none_or_whitespace(self.start_program_synchronously("git", argument, repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)[1])
 
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
+        result = self.start_program_synchronously("git", f"rev-parse --verify {commit}", repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
         return result[1].replace('\r', '').replace('\n', '')
 
-    def git_fetch(self, folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True, verbosity=1) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, verbosity, False, None, printErrorsAsInformation)
+    def git_fetch(self, folder: str, remotename: str = "--all", print_errors_as_information: bool = True, verbosity=1) -> None:
+        self.start_program_synchronously("git", f"fetch {remotename} --tags --prune", folder, timeoutInSeconds=100, verbosity=verbosity,
+                                         print_errors_as_information=print_errors_as_information, prevent_using_epew=True)
 
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = f"push {remotename} {localbranchname}:{remotebranchname}"
@@ -683,7 +684,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             argument = argument+" --force"
         if (pushalltags):
             argument = argument+" --tags"
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, verbosity, False, None, True)
+        result = self.start_program_synchronously("git", argument, folder, timeoutInSeconds=7200, verbosity=verbosity, prevent_using_epew=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
@@ -708,7 +709,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             os.chdir(original_cwd)
 
     def git_get_all_remote_names(self, directory) -> list:
-        lines = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "remote", directory)[1]
+        lines = self.start_program_synchronously("git", "remote", directory, prevent_using_epew=True)[1]
         result = []
         for line in lines:
             if(not string_is_none_or_whitespace(line)):
@@ -720,30 +721,30 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote set-url {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+            self.start_program_synchronously("git", f'remote set-url {remote_name} "{remote_address}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
         else:
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote add {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+            self.start_program_synchronously("git", f'remote add {remote_name} "{remote_address}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_stage_all_changes(self, directory: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600, 1, False, "Stage", False)
+        self.start_program_synchronously("git", "add -A", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset", directory, 3600, 1, False, "Unstage", False)
+        self.start_program_synchronously("git", "reset", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'stage -- "{file}"', directory, 3600, 1, False, "Stage", False)
+        self.start_program_synchronously("git", f'stage -- "{file}"', timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'reset -- "{file}"', directory, 3600, 1, False, "Unstage", False)
+        self.start_program_synchronously("git", f'reset -- "{file}"', timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- "{file}"', directory, 3600, 1, False, "Discard", False)
+        self.start_program_synchronously("git", f'checkout -- "{file}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'clean -df', directory, 3600, 1, False, "Discard", False)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'checkout -- .', directory, 3600, 1, False, "Discard", False)
+        self.start_program_synchronously("git", 'clean -df', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously("git", 'checkout -- .', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
                    allow_empty_commits: bool = False) -> None:
@@ -777,13 +778,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return self.git_get_current_commit_id(directory)
 
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600, 1, False, "CreateTag", False)
+        self.start_program_synchronously("git", f"tag {tag} {target_for_tag}", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600, 1, False, "Checkout", True)
+        self.start_program_synchronously("git", "checkout "+branch, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_merge_abort(self, directory: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600, 1, False, "AbortMerge", False)
+        self.start_program_synchronously("git", "merge --abort", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
         self.git_checkout(directory, targetbranch)
@@ -791,7 +792,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             fastforward_argument = ""
         else:
             fastforward_argument = "--no-ff "
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600, 1, False, "Merge", True)
+        self.start_program_synchronously("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
         if commit:
             return self.git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
         else:
@@ -1438,7 +1439,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         # TODO implement
         return 1
 
-    def python_file_has_errors(self, file, treat_warnings_as_errors: bool = True) -> (bool, list):
+    def python_file_has_errors(self, file, treat_warnings_as_errors: bool = True):
         errors = list()
         folder = os.path.dirname(file)
         filename = os.path.basename(file)
