@@ -841,10 +841,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             items[item] = "f"
         for item in get_all_folders_of_folder(folder):
             items[item] = "d"
-        for file_or_folder in items:
+        for file_or_folder, item_type in items.items():
             truncated_file = file_or_folder[path_prefix:]
             if(filter_function is None or filter_function(folder, truncated_file)):
-                item_type = items[file_or_folder]
                 owner_and_permisssion = self.get_file_owner_and_file_permission(file_or_folder)
                 user = owner_and_permisssion[0]
                 permissions = owner_and_permisssion[1]
