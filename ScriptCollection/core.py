@@ -29,7 +29,7 @@ from pathlib import Path
 from random import randrange
 from shutil import copy2, copyfile
 from subprocess import Popen, call, PIPE
-import xml.etree.ElementTree as ET
+from lxml import etree
 from defusedxml.minidom import parse
 from PyPDF2 import PdfFileMerger
 import keyboard
@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.2"
+version = "2.5.3"
 __version__ = version
 
 
@@ -424,11 +424,10 @@ class ScriptCollection:
             f" /p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
                                                                   3600, verbosity, False, "Execute tests")
-        with open(self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')+os.path.sep+coveragefilename, 'r', encoding='utf-8') as coveragefile_reader:
-            coveragefile_content = coveragefile_reader.read()
-        et = ET.fromstring(coveragefile_content)
-        coverage_in_percent = math.floor(float(et.xpath('CoverageSession/Summary/@sequenceCoverage')))
-        if int(et.xpath('count(/CoverageSession/Modules/*)')) == 0:
+        root = etree.parse(self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')+os.path.sep+coveragefilename)
+        coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
+        module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
+        if module_count == 0:
             coverage_in_percent = 0
             write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
         self._private_handle_coverage(configparser, current_release_information, coverage_in_percent)
