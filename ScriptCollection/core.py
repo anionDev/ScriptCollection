@@ -424,7 +424,7 @@ class ScriptCollection:
             f" /p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
                                                                   3600, verbosity, False, "Execute tests")
-        root = etree.parse(self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')+os.path.sep+coveragefilename)
+        root = etree.parse(self._private_get_test_csprojfile_folder(configparser)+os.path.sep+coveragefilename)
         coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
         module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
         if module_count == 0:
