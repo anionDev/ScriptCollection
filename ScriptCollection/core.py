@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.1"
+version = "2.5.2"
 __version__ = version
 
 
@@ -418,18 +418,18 @@ class ScriptCollection:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
             verbose_argument_for_dotnet = "detailed"
-        coveragefile = self._private_get_coverage_filename(configparser)
+        coveragefilename = self._private_get_coverage_filename(configparser)
         testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration')}" \
-            f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefile}" \
+            f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefilename}" \
             f" /p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
                                                                   3600, verbosity, False, "Execute tests")
-        with open(coveragefile, 'r', encoding='utf-8') as coveragefile_reader:
+        with open(self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')+os.path.sep+coveragefilename, 'r', encoding='utf-8') as coveragefile_reader:
             coveragefile_content = coveragefile_reader.read()
-        et=ET.fromstring(coveragefile_content)
+        et = ET.fromstring(coveragefile_content)
         coverage_in_percent = math.floor(float(et.xpath('CoverageSession/Summary/@sequenceCoverage')))
-        if int(et.xpath('count(/CoverageSession/Modules/*)'))==0:
-            coverage_in_percent=0
+        if int(et.xpath('count(/CoverageSession/Modules/*)')) == 0:
+            coverage_in_percent = 0
             write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
         self._private_handle_coverage(configparser, current_release_information, coverage_in_percent)
 
@@ -1688,7 +1688,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if verbosity == 3:
             args_as_string = " ".join(args)
             write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
-        process = Popen(args, shell=False) # pylint: disable=R1732
+        process = Popen(args, shell=False)  # pylint: disable=R1732
         return process
 
     def verify_no_pending_mock_program_calls(self):
