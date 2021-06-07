@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.5"
+version = "2.5.6"
 __version__ = version
 
 
@@ -391,6 +391,8 @@ class ScriptCollection:
         ensure_directory_exists(outputDirectory)
         if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
+        if verbosity == 1:
+            verbose_argument_for_dotnet = "minimal"
         if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
@@ -430,9 +432,9 @@ class ScriptCollection:
         if module_count == 0:
             coverage_in_percent = 0
             write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
-        self._private_handle_coverage(configparser, current_release_information, coverage_in_percent)
+        self._private_handle_coverage(configparser, current_release_information, coverage_in_percent, verbosity == 3)
 
-    def _private_handle_coverage(self, configparser, current_release_information, coverage_in_percent):
+    def _private_handle_coverage(self, configparser, current_release_information, coverage_in_percent:int, verbose:bool):
         current_release_information['general.testcoverage'] = coverage_in_percent
         minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
         if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
@@ -441,7 +443,7 @@ class ScriptCollection:
         coverage_regex_end = "%25-green"
         for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles"):
             replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
-                                            coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end)
+                                            coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end,verbose=verbose)
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
@@ -2268,9 +2270,11 @@ def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> No
         raise ValueError(f"Folder '{srcDir}' does not exist")
 
 
-def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
+def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8", verbose:bool=False) -> None:
     """This function iterates over each line in the file and replaces it by the line which applied regex.
     Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
+    if verbose:
+        write_message_to_stdout(f"Replace '{replace_from_regex}' to '{replace_to_regex}' in '{file}'")
     with open(file, encoding=encoding, mode="r") as f:
         lines = f.readlines()
         replaced_lines = []
