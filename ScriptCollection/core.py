@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.4"
+version = "2.5.5"
 __version__ = version
 
 
@@ -440,8 +440,8 @@ class ScriptCollection:
         coverage_regex_begin = "https://img.shields.io/badge/testcoverage-"
         coverage_regex_end = "%25-green"
         for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles"):
-            replace_regex_each_line_of_file(file,
-                                            re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end), coverage_regex_begin+coverage_in_percent+coverage_regex_end)
+            replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
+                                            coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end)
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
