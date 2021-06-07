@@ -4,6 +4,7 @@ ScriptCollection itself is licensed under the terms of the MIT-license (see appe
 ScriptCollection uses dependencies which are released under their own license:
 -defusedxml is licensed under the terms of the Python software foundation license (see appendix 4)
 -keyboard is licensed under the terms of the MIT-license (see appendix 1)
+-lxml is licensed under the terms of the BSD-license (see https://pypi.org/project/lxml )
 -ntplib is licensed under the terms of the MIT-license (see appendix 1)
 -PyPDF2 is licensed under the terms of its own license (see appendix 2)
 -pycdlib is licensed under the terms of the LGPLv2.1-license (see appendix 3)

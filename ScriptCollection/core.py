@@ -6,6 +6,7 @@ import ctypes
 import itertools
 import filecmp
 import hashlib
+import math
 import pathlib
 import re
 import os
@@ -28,6 +29,7 @@ from pathlib import Path
 from random import randrange
 from shutil import copy2, copyfile
 from subprocess import Popen, call, PIPE
+import xml.etree.ElementTree as ET
 from defusedxml.minidom import parse
 from PyPDF2 import PdfFileMerger
 import keyboard
@@ -188,21 +190,27 @@ class ScriptCollection:
             write_message_to_stdout("Creating release was successful")
             return 0
 
-    def dotnet_build_executable_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+    def dotnet_executable_build(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         verbosity = self._private_get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
         sign_things = self._private_get_sign_things(configparser)
+        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
-                              self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
+                              self._private_get_buildoutputdirectory(configparser, runtime), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
                               verbosity, sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
+
+    def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        verbosity = self._private_get_verbosity_for_exuecutor(configparser)
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
+            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
     def _private_get_sign_things(self, configparser: ConfigParser) -> tuple:
         files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign')
@@ -217,11 +225,12 @@ class ScriptCollection:
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
+        self.dotnet_executable_run_tests(configurationfile, current_release_information)
 
     def dotnet_create_executable_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.dotnet_build_executable_and_run_tests(configurationfile, current_release_information)
+        self.dotnet_executable_build(configurationfile, current_release_information)
         self.dotnet_reference(configurationfile, current_release_information)
 
     def dotnet_create_nuget_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
@@ -230,11 +239,12 @@ class ScriptCollection:
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
+        self.dotnet_nuget_run_tests(configurationfile, current_release_information)
 
     def dotnet_create_nuget_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.dotnet_build_nuget_and_run_tests(configurationfile, current_release_information)
+        self.dotnet_nuget_build(configurationfile, current_release_information)
         self.dotnet_reference(configurationfile, current_release_information)
         self.dotnet_release_nuget(configurationfile, current_release_information)
 
@@ -265,15 +275,14 @@ class ScriptCollection:
       </files>
     </package>"""
 
-    def dotnet_build_nuget_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+    def dotnet_nuget_build(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information, self._private_get_verbosity_for_exuecutor(configparser))
         sign_things = self._private_get_sign_things(configparser)
+        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
-                              self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
+                              self._private_get_buildoutputdirectory(configparser, runtime), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
                               self._private_get_verbosity_for_exuecutor(configparser),
                               sign_things[0], sign_things[1], current_release_information)
@@ -314,6 +323,13 @@ class ScriptCollection:
             file_object.write(nuspec_content)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600,
                                                                   self._private_get_verbosity_for_exuecutor(configparser))
+
+    def dotnet_nuget_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        verbosity = self._private_get_verbosity_for_exuecutor(configparser)
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
+            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
@@ -370,14 +386,11 @@ class ScriptCollection:
     def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
                      clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None,
                      current_release_information: dict = {}) -> None:
-        # TODO include commit-id (only if available) which can be retrieved due to "current_release_information['commitid']"
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             ensure_directory_does_not_exist(outputDirectory)
         ensure_directory_exists(outputDirectory)
         if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
-        if verbosity == 1:
-            verbose_argument_for_dotnet = "minimal"
         if verbosity == 2:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
@@ -395,11 +408,8 @@ class ScriptCollection:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
     def dotnet_run_tests(self, configurationfile: str, current_release_information: dict, verbosity: int = 1) -> None:
-        # TODO add possibility to set another buildconfiguration than for the real result-build
-        # TODO remove the call to SCDotNetBuild
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        runtime = self.get_item_from_configuration(configparser, 'dotnet', 'testruntime')
         if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
         if verbosity == 1:
@@ -408,15 +418,27 @@ class ScriptCollection:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
             verbose_argument_for_dotnet = "detailed"
-        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime,
-                          self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbosity, None, None, current_release_information)
+        coveragefile = self._private_get_coverage_filename(configparser)
         testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')} " \
-            f"--verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={self._private_get_coverage_filename(configparser)} " \
+            f"--verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefile} " \
             f"/p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
                                                                   3600, verbosity, False, "Execute tests")
+        with open(coveragefile, 'r', encoding='utf-8') as coveragefile_reader:
+            coveragefile_content = coveragefile_reader.read()
+        coverage_in_percent = math.floor(float(ET.fromstring(coveragefile_content).xpath('CoverageSession/Summary/@sequenceCoverage')))
+        self._private_handle_coverage(configparser, current_release_information, coverage_in_percent)
+
+    def _private_handle_coverage(self, configparser, current_release_information, coverage_in_percent):
+        current_release_information['general.testcoverage'] = coverage_in_percent
+        minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
+        if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
+            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}.")
+        coverage_regex_begin = "https://img.shields.io/badge/testcoverage-"
+        coverage_regex_end = "%25-green"
+        for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles"):
+            replace_regex_each_line_of_file(file,
+                                            re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end), coverage_regex_begin+coverage_in_percent+coverage_regex_end)
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
@@ -1793,18 +1815,6 @@ Requires the requirements of: TODO
     return ScriptCollection().create_release(args.configurationfile)
 
 
-def SCDotNetBuildExecutableAndRunTests_cli() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetBuildExecutableAndRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollection().dotnet_build_executable_and_run_tests(args.configurationfile, {})
-
-
 def SCDotNetCreateExecutableRelease_cli() -> int:
     parser = argparse.ArgumentParser(description="""SCDotNetCreateExecutableRelease_cli:
 Description: TODO
@@ -1833,18 +1843,6 @@ Requires the requirements of: TODO
     sc.dotnet_create_nuget_release_premerge(args.configurationfile, {})
     sc.dotnet_create_nuget_release_postmerge(args.configurationfile, {})
     return 0
-
-
-def SCDotNetBuildNugetAndRunTests_cli() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetBuildNugetAndRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollection().dotnet_build_nuget_and_run_tests(args.configurationfile, {})
 
 
 def SCDotNetReleaseNuget_cli() -> int:

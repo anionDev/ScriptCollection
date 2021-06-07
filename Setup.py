@@ -37,6 +37,7 @@ setup(
     install_requires=[
         "defusedxml>=0.7.1",
         "keyboard>=0.13.5",
+        "lxml>=4.6.3",
         "ntplib>=0.3.4",
         "pycdlib>=1.10.0",
         "PyPDF2>=1.26.0",
@@ -53,8 +54,6 @@ setup(
             f"SCCreateRelease = {productname}.core:SCCreateRelease_cli",
             f"SCDebCreateInstallerRelease = {productname}.core:SCDebCreateInstallerRelease_cli",
             f"SCDotNetBuild = {productname}.core:SCDotNetBuild_cli",
-            f"SCDotNetBuildExecutableAndRunTests = {productname}.core:SCDotNetBuildExecutableAndRunTests_cli",
-            f"SCDotNetBuildNugetAndRunTests = {productname}.core:SCDotNetBuildNugetAndRunTests_cli",
             f"SCDotNetCreateExecutableRelease = {productname}.core:SCDotNetCreateExecutableRelease_cli",
             f"SCDotNetCreateNugetRelease = {productname}.core:SCDotNetCreateNugetRelease_cli",
             f"SCDotNetReference = {productname}.core:SCDotNetReference_cli",
