@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.0"
+version = "2.5.1"
 __version__ = version
 
 
@@ -419,14 +419,18 @@ class ScriptCollection:
         if verbosity == 3:
             verbose_argument_for_dotnet = "detailed"
         coveragefile = self._private_get_coverage_filename(configparser)
-        testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')} " \
-            f"--verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefile} " \
-            f"/p:CoverletOutputFormat=opencover"
+        testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration')}" \
+            f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefile}" \
+            f" /p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
                                                                   3600, verbosity, False, "Execute tests")
         with open(coveragefile, 'r', encoding='utf-8') as coveragefile_reader:
             coveragefile_content = coveragefile_reader.read()
-        coverage_in_percent = math.floor(float(ET.fromstring(coveragefile_content).xpath('CoverageSession/Summary/@sequenceCoverage')))
+        et=ET.fromstring(coveragefile_content)
+        coverage_in_percent = math.floor(float(et.xpath('CoverageSession/Summary/@sequenceCoverage')))
+        if int(et.xpath('count(/CoverageSession/Modules/*)'))==0:
+            coverage_in_percent=0
+            write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
         self._private_handle_coverage(configparser, current_release_information, coverage_in_percent)
 
     def _private_handle_coverage(self, configparser, current_release_information, coverage_in_percent):
