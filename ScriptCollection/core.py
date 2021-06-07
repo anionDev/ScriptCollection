@@ -1212,11 +1212,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def _private_merge_files(self, sourcefile: str, targetfile: str) -> None:
         with open(sourcefile, "rb") as f:
             source_data = f.read()
-        fout = open(targetfile, "ab")
-        merge_separator = [0x0A]
-        fout.write(bytes(merge_separator))
-        fout.write(source_data)
-        fout.close()
+        with open(targetfile, "ab") as fout:
+            merge_separator = [0x0A]
+            fout.write(bytes(merge_separator))
+            fout.write(source_data)
 
     def _private_process_file(self, file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
         new_filename = os.path.join(os.path.dirname(file), os.path.basename(file).replace(substringInFilename, newSubstringInFilename))
@@ -1332,14 +1331,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         outputfile = inputfile + '.modified'
 
         copy2(inputfile, outputfile)
-        file = open(outputfile, 'a')
-        # TODO use rcedit for .exe-files instead of appending valuetoappend ( https://github.com/electron/rcedit/ )
-        # background: you can retrieve the "original-filename" from the .exe-file like discussed here:
-        # https://security.stackexchange.com/questions/210843/ is-it-possible-to-change-original-filename-of-an-exe
-        # so removing the original filename with rcedit is probably a better way to make it more difficult to detect the programname.
-        # this would obviously also change the hashvalue of the program so appending a whitespace is not required anymore.
-        file.write(valuetoappend)
-        file.close()
+        with open(outputfile, 'a') as file:
+            # TODO use rcedit for .exe-files instead of appending valuetoappend ( https://github.com/electron/rcedit/ )
+            # background: you can retrieve the "original-filename" from the .exe-file like discussed here:
+            # https://security.stackexchange.com/questions/210843/ is-it-possible-to-change-original-filename-of-an-exe
+            # so removing the original filename with rcedit is probably a better way to make it more difficult to detect the programname.
+            # this would obviously also change the hashvalue of the program so appending a whitespace is not required anymore.
+            file.write(valuetoappend)
 
     def _private_adjust_folder_name(self, folder: str) -> str:
         result = os.path.dirname(folder).replace("\\", "/")
@@ -1624,15 +1622,15 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             title_local = f"epew {title_for_message}('{cmdcall}')"
             result = (exit_code, stdout, stderr, pid)
         else:
-            process = Popen(f"{program} {arguments}", stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell)
-            pid = process.pid
-            stdout, stderr = process.communicate()
-            exit_code = process.wait()
-            stdout = bytes_to_string(stdout).replace('\r', '')
-            stderr = bytes_to_string(stderr).replace('\r', '')
-            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                raise Exception(f"'{cmd}' had exitcode {str(exit_code)}")
-            result = (exit_code, stdout, stderr, pid)
+            with Popen(f"{program} {arguments}", stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell) as process:
+                pid = process.pid
+                stdout, stderr = process.communicate()
+                exit_code = process.wait()
+                stdout = bytes_to_string(stdout).replace('\r', '')
+                stderr = bytes_to_string(stderr).replace('\r', '')
+                if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+                    raise Exception(f"'{cmd}' had exitcode {str(exit_code)}")
+                result = (exit_code, stdout, stderr, pid)
         if verbosity == 3:
             write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
@@ -1686,7 +1684,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if verbosity == 3:
             args_as_string = " ".join(args)
             write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
-        process = Popen(args, shell=False)
+        process = Popen(args, shell=False) # pylint: disable=R1732
         return process
 
     def verify_no_pending_mock_program_calls(self):
