@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.6"
+version = "2.5.7"
 __version__ = version
 
 
@@ -1537,7 +1537,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def _private_ls(self, file: str) -> str:
         assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
-        result = self._private_start_internal_for_helper("ls", f'-ld "{file}"')
+        argument= f'-ld "{file}"'
+        result = self._private_start_internal_for_helper("ls",argument)
+        assert_condition(result[0],f"'ls {argument}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
         assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
@@ -1689,7 +1691,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if verbosity == 3:
             args_as_string = " ".join(args)
             write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
-        process = Popen(args, shell=False)  # pylint: disable=R1732
+        process = Popen(args, shell=False)  # pylint: disable=bad-option-value, R1732
         return process
 
     def verify_no_pending_mock_program_calls(self):
