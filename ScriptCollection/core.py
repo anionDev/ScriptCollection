@@ -1539,7 +1539,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
         argument= f'-ld "{file}"'
         result = self._private_start_internal_for_helper("ls",argument)
-        assert_condition(result[0],f"'ls {argument}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
+        assert_condition(result[0]==0,f"'ls {argument}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
         assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
