@@ -759,10 +759,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         self.start_program_synchronously("git", "reset", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.start_program_synchronously("git", f'stage -- "{file}"', timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously("git", f'stage -- "{file}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.start_program_synchronously("git", f'reset -- "{file}"', timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously("git", f'reset -- "{file}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
