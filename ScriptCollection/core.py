@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.7"
+version = "2.5.8"
 __version__ = version
 
 
