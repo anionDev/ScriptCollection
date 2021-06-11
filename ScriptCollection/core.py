@@ -804,8 +804,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
         return self.git_get_current_commit_id(directory)
 
-    def git_create_tag(self, directory: str, target_for_tag: str, tag: str) -> None:
-        self.start_program_synchronously("git", f"tag {tag} {target_for_tag}", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+    def git_create_tag(self, directory: str, target_for_tag: str, tag: str, message:str=None, sign:bool=False) -> None:
+        argument= f"tag {tag} {target_for_tag}"
+        # TODO adapt argument for message and signing
+        self.start_program_synchronously("git",argument, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
         self.start_program_synchronously("git", "checkout "+branch, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
