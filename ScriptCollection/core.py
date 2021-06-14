@@ -1544,6 +1544,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
 
     def _private_ls(self, file: str) -> str:
+        file=file.replace("\\","/")
         assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
         argument = f'-ld "{file}"'
         result = self._private_start_internal_for_helper("ls", argument)
@@ -2498,7 +2499,7 @@ def ensure_file_does_not_exist(path: str) -> None:
 
 
 def format_xml_file(filepath: str) -> None:
-    format_xml_file_with_encoding(file_is_empty, "utf-8")
+    format_xml_file_with_encoding(filepath, "utf-8")
 
 
 def format_xml_file_with_encoding(filepath: str, encoding: str) -> None:
