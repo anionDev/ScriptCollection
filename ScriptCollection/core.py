@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.9"
+version = "2.5.10"
 __version__ = version
 
 
@@ -181,7 +181,10 @@ class ScriptCollection:
             return 1
         else:
             if prepare:
-                self.git_create_tag(repository, commit_id, self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version)
+                tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
+                tag_message = f"Created {tag}"
+                self.git_create_tag(repository, commit_id,
+                                    tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
                 self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
                                self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
                 if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
@@ -434,7 +437,7 @@ class ScriptCollection:
             write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
         self._private_handle_coverage(configparser, current_release_information, coverage_in_percent, verbosity == 3)
 
-    def _private_handle_coverage(self, configparser, current_release_information, coverage_in_percent:int, verbose:bool):
+    def _private_handle_coverage(self, configparser, current_release_information, coverage_in_percent: int, verbose: bool):
         current_release_information['general.testcoverage'] = coverage_in_percent
         minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
         if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
@@ -443,7 +446,7 @@ class ScriptCollection:
         coverage_regex_end = "%25-green"
         for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles"):
             replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
-                                            coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end,verbose=verbose)
+                                            coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end, verbose=verbose)
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
@@ -804,8 +807,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
         return self.git_get_current_commit_id(directory)
 
-    def git_create_tag(self, directory: str, target_for_tag: str, tag: str) -> None:
-        self.start_program_synchronously("git", f"tag {tag} {target_for_tag}", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+    def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
+        argument = f"tag {tag} {target_for_tag}"
+        if sign:
+            message = message.replace("\\", "\\\\").replace("\"", "\\\"")
+            argument = f"{argument} -s -m \"{message}\""
+        # TODO adapt argument for message and signing
+        self.start_program_synchronously("git", argument, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
         self.start_program_synchronously("git", "checkout "+branch, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
@@ -1537,9 +1545,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def _private_ls(self, file: str) -> str:
         assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
-        argument= f'-ld "{file}"'
-        result = self._private_start_internal_for_helper("ls",argument)
-        assert_condition(result[0]==0,f"'ls {argument}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
+        argument = f'-ld "{file}"'
+        result = self._private_start_internal_for_helper("ls", argument)
+        assert_condition(result[0] == 0, f"'ls {argument}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
         assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
@@ -2272,7 +2280,7 @@ def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> No
         raise ValueError(f"Folder '{srcDir}' does not exist")
 
 
-def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8", verbose:bool=False) -> None:
+def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8", verbose: bool = False) -> None:
     """This function iterates over each line in the file and replaces it by the line which applied regex.
     Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
     if verbose:
