@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.12"
+version = "2.5.13"
 __version__ = version
 
 
@@ -1580,13 +1580,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "") -> int:
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
-        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         return self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
 
@@ -1594,13 +1594,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                  print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                                  title: str = None, log_namespace: str = "") -> int:
         arguments = ' '.join(argument_list)
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
-        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         return self._private_start_process_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
                                                        log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
 
@@ -1632,6 +1632,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                 throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
                                                 log_namespace: str = ""):
         arguments = ' '.join(argument_list)
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)
@@ -1639,7 +1640,6 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
         cmd = f'{workingdirectory}>{program} {arguments}'
-        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if (epew_is_available() and not prevent_using_epew):
             tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
             output_file_for_stdout = tempdir + ".epew.stdout.txt"
@@ -1688,13 +1688,14 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                            print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                            addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
                                            stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
-        return self._private_start_process_argsasarray(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
+        return self._private_start_process(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
                                                        timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile)
 
     def _private_start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
                                stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         cmd = f'{workingdirectory}>{program} {arguments}'
         if(arguments is None):
             arguments = ""
