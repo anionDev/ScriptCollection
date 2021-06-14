@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.10"
+version = "2.5.11"
 __version__ = version
 
 
@@ -1586,6 +1586,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         return self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
 
@@ -1614,6 +1615,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
         cmd = f'{workingdirectory}>{program} {arguments}'
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if (epew_is_available() and not prevent_using_epew):
             tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
             output_file_for_stdout = tempdir + ".epew.stdout.txt"
@@ -1657,7 +1659,6 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
                                stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
-        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         cmd = f'{workingdirectory}>{program} {arguments}'
         if(arguments is None):
             arguments = ""
