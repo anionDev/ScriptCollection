@@ -255,13 +255,23 @@ class ExecuteProgramTests(unittest.TestCase):
         assert result2 == (0, "out 2", "err 2", 44)
         sc.verify_no_pending_mock_program_calls()
 
-    def test_simple_program_call(self) -> None:
+    def test_simple_program_call_prevent_epew_true(self) -> None:
         # arrange
         sc = ScriptCollection()
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
-        (exit_code, _, _2, _3)=sc.start_program_synchronously("git","status",dir_path,throw_exception_if_exitcode_is_not_zero=False,verbosity=3)
+        (exit_code, _, _2, _3)=sc.start_program_synchronously("git","status",dir_path,throw_exception_if_exitcode_is_not_zero=False,verbosity=3,prevent_using_epew=True)
+
+        # assert
+        assert exit_code==0
+    def test_simple_program_call_prevent_epew_false(self) -> None:
+        # arrange
+        sc = ScriptCollection()
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+
+        # act
+        (exit_code, _, _2, _3)=sc.start_program_synchronously("git","status",dir_path,throw_exception_if_exitcode_is_not_zero=False,verbosity=3,prevent_using_epew=False)
 
         # assert
         assert exit_code==0
