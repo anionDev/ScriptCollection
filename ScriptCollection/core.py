@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.11"
+version = "2.5.12"
 __version__ = version
 
 
@@ -1590,6 +1590,20 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
 
+    def start_program_asynchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
+                                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                                 title: str = None, log_namespace: str = "") -> int:
+        arguments = ' '.join(argument_list)
+        if self.mock_program_calls:
+            try:
+                return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
+            except LookupError:
+                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                    raise
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
+        return self._private_start_process_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
+                                                       log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
+
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
                                                              print_errors_as_information: bool = False, log_file: str = None, prevent_using_epew: bool = False,
@@ -1603,11 +1617,21 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return self.start_program_synchronously(program, arguments,
                                                 workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
 
-    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
+    def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
                                     throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
-                                    log_namespace: str = "", use_shell: bool = False):
+                                    log_namespace: str = ""):
+        return self.start_program_synchronously_argsasarray(program, arguments_to_array(arguments), workingdirectory, verbosity, print_errors_as_information,
+                                                            log_file, timeoutInSeconds, addLogOverhead, title,
+                                                            throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace)
+
+    def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
+                                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                                                addLogOverhead: bool = False, title: str = None,
+                                                throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
+                                                log_namespace: str = ""):
+        arguments = ' '.join(argument_list)
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)
@@ -1635,11 +1659,16 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 title_for_message = ""
             else:
                 title_for_message = f"for task '{title}' "
-            cmdcall = f"{workingdirectory}>{program} {arguments}"
-            title_local = f"epew {title_for_message}('{cmdcall}')"
+            title_local = f"epew {title_for_message}('{cmd}')"
             result = (exit_code, stdout, stderr, pid)
         else:
-            with Popen(f"{program} {arguments}", stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell) as process:
+            if string_is_none_or_whitespace(title):
+                title_local = cmd
+            else:
+                title_local = title
+            arguments_for_process = [program]
+            arguments_for_process.extend(argument_list)
+            with Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False) as process:
                 pid = process.pid
                 stdout, stderr = process.communicate()
                 exit_code = process.wait()
@@ -1651,9 +1680,16 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if verbosity == 3:
             write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-            raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
+            raise Exception(f"'{title_local}' had exitcode {str(exit_code)}")
         else:
             return result
+
+    def _private_start_process_argsasarray(self, program: str, argument_list: str, workingdirectory: str = None, verbosity: int = 1,
+                                           print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                                           addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
+                                           stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
+        return self._private_start_process_argsasarray(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
+                                                       timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile)
 
     def _private_start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
@@ -2636,6 +2672,8 @@ def str_none_safe(variable) -> str:
     else:
         return str(variable)
 
+def arguments_to_array(arguments_as_string: str) -> list:
+    return arguments_as_string.split(" ")# TODO this function should get heavily improved
 
 def get_sha256_of_file(file: str) -> str:
     sha256 = hashlib.sha256()
