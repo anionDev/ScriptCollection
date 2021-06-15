@@ -698,8 +698,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return False
 
     def _private_run_git_command(self, repository_folder: str, argument: list) -> bool:
-        return not string_is_none_or_whitespace(self.start_program_synchronously_argsasarray("git",
-                                                                                             argument, repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)[1])
+        return not string_is_none_or_whitespace(
+            self.start_program_synchronously_argsasarray("git", argument, repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)[1])
 
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
         result = self.start_program_synchronously_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder,
