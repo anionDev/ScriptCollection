@@ -18,6 +18,7 @@ read_lines_from_file = getattr(module, "read_lines_from_file")
 to_list = getattr(module, "to_list")
 ensure_directory_exists = getattr(module, "ensure_directory_exists")
 ensure_directory_does_not_exist = getattr(module, "ensure_directory_does_not_exist")
+ensure_file_does_not_exist= getattr(module, "ensure_file_does_not_exist")
 ScriptCollection = getattr(module, "ScriptCollection")
 ensure_file_exists = getattr(module, "ensure_file_exists")
 write_lines_to_file = getattr(module, "write_lines_to_file")
@@ -266,6 +267,16 @@ class ExecuteProgramTests(unittest.TestCase):
         # assert
         assert exit_code==0
 
+    def test_file_is_git_ignored(self) -> None:
+        # arrange
+        sc = ScriptCollection()
+
+        # act
+        result=sc.file_is_git_ignored(__file__)
+
+        # assert
+        assert result is False
+
     def test_simple_program_call_prevent_argsasarray(self) -> None:
         # arrange
         sc = ScriptCollection()
@@ -277,4 +288,38 @@ class ExecuteProgramTests(unittest.TestCase):
 
         # assert
         assert exit_code==0
+    def test_simple_program_call_prevent_argsasarray_wiith_folder(self) -> None:
+        try:
+            # arrange
+            sc = ScriptCollection()
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
+            ensure_directory_exists(tests_folder)
+
+            # act
+            (exit_code, _, _2, _3)=sc.start_program_synchronously("ls",f"-ld {tests_folder}",
+            dir_path,throw_exception_if_exitcode_is_not_zero=False,verbosity=3,prevent_using_epew=True)
+
+            # assert
+            assert exit_code==0
+        finally:
+            ensure_directory_does_not_exist(tests_folder)
+    def test_export_filemetadata(self) -> None:
+        # arrange
+        try:
+            sc = ScriptCollection()
+            tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
+            ensure_directory_exists(tests_folder)
+            target_file=os.path.join( "test.csv")
+            assert not os.path.isfile(target_file)
+
+            # act
+            sc.export_filemetadata("Other",target_file)
+
+            # assert
+            assert os.path.isfile(target_file)
+            # TODO add more assertions
+        finally:
+            ensure_file_does_not_exist(target_file)
+
 # TODO all testcases should be independent of epew
