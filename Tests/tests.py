@@ -26,7 +26,7 @@ resolve_relative_path = getattr(module, "resolve_relative_path")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.5.15"
+version = "2.5.16"
 
 
 class MiscellaneousTests(unittest.TestCase):
