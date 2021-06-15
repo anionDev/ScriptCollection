@@ -181,12 +181,12 @@ class ScriptCollection:
             return 1
         else:
             if prepare:
+                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
+                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
                 tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
                 tag_message = f"Created {tag}"
                 self.git_create_tag(repository, commit_id,
                                     tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
-                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
-                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
                 if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
                     branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
                     self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
@@ -810,7 +810,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         argument = ["tag", tag, target_for_tag]
         if sign:
             argument.extend(["-s", "-m", message])
-        self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100,
+            verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
         self.start_program_synchronously_argsasarray("git", ["checkout ", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
