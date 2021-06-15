@@ -1841,8 +1841,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self._private_start_internal_for_helper("gitversion", "/showVariable "+variable, folder)
-        result = self._private_start_internal_for_helper("gitversion", "/showVariable "+variable, folder)
+        result = self._private_start_internal_for_helper("gitversion", ["/showVariable",variable], folder)
+        result = self._private_start_internal_for_helper("gitversion", ["/showVariable",variable], folder)
         return strip_new_line_character(result[1])
 
     # </miscellaneous>
