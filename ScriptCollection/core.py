@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.14"
+version = "2.5.15"
 __version__ = version
 
 
@@ -675,20 +675,20 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return result
 
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        return self.start_program_synchronously("git", f"merge-base --is-ancestor {ancestor} {descendant}", repository_folder)[0] == 0
+        return self.start_program_synchronously_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder)[0] == 0
 
     def git_repository_has_new_untracked_files(self, repository_folder: str) -> bool:
-        return self._private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
+        return self._private_run_git_command(repository_folder, ["ls-files", "--exclude-standard", "--others"])
 
     def git_repository_has_unstaged_changes(self, repository_folder: str) -> bool:
-        if(self._private_git_repository_has_uncommitted_changes(repository_folder, "diff")):
+        if(self._private_run_git_command(repository_folder, ["diff"])):
             return True
         if(self.git_repository_has_new_untracked_files(repository_folder)):
             return True
         return False
 
     def git_repository_has_staged_changes(self, repository_folder: str) -> bool:
-        return self._private_git_repository_has_uncommitted_changes(repository_folder, "diff --cached")
+        return self._private_run_git_command(repository_folder, ["diff", "--cached"])
 
     def git_repository_has_uncommitted_changes(self, repository_folder: str) -> bool:
         if(self.git_repository_has_unstaged_changes(repository_folder)):
@@ -697,49 +697,45 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             return True
         return False
 
-    def _private_git_repository_has_uncommitted_changes(self, repository_folder: str, argument: str) -> bool:
-        return not string_is_none_or_whitespace(self.start_program_synchronously("git", argument, repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)[1])
+    def _private_run_git_command(self, repository_folder: str, argument: list) -> bool:
+        return not string_is_none_or_whitespace(
+            self.start_program_synchronously_argsasarray("git", argument, repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)[1])
 
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result = self.start_program_synchronously("git", f"rev-parse --verify {commit}", repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        result = self.start_program_synchronously_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder,
+                                                              timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_fetch(self, folder: str, remotename: str = "--all", print_errors_as_information: bool = True, verbosity=1) -> None:
-        self.start_program_synchronously("git", f"fetch {remotename} --tags --prune", folder, timeoutInSeconds=100, verbosity=verbosity,
-                                         print_errors_as_information=print_errors_as_information, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["fetch", remotename, "--tags", "--prune", folder], timeoutInSeconds=100, verbosity=verbosity,
+                                                     print_errors_as_information=print_errors_as_information, prevent_using_epew=True)
 
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
-        argument = f"push {remotename} {localbranchname}:{remotebranchname}"
+        argument = ["push", "remotename", f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
-            argument = argument+" --force"
+            argument.append("--force")
         if (pushalltags):
-            argument = argument+" --tags"
-        result = self.start_program_synchronously("git", argument, folder, timeoutInSeconds=7200, verbosity=verbosity, prevent_using_epew=True)
+            argument.append("--tags")
+        result = self.start_program_synchronously_argsasarray("git", argument, folder, timeoutInSeconds=7200, verbosity=verbosity, prevent_using_epew=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
         original_cwd = os.getcwd()
+        args = ["clone", remote_repository_path]
         try:
             if(not os.path.isdir(clone_target_folder)):
-
                 if include_submodules:
-                    include_submodules_argument = " --recurse-submodules --remote-submodules"
-                else:
-                    include_submodules_argument = ""
-
+                    args.append("--recurse-submodules")
+                    args.append("--remote-submodules")
                 if mirror:
-                    mirror_argument = " --mirror"
-                else:
-                    mirror_argument = ""
-
+                    args.append("--mirror")
                 ensure_directory_exists(clone_target_folder)
-                argument = f"clone {remote_repository_path}{include_submodules_argument}{mirror_argument}"
-                self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, clone_target_folder)
+                self.start_program_synchronously_argsasarray("git", args, clone_target_folder)
         finally:
             os.chdir(original_cwd)
 
     def git_get_all_remote_names(self, directory) -> list:
-        lines = self.start_program_synchronously("git", "remote", directory, prevent_using_epew=True)[1]
+        lines = self.start_program_synchronously_argsasarray("git", ["remote"], directory, prevent_using_epew=True)[1]
         result = []
         for line in lines:
             if(not string_is_none_or_whitespace(line)):
@@ -751,30 +747,32 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.start_program_synchronously("git", f'remote set-url {remote_name} "{remote_address}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+            self.start_program_synchronously_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address],
+                                                         directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
         else:
-            self.start_program_synchronously("git", f'remote add {remote_name} "{remote_address}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+            self.start_program_synchronously_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory,
+                                                         timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_stage_all_changes(self, directory: str) -> None:
-        self.start_program_synchronously("git", "add -A", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["add','-A"], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.start_program_synchronously("git", "reset", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["reset"], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.start_program_synchronously("git", f'stage -- "{file}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['stage', file], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.start_program_synchronously("git", f'reset -- "{file}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['reset', file], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.start_program_synchronously("git", f'checkout -- "{file}"', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['checkout', file], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.start_program_synchronously("git", 'clean -df', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
-        self.start_program_synchronously("git", 'checkout -- .', directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['clean', '-df'], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['checkout', '.'], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
                    allow_empty_commits: bool = False) -> None:
@@ -802,32 +800,31 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author_argument}{allowempty_argument}',
-                                                                      directory, 600, 1, False, "Commit", False)
+            self.start_program_synchronously("git", f'commit --message="{message}"{author_argument}{allowempty_argument}',
+                                             directory, 600, 1, False, "Commit", False,
+                                             throw_exception_if_exitcode_is_not_zero=True)  # TODO use _argsasarray-variant
 
         return self.git_get_current_commit_id(directory)
 
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
-        argument = f"tag {tag} {target_for_tag}"
+        argument = ["tag", tag, target_for_tag]
         if sign:
-            message = message.replace("\\", "\\\\").replace("\"", "\\\"")
-            argument = f"{argument} -s -m \"{message}\""
-        # TODO adapt argument for message and signing
-        self.start_program_synchronously("git", argument, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+            argument.extend(["-s", "-m", message])
+        self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.start_program_synchronously("git", "checkout "+branch, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["checkout ", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_merge_abort(self, directory: str) -> None:
-        self.start_program_synchronously("git", "merge --abort", directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["merge", "--abort"], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
         self.git_checkout(directory, targetbranch)
-        if(fastforward):
-            fastforward_argument = ""
-        else:
-            fastforward_argument = "--no-ff "
-        self.start_program_synchronously("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        args = ["merge", "--no-commit"]
+        if(not fastforward):
+            args.append("--no-ff")
+        args.append("sourcebranch")
+        self.start_program_synchronously_argsasarray("git", args, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
         if commit:
             return self.git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
         else:
@@ -852,7 +849,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def file_is_git_ignored(self, file: str) -> None:
         filename = os.path.basename(file)
         folder = os.path.dirname(file)
-        exit_code = self.start_program_synchronously("git", f'check-ignore "{filename}"', folder, 0, False, None, 120, False)[0]
+        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', filename], folder, 0, False, None, 120, False)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
@@ -860,8 +857,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         raise Exception(f"Unable to calculate if '{file}' is ignored due to exitcode {exit_code}.")
 
     def discard_all_changes(self, repository: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset HEAD -- .", repository)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout -- .", repository)
+        self.start_program_synchronously_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
+        self.start_program_synchronously_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
 
     # </git>
 
@@ -1544,11 +1541,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
 
     def _private_ls(self, file: str) -> str:
-        file=file.replace("\\","/")
+        file = file.replace("\\", "/")
         assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
-        argument = f'-ld "{file}"'
-        result = self._private_start_internal_for_helper("ls", argument)
-        assert_condition(result[0] == 0, f"'ls {argument}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
+        result = self._private_start_internal_for_helper("ls", ["-ld", file])
+        assert_condition(result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
         assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
@@ -1614,9 +1610,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                 print_errors_as_information, log_file, timeoutInSeconds,
                                                 addLogOverhead, title, True, prevent_using_epew, log_namespace)
 
-    def _private_start_internal_for_helper(self, program: str, arguments: str, workingdirectory: str = None):
-        return self.start_program_synchronously(program, arguments,
-                                                workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
+    def _private_start_internal_for_helper(self, program: str, arguments: list, workingdirectory: str = None):
+        return self.start_program_synchronously_argsasarray(program, arguments,
+                                                            workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
 
     def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
@@ -1690,7 +1686,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                            addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
                                            stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
         return self._private_start_process(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
-                                                       timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile)
+                                           timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile)
 
     def _private_start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
@@ -2674,8 +2670,10 @@ def str_none_safe(variable) -> str:
     else:
         return str(variable)
 
+
 def arguments_to_array(arguments_as_string: str) -> list:
-    return arguments_as_string.split(" ")# TODO this function should get heavily improved
+    return arguments_as_string.split(" ")  # TODO this function should get heavily improved
+
 
 def get_sha256_of_file(file: str) -> str:
     sha256 = hashlib.sha256()
