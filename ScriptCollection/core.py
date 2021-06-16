@@ -757,7 +757,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                          timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_stage_all_changes(self, directory: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ["add','-A"], directory, timeoutInSeconds=100, verbosity=0,
+        self.start_program_synchronously_argsasarray("git", ["add","-A"], directory, timeoutInSeconds=100, verbosity=0,
                                                      prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_unstage_all_changes(self, directory: str) -> None:
