@@ -820,7 +820,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                      verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ["checkout ", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True,
+        self.start_program_synchronously_argsasarray("git", ["checkout", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True,
                                                      throw_exception_if_exitcode_is_not_zero=True)
 
     def git_merge_abort(self, directory: str) -> None:
