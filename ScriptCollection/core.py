@@ -797,7 +797,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
-            self.start_program_synchronously_argsasarray("git", argument, directory, 1, False, 1200,
+            self.start_program_synchronously_argsasarray("git", argument, directory, 1, False, None, 1200,
                                                          throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_current_commit_id(directory)
