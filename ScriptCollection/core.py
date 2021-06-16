@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.16"
+version = "2.5.17"
 __version__ = version
 
 
@@ -778,10 +778,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                    allow_empty_commits: bool = False) -> None:
         author_name = str_none_safe(author_name).strip()
         author_email = str_none_safe(author_email).strip()
+        argument = ['commit', '--message', f'"{message}"']
         if(string_has_content(author_name)):
-            author_argument = f' --author="{author_name} <{author_email}>"'
-        else:
-            author_argument = ""
+            argument.append(f'--author="{author_name} <{author_email}>"')
         do_commit = False
         if (self.git_repository_has_uncommitted_changes(directory)):
             write_message_to_stdout(f"Committing all changes in {directory}...")
@@ -790,19 +789,16 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             do_commit = True
             if allow_empty_commits:
                 do_commit = True
-                allowempty_argument = " --allow-empty"
-            else:
-                allowempty_argument = ""
+                argument.append('--allow-empty')
         else:
             if allow_empty_commits:
                 do_commit = True
-                allowempty_argument = " --allow-empty"
+                argument.append('--allow-empty')
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
-            self.start_program_synchronously("git", f'commit --message="{message}"{author_argument}{allowempty_argument}',
-                                             directory, 600, 1, False, "Commit", False,
-                                             throw_exception_if_exitcode_is_not_zero=True)  # TODO use _argsasarray-variant
+            self.start_program_synchronously_argsasarray("git", argument, directory, 1, False, 1200,
+                                                         throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_current_commit_id(directory)
 
@@ -811,7 +807,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if sign:
             argument.extend(["-s", "-m", message])
         self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100,
-            verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+                                                     verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
         self.start_program_synchronously_argsasarray("git", ["checkout ", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
@@ -1841,8 +1837,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self._private_start_internal_for_helper("gitversion", ["/showVariable",variable], folder)
-        result = self._private_start_internal_for_helper("gitversion", ["/showVariable",variable], folder)
+        result = self._private_start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
+        result = self._private_start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         return strip_new_line_character(result[1])
 
     # </miscellaneous>

@@ -26,7 +26,7 @@ resolve_relative_path = getattr(module, "resolve_relative_path")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.5.16"
+version = "2.5.17"
 
 
 class MiscellaneousTests(unittest.TestCase):
@@ -316,7 +316,7 @@ class ExecuteProgramTests(unittest.TestCase):
             target_file = os.path.join(tests_folder, "test.csv")
             assert not os.path.isfile(target_file)
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            folder_for_export = resolve_relative_path(".."+os.path.sep+"Other", dir_path)
+            folder_for_export = resolve_relative_path(".." + os.path.sep + "Other", dir_path)
 
             # act
             sc.export_filemetadata(folder_for_export, target_file)
