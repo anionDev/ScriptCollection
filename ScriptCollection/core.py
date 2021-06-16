@@ -778,7 +778,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                    allow_empty_commits: bool = False) -> None:
         author_name = str_none_safe(author_name).strip()
         author_email = str_none_safe(author_email).strip()
-        argument = ['commit''--message', f'"{message}"']
+        argument = ['commit', '--message', f'"{message}"']
         if(string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         do_commit = False
@@ -789,11 +789,11 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             do_commit = True
             if allow_empty_commits:
                 do_commit = True
-                argument.append(f'--allow-empty')
+                argument.append('--allow-empty')
         else:
             if allow_empty_commits:
                 do_commit = True
-                argument.append(f'--allow-empty')
+                argument.append('--allow-empty')
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
