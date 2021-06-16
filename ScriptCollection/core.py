@@ -817,15 +817,15 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
         self.git_checkout(directory, targetbranch)
-        args = ["merge", "--no-commit"]
-        if(not fastforward):
+        args = ["merge"]
+        if not commit:
+            args.append("--no-commit")
+        if not fastforward:
             args.append("--no-ff")
-        args.append("sourcebranch")
-        self.start_program_synchronously_argsasarray("git", args, directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
-        if commit:
-            return self.git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
-        else:
-            return self.git_get_current_commit_id(directory)
+        args.append(sourcebranch)
+        self.start_program_synchronously_argsasarray("git", args, directory, timeoutInSeconds=100, verbosity=0,
+            prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+        return self.git_get_current_commit_id(directory)
 
     def git_undo_all_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
