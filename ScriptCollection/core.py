@@ -849,7 +849,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def file_is_git_ignored(self, file: str) -> None:
         filename = os.path.basename(file)
         folder = os.path.dirname(file)
-        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', filename], folder, 0, False, None, 120, False)[0]
+        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', filename], folder, 0, False, None, 120, False, prevent_using_epew=True)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
