@@ -703,20 +703,22 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
         result = self.start_program_synchronously_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder,
-                                                              timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+                                                              timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_fetch(self, folder: str, remotename: str = "--all", print_errors_as_information: bool = True, verbosity=1) -> None:
         self.start_program_synchronously_argsasarray("git", ["fetch", remotename, "--tags", "--prune", folder], timeoutInSeconds=100, verbosity=verbosity,
-                                                     print_errors_as_information=print_errors_as_information, prevent_using_epew=True)
+                                                     print_errors_as_information=print_errors_as_information,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
-        argument = ["push", "remotename", f"{localbranchname}:{remotebranchname}"]
+        argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
         if (pushalltags):
             argument.append("--tags")
-        result = self.start_program_synchronously_argsasarray("git", argument, folder, timeoutInSeconds=7200, verbosity=verbosity, prevent_using_epew=True)
+        result = self.start_program_synchronously_argsasarray("git", argument, folder, timeoutInSeconds=7200, verbosity=verbosity,
+                prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
@@ -730,12 +732,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 if mirror:
                     args.append("--mirror")
                 ensure_directory_exists(clone_target_folder)
-                self.start_program_synchronously_argsasarray("git", args, clone_target_folder)
+                self.start_program_synchronously_argsasarray("git", args, clone_target_folder, throw_exception_if_exitcode_is_not_zero=True)
         finally:
             os.chdir(original_cwd)
 
     def git_get_all_remote_names(self, directory) -> list:
-        lines = self.start_program_synchronously_argsasarray("git", ["remote"], directory, prevent_using_epew=True)[1]
+        lines = self.start_program_synchronously_argsasarray("git", ["remote"], directory, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)[1]
         result = []
         for line in lines:
             if(not string_is_none_or_whitespace(line)):
@@ -748,31 +750,39 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
             self.start_program_synchronously_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address],
-                                                         directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+                                                         directory, timeoutInSeconds=100, verbosity=0,
+                                                         prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         else:
             self.start_program_synchronously_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory,
-                                                         timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+                                                         timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_stage_all_changes(self, directory: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ["add','-A"], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["add','-A"], directory, timeoutInSeconds=100, verbosity=0,
+        prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ["reset"], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["reset"], directory, timeoutInSeconds=100, verbosity=0,
+        prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ['stage', file], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['stage', file], directory, timeoutInSeconds=100,
+        verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ['reset', file], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['reset', file], directory, timeoutInSeconds=100,
+        verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.start_program_synchronously_argsasarray("git", ['checkout', file], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['checkout', file], directory, timeoutInSeconds=100, verbosity=0,
+        prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.start_program_synchronously_argsasarray("git", ['clean', '-df'], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
-        self.start_program_synchronously_argsasarray("git", ['checkout', '.'], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ['clean', '-df'], directory, timeoutInSeconds=100, verbosity=0,
+        prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+        self.start_program_synchronously_argsasarray("git", ['checkout', '.'], directory, timeoutInSeconds=100, verbosity=0,
+        prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
                    allow_empty_commits: bool = False) -> None:
@@ -797,7 +807,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
-            self.start_program_synchronously_argsasarray("git", argument, directory, 1, False, None, 1200,
+            self.start_program_synchronously_argsasarray("git", argument, directory, 0, False, None, 1200,
                                                          throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_current_commit_id(directory)
@@ -810,7 +820,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                      verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ["checkout ", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
+        self.start_program_synchronously_argsasarray("git", ["checkout ", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True,
+            throw_exception_if_exitcode_is_not_zero=True)
 
     def git_merge_abort(self, directory: str) -> None:
         self.start_program_synchronously_argsasarray("git", ["merge", "--abort"], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
