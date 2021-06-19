@@ -32,7 +32,7 @@ pip3 requires [Python](https://www.python.org) 3. See the [PyPI-site for ScriptC
 
 You can simply git-clone the ScriptCollection and then use the scripts under the provided license.
 
-`git clone https://github.com/anionDev/ScriptCollection`
+`git clone https://github.com/anionDev/ScriptCollection.git`
 
 It may be more easy to pip-install the ScriptCollection but technically pip is not required. Actually you need to git-clone (or download as zip-file from [Github](https://github.com/anionDev/ScriptCollection) the ScriptCollection to use the scripts in this repository which are not written in python.
 

@@ -6,6 +6,7 @@ import ctypes
 import itertools
 import filecmp
 import hashlib
+import math
 import pathlib
 import re
 import os
@@ -28,6 +29,7 @@ from pathlib import Path
 from random import randrange
 from shutil import copy2, copyfile
 from subprocess import Popen, call, PIPE
+from lxml import etree
 from defusedxml.minidom import parse
 from PyPDF2 import PdfFileMerger
 import keyboard
@@ -35,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.4.21"
+version = "2.5.19"
 __version__ = version
 
 
@@ -179,30 +181,39 @@ class ScriptCollection:
             return 1
         else:
             if prepare:
-                self.git_create_tag(repository, commit_id, self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version)
                 self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
                                self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
+                tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
+                tag_message = f"Created {tag}"
+                self.git_create_tag(repository, commit_id,
+                                    tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
                 if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
                     branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
                     self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
             write_message_to_stdout("Creating release was successful")
             return 0
 
-    def dotnet_build_executable_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+    def dotnet_executable_build(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         verbosity = self._private_get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
         sign_things = self._private_get_sign_things(configparser)
+        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
-                              self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
+                              self._private_get_buildoutputdirectory(configparser, runtime), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
                               verbosity, sign_things[0], sign_things[1], current_release_information)
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
         ensure_directory_does_not_exist(publishdirectory)
         copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
+
+    def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        verbosity = self._private_get_verbosity_for_exuecutor(configparser)
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
+            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
     def _private_get_sign_things(self, configparser: ConfigParser) -> tuple:
         files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign')
@@ -217,11 +228,12 @@ class ScriptCollection:
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
+        self.dotnet_executable_run_tests(configurationfile, current_release_information)
 
     def dotnet_create_executable_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.dotnet_build_executable_and_run_tests(configurationfile, current_release_information)
+        self.dotnet_executable_build(configurationfile, current_release_information)
         self.dotnet_reference(configurationfile, current_release_information)
 
     def dotnet_create_nuget_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
@@ -230,11 +242,12 @@ class ScriptCollection:
         repository_version = self.get_version_for_buildscripts(configparser)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
             update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
+        self.dotnet_nuget_run_tests(configurationfile, current_release_information)
 
     def dotnet_create_nuget_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.dotnet_build_nuget_and_run_tests(configurationfile, current_release_information)
+        self.dotnet_nuget_build(configurationfile, current_release_information)
         self.dotnet_reference(configurationfile, current_release_information)
         self.dotnet_release_nuget(configurationfile, current_release_information)
 
@@ -265,15 +278,14 @@ class ScriptCollection:
       </files>
     </package>"""
 
-    def dotnet_build_nuget_and_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+    def dotnet_nuget_build(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            self.dotnet_run_tests(configurationfile, current_release_information, self._private_get_verbosity_for_exuecutor(configparser))
         sign_things = self._private_get_sign_things(configparser)
+        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
             self.dotnet_build(self._private_get_csprojfile_folder(configparser), self._private_get_csprojfile_filename(configparser),
-                              self._private_get_buildoutputdirectory(configparser, runtime), self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'),
+                              self._private_get_buildoutputdirectory(configparser, runtime), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
                               self._private_get_verbosity_for_exuecutor(configparser),
                               sign_things[0], sign_things[1], current_release_information)
@@ -314,6 +326,13 @@ class ScriptCollection:
             file_object.write(nuspec_content)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600,
                                                                   self._private_get_verbosity_for_exuecutor(configparser))
+
+    def dotnet_nuget_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        verbosity = self._private_get_verbosity_for_exuecutor(configparser)
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
+            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
@@ -370,7 +389,6 @@ class ScriptCollection:
     def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
                      clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None,
                      current_release_information: dict = {}) -> None:
-        # TODO include commit-id (only if available) which can be retrieved due to "current_release_information['commitid']"
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             ensure_directory_does_not_exist(outputDirectory)
         ensure_directory_exists(outputDirectory)
@@ -395,11 +413,8 @@ class ScriptCollection:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
     def dotnet_run_tests(self, configurationfile: str, current_release_information: dict, verbosity: int = 1) -> None:
-        # TODO add possibility to set another buildconfiguration than for the real result-build
-        # TODO remove the call to SCDotNetBuild
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        runtime = self.get_item_from_configuration(configparser, 'dotnet', 'testruntime')
         if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
         if verbosity == 1:
@@ -408,15 +423,30 @@ class ScriptCollection:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
             verbose_argument_for_dotnet = "detailed"
-        self.dotnet_build(self._private_get_test_csprojfile_folder(configparser), self._private_get_test_csprojfile_filename(configparser),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'testoutputfolder'),
-                          self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration'), runtime,
-                          self.get_item_from_configuration(configparser, 'dotnet', 'testdotnetframework'), True, verbosity, None, None, current_release_information)
-        testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')} " \
-            f"--verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={self._private_get_coverage_filename(configparser)} " \
-            f"/p:CoverletOutputFormat=opencover"
+        coveragefilename = self._private_get_coverage_filename(configparser)
+        testargument = f"test {self._private_get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration')}" \
+            f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefilename}" \
+            f" /p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
                                                                   3600, verbosity, False, "Execute tests")
+        root = etree.parse(self._private_get_test_csprojfile_folder(configparser)+os.path.sep+coveragefilename)
+        coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
+        module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
+        if module_count == 0:
+            coverage_in_percent = 0
+            write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
+        self._private_handle_coverage(configparser, current_release_information, coverage_in_percent, verbosity == 3)
+
+    def _private_handle_coverage(self, configparser, current_release_information, coverage_in_percent: int, verbose: bool):
+        current_release_information['general.testcoverage'] = coverage_in_percent
+        minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
+        if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
+            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}.")
+        coverage_regex_begin = "https://img.shields.io/badge/testcoverage-"
+        coverage_regex_end = "%25-green"
+        for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles"):
+            replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
+                                            coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end, verbose=verbose)
 
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
         dllOrExeFile = resolve_relative_path_from_current_working_directory(dllOrExefile)
@@ -645,20 +675,20 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return result
 
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        return self.start_program_synchronously("git", f"merge-base --is-ancestor {ancestor} {descendant}", repository_folder)[0] == 0
+        return self.start_program_synchronously_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder)[0] == 0
 
     def git_repository_has_new_untracked_files(self, repository_folder: str) -> bool:
-        return self._private_git_repository_has_uncommitted_changes(repository_folder, "ls-files --exclude-standard --others")
+        return self._private_run_git_command(repository_folder, ["ls-files", "--exclude-standard", "--others"])
 
     def git_repository_has_unstaged_changes(self, repository_folder: str) -> bool:
-        if(self._private_git_repository_has_uncommitted_changes(repository_folder, "diff")):
+        if(self._private_run_git_command(repository_folder, ["diff"])):
             return True
         if(self.git_repository_has_new_untracked_files(repository_folder)):
             return True
         return False
 
     def git_repository_has_staged_changes(self, repository_folder: str) -> bool:
-        return self._private_git_repository_has_uncommitted_changes(repository_folder, "diff --cached")
+        return self._private_run_git_command(repository_folder, ["diff", "--cached"])
 
     def git_repository_has_uncommitted_changes(self, repository_folder: str) -> bool:
         if(self.git_repository_has_unstaged_changes(repository_folder)):
@@ -667,48 +697,47 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             return True
         return False
 
-    def _private_git_repository_has_uncommitted_changes(self, repository_folder: str, argument: str) -> bool:
-        return not string_is_none_or_whitespace(self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, repository_folder, 3600, 0)[1])
+    def _private_run_git_command(self, repository_folder: str, argument: list) -> bool:
+        return not string_is_none_or_whitespace(
+            self.start_program_synchronously_argsasarray("git", argument, repository_folder, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)[1])
 
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"rev-parse --verify {commit}", repository_folder, 30, 0)
+        result = self.start_program_synchronously_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder,
+                                                              timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\r', '').replace('\n', '')
 
-    def git_fetch(self, folder: str, remotename: str = "--all", printErrorsAsInformation: bool = True, verbosity=1) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"fetch {remotename} --tags --prune", folder, 3600, verbosity, False, None, printErrorsAsInformation)
+    def git_fetch(self, folder: str, remotename: str = "--all", print_errors_as_information: bool = True, verbosity=1) -> None:
+        self.start_program_synchronously_argsasarray("git", ["fetch", remotename, "--tags", "--prune", folder], timeoutInSeconds=100, verbosity=verbosity,
+                                                     print_errors_as_information=print_errors_as_information,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
-        argument = f"push {remotename} {localbranchname}:{remotebranchname}"
+        argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
-            argument = argument+" --force"
+            argument.append("--force")
         if (pushalltags):
-            argument = argument+" --tags"
-        result = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, folder, 7200, verbosity, False, None, True)
+            argument.append("--tags")
+        result = self.start_program_synchronously_argsasarray("git", argument, folder, timeoutInSeconds=7200, verbosity=verbosity,
+                                                              prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
         original_cwd = os.getcwd()
+        args = ["clone", remote_repository_path]
         try:
             if(not os.path.isdir(clone_target_folder)):
-
                 if include_submodules:
-                    include_submodules_argument = " --recurse-submodules --remote-submodules"
-                else:
-                    include_submodules_argument = ""
-
+                    args.append("--recurse-submodules")
+                    args.append("--remote-submodules")
                 if mirror:
-                    mirror_argument = " --mirror"
-                else:
-                    mirror_argument = ""
-
+                    args.append("--mirror")
                 ensure_directory_exists(clone_target_folder)
-                argument = f"clone {remote_repository_path}{include_submodules_argument}{mirror_argument}"
-                self.execute_and_raise_exception_if_exit_code_is_not_zero("git", argument, clone_target_folder)
+                self.start_program_synchronously_argsasarray("git", args, clone_target_folder, throw_exception_if_exitcode_is_not_zero=True)
         finally:
             os.chdir(original_cwd)
 
     def git_get_all_remote_names(self, directory) -> list:
-        lines = self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "remote", directory)[1]
+        lines = self.start_program_synchronously_argsasarray("git", ["remote"], directory, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)[1]
         result = []
         for line in lines:
             if(not string_is_none_or_whitespace(line)):
@@ -720,39 +749,48 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote set-url {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+            self.start_program_synchronously_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address],
+                                                         directory, timeoutInSeconds=100, verbosity=0,
+                                                         prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         else:
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'remote add {remote_name} "{remote_address}"', directory, 3600, 1, False, "Stage", False)
+            self.start_program_synchronously_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory,
+                                                         timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_stage_all_changes(self, directory: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "add -A", directory, 3600, 1, False, "Stage", False)
+        self.start_program_synchronously_argsasarray("git", ["add","-A"], directory, timeoutInSeconds=100, verbosity=0,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset", directory, 3600, 1, False, "Unstage", False)
+        self.start_program_synchronously_argsasarray("git", ["reset"], directory, timeoutInSeconds=100, verbosity=0,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'stage -- "{file}"', directory, 3600, 1, False, "Stage", False)
+        self.start_program_synchronously_argsasarray("git", ['stage', file], directory, timeoutInSeconds=100,
+                                                     verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'reset -- "{file}"', directory, 3600, 1, False, "Unstage", False)
+        self.start_program_synchronously_argsasarray("git", ['reset', file], directory, timeoutInSeconds=100,
+                                                     verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'checkout -- "{file}"', directory, 3600, 1, False, "Discard", False)
+        self.start_program_synchronously_argsasarray("git", ['checkout', file], directory, timeoutInSeconds=100, verbosity=0,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'clean -df', directory, 3600, 1, False, "Discard", False)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", 'checkout -- .', directory, 3600, 1, False, "Discard", False)
+        self.start_program_synchronously_argsasarray("git", ['clean', '-df'], directory, timeoutInSeconds=100, verbosity=0,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+        self.start_program_synchronously_argsasarray("git", ['checkout', '.'], directory, timeoutInSeconds=100, verbosity=0,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
                    allow_empty_commits: bool = False) -> None:
         author_name = str_none_safe(author_name).strip()
         author_email = str_none_safe(author_email).strip()
+        argument = ['commit', '--message', f'"{message}"']
         if(string_has_content(author_name)):
-            author_argument = f' --author="{author_name} <{author_email}>"'
-        else:
-            author_argument = ""
+            argument.append(f'--author="{author_name} <{author_email}>"')
         do_commit = False
         if (self.git_repository_has_uncommitted_changes(directory)):
             write_message_to_stdout(f"Committing all changes in {directory}...")
@@ -761,41 +799,44 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             do_commit = True
             if allow_empty_commits:
                 do_commit = True
-                allowempty_argument = " --allow-empty"
-            else:
-                allowempty_argument = ""
+                argument.append('--allow-empty')
         else:
             if allow_empty_commits:
                 do_commit = True
-                allowempty_argument = " --allow-empty"
+                argument.append('--allow-empty')
             else:
                 write_message_to_stdout(f"There are no changes to commit in {directory}")
         if do_commit:
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f'commit --message="{message}"{author_argument}{allowempty_argument}',
-                                                                      directory, 600, 1, False, "Commit", False)
+            self.start_program_synchronously_argsasarray("git", argument, directory, 0, False, None, 1200,
+                                                         throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_current_commit_id(directory)
 
-    def git_create_tag(self, directory: str, target_for_tag: str, tag: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", f"tag {tag} {target_for_tag}", directory, 3600, 1, False, "CreateTag", False)
+    def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
+        argument = ["tag", tag, target_for_tag]
+        if sign:
+            argument.extend(["-s", "-m", message])
+        self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100,
+                                                     verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout "+branch, directory, 3600, 1, False, "Checkout", True)
+        self.start_program_synchronously_argsasarray("git", ["checkout", branch], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True,
+                                                     throw_exception_if_exitcode_is_not_zero=True)
 
     def git_merge_abort(self, directory: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --abort", directory, 3600, 1, False, "AbortMerge", False)
+        self.start_program_synchronously_argsasarray("git", ["merge", "--abort"], directory, timeoutInSeconds=100, verbosity=0, prevent_using_epew=True)
 
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
         self.git_checkout(directory, targetbranch)
-        if(fastforward):
-            fastforward_argument = ""
-        else:
-            fastforward_argument = "--no-ff "
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "merge --no-commit "+fastforward_argument+sourcebranch, directory, 3600, 1, False, "Merge", True)
-        if commit:
-            return self.git_commit(directory, f"Merge branch '{sourcebranch}' into '{targetbranch}'")
-        else:
-            return self.git_get_current_commit_id(directory)
+        args = ["merge"]
+        if not commit:
+            args.append("--no-commit")
+        if not fastforward:
+            args.append("--no-ff")
+        args.append(sourcebranch)
+        self.start_program_synchronously_argsasarray("git", args, directory, timeoutInSeconds=100, verbosity=0,
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+        return self.git_get_current_commit_id(directory)
 
     def git_undo_all_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
@@ -816,7 +857,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def file_is_git_ignored(self, file: str) -> None:
         filename = os.path.basename(file)
         folder = os.path.dirname(file)
-        exit_code = self.start_program_synchronously("git", f'check-ignore "{filename}"', folder, 0, False, None, 120, False)[0]
+        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', filename], folder, 0, False, None, 120, False, prevent_using_epew=True)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
@@ -824,8 +865,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         raise Exception(f"Unable to calculate if '{file}' is ignored due to exitcode {exit_code}.")
 
     def discard_all_changes(self, repository: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "reset HEAD -- .", repository)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "checkout -- .", repository)
+        self.start_program_synchronously_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
+        self.start_program_synchronously_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
 
     # </git>
 
@@ -840,10 +881,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             items[item] = "f"
         for item in get_all_folders_of_folder(folder):
             items[item] = "d"
-        for file_or_folder in items:
+        for file_or_folder, item_type in items.items():
             truncated_file = file_or_folder[path_prefix:]
             if(filter_function is None or filter_function(folder, truncated_file)):
-                item_type = items[file_or_folder]
                 owner_and_permisssion = self.get_file_owner_and_file_permission(file_or_folder)
                 user = owner_and_permisssion[0]
                 permissions = owner_and_permisssion[1]
@@ -1190,11 +1230,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def _private_merge_files(self, sourcefile: str, targetfile: str) -> None:
         with open(sourcefile, "rb") as f:
             source_data = f.read()
-        fout = open(targetfile, "ab")
-        merge_separator = [0x0A]
-        fout.write(bytes(merge_separator))
-        fout.write(source_data)
-        fout.close()
+        with open(targetfile, "ab") as fout:
+            merge_separator = [0x0A]
+            fout.write(bytes(merge_separator))
+            fout.write(source_data)
 
     def _private_process_file(self, file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
         new_filename = os.path.join(os.path.dirname(file), os.path.basename(file).replace(substringInFilename, newSubstringInFilename))
@@ -1310,14 +1349,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         outputfile = inputfile + '.modified'
 
         copy2(inputfile, outputfile)
-        file = open(outputfile, 'a')
-        # TODO use rcedit for .exe-files instead of appending valuetoappend ( https://github.com/electron/rcedit/ )
-        # background: you can retrieve the "original-filename" from the .exe-file like discussed here:
-        # https://security.stackexchange.com/questions/210843/ is-it-possible-to-change-original-filename-of-an-exe
-        # so removing the original filename with rcedit is probably a better way to make it more difficult to detect the programname.
-        # this would obviously also change the hashvalue of the program so appending a whitespace is not required anymore.
-        file.write(valuetoappend)
-        file.close()
+        with open(outputfile, 'a') as file:
+            # TODO use rcedit for .exe-files instead of appending valuetoappend ( https://github.com/electron/rcedit/ )
+            # background: you can retrieve the "original-filename" from the .exe-file like discussed here:
+            # https://security.stackexchange.com/questions/210843/ is-it-possible-to-change-original-filename-of-an-exe
+            # so removing the original filename with rcedit is probably a better way to make it more difficult to detect the programname.
+            # this would obviously also change the hashvalue of the program so appending a whitespace is not required anymore.
+            file.write(valuetoappend)
 
     def _private_adjust_folder_name(self, folder: str) -> str:
         result = os.path.dirname(folder).replace("\\", "/")
@@ -1438,7 +1476,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         # TODO implement
         return 1
 
-    def python_file_has_errors(self, file, treat_warnings_as_errors: bool = True) -> (bool, list):
+    def python_file_has_errors(self, file, treat_warnings_as_errors: bool = True):
         errors = list()
         folder = os.path.dirname(file)
         filename = os.path.basename(file)
@@ -1511,8 +1549,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         return [self._private_get_file_owner_helper(ls_output), self._private_get_file_permission_helper(ls_output)]
 
     def _private_ls(self, file: str) -> str:
+        file = file.replace("\\", "/")
         assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
-        result = self._private_start_internal_for_helper("ls", f'-ld "{file}"')
+        result = self._private_start_internal_for_helper("ls", ["-ld", file])
+        assert_condition(result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
         assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
@@ -1545,6 +1585,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "") -> int:
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
@@ -1553,6 +1594,20 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                     raise
         return self._private_start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
+
+    def start_program_asynchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
+                                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                                 title: str = None, log_namespace: str = "") -> int:
+        arguments = ' '.join(argument_list)
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
+        if self.mock_program_calls:
+            try:
+                return self._private_get_mock_program_call(program, arguments, workingdirectory)[3]
+            except LookupError:
+                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                    raise
+        return self._private_start_process_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
+                                                       log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
@@ -1563,15 +1618,26 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                 print_errors_as_information, log_file, timeoutInSeconds,
                                                 addLogOverhead, title, True, prevent_using_epew, log_namespace)
 
-    def _private_start_internal_for_helper(self, program: str, arguments: str, workingdirectory: str = None):
-        return self.start_program_synchronously(program, arguments,
-                                                workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
+    def _private_start_internal_for_helper(self, program: str, arguments: list, workingdirectory: str = None):
+        return self.start_program_synchronously_argsasarray(program, arguments,
+                                                            workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
 
-    def start_program_synchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
+    def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
                                     throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
-                                    log_namespace: str = "", use_shell: bool = False):
+                                    log_namespace: str = ""):
+        return self.start_program_synchronously_argsasarray(program, arguments_to_array(arguments), workingdirectory, verbosity, print_errors_as_information,
+                                                            log_file, timeoutInSeconds, addLogOverhead, title,
+                                                            throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace)
+
+    def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
+                                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                                                addLogOverhead: bool = False, title: str = None,
+                                                throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
+                                                log_namespace: str = ""):
+        arguments = ' '.join(argument_list)
+        workingdirectory = self._private_adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
                 return self._private_get_mock_program_call(program, arguments, workingdirectory)
@@ -1598,25 +1664,37 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 title_for_message = ""
             else:
                 title_for_message = f"for task '{title}' "
-            cmdcall = f"{workingdirectory}>{program} {arguments}"
-            title_local = f"epew {title_for_message}('{cmdcall}')"
+            title_local = f"epew {title_for_message}('{cmd}')"
             result = (exit_code, stdout, stderr, pid)
         else:
-            process = Popen(f"{program} {arguments}", stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=use_shell)
-            pid = process.pid
-            stdout, stderr = process.communicate()
-            exit_code = process.wait()
-            stdout = bytes_to_string(stdout).replace('\r', '')
-            stderr = bytes_to_string(stderr).replace('\r', '')
-            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                raise Exception(f"'{cmd}' had exitcode {str(exit_code)}")
-            result = (exit_code, stdout, stderr, pid)
+            if string_is_none_or_whitespace(title):
+                title_local = cmd
+            else:
+                title_local = title
+            arguments_for_process = [program]
+            arguments_for_process.extend(argument_list)
+            with Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False) as process:
+                pid = process.pid
+                stdout, stderr = process.communicate()
+                exit_code = process.wait()
+                stdout = bytes_to_string(stdout).replace('\r', '')
+                stderr = bytes_to_string(stderr).replace('\r', '')
+                if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+                    raise Exception(f"'{cmd}' had exitcode {str(exit_code)}")
+                result = (exit_code, stdout, stderr, pid)
         if verbosity == 3:
             write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-            raise Exception(f"'{cmdcall}' had exitcode {str(exit_code)}")
+            raise Exception(f"'{title_local}' had exitcode {str(exit_code)}")
         else:
             return result
+
+    def _private_start_process_argsasarray(self, program: str, argument_list: str, workingdirectory: str = None, verbosity: int = 1,
+                                           print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                                           addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
+                                           stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
+        return self._private_start_process(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
+                                           timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile)
 
     def _private_start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
@@ -1664,7 +1742,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if verbosity == 3:
             args_as_string = " ".join(args)
             write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
-        process = Popen(args, shell=False)
+        process = Popen(args, shell=False)  # pylint: disable=bad-option-value, R1732
         return process
 
     def verify_no_pending_mock_program_calls(self):
@@ -1770,8 +1848,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self._private_start_internal_for_helper("gitversion", "/showVariable "+variable, folder)
-        result = self._private_start_internal_for_helper("gitversion", "/showVariable "+variable, folder)
+        result = self._private_start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
+        result = self._private_start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         return strip_new_line_character(result[1])
 
     # </miscellaneous>
@@ -1791,18 +1869,6 @@ Requires the requirements of: TODO
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return ScriptCollection().create_release(args.configurationfile)
-
-
-def SCDotNetBuildExecutableAndRunTests_cli() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetBuildExecutableAndRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollection().dotnet_build_executable_and_run_tests(args.configurationfile, {})
 
 
 def SCDotNetCreateExecutableRelease_cli() -> int:
@@ -1833,18 +1899,6 @@ Requires the requirements of: TODO
     sc.dotnet_create_nuget_release_premerge(args.configurationfile, {})
     sc.dotnet_create_nuget_release_postmerge(args.configurationfile, {})
     return 0
-
-
-def SCDotNetBuildNugetAndRunTests_cli() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetBuildNugetAndRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollection().dotnet_build_nuget_and_run_tests(args.configurationfile, {})
 
 
 def SCDotNetReleaseNuget_cli() -> int:
@@ -2269,9 +2323,11 @@ def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> No
         raise ValueError(f"Folder '{srcDir}' does not exist")
 
 
-def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
+def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8", verbose: bool = False) -> None:
     """This function iterates over each line in the file and replaces it by the line which applied regex.
     Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
+    if verbose:
+        write_message_to_stdout(f"Replace '{replace_from_regex}' to '{replace_to_regex}' in '{file}'")
     with open(file, encoding=encoding, mode="r") as f:
         lines = f.readlines()
         replaced_lines = []
@@ -2447,7 +2503,7 @@ def ensure_file_does_not_exist(path: str) -> None:
 
 
 def format_xml_file(filepath: str) -> None:
-    format_xml_file_with_encoding(file_is_empty, "utf-8")
+    format_xml_file_with_encoding(filepath, "utf-8")
 
 
 def format_xml_file_with_encoding(filepath: str, encoding: str) -> None:
@@ -2621,6 +2677,10 @@ def str_none_safe(variable) -> str:
         return ''
     else:
         return str(variable)
+
+
+def arguments_to_array(arguments_as_string: str) -> list:
+    return arguments_as_string.split(" ")  # TODO this function should get heavily improved
 
 
 def get_sha256_of_file(file: str) -> str:
