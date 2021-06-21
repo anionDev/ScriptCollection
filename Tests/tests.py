@@ -23,10 +23,11 @@ ScriptCollection = getattr(module, "ScriptCollection")
 ensure_file_exists = getattr(module, "ensure_file_exists")
 write_lines_to_file = getattr(module, "write_lines_to_file")
 resolve_relative_path = getattr(module, "resolve_relative_path")
+get_next_square_number = getattr(module, "get_next_square_number")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.5.20"
+version = "2.5.21"
 
 
 class MiscellaneousTests(unittest.TestCase):
@@ -63,6 +64,27 @@ class MiscellaneousTests(unittest.TestCase):
         finally:
             os.remove(testfile)
 
+    def test_get_next_square_number_0(self) -> None:
+        assert get_next_square_number(0) == 1
+
+    def test_get_next_square_number_1(self) -> None:
+        assert get_next_square_number(1) == 1
+
+    def test_get_next_square_number_2(self) -> None:
+        assert get_next_square_number(2) == 4
+
+    def test_get_next_square_number_3(self) -> None:
+        assert get_next_square_number(3) == 4
+
+    def test_get_next_square_number_15(self) -> None:
+        assert get_next_square_number(15) == 16
+
+    def test_get_next_square_number_16(self) -> None:
+        assert get_next_square_number(16) == 16
+
+    def test_get_next_square_number_17(self) -> None:
+        assert get_next_square_number(17) == 25
+
     def test_generate_thumbnail(self) -> None:
         # arrange
         fd, temporary_file = tempfile.mkstemp()
@@ -89,7 +111,7 @@ class MiscellaneousTests(unittest.TestCase):
                                           re.escape(folder), 0, "42.123", "", 40)  # Mock generating the entire result-thumbnail-file
 
             # act
-            sc.generate_thumbnail(temporary_file, tempname_for_thumbnails)
+            sc.generate_thumbnail(temporary_file, "16", tempname_for_thumbnails)
 
             # assert
             sc.verify_no_pending_mock_program_calls()
