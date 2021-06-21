@@ -1118,7 +1118,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         self.execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
     def generate_thumbnail(self, file: str, framerate: str, tempname_for_thumbnails:str=None) -> None:
-        if tempfile is None:
+        if tempname_for_thumbnails is None:
             tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
         file = resolve_relative_path_from_current_working_directory(file)
