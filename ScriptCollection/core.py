@@ -49,11 +49,15 @@ class ScriptCollection:
     execute_programy_really_if_no_mock_call_is_defined: bool = False  # This property is for test-purposes only
     _private_mocked_program_calls: list = list()
     _private_constants_build_template_dockerfile_dotnet = "template://dockerfile_dotnet"
-
+    _private_epew_is_available:bool=False
     # </Properties>
+
+    def __init__(self):
+        self._private_epew_is_available=epew_is_available()
 
     # <Build>
 
+    #TODO use typechecks everywhere like disucced here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
     def create_release(self, configurationfile: str) -> int:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
@@ -1026,11 +1030,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         available_configuration_items.append(["dotnet", "buildconfiguration"])
         available_configuration_items.append(["dotnet", "filestosign"])
         available_configuration_items.append(["dotnet", "snkfile"])
-        available_configuration_items.append(["dotnet", "testruntime"])
         available_configuration_items.append(["dotnet", "testdotnetframework"])
         available_configuration_items.append(["dotnet", "testcsprojfile"])
-        available_configuration_items.append(["dotnet", "testoutputfolder"])
         available_configuration_items.append(["dotnet", "localnugettargets"])
+        available_configuration_items.append(["dotnet", "testbuildconfiguration"])
         available_configuration_items.append(["dotnet", "docfxfile"])
         available_configuration_items.append(["dotnet", "coveragefolder"])
         available_configuration_items.append(["dotnet", "coveragereportfolder"])
@@ -1047,6 +1050,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         available_configuration_items.append(["prepare", "developmentbranchname"])
         available_configuration_items.append(["prepare", "masterbranchname"])
         available_configuration_items.append(["prepare", "gittagprefix"])
+        available_configuration_items.append(["other", "codecoverageshieldreplacementfiles"])
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
         available_configuration_items.append(["other", "projecturl"])
@@ -1645,7 +1649,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
         cmd = f'{workingdirectory}>{program} {arguments}'
-        if (epew_is_available() and not prevent_using_epew):
+        if (self._private_epew_is_available and not prevent_using_epew):
             tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
             output_file_for_stdout = tempdir + ".epew.stdout.txt"
             output_file_for_stderr = tempdir + ".epew.stderr.txt"
@@ -1679,13 +1683,11 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 exit_code = process.wait()
                 stdout = bytes_to_string(stdout).replace('\r', '')
                 stderr = bytes_to_string(stderr).replace('\r', '')
-                if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                    raise Exception(f"'{cmd}' had exitcode {str(exit_code)}")
                 result = (exit_code, stdout, stderr, pid)
         if verbosity == 3:
-            write_message_to_stdout(f"Finished executing '{title_local}' with exitcode "+str(exit_code))
+            write_message_to_stdout(f"Finished executing '{title_local}' with exitcode {str(exit_code)}")
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-            raise Exception(f"'{title_local}' had exitcode {str(exit_code)}")
+            raise Exception(f"'{title_local}' had exitcode {str(exit_code)}. (StdOut: '{stdout}'; StdErr: '{stderr}')")
         else:
             return result
 
@@ -2750,7 +2752,10 @@ def contains_line(lines, regex: str) -> bool:
 
 
 def epew_is_available() -> bool:
-    return find_executable("epew") is not None
+    try:
+        return find_executable("epew") is not None
+    except:
+        return False
 
 
 def absolute_file_paths(directory: str) -> list:
