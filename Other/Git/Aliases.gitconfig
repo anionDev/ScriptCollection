@@ -5,6 +5,7 @@
     listfiles = ls-tree --full-tree -r --name-only HEAD
     listauthors = !git log --pretty=\"'%an', '%ae'\" | sort | uniq; Shows author-name, author-email.
     listcommitcounts = shortlog -s -n
+    rep = repack -a -d -n --max-pack-size=10m
     removelastcommitpreservechanges = reset HEAD~ --soft; Preserves changes as unstaged changes.
     removelastcommitdeletechanges = !git reset HEAD~ && git reset --hard && git clean -f -d && :; undo uncommitted changes and all changes of the commit.
     pullsubmodules = submodule update --init --recursive
