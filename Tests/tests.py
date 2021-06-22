@@ -27,7 +27,7 @@ get_next_square_number = getattr(module, "get_next_square_number")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.5.21"
+version = "2.5.22"
 
 
 class MiscellaneousTests(unittest.TestCase):
