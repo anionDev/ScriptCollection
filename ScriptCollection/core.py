@@ -1128,10 +1128,13 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         try:
             length_in_seconds = self._private_calculate_lengh_in_seconds(filename, folder)
             if(frames_per_second.endswith("fps")):
-                frames_per_second = float(frames_per_second[:-3])# frames per second: "20fps" => 20fps
+                # frames per second: "20fps" => 20fps
+                frames_per_second = round(float(frames_per_second[:-3]),2)
+                amounf_of_previewframes = math.floor(length_in_seconds*frames_per_second)
             else:
-                frames_per_second = round( length_in_seconds/float(frames_per_second),2)# concrete amount of frames: "20" => 20 frames
-            amounf_of_previewframes = math.floor(length_in_seconds*frames_per_second)
+                # concrete amount of frames: "20" => 20 frames
+                amounf_of_previewframes =  float(frames_per_second)
+                frames_per_second =round(length_in_seconds/amounf_of_previewframes,2)
             self._private_create_thumbnails(filename, frames_per_second, folder, tempname_for_thumbnails)
             self._private_create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
         finally:

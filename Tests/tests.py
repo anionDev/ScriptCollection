@@ -126,8 +126,8 @@ class MiscellaneousTests(unittest.TestCase):
             folder = os.path.dirname(temporary_file)
             filename = os.path.basename(temporary_file)
             sc.mock_program_calls = True
-            video_length_as_string = "85.123"
-            info = "00:00:42"
+            video_length_as_string = "70.123"
+            info = "00:01:10"
             tempname_for_thumbnails = "t_helperfile"
             sc.register_mock_program_call("ffprobe",
                                           re.escape(f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'),
@@ -135,7 +135,7 @@ class MiscellaneousTests(unittest.TestCase):
             # be video_length_as_string seconds in this case and exits without errors (exitcode 0)
 
             sc.register_mock_program_call("ffmpeg",
-                                          re.escape(f'-i "{filename}" -r 20.0 -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
+                                          re.escape(f'-i "{filename}" -r 0.33 -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock generating single the thumbnail-files
 
             sc.register_mock_program_call("montage",
@@ -143,7 +143,7 @@ class MiscellaneousTests(unittest.TestCase):
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock generating the entire result-thumbnail-file
 
             # act
-            sc.generate_thumbnail(temporary_file, "20fps", tempname_for_thumbnails)
+            sc.generate_thumbnail(temporary_file, "0.3333fps", tempname_for_thumbnails)
 
             # assert
             sc.verify_no_pending_mock_program_calls()
