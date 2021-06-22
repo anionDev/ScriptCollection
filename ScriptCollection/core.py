@@ -49,15 +49,15 @@ class ScriptCollection:
     execute_programy_really_if_no_mock_call_is_defined: bool = False  # This property is for test-purposes only
     _private_mocked_program_calls: list = list()
     _private_constants_build_template_dockerfile_dotnet = "template://dockerfile_dotnet"
-    _private_epew_is_available:bool=False
+    _private_epew_is_available: bool = False
     # </Properties>
 
     def __init__(self):
-        self._private_epew_is_available=epew_is_available()
+        self._private_epew_is_available = epew_is_available()
 
     # <Build>
 
-    #TODO use typechecks everywhere like disucced here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
+    # TODO use typechecks everywhere like disucced here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
     def create_release(self, configurationfile: str) -> int:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
@@ -761,7 +761,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                          timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_stage_all_changes(self, directory: str) -> None:
-        self.start_program_synchronously_argsasarray("git", ["add","-A"], directory, timeoutInSeconds=100, verbosity=0,
+        self.start_program_synchronously_argsasarray("git", ["add", "-A"], directory, timeoutInSeconds=100, verbosity=0,
                                                      prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_unstage_all_changes(self, directory: str) -> None:
@@ -789,30 +789,30 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                                                      prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
-                   no_changes_behavior: int =0) -> None:
-        #no_changes_behavior=0 => No commit
-        #no_changes_behavior=1 => Commit anyway
-        #no_changes_behavior=2 => Exception
+                   no_changes_behavior: int = 0) -> None:
+        # no_changes_behavior=0 => No commit
+        # no_changes_behavior=1 => Commit anyway
+        # no_changes_behavior=2 => Exception
         author_name = str_none_safe(author_name).strip()
         author_email = str_none_safe(author_email).strip()
         argument = ['commit', '--message', f'"{message}"']
         if(string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
-        git_repository_has_uncommitted_changes=self.git_repository_has_uncommitted_changes(directory)
+        git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
         if git_repository_has_uncommitted_changes:
             do_commit = True
             write_message_to_stdout(f"Committing all changes in {directory}...")
             if stage_all_changes:
                 self.git_stage_all_changes(directory)
         else:
-            if no_changes_behavior==0:
+            if no_changes_behavior == 0:
                 write_message_to_stdout(f"Commit '{message}' will not be done because there are no changes to commit in repository '{directory}'")
                 do_commit = False
-            if no_changes_behavior==1:
+            if no_changes_behavior == 1:
                 write_message_to_stdout(f"There are no changes to commit in repository '{directory}'")
                 do_commit = True
                 argument.append('--allow-empty')
-            if no_changes_behavior==2:
+            if no_changes_behavior == 2:
                 raise RuntimeError(f"There are no changes to commit in repository '{directory}'")
         if do_commit:
             self.start_program_synchronously_argsasarray("git", argument, directory, 0, False, None, 1200,
@@ -1105,19 +1105,18 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         argument = f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'
         return float(self.execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, folder)[1])
 
-    def _private_create_thumbnails(self, filename: str, length_in_seconds: float, amount_of_images: int, folder: str, tempname_for_thumbnails:str) -> None:
-        rrp = length_in_seconds/(amount_of_images-2)
-        argument = f'-i "{filename}" -r 1/{str(rrp)} -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'
+    def _private_create_thumbnails(self, filename: str, fps:float, folder: str, tempname_for_thumbnails: str) -> None:
+        argument = f'-i "{filename}" -r {str(fps)} -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, folder)
 
-    def _private_create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails:str, amount_of_images: int) -> None:
+    def _private_create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails: str, amount_of_images: int) -> None:
         duration = timedelta(seconds=length_in_seconds)
         info = timedelta_to_simple_string(duration)
-        next_square_number=str(int(math.sqrt(get_next_square_number(amount_of_images))))
+        next_square_number = str(int(math.sqrt(get_next_square_number(amount_of_images))))
         argument = f'-title "{outputfilename} ({info})" -geometry +{next_square_number}+{next_square_number} {tempname_for_thumbnails}*.png "{outputfilename}.png"'
         self.execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
 
-    def generate_thumbnail(self, file: str, framerate: str, tempname_for_thumbnails:str=None) -> None:
+    def generate_thumbnail(self, file: str, frames_per_second: str, tempname_for_thumbnails: str = None) -> None:
         if tempname_for_thumbnails is None:
             tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
@@ -1128,14 +1127,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
 
         try:
             length_in_seconds = self._private_calculate_lengh_in_seconds(filename, folder)
-            if(framerate.endswith("fpm")):
-                ra=int(framerate[:-3])*(length_in_seconds/60)
-                amounf_of_previewframes=int( round(ra,0))
-                if(amounf_of_previewframes!=ra):
-                    amounf_of_previewframes=int(math.floor(amounf_of_previewframes)+1)
+            if(frames_per_second.endswith("fps")):
+                frames_per_second = float(frames_per_second[:-3])# frames per second: "20fps" => 20fps
             else:
-                amounf_of_previewframes=int(framerate)
-            self._private_create_thumbnails(filename, length_in_seconds, amounf_of_previewframes, folder, tempname_for_thumbnails)
+                frames_per_second = round( length_in_seconds/float(frames_per_second),2)# concrete amount of frames: "20" => 20 frames
+            amounf_of_previewframes = math.floor(length_in_seconds*frames_per_second)
+            self._private_create_thumbnails(filename, frames_per_second, folder, tempname_for_thumbnails)
             self._private_create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
         finally:
             for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
@@ -2272,7 +2269,7 @@ def SCGenerateThumbnail_cli() -> int:
     parser.add_argument('framerate', help='', default="16")
     args = parser.parse_args()
     try:
-        ScriptCollection().generate_thumbnail(args.file,args.framerate)
+        ScriptCollection().generate_thumbnail(args.file, args.framerate)
         return 0
     except Exception as exception:
         write_exception_to_stderr_with_traceback(exception, traceback)
@@ -2797,16 +2794,18 @@ def to_list(list_as_string: str, separator: str = ",") -> list:
             result.append(list_as_string)
     return result
 
-def get_next_square_number(number:int):
-    assert_condition(number>=0,"get_next_square_number is only applicable for nonnegative numbers")
-    if number==0:
+
+def get_next_square_number(number: int):
+    assert_condition(number >= 0, "get_next_square_number is only applicable for nonnegative numbers")
+    if number == 0:
         return 1
-    root=0
-    square=0
-    while square<number:
-        root=root+1
-        square=root*root
+    root = 0
+    square = 0
+    while square < number:
+        root = root+1
+        square = root*root
     return root*root
+
 
 def assert_condition(condition: bool, information: str):
     if(not condition):
