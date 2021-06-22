@@ -4,8 +4,8 @@
 # TODO (configuration)
 # TODO (logs)
 # TODO (payload)
-echo "deb http://deb.torproject.org/torproject.org $(lsb_release -cs) main" | sudo tee -a /etc/apt/sources.list.d/tor.list
 pushd $(dirname $0)
-../Common/AptUpdate.sh
+echo "deb http://deb.torproject.org/torproject.org $(lsb_release -cs) main" | sudo tee -a /etc/apt/sources.list.d/tor.list
+apt-get -y update -qq
 apt-get -y install tor
 pushd $(dirname $0)
