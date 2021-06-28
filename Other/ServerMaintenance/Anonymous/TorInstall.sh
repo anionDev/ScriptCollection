@@ -5,6 +5,8 @@
 # TODO (logs)
 # TODO (payload)
 pushd $(dirname $0)
+apt-get -y update -qq
+apt-get -y install gpg
 echo "deb http://deb.torproject.org/torproject.org $(lsb_release -cs) main" | tee -a /etc/apt/sources.list.d/tor.list
 apt-get -y update -qq
 apt-get -y install tor
