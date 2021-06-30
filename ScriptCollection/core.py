@@ -2425,14 +2425,16 @@ def write_exception_to_stderr_with_traceback(exception: Exception, current_trace
     if str is not None:
         write_message_to_stderr("Extra-message: "+str(extra_message))
     if isinstance(exception, OSError):
-        if string_has_content(exception.filename2):
-            secondpath=f" {exception.filename2}"
-        else:
-            secondpath=""
-        write_message_to_stderr(f"Related path: {exception.filename}{secondpath}")
+        write_message_to_stderr(get_advanced_errormessage_for_os_error(exception))
     write_message_to_stderr("Traceback: "+current_traceback.format_exc())
     write_message_to_stderr(")")
 
+def get_advanced_errormessage_for_os_error(os_error:OSError)->str:
+    if string_has_content(os_error.filename2):
+        secondpath=f" {os_error.filename2}"
+    else:
+        secondpath=""
+    return f"Related path(s): {os_error.filename}{secondpath}"
 
 def string_has_content(string: str) -> bool:
     if string is None:

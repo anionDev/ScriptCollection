@@ -24,6 +24,7 @@ ensure_file_exists = getattr(module, "ensure_file_exists")
 write_lines_to_file = getattr(module, "write_lines_to_file")
 resolve_relative_path = getattr(module, "resolve_relative_path")
 get_next_square_number = getattr(module, "get_next_square_number")
+get_advanced_errormessage_for_os_error =getattr(module, "get_advanced_errormessage_for_os_error")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
@@ -191,6 +192,34 @@ class MiscellaneousTests(unittest.TestCase):
 
         # act
         actual = to_list(testinput, ",")
+
+        # assert
+        assert expected == actual
+
+    def test_get_advanced_errormessage_for_os_error_FileNotFoundError(self):
+        # arrange
+        filename="somefile.txt"
+        exception=FileNotFoundError()
+        exception.filename=filename
+        assert isinstance(exception, OSError)
+        expected=f"Related path(s): {filename}"
+
+        # act
+        actual = get_advanced_errormessage_for_os_error(exception)
+
+        # assert
+        assert expected == actual
+
+    def test_get_advanced_errormessage_for_os_error_NotADirectoryError(self):
+        # arrange
+        filename="somedirectory"
+        exception=NotADirectoryError()
+        exception.filename=filename
+        assert isinstance(exception, OSError)
+        expected=f"Related path(s): {filename}"
+
+        # act
+        actual = get_advanced_errormessage_for_os_error(exception)
 
         # assert
         assert expected == actual
