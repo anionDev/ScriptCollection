@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.22"
+version = "2.5.23"
 __version__ = version
 
 
@@ -2424,8 +2424,12 @@ def write_exception_to_stderr_with_traceback(exception: Exception, current_trace
     write_message_to_stderr("Message: "+str(exception))
     if str is not None:
         write_message_to_stderr("Extra-message: "+str(extra_message))
-    if isinstance(exception, FileNotFoundError):
-        write_message_to_stderr("File which could not be found: "+exception.filename)
+    if isinstance(exception, OSError):
+        if string_has_content(exception.filename2):
+            secondpath=f" {exception.filename2}"
+        else:
+            secondpath=""
+        write_message_to_stderr(f"Related path: {exception.filename}{secondpath}")
     write_message_to_stderr("Traceback: "+current_traceback.format_exc())
     write_message_to_stderr(")")
 
