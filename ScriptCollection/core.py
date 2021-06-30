@@ -547,16 +547,18 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def generic_create_script_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'premerge_argument'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory'))
+        if string_has_content(self.get_item_from_configuration(configparser, 'script', 'premerge_program')):
+            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_argument'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory'))
 
     def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'post_mergeprogram'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'post_mergeargument'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'post_mergeworkingdirectory'))
+        if string_has_content(self.get_item_from_configuration(configparser, 'script', 'postmerge_program')):
+            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'postmerge_program'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_argument'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory'))
 
     def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
@@ -1054,6 +1056,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         available_configuration_items.append(["prepare", "developmentbranchname"])
         available_configuration_items.append(["prepare", "masterbranchname"])
         available_configuration_items.append(["prepare", "gittagprefix"])
+        available_configuration_items.append(["script", "premerge_program"])
+        available_configuration_items.append(["script", "premerge_argument"])
+        available_configuration_items.append(["script", "premerge_argument"])
+        available_configuration_items.append(["script", "postmerge_program"])
+        available_configuration_items.append(["script", "postmerge_argument"])
+        available_configuration_items.append(["script", "postmerge_workingdirectory"])
         available_configuration_items.append(["other", "codecoverageshieldreplacementfiles"])
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
