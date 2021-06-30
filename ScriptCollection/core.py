@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.23"
+version = "2.5.24"
 __version__ = version
 
 
@@ -547,16 +547,18 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
     def generic_create_script_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'premerge_argument'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory'))
+        if string_has_content(self.get_item_from_configuration(configparser, 'script', 'premerge_program')):
+            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_argument'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory'))
 
     def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'post_mergeprogram'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'post_mergeargument'),
-                                                                  self.get_item_from_configuration(configparser, 'script', 'post_mergeworkingdirectory'))
+        if string_has_content(self.get_item_from_configuration(configparser, 'script', 'postmerge_program')):
+            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'postmerge_program'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_argument'),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory'))
 
     def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
@@ -1054,6 +1056,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         available_configuration_items.append(["prepare", "developmentbranchname"])
         available_configuration_items.append(["prepare", "masterbranchname"])
         available_configuration_items.append(["prepare", "gittagprefix"])
+        available_configuration_items.append(["script", "premerge_program"])
+        available_configuration_items.append(["script", "premerge_argument"])
+        available_configuration_items.append(["script", "premerge_argument"])
+        available_configuration_items.append(["script", "postmerge_program"])
+        available_configuration_items.append(["script", "postmerge_argument"])
+        available_configuration_items.append(["script", "postmerge_workingdirectory"])
         available_configuration_items.append(["other", "codecoverageshieldreplacementfiles"])
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
@@ -2425,14 +2433,16 @@ def write_exception_to_stderr_with_traceback(exception: Exception, current_trace
     if str is not None:
         write_message_to_stderr("Extra-message: "+str(extra_message))
     if isinstance(exception, OSError):
-        if string_has_content(exception.filename2):
-            secondpath=f" {exception.filename2}"
-        else:
-            secondpath=""
-        write_message_to_stderr(f"Related path: {exception.filename}{secondpath}")
+        write_message_to_stderr(get_advanced_errormessage_for_os_error(exception))
     write_message_to_stderr("Traceback: "+current_traceback.format_exc())
     write_message_to_stderr(")")
 
+def get_advanced_errormessage_for_os_error(os_error:OSError)->str:
+    if string_has_content(os_error.filename2):
+        secondpath=f" {os_error.filename2}"
+    else:
+        secondpath=""
+    return f"Related path(s): {os_error.filename}{secondpath}"
 
 def string_has_content(string: str) -> bool:
     if string is None:
