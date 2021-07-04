@@ -1,5 +1,5 @@
 #! /bin/bash
-# This script is intended to be run as root-user.
+# This script is intended to be executed as root-user.
 # Content semantically from: https://support.torproject.org/apt/tor-deb-repo/
 # After execution usually the following paths will be used by default:
 # /etc/tor (configuration)
@@ -7,7 +7,7 @@
 
 pushd $(dirname $0)
 
-..\Common\InstallSystemUtilities.sh
+../Common/InstallSystemUtilities.sh
 
 echo "deb http://deb.torproject.org/torproject.org $(lsb_release -cs) main" | tee -a /etc/apt/sources.list.d/tor.list
 echo "deb-src https://deb.torproject.org/torproject.org $(lsb_release -cs) main" | tee -a /etc/apt/sources.list.d/tor.list
