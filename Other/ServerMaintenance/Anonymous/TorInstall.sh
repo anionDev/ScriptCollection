@@ -9,8 +9,8 @@ pushd $(dirname $0)
 
 ../Common/InstallSystemUtilities.sh
 
-echo "deb http://deb.torproject.org/torproject.org $(lsb_release -cs) main" | tee -a /etc/apt/sources.list.d/tor.list
-echo "deb-src https://deb.torproject.org/torproject.org $(lsb_release -cs) main" | tee -a /etc/apt/sources.list.d/tor.list
+echo "deb http://deb.torproject.org/torproject.org buster main" | tee -a /etc/apt/sources.list.d/tor.list
+echo "deb-src https://deb.torproject.org/torproject.org buster main" | tee -a /etc/apt/sources.list.d/tor.list
 
 gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
 
