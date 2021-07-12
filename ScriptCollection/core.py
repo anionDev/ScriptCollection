@@ -1734,7 +1734,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         title_argument = title_argument.replace("\"", "'").replace("\\", "/")
         cmdcall = f"{workingdirectory}>{program} {arguments}"
-        write_message_to_stdout("Run "+cmdcall)
+        if verbosity >= 1:
+            write_message_to_stdout("Run "+cmdcall)
         title_local = f"epew {title_for_message}('{cmdcall}')"
         base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
         args = ["epew"]
