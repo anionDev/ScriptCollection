@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.24"
+version = "2.5.25"
 __version__ = version
 
 
@@ -801,9 +801,9 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if(string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
+
         if git_repository_has_uncommitted_changes:
             do_commit = True
-            write_message_to_stdout(f"Committing all changes in {directory}...")
             if stage_all_changes:
                 self.git_stage_all_changes(directory)
         else:
@@ -811,12 +811,14 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 write_message_to_stdout(f"Commit '{message}' will not be done because there are no changes to commit in repository '{directory}'")
                 do_commit = False
             if no_changes_behavior == 1:
-                write_message_to_stdout(f"There are no changes to commit in repository '{directory}'")
+                write_message_to_stdout(f"There are no changes to commit in repository '{directory}'. Commit will be done anyway.")
                 do_commit = True
                 argument.append('--allow-empty')
             if no_changes_behavior == 2:
                 raise RuntimeError(f"There are no changes to commit in repository '{directory}'")
+
         if do_commit:
+            write_message_to_stdout(f"Commit changes in '{directory}'...")
             self.start_program_synchronously_argsasarray("git", argument, directory, 0, False, None, 1200,
                                                          throw_exception_if_exitcode_is_not_zero=True)
 
@@ -1113,7 +1115,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         argument = f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'
         return float(self.execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, folder)[1])
 
-    def _private_create_thumbnails(self, filename: str, fps:float, folder: str, tempname_for_thumbnails: str) -> None:
+    def _private_create_thumbnails(self, filename: str, fps: float, folder: str, tempname_for_thumbnails: str) -> None:
         argument = f'-i "{filename}" -r {str(fps)} -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'
         self.execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, folder)
 
@@ -1137,12 +1139,12 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             length_in_seconds = self._private_calculate_lengh_in_seconds(filename, folder)
             if(frames_per_second.endswith("fps")):
                 # frames per second: "20fps" => 20fps
-                frames_per_second = round(float(frames_per_second[:-3]),2)
+                frames_per_second = round(float(frames_per_second[:-3]), 2)
                 amounf_of_previewframes = math.floor(length_in_seconds*frames_per_second)
             else:
                 # concrete amount of frames: "20" => 20 frames
-                amounf_of_previewframes =  float(frames_per_second)
-                frames_per_second =round(length_in_seconds/amounf_of_previewframes,2)
+                amounf_of_previewframes = float(frames_per_second)
+                frames_per_second = round(length_in_seconds/amounf_of_previewframes, 2)
             self._private_create_thumbnails(filename, frames_per_second, folder, tempname_for_thumbnails)
             self._private_create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
         finally:
@@ -1734,7 +1736,8 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         self._private_log_program_start(program, arguments, workingdirectory, verbosity)
         title_argument = title_argument.replace("\"", "'").replace("\\", "/")
         cmdcall = f"{workingdirectory}>{program} {arguments}"
-        write_message_to_stdout("Run "+cmdcall)
+        if verbosity >= 1:
+            write_message_to_stdout("Run "+cmdcall)
         title_local = f"epew {title_for_message}('{cmdcall}')"
         base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
         args = ["epew"]
@@ -2437,12 +2440,14 @@ def write_exception_to_stderr_with_traceback(exception: Exception, current_trace
     write_message_to_stderr("Traceback: "+current_traceback.format_exc())
     write_message_to_stderr(")")
 
-def get_advanced_errormessage_for_os_error(os_error:OSError)->str:
+
+def get_advanced_errormessage_for_os_error(os_error: OSError) -> str:
     if string_has_content(os_error.filename2):
-        secondpath=f" {os_error.filename2}"
+        secondpath = f" {os_error.filename2}"
     else:
-        secondpath=""
+        secondpath = ""
     return f"Related path(s): {os_error.filename}{secondpath}"
+
 
 def string_has_content(string: str) -> bool:
     if string is None:
