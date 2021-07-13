@@ -797,7 +797,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         # no_changes_behavior=2 => Exception
         author_name = str_none_safe(author_name).strip()
         author_email = str_none_safe(author_email).strip()
-        argument = ['commit', '--message', f'"{message}"']
+        argument = ['commit', '--message', message]
         if(string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
@@ -811,11 +811,11 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
                 write_message_to_stdout(f"Commit '{message}' will not be done because there are no changes to commit in repository '{directory}'")
                 do_commit = False
             if no_changes_behavior == 1:
-                write_message_to_stdout(f"There are no changes to commit in repository '{directory}'. Commit will be done anyway.")
+                write_message_to_stdout(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will be done anyway.")
                 do_commit = True
                 argument.append('--allow-empty')
             if no_changes_behavior == 2:
-                raise RuntimeError(f"There are no changes to commit in repository '{directory}'")
+                raise RuntimeError(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will not be done.")
 
         if do_commit:
             write_message_to_stdout(f"Commit changes in '{directory}'...")
