@@ -820,7 +820,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         if do_commit:
             write_message_to_stdout(f"Commit changes in '{directory}'...")
             self.start_program_synchronously_argsasarray("git", argument, directory, 0, False, None, 1200,
-                                                         throw_exception_if_exitcode_is_not_zero=True)
+                                                         prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_current_commit_id(directory)
 
