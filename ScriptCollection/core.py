@@ -48,7 +48,6 @@ class ScriptCollection:
     mock_program_calls: bool = False  # This property is for test-purposes only
     execute_programy_really_if_no_mock_call_is_defined: bool = False  # This property is for test-purposes only
     _private_mocked_program_calls: list = list()
-    _private_constants_build_template_dockerfile_dotnet = "template://dockerfile_dotnet"
     _private_epew_is_available: bool = False
     # </Properties>
 
@@ -102,8 +101,8 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
                 write_message_to_stdout("Start to create docker-release")
                 error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                              lambda: self.docker_create_installer_release_premerge(configurationfile,
-                                                                                                                                    current_release_information))
+                                                                              lambda: self.docker_create_image_release_premerge(configurationfile,
+                                                                                                                                current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
@@ -148,8 +147,8 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
                 write_message_to_stdout("Start to create docker-release")
                 error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                              lambda: self.docker_create_installer_release_postmerge(configurationfile,
-                                                                                                                                     current_release_information))
+                                                                              lambda: self.docker_create_image_release_postmerge(configurationfile,
+                                                                                                                                 current_release_information))
 
             if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                 write_message_to_stdout("Start to create FlutterAndroid-release")
@@ -482,51 +481,63 @@ class ScriptCollection:
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         return False  # TODO implement
 
-    def docker_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
-        pass
-
-    _prvate_template_dockerfile_dotnet = """FROM debian:stable-slim
-RUN apt-get update
-RUN apt-get -y install wget
-RUN apt-get -y install dpkg
-RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-RUN dpkg -i packages-microsoft-prod.deb
-RUN apt-get update
-RUN apt-get -y install dotnet-runtime-5.0
-COPY __.internal.artefactdirectory.__/ App/
-WORKDIR /App
-# TODO do hardening
-ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
-"""
-
-    def docker_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
+    def docker_create_image_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         contextfolder = self.get_item_from_configuration(configparser, "docker", "contextfolder")
         imagename = self.get_item_from_configuration(configparser, "general", "productname").lower()
+        registryaddress = self.get_item_from_configuration(configparser, "docker", "registryaddress")
         dockerfile_filename = self.get_item_from_configuration(configparser, "docker", "dockerfile")
         repository_version = self.get_version_for_buildscripts(configparser)
-        use_anytemplate_dockerfile = False
-        use_dotnet_dockerfile = False
-        dockerfile_with_path = "<notavailable>"
-        if dockerfile_filename == self._private_constants_build_template_dockerfile_dotnet:
-            use_anytemplate_dockerfile = True
-            use_dotnet_dockerfile = True
-        if use_dotnet_dockerfile:
-            dockerfile_content = self._private_replace_underscores_for_buildconfiguration(self._prvate_template_dockerfile_dotnet, configparser, {})
-            dockerfile_content = dockerfile_content.replace("__.internal.artefactdirectory.__",
-                                                            self.get_item_from_configuration(configparser, 'docker', 'artefactdirectory').replace("\\", "/"))
-            dockerfile_filename = "Dockerfile"
-            dockerfile_with_path = os.path.join(contextfolder, dockerfile_filename)
-            ensure_file_exists(dockerfile_with_path)
-            write_text_to_file(dockerfile_with_path, dockerfile_content)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker",
-                                                                  f"image build --tag {imagename}:{repository_version} --tag {imagename}:latest "
-                                                                  + f"--no-cache --file {dockerfile_filename} .",
-                                                                  contextfolder, verbosity=self._private_get_verbosity_for_exuecutor(configparser),
-                                                                  print_errors_as_information=True)
-        if use_anytemplate_dockerfile:
-            ensure_file_does_not_exist(dockerfile_with_path)
+        latest_tag = f"{imagename}:{repository_version}"
+        version_tag = f"{imagename}:latest"
+        latest_tag_for_remote_registry = f"{registryaddress}/{latest_tag}"
+        version_tag_for_remote_registry = f"{registryaddress}/{version_tag}"
+        argument = f"image build --tag {latest_tag} --tag {version_tag}"
+        if (self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")):
+            argument = argument+f" --tag {latest_tag_for_remote_registry} --tag {version_tag_for_remote_registry}"
+        argument = argument+f" --no-cache --file {dockerfile_filename} ."
+
+        # build image
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"build {latest_tag_for_remote_registry}",
+                                                                  contextfolder,  print_errors_as_information=True,
+                                                                  verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+
+    def docker_create_image_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
+        configparser = ConfigParser()
+        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        imagename = self.get_item_from_configuration(configparser, "general", "productname").lower()
+        artefactdirectory = self.get_item_from_configuration(configparser, "docker", "artefactdirectory")
+        registryaddress = self.get_item_from_configuration(configparser, "docker", "registryaddress")
+        repository_version = self.get_version_for_buildscripts(configparser)
+        latest_tag = f"{imagename}:{repository_version}"
+        version_tag = f"{imagename}:latest"
+        latest_tag_for_remote_registry = f"{registryaddress}/{latest_tag}"
+        version_tag_for_remote_registry = f"{registryaddress}/{version_tag}"
+        tags_for_push = [latest_tag_for_remote_registry, version_tag_for_remote_registry]
+        tags_for_export = [latest_tag, version_tag]
+
+        # export to file
+        if (self.get_boolean_value_from_configuration(configparser, "docker", "storeimageinartefactdirectory")):
+            for tag in tags_for_export:
+                targetfile_name = tag.replace(":", "_v")+".tar"
+                targetfile = os.path.join(artefactdirectory, targetfile_name)
+                if os.path.isfile(targetfile):
+                    if self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory"):
+                        ensure_file_does_not_exist(targetfile)
+                    else:
+                        raise Exception(f"File '{targetfile}' does already exist")
+
+                self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"save -o {targetfile} {tag}",
+                                                                          print_errors_as_information=True,
+                                                                          verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+
+        # push to registry
+        if (self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")):
+            for tag in tags_for_push:
+                self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"push {tag}",
+                                                                          print_errors_as_information=True,
+                                                                          verbosity=self._private_get_verbosity_for_exuecutor(configparser))
 
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         pass
@@ -1020,8 +1031,10 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
             file_object.write(text)
 
     def _private_replace_underscores_for_buildconfiguration(self, string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True) -> str:
-        replacements["builtin.year"] = str(datetime.now().year)
-        replacements["builtin.template_dockerfile_dotnet"] = self._private_constants_build_template_dockerfile_dotnet
+        now = datetime.now()
+        replacements["builtin.year"] = str(now.year)
+        replacements["builtin.month"] = str(now.month)
+        replacements["builtin.day"] = str(now.day)
         if include_version:
             replacements["builtin.version"] = self.get_version_for_buildscripts(configparser)
 
@@ -1030,6 +1043,7 @@ ENTRYPOINT ["dotnet", "__.general.productname.__.dll"]
         available_configuration_items.append(["docker", "artefactdirectory"])
         available_configuration_items.append(["docker", "contextfolder"])
         available_configuration_items.append(["docker", "dockerfile"])
+        available_configuration_items.append(["docker", "registryaddress"])
         available_configuration_items.append(["dotnet", "csprojfile"])
         available_configuration_items.append(["dotnet", "buildoutputdirectory"])
         available_configuration_items.append(["dotnet", "publishdirectory"])
