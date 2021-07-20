@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.31"
+version = "2.5.32"
 __version__ = version
 
 
@@ -521,11 +521,11 @@ class ScriptCollection:
         if (self.get_boolean_value_from_configuration(configparser, "docker", "storeimageinartefactdirectory")):
             ensure_directory_exists(artefactdirectory)
             for tag in tags_for_export:
-                if tag != "latest":
-                    prefix = "v"
+                if tag.endswith(":latest"):
+                    separator = "_"
                 else:
-                    prefix = ""
-                targetfile_name = tag.replace(":", "_") + prefix + ".tar"
+                    separator = "_v"
+                targetfile_name = tag.replace(":", separator) +  ".tar"
                 targetfile = os.path.join(artefactdirectory, targetfile_name)
                 if os.path.isfile(targetfile):
                     if self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory"):
