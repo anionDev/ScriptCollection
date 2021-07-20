@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.28"
+version = "2.5.29"
 __version__ = version
 
 
@@ -499,7 +499,7 @@ class ScriptCollection:
         argument = argument+f" --no-cache --file {dockerfile_filename} ."
 
         # build image
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"build {latest_tag_for_remote_registry}",
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", argument,
                                                                   contextfolder,  print_errors_as_information=True,
                                                                   verbosity=self._private_get_verbosity_for_exuecutor(configparser))
 
