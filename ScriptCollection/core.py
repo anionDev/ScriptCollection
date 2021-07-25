@@ -496,7 +496,7 @@ class ScriptCollection:
         argument = f"image build --tag {latest_tag} --tag {version_tag}"
         if (self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")):
             argument = argument+f" --tag {latest_tag_for_remote_registry} --tag {version_tag_for_remote_registry}"
-        argument = argument+f" --no-cache --file {dockerfile_filename} ."
+        argument = argument+f" --no-cache --pull --force-rm --file {dockerfile_filename} ."
 
         # build image
         self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", argument,
