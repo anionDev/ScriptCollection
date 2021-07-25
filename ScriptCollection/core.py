@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.35"
+version = "2.5.36"
 __version__ = version
 
 
@@ -518,14 +518,14 @@ class ScriptCollection:
                     tag_for_push = f"{registryaddress}:{tag}"
                     entire_tags_for_current_environment.append(tag_for_push)
                     tags_for_push.append(tag_for_push)
-            tags_by_environment[environmentconfiguration_lower] = entire_tags_for_current_environment
+            tags_by_environment[environmentconfiguration] = entire_tags_for_current_environment
 
         current_release_information["builtin.docker.tags_by_environment"] = tags_by_environment
         current_release_information["builtin.docker.tags_for_push"] = tags_for_push
 
         # build image
         for environmentconfiguration in tags_by_environment:
-            argument = "image build --no-cache --pull --force-rm"
+            argument = f"image build --no-cache --pull --force-rm --progress plain --build-arg EnvironmentStage={environmentconfiguration}"
             for tag in tags_by_environment[environmentconfiguration]:
                 argument = f"{argument} --tag {tag}"
             argument = f"{argument} --file {dockerfile_filename} ."
