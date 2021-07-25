@@ -4,6 +4,6 @@
 pushd $(dirname $0)
 
 ./AptUpgrade.sh
-apt-get -y install gpg sudo wget curl net-tools iputils-ping tree procps apt-utils apt-transport-https git lsb-release dnsutils
+apt-get -y install gpg sudo wget curl net-tools iputils-ping tree procps apt-utils apt-transport-https git lsb-release dnsutils bmon slurm tcptrack iftop
 
 popd
