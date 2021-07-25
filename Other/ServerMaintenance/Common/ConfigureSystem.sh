@@ -3,7 +3,7 @@
 
 #Arguments:
 environmentStage="$1" # Allowed values: "Development", "QualityCheck", "Productive". This variable is case-sensitive.
-scriptCollectionFolder="$3"
+scriptCollectionFolder="$2"
 hardeningApplicationstokeep="$3" # Semicolon-separated list
 hardeningAdditionalFolderToRemove="$4" # Semicolon-separated list
 
