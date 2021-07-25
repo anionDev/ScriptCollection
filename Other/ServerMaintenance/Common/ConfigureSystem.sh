@@ -11,9 +11,11 @@ echo "Configure system as environment $environmentStage"
 
 if [ "$environmentStage" == "Development" ] ; then
     "$scriptCollectionFolder/Other/ServerMaintenance/Common/InstallSystemUtilities.sh"
+    # TODO make system more verbose by default
 fi
 
 if [ "$environmentStage" == "QualityCheck" ] ; then
+    "$scriptCollectionFolder/Other/ServerMaintenance/Common/InstallSystemUtilities.sh"
 fi
 
 if [ "$environmentStage" == "Productive" ] ; then
