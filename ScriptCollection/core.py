@@ -554,6 +554,14 @@ class ScriptCollection:
                                                                       print_errors_as_information=True,
                                                                       verbosity=self._private_get_verbosity_for_exuecutor(configparser))
 
+        # remove local stored images:
+        if self.get_boolean_value_from_configuration(configparser, "docker", "removenewcreatedlocalimagesafterexport"):
+            for environment in current_release_information["builtin.docker.tags_by_environment"]:
+                for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
+                    self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"image rm {tag}",
+                                                                              print_errors_as_information=True,
+                                                                              verbosity=verbosity)
+
     def _private_export_tag_to_file(self, tag: str, artefactdirectory: str, overwriteexistingfilesinartefactdirectory: bool, verbosity: int) -> None:
         if tag.endswith(":latest"):
             separator = "_"
