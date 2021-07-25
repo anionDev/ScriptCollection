@@ -544,7 +544,7 @@ class ScriptCollection:
             artefactdirectory = self.get_item_from_configuration(configparser, "docker", "artefactdirectory")
             ensure_directory_exists(artefactdirectory)
             for environment in current_release_information["builtin.docker.tags_by_environment"]:
-                for tag in environment:
+                for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
                     if not (tag in current_release_information["builtin.docker.tags_for_push"]):
                         self._private_export_tag_to_file(tag, artefactdirectory, overwriteexistingfilesinartefactdirectory, verbosity)
 
