@@ -525,7 +525,7 @@ class ScriptCollection:
 
         # build image
         for environmentconfiguration in tags_by_environment:
-            argument = f"image build --no-cache --pull --force-rm --progress plain --build-arg {environmentconfiguration}"
+            argument = f"image build --no-cache --pull --force-rm --progress plain --build-arg EnvironmentStage={environmentconfiguration}"
             for tag in tags_by_environment[environmentconfiguration]:
                 argument = f"{argument} --tag {tag}"
             argument = f"{argument} --file {dockerfile_filename} ."
