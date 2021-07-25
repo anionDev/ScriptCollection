@@ -123,7 +123,7 @@ class ScriptCollection:
 
             if not error_occurred:
                 commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
-                                        f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
+                                            f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
                 current_release_information["builtin.mergecommitid"] = commit_id
 
                 # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
@@ -133,40 +133,44 @@ class ScriptCollection:
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                     write_message_to_stdout("Start to create .NET-release")
                     error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
-                                                                                lambda: self._private_create_dotnet_release_postmerge(configurationfile, current_release_information))
+                                                                                  lambda: self._private_create_dotnet_release_postmerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Python-release")
                     error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
-                                                                                lambda: self.python_create_wheel_release_postmerge(configurationfile, current_release_information))
+                                                                                  lambda: self.python_create_wheel_release_postmerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Deb-release")
                     error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
-                                                                                lambda: self.deb_create_installer_release_postmerge(configurationfile, current_release_information))
+                                                                                  lambda: self.deb_create_installer_release_postmerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
                     write_message_to_stdout("Start to create docker-release")
                     error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                                lambda: self.docker_create_image_release_postmerge(configurationfile,
-                                                                                                                                    current_release_information))
+                                                                                  lambda: self.docker_create_image_release_postmerge(configurationfile,
+                                                                                                                                     current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterAndroid-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                                lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
-                                                                                                                                                current_release_information))
+                                                                                  lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
+                                                                                                                                                 current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterIOS-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                                lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
-                                                                                                                                            current_release_information))
+                                                                                  lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
+                                                                                                                                             current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Script-release")
                     error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
-                                                                                lambda: self.generic_create_script_release_postmerge(configurationfile, current_release_information))
+                                                                                  lambda: self.generic_create_script_release_postmerge(
+                                                                                      configurationfile, current_release_information))
 
         except Exception as exception:
             error_occurred = True
@@ -485,20 +489,20 @@ class ScriptCollection:
     def docker_create_image_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        contextfolder = self.get_item_from_configuration(configparser, "docker", "contextfolder")
-        imagename = self.get_item_from_configuration(configparser, "general", "productname").lower()
-        registryaddress = self.get_item_from_configuration(configparser, "docker", "registryaddress")
-        dockerfile_filename = self.get_item_from_configuration(configparser, "docker", "dockerfile")
-        repository_version = self.get_version_for_buildscripts(configparser)
-        environmentconfiguration_for_latest_tag = self.get_item_from_configuration(configparser, "docker", "environmentconfigurationforlatesttag").lower()
-        pushimagetoregistry = self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")
-        latest_tag = f"{imagename}:latest"
+        contextfolder: str = self.get_item_from_configuration(configparser, "docker", "contextfolder")
+        imagename: str = self.get_item_from_configuration(configparser, "general", "productname").lower()
+        registryaddress: str = self.get_item_from_configuration(configparser, "docker", "registryaddress")
+        dockerfile_filename: str = self.get_item_from_configuration(configparser, "docker", "dockerfile")
+        repository_version: str = self.get_version_for_buildscripts(configparser)
+        environmentconfiguration_for_latest_tag: str = self.get_item_from_configuration(configparser, "docker", "environmentconfigurationforlatesttag").lower()
+        pushimagetoregistry: bool = self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")
+        latest_tag: str = f"{imagename}:latest"
 
         # collect tags
         tags_for_push = []
         tags_by_environment = dict()
         for environmentconfiguration in self.get_items_from_configuration(configparser, "docker", "environmentconfigurations"):
-            environmentconfiguration_lower:str=environmentconfiguration.lower()
+            environmentconfiguration_lower: str = environmentconfiguration.lower()
             tags_for_current_environment = []
             version_tag = repository_version  # "1.0.0"
             version_environment_tag = f"{version_tag}-{environmentconfiguration_lower}"  # "1.0.0-environment"
@@ -532,6 +536,8 @@ class ScriptCollection:
     def docker_create_image_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        overwriteexistingfilesinartefactdirectory: bool = self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory")
+        verbosity: int = self._private_get_verbosity_for_exuecutor(configparser)
 
         # export to file
         if (self.get_boolean_value_from_configuration(configparser, "docker", "storeimageinartefactdirectory")):
@@ -540,27 +546,30 @@ class ScriptCollection:
             for environment in current_release_information["builtin.docker.tags_by_environment"]:
                 for tag in environment:
                     if not (tag in current_release_information["builtin.docker.tags_for_push"]):
-                        if tag.endswith(":latest"):
-                            separator = "_"
-                        else:
-                            separator = "_v"
-                        targetfile_name = tag.replace(":", separator) + ".tar"
-                        targetfile = os.path.join(artefactdirectory, targetfile_name)
-                        if os.path.isfile(targetfile):
-                            if self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory"):
-                                ensure_file_does_not_exist(targetfile)
-                            else:
-                                raise Exception(f"File '{targetfile}' does already exist")
-
-                        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"save -o {targetfile} {tag}",
-                                                                                print_errors_as_information=True,
-                                                                                verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+                        self._private_export_tag_to_file(tag, artefactdirectory, overwriteexistingfilesinartefactdirectory, verbosity)
 
         # push to registry
         for tag in current_release_information["builtin.docker.tags_for_push"]:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"push {tag}",
                                                                       print_errors_as_information=True,
                                                                       verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+
+    def _private_export_tag_to_file(self, tag: str, artefactdirectory: str, overwriteexistingfilesinartefactdirectory: bool, verbosity: int) -> None:
+        if tag.endswith(":latest"):
+            separator = "_"
+        else:
+            separator = "_v"
+        targetfile_name = tag.replace(":", separator) + ".tar"
+        targetfile = os.path.join(artefactdirectory, targetfile_name)
+        if os.path.isfile(targetfile):
+            if overwriteexistingfilesinartefactdirectory:
+                ensure_file_does_not_exist(targetfile)
+            else:
+                raise Exception(f"File '{targetfile}' does already exist")
+
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"save -o {targetfile} {tag}",
+                                                                  print_errors_as_information=True,
+                                                                  verbosity=verbosity)
 
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         pass
@@ -959,13 +968,14 @@ class ScriptCollection:
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
         if self._private_get_verbosity_for_exuecutor(configparser) > 0:
             for item in queried_items:
-                self.private_check_for_not_available_config_item(item,section,propertyname)
+                self.private_check_for_not_available_config_item(item, section, propertyname)
 
-    def private_check_for_not_available_config_item(self,item, section: str, propertyname: str):
+    def private_check_for_not_available_config_item(self, item, section: str, propertyname: str):
         if item == "<notavailable>":
             write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. "
                                     + "This may result in errors or involuntary behavior")
             print_stacktrace()
+
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         return self.get_number_value_from_configuration(configparser, 'other', 'verbose')
 
@@ -977,8 +987,8 @@ class ScriptCollection:
 
     def get_boolean_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> bool:
         try:
-            value=configparser.get(section, propertyname)
-            self.private_check_for_not_available_config_item(value,section,propertyname)
+            value = configparser.get(section, propertyname)
+            self.private_check_for_not_available_config_item(value, section, propertyname)
             return configparser.getboolean(section, propertyname)
         except:
             try:
@@ -987,8 +997,8 @@ class ScriptCollection:
                 return False
 
     def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
-        value=configparser.get(section, propertyname)
-        self.private_check_for_not_available_config_item(value,section,propertyname)
+        value = configparser.get(section, propertyname)
+        self.private_check_for_not_available_config_item(value, section, propertyname)
         return int(value)
 
     def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
