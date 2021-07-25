@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.33"
+version = "2.5.34"
 __version__ = version
 
 
@@ -544,7 +544,7 @@ class ScriptCollection:
             artefactdirectory = self.get_item_from_configuration(configparser, "docker", "artefactdirectory")
             ensure_directory_exists(artefactdirectory)
             for environment in current_release_information["builtin.docker.tags_by_environment"]:
-                for tag in environment:
+                for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
                     if not (tag in current_release_information["builtin.docker.tags_for_push"]):
                         self._private_export_tag_to_file(tag, artefactdirectory, overwriteexistingfilesinartefactdirectory, verbosity)
 
@@ -553,6 +553,14 @@ class ScriptCollection:
             self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"push {tag}",
                                                                       print_errors_as_information=True,
                                                                       verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+
+        # remove local stored images:
+        if self.get_boolean_value_from_configuration(configparser, "docker", "removenewcreatedlocalimagesafterexport"):
+            for environment in current_release_information["builtin.docker.tags_by_environment"]:
+                for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
+                    self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"image rm {tag}",
+                                                                              print_errors_as_information=True,
+                                                                              verbosity=verbosity)
 
     def _private_export_tag_to_file(self, tag: str, artefactdirectory: str, overwriteexistingfilesinartefactdirectory: bool, verbosity: int) -> None:
         if tag.endswith(":latest"):
