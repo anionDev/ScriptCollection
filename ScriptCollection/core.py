@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.34"
+version = "2.5.35"
 __version__ = version
 
 
@@ -529,9 +529,9 @@ class ScriptCollection:
             for tag in tags_by_environment[environmentconfiguration]:
                 argument = f"{argument} --tag {tag}"
             argument = f"{argument} --file {dockerfile_filename} ."
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", argument,
-                                                                  contextfolder,  print_errors_as_information=True,
-                                                                  verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", argument,
+                                                                      contextfolder,  print_errors_as_information=True,
+                                                                      verbosity=self._private_get_verbosity_for_exuecutor(configparser))
 
     def docker_create_image_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
