@@ -957,11 +957,13 @@ class ScriptCollection:
     def _private_verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
         if self._private_get_verbosity_for_exuecutor(configparser) > 0:
             for item in queried_items:
-                if item == "<notavailable>":
-                    write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. "
-                                            + "This may result in errors or involuntary behavior")
-                    print_stacktrace()
+                self.private_check_for_not_available_config_item(item,section,propertyname)
 
+    def private_check_for_not_available_config_item(self,item, section: str, propertyname: str):
+        if item == "<notavailable>":
+            write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. "
+                                    + "This may result in errors or involuntary behavior")
+            print_stacktrace()
     def _private_get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         return self.get_number_value_from_configuration(configparser, 'other', 'verbose')
 
@@ -973,6 +975,8 @@ class ScriptCollection:
 
     def get_boolean_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> bool:
         try:
+            value=configparser.get(section, propertyname)
+            self.private_check_for_not_available_config_item(value,section,propertyname)
             return configparser.getboolean(section, propertyname)
         except:
             try:
@@ -981,7 +985,9 @@ class ScriptCollection:
                 return False
 
     def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
-        return int(configparser.get(section, propertyname))
+        value=configparser.get(section, propertyname)
+        self.private_check_for_not_available_config_item(value,section,propertyname)
+        return int(value)
 
     def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
         if not configparser.has_option(sectioon, item):
