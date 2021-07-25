@@ -489,16 +489,40 @@ class ScriptCollection:
         registryaddress = self.get_item_from_configuration(configparser, "docker", "registryaddress")
         dockerfile_filename = self.get_item_from_configuration(configparser, "docker", "dockerfile")
         repository_version = self.get_version_for_buildscripts(configparser)
-        latest_tag = f"{imagename}:{repository_version}"
-        version_tag = f"{imagename}:latest"
-        latest_tag_for_remote_registry = f"{registryaddress}/{latest_tag}"
-        version_tag_for_remote_registry = f"{registryaddress}/{version_tag}"
-        argument = f"image build --tag {latest_tag} --tag {version_tag}"
-        if (self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")):
-            argument = argument+f" --tag {latest_tag_for_remote_registry} --tag {version_tag_for_remote_registry}"
-        argument = argument+f" --no-cache --pull --force-rm --file {dockerfile_filename} ."
+        environmentconfiguration_for_latest_tag = self.get_items_from_configuration(configparser, "docker", "environmentconfigurationforlatesttag")
+        pushimagetoregistry = self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")
+        latest_tag = f"{imagename}:latest"
+
+        # collect tags
+        tags_for_push = []
+        tags_by_environment = dict()
+        for environmentconfiguration in self.get_items_from_configuration(configparser, "docker", "environmentconfigurations"):
+            tags_for_current_environment = []
+            version_tag = repository_version  # "1.0.0"
+            version_environment_tag = f"{version_tag}-{environmentconfiguration}"  # "1.0.0-environment"
+            tags_for_current_environment.append(version_environment_tag)
+            if environmentconfiguration == environmentconfiguration_for_latest_tag:
+                latest_tag = "latest"  # "latest"
+                tags_for_current_environment.append(version_tag)
+                tags_for_current_environment.append(latest_tag)
+            entire_tags_for_current_environment = []
+            for tag in tags_for_current_environment:
+                entire_tags_for_current_environment.append(f"{imagename}:{tag}")
+                if pushimagetoregistry:
+                    tag_for_push = f"{registryaddress}:{tag}"
+                    entire_tags_for_current_environment.append(tag_for_push)
+                    tags_for_push.append(tag_for_push)
+            tags_by_environment[environmentconfiguration] = entire_tags_for_current_environment
+
+        current_release_information["builtin.docker.tags_by_environment"] = tags_by_environment
+        current_release_information["builtin.docker.tags_for_push"] = tags_for_push
 
         # build image
+        for environmentconfiguration in tags_by_environment:
+            argument = "image build --no-cache --pull --force-rm"
+            for tag in tags_by_environment[environmentconfiguration]:
+                argument = f"{argument} --tag {tag}"
+            argument = f"{argument} --file {dockerfile_filename} ."
         self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", argument,
                                                                   contextfolder,  print_errors_as_information=True,
                                                                   verbosity=self._private_get_verbosity_for_exuecutor(configparser))
@@ -506,43 +530,35 @@ class ScriptCollection:
     def docker_create_image_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        imagename = self.get_item_from_configuration(configparser, "general", "productname").lower()
-        artefactdirectory = self.get_item_from_configuration(configparser, "docker", "artefactdirectory")
-        registryaddress = self.get_item_from_configuration(configparser, "docker", "registryaddress")
-        repository_version = self.get_version_for_buildscripts(configparser)
-        latest_tag = f"{imagename}:{repository_version}"
-        version_tag = f"{imagename}:latest"
-        latest_tag_for_remote_registry = f"{registryaddress}/{latest_tag}"
-        version_tag_for_remote_registry = f"{registryaddress}/{version_tag}"
-        tags_for_push = [latest_tag_for_remote_registry, version_tag_for_remote_registry]
-        tags_for_export = [latest_tag, version_tag]
 
         # export to file
         if (self.get_boolean_value_from_configuration(configparser, "docker", "storeimageinartefactdirectory")):
+            artefactdirectory = self.get_item_from_configuration(configparser, "docker", "artefactdirectory")
             ensure_directory_exists(artefactdirectory)
-            for tag in tags_for_export:
-                if tag.endswith(":latest"):
-                    separator = "_"
-                else:
-                    separator = "_v"
-                targetfile_name = tag.replace(":", separator) +  ".tar"
-                targetfile = os.path.join(artefactdirectory, targetfile_name)
-                if os.path.isfile(targetfile):
-                    if self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory"):
-                        ensure_file_does_not_exist(targetfile)
-                    else:
-                        raise Exception(f"File '{targetfile}' does already exist")
+            for environment in current_release_information["builtin.docker.tags_by_environment"]:
+                for tag in environment:
+                    if not (tag in current_release_information["builtin.docker.tags_for_push"]):
+                        if tag.endswith(":latest"):
+                            separator = "_"
+                        else:
+                            separator = "_v"
+                        targetfile_name = tag.replace(":", separator) + ".tar"
+                        targetfile = os.path.join(artefactdirectory, targetfile_name)
+                        if os.path.isfile(targetfile):
+                            if self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory"):
+                                ensure_file_does_not_exist(targetfile)
+                            else:
+                                raise Exception(f"File '{targetfile}' does already exist")
 
-                self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"save -o {targetfile} {tag}",
-                                                                          print_errors_as_information=True,
-                                                                          verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+                        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"save -o {targetfile} {tag}",
+                                                                                print_errors_as_information=True,
+                                                                                verbosity=self._private_get_verbosity_for_exuecutor(configparser))
 
         # push to registry
-        if (self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")):
-            for tag in tags_for_push:
-                self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"push {tag}",
-                                                                          print_errors_as_information=True,
-                                                                          verbosity=self._private_get_verbosity_for_exuecutor(configparser))
+        for tag in current_release_information["builtin.docker.tags_for_push"]:
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"push {tag}",
+                                                                      print_errors_as_information=True,
+                                                                      verbosity=self._private_get_verbosity_for_exuecutor(configparser))
 
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         pass
