@@ -489,7 +489,7 @@ class ScriptCollection:
         registryaddress = self.get_item_from_configuration(configparser, "docker", "registryaddress")
         dockerfile_filename = self.get_item_from_configuration(configparser, "docker", "dockerfile")
         repository_version = self.get_version_for_buildscripts(configparser)
-        environmentconfiguration_for_latest_tag = self.get_items_from_configuration(configparser, "docker", "environmentconfigurationforlatesttag")
+        environmentconfiguration_for_latest_tag = self.get_item_from_configuration(configparser, "docker", "environmentconfigurationforlatesttag").lower()
         pushimagetoregistry = self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")
         latest_tag = f"{imagename}:latest"
 
@@ -497,11 +497,12 @@ class ScriptCollection:
         tags_for_push = []
         tags_by_environment = dict()
         for environmentconfiguration in self.get_items_from_configuration(configparser, "docker", "environmentconfigurations"):
+            environmentconfiguration_lower:str=environmentconfiguration.lower()
             tags_for_current_environment = []
             version_tag = repository_version  # "1.0.0"
-            version_environment_tag = f"{version_tag}-{environmentconfiguration}"  # "1.0.0-environment"
+            version_environment_tag = f"{version_tag}-{environmentconfiguration_lower}"  # "1.0.0-environment"
             tags_for_current_environment.append(version_environment_tag)
-            if environmentconfiguration == environmentconfiguration_for_latest_tag:
+            if environmentconfiguration_lower == environmentconfiguration_for_latest_tag:
                 latest_tag = "latest"  # "latest"
                 tags_for_current_environment.append(version_tag)
                 tags_for_current_environment.append(latest_tag)
@@ -512,7 +513,7 @@ class ScriptCollection:
                     tag_for_push = f"{registryaddress}:{tag}"
                     entire_tags_for_current_environment.append(tag_for_push)
                     tags_for_push.append(tag_for_push)
-            tags_by_environment[environmentconfiguration] = entire_tags_for_current_environment
+            tags_by_environment[environmentconfiguration_lower] = entire_tags_for_current_environment
 
         current_release_information["builtin.docker.tags_by_environment"] = tags_by_environment
         current_release_information["builtin.docker.tags_for_push"] = tags_for_push
