@@ -19,5 +19,5 @@ if [ "$environmentStage" == "QualityCheck" ] ; then
 fi
 
 if [ "$environmentStage" == "Productive" ] ; then
-    '$scriptCollectionFolder/Other/ServerMaintenance/Common/Hardening.sh "$hardeningApplicationstokeep" "$hardeningAdditionalFolderToRemove"'
+    "$scriptCollectionFolder/Other/ServerMaintenance/Common/Hardening.sh" "$hardeningApplicationstokeep" "$hardeningAdditionalFolderToRemove"
 fi
