@@ -12,7 +12,7 @@ userCanUseSudoWithoutPassword="$6"
 pushd $(dirname $0)
 
 if [ "$userhomedirectory" = "" ] ; then
-    useradd -m -d $username
+    useradd -m $username
 else
     useradd -m -d $userhomedirectory $username
 fi

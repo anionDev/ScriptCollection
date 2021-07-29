@@ -12,9 +12,9 @@ userCanUseSudoWithoutPassword="$6"
 pushd $(dirname $0)
 
 if [ "$userhomedirectory" = "" ] ; then
-    useradd -m -d $username
+    addgroup -S usergroup && adduser $username -G usergroup
 else
-    useradd -m -d $userhomedirectory $username
+    addgroup -S usergroup && adduser $username -G usergroup -h $userhomedirectory
 fi
 
 if [ "$userhaspassword" == "true" ] ; then
@@ -23,7 +23,7 @@ fi
 
 if [ "$userShouldBeSudoer" == "true" ] ; then
     ../Common/AptUpdate.sh
-    apt-get -y install sudo
+    apk add sudo
     sudo adduser $username sudo
     if [ "$userCanUseSudoWithoutPassword" == "true" ] ; then
         echo "$username ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
