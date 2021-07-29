@@ -8,6 +8,7 @@
 pushd $(dirname $0)
 
 # preparation:
+../Common/AptUpgrade.sh
 ../Common/InstallSystemUtilities.sh
 
 # import official tor-key:
