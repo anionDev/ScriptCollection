@@ -3,7 +3,6 @@
 
 pushd $(dirname $0)
 
-./AptUpgrade.sh
-apt-get -y install gpg sudo wget curl net-tools iputils-ping tree procps apt-utils apt-transport-https git lsb-release dnsutils bmon slurm tcptrack iftop gdb
+apk add gpg sudo wget curl
 
 popd
