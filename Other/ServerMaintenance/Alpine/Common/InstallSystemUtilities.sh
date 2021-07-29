@@ -3,6 +3,6 @@
 
 pushd $(dirname $0)
 
-apk add gpg sudo wget curl
+apk add gnupg sudo wget curl tree procps git bmon slurm iftop gdb
 
 popd
