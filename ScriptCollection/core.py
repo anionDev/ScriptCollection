@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.5.37"
+version = "2.5.38"
 __version__ = version
 
 
@@ -56,7 +56,7 @@ class ScriptCollection:
 
     # <Build>
 
-    # TODO use typechecks everywhere like disucced here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
+    # TODO use typechecks everywhere like discussed here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
     def create_release(self, configurationfile: str) -> int:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
@@ -2399,12 +2399,19 @@ def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> No
     if(os.path.isdir(srcDir)):
         ensure_directory_exists(dstDir)
         for file in get_direct_files_of_folder(srcDirFull):
+            filename=os.path.basename(file)
+            targetfile=os.path.join(dstDirFull,filename)
+            if(os.path.isfile(targetfile)):
+                if overwrite_existing_files:
+                    ensure_file_does_not_exist(targetfile)
+                else:
+                    raise ValueError(f"Targetfile {targetfile} does already exist")
             shutil.move(file, dstDirFull)
         for sub_folder in get_direct_folders_of_folder(srcDirFull):
             foldername = os.path.basename(sub_folder)
             sub_target = os.path.join(dstDirFull, foldername)
             move_content_of_folder(sub_folder, sub_target)
-            ensure_directory_does_not_exist(sub_target)
+            ensure_directory_does_not_exist(sub_folder)
     else:
         raise ValueError(f"Folder '{srcDir}' does not exist")
 
