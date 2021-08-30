@@ -29,7 +29,7 @@ from pathlib import Path
 from random import randrange
 from shutil import copy2, copyfile
 from subprocess import Popen, call, PIPE
-from lxml import etree
+from defusedxml.lxml import fromstring
 from defusedxml.minidom import parse
 from PyPDF2 import PdfFileMerger
 import keyboard
@@ -437,7 +437,7 @@ class ScriptCollection:
             f" /p:CoverletOutputFormat=opencover"
         self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self._private_get_test_csprojfile_folder(configparser),
                                                                   3600, verbosity, False, "Execute tests")
-        root = etree.parse(self._private_get_test_csprojfile_folder(configparser)+os.path.sep+coveragefilename)
+        root = fromstring(self._private_get_test_csprojfile_folder(configparser)+os.path.sep+coveragefilename)
         coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
         module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
         if module_count == 0:
