@@ -2399,8 +2399,8 @@ def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> No
     if(os.path.isdir(srcDir)):
         ensure_directory_exists(dstDir)
         for file in get_direct_files_of_folder(srcDirFull):
-            filename=os.path.basename(file)
-            targetfile=os.path.join(dstDirFull,filename)
+            filename = os.path.basename(file)
+            targetfile = os.path.join(dstDirFull, filename)
             if(os.path.isfile(targetfile)):
                 if overwrite_existing_files:
                     ensure_file_does_not_exist(targetfile)
@@ -2848,6 +2848,47 @@ def contains_line(lines, regex: str) -> bool:
         if(re.match(regex, line)):
             return True
     return False
+
+
+def read_csv_file(file: str, ignore_first_line: bool = False, treat_number_sign_at_begin_of_line_as_comment: bool = True, trim_values: bool = True,
+    encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list:
+    lines = read_lines_from_file(file, encoding)
+
+    if ignore_first_line:
+        lines = lines[1:]
+    result = list()
+    line: str
+    for line_loopvariable in lines:
+        use_line = True
+        line = line_loopvariable
+
+        if trim_values:
+            line = line.strip()
+        if ignore_empty_lines:
+            if not string_has_content(use_line):
+                use_line = False
+
+        if treat_number_sign_at_begin_of_line_as_comment:
+            if line.startswith("#"):
+                use_line = False
+
+        if use_line:
+            if separator_character in line:
+                raw_values_of_line = to_list(line, separator_character)
+            else:
+                raw_values_of_line = [line]
+            if trim_values:
+                raw_values_of_line = [value.strip() for value in raw_values_of_line]
+            values_of_line = []
+            for raw_value_of_line in raw_values_of_line:
+                value_of_line = raw_value_of_line
+                if values_are_surrounded_by_quotes:
+                    value_of_line = value_of_line[1:]
+                    value_of_line = value_of_line[:-1]
+                    value_of_line = value_of_line.replace('""', '"')
+                values_of_line.append(value_of_line)
+            result.extend([values_of_line])
+    return result
 
 
 def epew_is_available() -> bool:
