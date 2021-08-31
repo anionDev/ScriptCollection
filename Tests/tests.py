@@ -103,7 +103,7 @@ class MiscellaneousTests(unittest.TestCase):
             # be video_length_as_string seconds in this case and exits without errors (exitcode 0)
 
             sc.register_mock_program_call("ffmpeg",
-                                          re.escape(f'-i "{filename}" -r 2.63 -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
+                                          re.escape(f'-i "{filename}" -r 0.38 -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock generating single the thumbnail-files
 
             sc.register_mock_program_call("montage",
