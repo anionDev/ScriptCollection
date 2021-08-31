@@ -355,7 +355,7 @@ class ScriptCollection:
             with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
             nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource')
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --source {nugetsource} --api-key {api_key}",
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {nugetsource} --api-key {api_key}",
                                                                       publishdirectory, 3600, self._private_get_verbosity_for_exuecutor(configparser))
 
     def dotnet_reference(self, configurationfile: str, current_release_information: dict) -> None:
