@@ -58,148 +58,153 @@ class ScriptCollection:
 
     # TODO use typechecks everywhere like discussed here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
     def create_release(self, configurationfile: str) -> int:
-        configparser = ConfigParser()
-        configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
-        error_occurred = False
-        prepare = self.get_boolean_value_from_configuration(configparser, 'general', 'prepare')
-        repository_version = self.get_version_for_buildscripts(configparser)
-        repository = self.get_item_from_configuration(configparser, "general", "repository")
-        write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
-        releaserepository = self.get_item_from_configuration(configparser, "other", "releaserepository")
-
-        if (self._private_repository_has_changes(repository) or self._private_repository_has_changes(releaserepository)):
-            return 1
-
-        if prepare:
-            devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')
-            masterbranch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
-            commitid = self.git_get_current_commit_id(repository, masterbranch)
-            if(commitid == self.git_get_current_commit_id(repository, devbranch)):
-                write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit (commit-id: {commitid})")
-                return 1
-            self.git_checkout(repository, devbranch)
-            self.git_merge(repository, devbranch, masterbranch, False, False)
-
         try:
-            current_release_information = {}
+            configparser = ConfigParser()
+            configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+            error_occurred = False
+            prepare = self.get_boolean_value_from_configuration(configparser, 'general', 'prepare')
+            repository_version = self.get_version_for_buildscripts(configparser)
+            repository = self.get_item_from_configuration(configparser, "general", "repository")
+            write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
+            releaserepository = self.get_item_from_configuration(configparser, "other", "releaserepository")
 
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
-                write_message_to_stdout("Start to create .NET-release")
-                error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
-                                                                              lambda: self._private_create_dotnet_release_premerge(configurationfile, current_release_information))
+            if (self._private_repository_has_changes(repository) or self._private_repository_has_changes(releaserepository)):
+                return 1
 
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
-                write_message_to_stdout("Start to create Python-release")
-                error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
-                                                                              lambda: self.python_create_wheel_release_premerge(configurationfile, current_release_information))
+            if prepare:
+                devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')
+                masterbranch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
+                commitid = self.git_get_current_commit_id(repository, masterbranch)
+                if(commitid == self.git_get_current_commit_id(repository, devbranch)):
+                    write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit (commit-id: {commitid})")
+                    return 1
+                self.git_checkout(repository, devbranch)
+                self.git_merge(repository, devbranch, masterbranch, False, False)
 
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
-                write_message_to_stdout("Start to create Deb-release")
-                error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
-                                                                              lambda: self.deb_create_installer_release_premerge(configurationfile, current_release_information))
-
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
-                write_message_to_stdout("Start to create docker-release")
-                error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                              lambda: self.docker_create_image_release_premerge(configurationfile,
-                                                                                                                                current_release_information))
-
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
-                write_message_to_stdout("Start to create FlutterAndroid-release")
-                error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                              lambda: self.flutterandroid_create_installer_release_premerge(configurationfile,
-                                                                                                                                            current_release_information))
-
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
-                write_message_to_stdout("Start to create FlutterIOS-release")
-                error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                              lambda: self.flutterios_create_installer_release_premerge(configurationfile,
-                                                                                                                                        current_release_information))
-
-            if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
-                write_message_to_stdout("Start to create Script-release")
-                error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
-                                                                              lambda: self.generic_create_script_release_premerge(configurationfile, current_release_information))
-
-            if not error_occurred:
-                commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
-                                            f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
-                current_release_information["builtin.mergecommitid"] = commit_id
-
-                # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
-                # (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"
-                # -> "![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)" in all "**/*.md"-files)
+            try:
+                current_release_information = {}
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                     write_message_to_stdout("Start to create .NET-release")
                     error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
-                                                                                  lambda: self._private_create_dotnet_release_postmerge(
-                                                                                      configurationfile, current_release_information))
+                                                                                lambda: self._private_create_dotnet_release_premerge(configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Python-release")
                     error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
-                                                                                  lambda: self.python_create_wheel_release_postmerge(
-                                                                                      configurationfile, current_release_information))
+                                                                                lambda: self.python_create_wheel_release_premerge(configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Deb-release")
                     error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
-                                                                                  lambda: self.deb_create_installer_release_postmerge(
-                                                                                      configurationfile, current_release_information))
+                                                                                lambda: self.deb_create_installer_release_premerge(configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
                     write_message_to_stdout("Start to create docker-release")
                     error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                                  lambda: self.docker_create_image_release_postmerge(configurationfile,
-                                                                                                                                     current_release_information))
+                                                                                lambda: self.docker_create_image_release_premerge(configurationfile,
+                                                                                                                                    current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterAndroid-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                                  lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
-                                                                                                                                                 current_release_information))
+                                                                                lambda: self.flutterandroid_create_installer_release_premerge(configurationfile,
+                                                                                                                                                current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterIOS-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                                  lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
-                                                                                                                                             current_release_information))
+                                                                                lambda: self.flutterios_create_installer_release_premerge(configurationfile,
+                                                                                                                                            current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Script-release")
                     error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
-                                                                                  lambda: self.generic_create_script_release_postmerge(
-                                                                                      configurationfile, current_release_information))
+                                                                                lambda: self.generic_create_script_release_premerge(configurationfile, current_release_information))
 
-        except Exception as exception:
-            error_occurred = True
-            write_exception_to_stderr_with_traceback(exception, traceback, "Error occurred while creating release")
+                if not error_occurred:
+                    commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
+                                                f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
+                    current_release_information["builtin.mergecommitid"] = commit_id
 
-        finally:
-            write_message_to_stdout("Finished to create releases")
+                    # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
+                    # (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"
+                    # -> "![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)" in all "**/*.md"-files)
 
-        if error_occurred:
-            write_message_to_stderr("Creating release was not successful")
-            if prepare:
-                self.git_merge_abort(repository)
-                self._private_undo_changes(repository)
-                self._private_undo_changes(releaserepository)
-                self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'))
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
+                        write_message_to_stdout("Start to create .NET-release")
+                        error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
+                                                                                    lambda: self._private_create_dotnet_release_postmerge(
+                                                                                        configurationfile, current_release_information))
+
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
+                        write_message_to_stdout("Start to create Python-release")
+                        error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
+                                                                                    lambda: self.python_create_wheel_release_postmerge(
+                                                                                        configurationfile, current_release_information))
+
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
+                        write_message_to_stdout("Start to create Deb-release")
+                        error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
+                                                                                    lambda: self.deb_create_installer_release_postmerge(
+                                                                                        configurationfile, current_release_information))
+
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
+                        write_message_to_stdout("Start to create docker-release")
+                        error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
+                                                                                    lambda: self.docker_create_image_release_postmerge(configurationfile,
+                                                                                                                                        current_release_information))
+
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
+                        write_message_to_stdout("Start to create FlutterAndroid-release")
+                        error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
+                                                                                    lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
+                                                                                                                                                    current_release_information))
+
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
+                        write_message_to_stdout("Start to create FlutterIOS-release")
+                        error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
+                                                                                    lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
+                                                                                                                                                current_release_information))
+
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
+                        write_message_to_stdout("Start to create Script-release")
+                        error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
+                                                                                    lambda: self.generic_create_script_release_postmerge(
+                                                                                        configurationfile, current_release_information))
+
+            except Exception as exception:
+                error_occurred = True
+                write_exception_to_stderr_with_traceback(exception, traceback, f"Error occurred while creating release defined by '{configurationfile}'.")
+
+            finally:
+                write_message_to_stdout("Finished to create releases")
+
+            if error_occurred:
+                write_message_to_stderr("Creating release was not successful")
+                if prepare:
+                    self.git_merge_abort(repository)
+                    self._private_undo_changes(repository)
+                    self._private_undo_changes(releaserepository)
+                    self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'))
+                return 1
+            else:
+                if prepare:
+                    self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
+                                self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
+                    tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
+                    tag_message = f"Created {tag}"
+                    self.git_create_tag(repository, commit_id,
+                                        tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
+                    if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
+                        branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
+                        self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
+                write_message_to_stdout("Creating release was successful")
+                return 0
+
+        except Exception as e:
+            write_exception_to_stderr_with_traceback(e,traceback,f"Fatal error occurred while creating release defined by '{configurationfile}'.")
             return 1
-        else:
-            if prepare:
-                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
-                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
-                tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
-                tag_message = f"Created {tag}"
-                self.git_create_tag(repository, commit_id,
-                                    tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
-                if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
-                    branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
-                    self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
-            write_message_to_stdout("Creating release was successful")
-            return 0
 
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
