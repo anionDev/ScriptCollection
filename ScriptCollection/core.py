@@ -371,7 +371,7 @@ class ScriptCollection:
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
         self.git_checkout(
             self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
-            self.get_item_from_configuration(configparser, 'prepare', 'exportreferencelocalbranchname'))
+            self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname'))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
             verbosity = self._private_get_verbosity_for_exuecutor(configparser)
             if verbosity == 0:
