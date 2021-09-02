@@ -87,35 +87,38 @@ class ScriptCollection:
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                     write_message_to_stdout("Start to create .NET-release")
                     error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
-                                                                                lambda: self._private_create_dotnet_release_premerge(configurationfile, current_release_information))
+                                                                                lambda: self._private_create_dotnet_release_premerge(
+                                                                                    configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Python-release")
                     error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
-                                                                                lambda: self.python_create_wheel_release_premerge(configurationfile, current_release_information))
+                                                                                lambda: self.python_create_wheel_release_premerge(
+                                                                                    configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Deb-release")
                     error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
-                                                                                lambda: self.deb_create_installer_release_premerge(configurationfile, current_release_information))
+                                                                                lambda: self.deb_create_installer_release_premerge(
+                                                                                    configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
                     write_message_to_stdout("Start to create docker-release")
                     error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                                lambda: self.docker_create_image_release_premerge(configurationfile,
-                                                                                                                                    current_release_information))
+                                                                                lambda: self.docker_create_image_release_premerge(
+                                                                                    configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterAndroid-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                                lambda: self.flutterandroid_create_installer_release_premerge(configurationfile,
-                                                                                                                                                current_release_information))
+                                                                                lambda: self.flutterandroid_create_installer_release_premerge(
+                                                                                    configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterIOS-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                                lambda: self.flutterios_create_installer_release_premerge(configurationfile,
-                                                                                                                                            current_release_information))
+                                                                                lambda: self.flutterios_create_installer_release_premerge(
+                                                                                    configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Script-release")
