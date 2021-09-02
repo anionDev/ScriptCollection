@@ -28,7 +28,7 @@ get_advanced_errormessage_for_os_error =getattr(module, "get_advanced_errormessa
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.5.43"
+version = "2.6.0"
 
 
 class MiscellaneousTests(unittest.TestCase):
