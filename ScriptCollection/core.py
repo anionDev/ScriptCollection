@@ -2487,17 +2487,17 @@ def write_message_to_stderr(message: str):
     sys.stderr.write(str_none_safe(message)+"\n")
     sys.stderr.flush()
 
+def get_advanced_errormessage_for_os_error(os_error: OSError) -> str:
+    if string_has_content(os_error.filename2):
+        secondpath = f" {os_error.filename2}"
+    else:
+        secondpath = ""
+    return f"Related path(s): {os_error.filename}{secondpath}"
 
 def write_exception_to_stderr(exception: Exception, extra_message: str = None):
-    write_message_to_stderr("Exception(")
-    write_message_to_stderr("Type: "+str(type(exception)))
-    write_message_to_stderr("Message: "+str(exception))
-    if str is not None:
-        write_message_to_stderr("Extra-message: "+str(extra_message))
-    write_message_to_stderr(")")
+    write_exception_to_stderr_with_traceback(exception,None,extra_message)
 
-
-def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback, extra_message: str = None):
+def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback=None, extra_message: str = None):
     write_message_to_stderr("Exception(")
     write_message_to_stderr("Type: "+str(type(exception)))
     write_message_to_stderr("Message: "+str(exception))
@@ -2505,16 +2505,9 @@ def write_exception_to_stderr_with_traceback(exception: Exception, current_trace
         write_message_to_stderr("Extra-message: "+str(extra_message))
     if isinstance(exception, OSError):
         write_message_to_stderr(get_advanced_errormessage_for_os_error(exception))
-    write_message_to_stderr("Traceback: "+current_traceback.format_exc())
+    if current_traceback is not None:
+        write_message_to_stderr("Traceback: "+current_traceback.format_exc())
     write_message_to_stderr(")")
-
-
-def get_advanced_errormessage_for_os_error(os_error: OSError) -> str:
-    if string_has_content(os_error.filename2):
-        secondpath = f" {os_error.filename2}"
-    else:
-        secondpath = ""
-    return f"Related path(s): {os_error.filename}{secondpath}"
 
 
 def string_has_content(string: str) -> bool:
