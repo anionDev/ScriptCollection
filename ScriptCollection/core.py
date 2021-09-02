@@ -73,13 +73,13 @@ class ScriptCollection:
 
             if prepare:
                 devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')
-                masterbranch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
-                commitid = self.git_get_current_commit_id(repository, masterbranch)
+                mainbranch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
+                commitid = self.git_get_current_commit_id(repository, mainbranch)
                 if(commitid == self.git_get_current_commit_id(repository, devbranch)):
-                    write_message_to_stderr(f"Can not prepare since the master-branch and the development-branch are on the same commit (commit-id: {commitid})")
+                    write_message_to_stderr(f"Can not prepare since the main-branch and the development-branch are on the same commit (commit-id: {commitid})")
                     return 1
                 self.git_checkout(repository, devbranch)
-                self.git_merge(repository, devbranch, masterbranch, False, False)
+                self.git_merge(repository, devbranch, mainbranch, False, False)
 
             try:
                 current_release_information = {}
@@ -127,7 +127,7 @@ class ScriptCollection:
 
                 if not error_occurred:
                     commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
-                                                f"into '{self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')}'")
+                                                f"into '{self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')}'")
                     current_release_information["builtin.mergecommitid"] = commit_id
 
                     # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
@@ -193,14 +193,14 @@ class ScriptCollection:
                 return 1
             else:
                 if prepare:
-                    self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname'),
+                    self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname'),
                                 self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
                     tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
                     tag_message = f"Created {tag}"
                     self.git_create_tag(repository, commit_id,
                                         tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
                     if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
-                        branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
+                        branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
                         self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
                 write_message_to_stdout("Creating release was successful")
                 return 0
@@ -322,7 +322,7 @@ class ScriptCollection:
 
         if "builtin.commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
             repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl')
-            branch = self.get_item_from_configuration(configparser, 'prepare', 'masterbranchname')
+            branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
             commitid = current_release_information["builtin.commitid"]
             nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />')
         else:
@@ -369,6 +369,9 @@ class ScriptCollection:
     def dotnet_reference(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         configparser.read_file(open(configurationfile, mode="r", encoding="utf-8"))
+        self.git_checkout(
+            self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
+            self.get_item_from_configuration(configparser, 'prepare', 'exportreferencelocalbranchname'))
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
             verbosity = self._private_get_verbosity_for_exuecutor(configparser)
             if verbosity == 0:
@@ -400,7 +403,8 @@ class ScriptCollection:
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
                               self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename'),
-                              "master", "master", False, False)
+                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname'),
+                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotebranchname'), False, False)
 
     def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
                      clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None,
@@ -1125,7 +1129,7 @@ class ScriptCollection:
         available_configuration_items.append(["general", "author"])
         available_configuration_items.append(["general", "description"])
         available_configuration_items.append(["prepare", "developmentbranchname"])
-        available_configuration_items.append(["prepare", "masterbranchname"])
+        available_configuration_items.append(["prepare", "mainbranchname"])
         available_configuration_items.append(["prepare", "gittagprefix"])
         available_configuration_items.append(["script", "premerge_program"])
         available_configuration_items.append(["script", "premerge_argument"])
