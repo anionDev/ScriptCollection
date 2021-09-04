@@ -58,20 +58,7 @@ To develop ScriptCollection it is obviously required that the following commandl
 - `python` (on some systems `python3`)
 - `pip3`
 
-To install all required pip-packages simply execute the following commands:
-
-```lang-bash
-pip3 install "defusedxml>=0.7.1"
-pip3 install "keyboard>=0.13.5"
-pip3 install "ntplib>=0.3.4"
-pip3 install "pycdlib>=1.10.0"
-pip3 install "PyPDF2>=1.26.0"
-pip3 install "qrcode>=6.1"
-pip3 install "send2trash>=1.5.0"
-pip3 install "pylint>=2.6.0"
-pip3 install "pytest>=6.1.2"
-pip3 install "wheel>=0.35.1"
-```
+To install the required dependencies simply install the packages defined in `requirements.txt`.
 
 ### IDE
 
