@@ -141,3 +141,14 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+Other/ServerMaintenance/Common/GenerateCertificates/MyDomain.private/MyDomain.private.crt
+Other/ServerMaintenance/Common/GenerateCertificates/MyDomain.private/MyDomain.private.csr
+Other/ServerMaintenance/Common/GenerateCertificates/MyDomain.private/MyDomain.private.key
+Other/ServerMaintenance/Common/GenerateCertificates/MyDomain.private/MyDomain.private.pfx
+Other/ServerMaintenance/Common/GenerateCertificates/MyDomain.private/MyDomain.private.unsigned.crt
+Other/ServerMaintenance/Common/GenerateCertificates/MyDomain.private/MyDomain.private.unsigned.pfx
+Other/ServerMaintenance/Common/GenerateCertificates/MyRootCA/MyRootCA.crt
+Other/ServerMaintenance/Common/GenerateCertificates/MyRootCA/MyRootCA.key
+Other/ServerMaintenance/Common/GenerateCertificates/MyRootCA/MyRootCA.srl
+#--------------------------------------------------------------------------------------------------------------------------------------------------------

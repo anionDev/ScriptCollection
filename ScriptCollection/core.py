@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.6.1"
+version = "2.6.2"
 __version__ = version
 
 
@@ -1377,13 +1377,7 @@ class ScriptCollection:
         for file in absolute_file_paths(folder):
             self._private_check_file(file, searchstring)
 
-    def _private_print_qr_code_by_csv_line(self, line: str) -> None:
-        splitted = line.split(";")
-        displayname = splitted[0]
-        website = splitted[1]
-        emailaddress = splitted[2]
-        key = splitted[3]
-        period = splitted[4]
+    def _private_print_qr_code_by_csv_line(self, displayname,website,emailaddress,key,period) -> None:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         write_message_to_stdout(f"{displayname} ({emailaddress}):")
         write_message_to_stdout(qrcode_content)
@@ -1391,14 +1385,9 @@ class ScriptCollection:
 
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
         separator_line = "--------------------------------------------------------"
-        with open(csvfile) as f:
-            lines = f.readlines()
-        lines = [line.rstrip('\n') for line in lines]
-        itertor = iter(lines)
-        next(itertor)
-        for line in itertor:
+        for line in read_csv_file(csvfile,True):
             write_message_to_stdout(separator_line)
-            self._private_print_qr_code_by_csv_line(line)
+            self._private_print_qr_code_by_csv_line(line[0],line[1],line[2],line[3],line[4])
         write_message_to_stdout(separator_line)
 
     def SCUpdateNugetpackagesInCsharpProject(self, csprojfile: str) -> int:
@@ -2870,7 +2859,7 @@ def read_csv_file(file: str, ignore_first_line: bool = False, treat_number_sign_
         if trim_values:
             line = line.strip()
         if ignore_empty_lines:
-            if not string_has_content(use_line):
+            if not string_has_content(line):
                 use_line = False
 
         if treat_number_sign_at_begin_of_line_as_comment:

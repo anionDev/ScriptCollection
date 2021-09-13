@@ -1,0 +1,1 @@
+openssl req -new -subj "/C=DE/ST=MyST/L=MyL/O=MyO/CN=MyDomain.private" -key MyDomain.private.key -out MyDomain.private.csr -config san.conf
