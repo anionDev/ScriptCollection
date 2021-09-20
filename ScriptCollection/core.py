@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.6.2"
+version = "2.6.3"
 __version__ = version
 
 
@@ -87,43 +87,44 @@ class ScriptCollection:
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                     write_message_to_stdout("Start to create .NET-release")
                     error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
-                                                                                lambda: self._private_create_dotnet_release_premerge(
-                                                                                    configurationfile, current_release_information))
+                                                                                  lambda: self._private_create_dotnet_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Python-release")
                     error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
-                                                                                lambda: self.python_create_wheel_release_premerge(
-                                                                                    configurationfile, current_release_information))
+                                                                                  lambda: self.python_create_wheel_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Deb-release")
                     error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
-                                                                                lambda: self.deb_create_installer_release_premerge(
-                                                                                    configurationfile, current_release_information))
+                                                                                  lambda: self.deb_create_installer_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
                     write_message_to_stdout("Start to create docker-release")
                     error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                                lambda: self.docker_create_image_release_premerge(
-                                                                                    configurationfile, current_release_information))
+                                                                                  lambda: self.docker_create_image_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterAndroid-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                                lambda: self.flutterandroid_create_installer_release_premerge(
-                                                                                    configurationfile, current_release_information))
+                                                                                  lambda: self.flutterandroid_create_installer_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                     write_message_to_stdout("Start to create FlutterIOS-release")
                     error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                                lambda: self.flutterios_create_installer_release_premerge(
-                                                                                    configurationfile, current_release_information))
+                                                                                  lambda: self.flutterios_create_installer_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Script-release")
                     error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
-                                                                                lambda: self.generic_create_script_release_premerge(configurationfile, current_release_information))
+                                                                                  lambda: self.generic_create_script_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if not error_occurred:
                     commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
@@ -137,44 +138,44 @@ class ScriptCollection:
                     if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
                         write_message_to_stdout("Start to create .NET-release")
                         error_occurred = not self._private_execute_and_return_boolean("create_dotnet_release",
-                                                                                    lambda: self._private_create_dotnet_release_postmerge(
-                                                                                        configurationfile, current_release_information))
+                                                                                      lambda: self._private_create_dotnet_release_postmerge(
+                                                                                          configurationfile, current_release_information))
 
                     if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
                         write_message_to_stdout("Start to create Python-release")
                         error_occurred = not self._private_execute_and_return_boolean("python_create_wheel_release",
-                                                                                    lambda: self.python_create_wheel_release_postmerge(
-                                                                                        configurationfile, current_release_information))
+                                                                                      lambda: self.python_create_wheel_release_postmerge(
+                                                                                          configurationfile, current_release_information))
 
                     if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
                         write_message_to_stdout("Start to create Deb-release")
                         error_occurred = not self._private_execute_and_return_boolean("deb_create_installer_release",
-                                                                                    lambda: self.deb_create_installer_release_postmerge(
-                                                                                        configurationfile, current_release_information))
+                                                                                      lambda: self.deb_create_installer_release_postmerge(
+                                                                                          configurationfile, current_release_information))
 
                     if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
                         write_message_to_stdout("Start to create docker-release")
                         error_occurred = not self._private_execute_and_return_boolean("docker_create_installer_release",
-                                                                                    lambda: self.docker_create_image_release_postmerge(configurationfile,
-                                                                                                                                        current_release_information))
+                                                                                      lambda: self.docker_create_image_release_postmerge(configurationfile,
+                                                                                                                                         current_release_information))
 
                     if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
                         write_message_to_stdout("Start to create FlutterAndroid-release")
                         error_occurred = not self._private_execute_and_return_boolean("flutterandroid_create_installer_release",
-                                                                                    lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
-                                                                                                                                                    current_release_information))
+                                                                                      lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
+                                                                                                                                                     current_release_information))
 
                     if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
                         write_message_to_stdout("Start to create FlutterIOS-release")
                         error_occurred = not self._private_execute_and_return_boolean("flutterios_create_installer_release",
-                                                                                    lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
-                                                                                                                                                current_release_information))
+                                                                                      lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
+                                                                                                                                                 current_release_information))
 
                     if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                         write_message_to_stdout("Start to create Script-release")
                         error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
-                                                                                    lambda: self.generic_create_script_release_postmerge(
-                                                                                        configurationfile, current_release_information))
+                                                                                      lambda: self.generic_create_script_release_postmerge(
+                                                                                          configurationfile, current_release_information))
 
             except Exception as exception:
                 error_occurred = True
@@ -194,7 +195,7 @@ class ScriptCollection:
             else:
                 if prepare:
                     self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname'),
-                                self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
+                                   self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
                     tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
                     tag_message = f"Created {tag}"
                     self.git_create_tag(repository, commit_id,
@@ -206,7 +207,7 @@ class ScriptCollection:
                 return 0
 
         except Exception as e:
-            write_exception_to_stderr_with_traceback(e,traceback,f"Fatal error occurred while creating release defined by '{configurationfile}'.")
+            write_exception_to_stderr_with_traceback(e, traceback, f"Fatal error occurred while creating release defined by '{configurationfile}'.")
             return 1
 
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict) -> None:
@@ -929,10 +930,12 @@ class ScriptCollection:
         else:
             return False
 
-    def file_is_git_ignored(self, file: str) -> None:
+    def file_is_git_ignored(self, file: str, repositorybasefolder: str = None) -> None:
+        if repositorybasefolder is None:
+            repositorybasefolder = os.path.dirname(file)
         filename = os.path.basename(file)
-        folder = os.path.dirname(file)
-        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', filename], folder, 0, False, None, 120, False, prevent_using_epew=True)[0]
+        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', filename],
+                                                                 repositorybasefolder, 0, False, None, 120, False, prevent_using_epew=True)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
@@ -1377,7 +1380,7 @@ class ScriptCollection:
         for file in absolute_file_paths(folder):
             self._private_check_file(file, searchstring)
 
-    def _private_print_qr_code_by_csv_line(self, displayname,website,emailaddress,key,period) -> None:
+    def _private_print_qr_code_by_csv_line(self, displayname, website, emailaddress, key, period) -> None:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         write_message_to_stdout(f"{displayname} ({emailaddress}):")
         write_message_to_stdout(qrcode_content)
@@ -1385,9 +1388,9 @@ class ScriptCollection:
 
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
         separator_line = "--------------------------------------------------------"
-        for line in read_csv_file(csvfile,True):
+        for line in read_csv_file(csvfile, True):
             write_message_to_stdout(separator_line)
-            self._private_print_qr_code_by_csv_line(line[0],line[1],line[2],line[3],line[4])
+            self._private_print_qr_code_by_csv_line(line[0], line[1], line[2], line[3], line[4])
         write_message_to_stdout(separator_line)
 
     def SCUpdateNugetpackagesInCsharpProject(self, csprojfile: str) -> int:
@@ -2488,6 +2491,7 @@ def write_message_to_stderr(message: str):
     sys.stderr.write(str_none_safe(message)+"\n")
     sys.stderr.flush()
 
+
 def get_advanced_errormessage_for_os_error(os_error: OSError) -> str:
     if string_has_content(os_error.filename2):
         secondpath = f" {os_error.filename2}"
@@ -2495,8 +2499,10 @@ def get_advanced_errormessage_for_os_error(os_error: OSError) -> str:
         secondpath = ""
     return f"Related path(s): {os_error.filename}{secondpath}"
 
+
 def write_exception_to_stderr(exception: Exception, extra_message: str = None):
-    write_exception_to_stderr_with_traceback(exception,None,extra_message)
+    write_exception_to_stderr_with_traceback(exception, None, extra_message)
+
 
 def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback=None, extra_message: str = None):
     write_message_to_stderr("Exception(")
@@ -2845,7 +2851,7 @@ def contains_line(lines, regex: str) -> bool:
 
 
 def read_csv_file(file: str, ignore_first_line: bool = False, treat_number_sign_at_begin_of_line_as_comment: bool = True, trim_values: bool = True,
-    encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list:
+                  encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list:
     lines = read_lines_from_file(file, encoding)
 
     if ignore_first_line:
