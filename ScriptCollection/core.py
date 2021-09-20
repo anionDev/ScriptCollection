@@ -123,7 +123,8 @@ class ScriptCollection:
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
                     write_message_to_stdout("Start to create Script-release")
                     error_occurred = not self._private_execute_and_return_boolean("generic_create_installer_release",
-                                                                                  lambda: self.generic_create_script_release_premerge(configurationfile, current_release_information))
+                                                                                  lambda: self.generic_create_script_release_premerge(
+                                                                                      configurationfile, current_release_information))
 
                 if not error_occurred:
                     commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
