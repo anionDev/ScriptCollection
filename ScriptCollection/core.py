@@ -931,7 +931,7 @@ class ScriptCollection:
             return False
 
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
-        exit_code = self._private_sc.start_program_synchronously_argsasarray("git", ['check-ignore', file_in_repository],
+        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', file_in_repository],
                                                                  repositorybasefolder, 0, False, None, 120, False, prevent_using_epew=True)[0]
         if(exit_code == 0):
             return True
