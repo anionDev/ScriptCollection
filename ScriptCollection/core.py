@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.6.3"
+version = "2.6.4"
 __version__ = version
 
 
@@ -930,17 +930,14 @@ class ScriptCollection:
         else:
             return False
 
-    def file_is_git_ignored(self, file: str, repositorybasefolder: str = None) -> None:
-        if repositorybasefolder is None:
-            repositorybasefolder = os.path.dirname(file)
-        filename = os.path.basename(file)
-        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', filename],
+    def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
+        exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', file_in_repository],
                                                                  repositorybasefolder, 0, False, None, 120, False, prevent_using_epew=True)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
             return False
-        raise Exception(f"Unable to calculate if '{file}' is ignored due to exitcode {exit_code}.")
+        raise Exception(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
     def discard_all_changes(self, repository: str) -> None:
         self.start_program_synchronously_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)

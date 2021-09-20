@@ -1,5 +1,6 @@
 import os
 import unittest
+from pathlib import Path
 import tempfile
 import re
 import importlib.util
@@ -24,11 +25,11 @@ ensure_file_exists = getattr(module, "ensure_file_exists")
 write_lines_to_file = getattr(module, "write_lines_to_file")
 resolve_relative_path = getattr(module, "resolve_relative_path")
 get_next_square_number = getattr(module, "get_next_square_number")
-get_advanced_errormessage_for_os_error =getattr(module, "get_advanced_errormessage_for_os_error")
+get_advanced_errormessage_for_os_error = getattr(module, "get_advanced_errormessage_for_os_error")
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.6.3"
+version = "2.6.4"
 
 
 class MiscellaneousTests(unittest.TestCase):
@@ -198,11 +199,11 @@ class MiscellaneousTests(unittest.TestCase):
 
     def test_get_advanced_errormessage_for_os_error_FileNotFoundError(self):
         # arrange
-        filename="somefile.txt"
-        exception=FileNotFoundError()
-        exception.filename=filename
+        filename = "somefile.txt"
+        exception = FileNotFoundError()
+        exception.filename = filename
         assert isinstance(exception, OSError)
-        expected=f"Related path(s): {filename}"
+        expected = f"Related path(s): {filename}"
 
         # act
         actual = get_advanced_errormessage_for_os_error(exception)
@@ -212,11 +213,11 @@ class MiscellaneousTests(unittest.TestCase):
 
     def test_get_advanced_errormessage_for_os_error_NotADirectoryError(self):
         # arrange
-        filename="somedirectory"
-        exception=NotADirectoryError()
-        exception.filename=filename
+        filename = "somedirectory"
+        exception = NotADirectoryError()
+        exception.filename = filename
         assert isinstance(exception, OSError)
-        expected=f"Related path(s): {filename}"
+        expected = f"Related path(s): {filename}"
 
         # act
         actual = get_advanced_errormessage_for_os_error(exception)
@@ -295,32 +296,6 @@ class OrganizeLinesInFileTests(unittest.TestCase):
         finally:
             os.remove(testfile)
 
-    def test_file_is_git_ignored_(self) -> None:
-        tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
-        ensure_directory_exists(tests_folder)
-        sc = ScriptCollection()
-        sc.start_program_synchronously("git", "init", tests_folder)
-
-        ignored_logfolder_name = "logfolder"
-        ignored_logfolder = tests_folder+os.path.sep+ignored_logfolder_name
-        ensure_directory_exists(ignored_logfolder)
-
-        gitignore_file = tests_folder+os.path.sep+".gitignore"
-        ensure_file_exists(gitignore_file)
-        write_lines_to_file(gitignore_file, [ignored_logfolder_name+"/**", "!"+ignored_logfolder_name+"/.gitkeep"])
-
-        gitkeep_file = ignored_logfolder+os.path.sep+".gitkeep"
-        ensure_file_exists(gitkeep_file)
-
-        log_file = ignored_logfolder+os.path.sep+"logfile.log"
-        ensure_file_exists(log_file)
-
-        assert not sc.file_is_git_ignored(gitignore_file)
-        assert not sc.file_is_git_ignored(gitkeep_file)
-        assert sc.file_is_git_ignored(log_file)
-
-        ensure_directory_does_not_exist(tests_folder)
-
 
 class ExecuteProgramTests(unittest.TestCase):
 
@@ -351,15 +326,42 @@ class ExecuteProgramTests(unittest.TestCase):
         # assert
         assert exit_code == 0
 
-    def test_file_is_git_ignored(self) -> None:
+    def test_file_is_git_ignored_1(self) -> None:
         # arrange
         sc = ScriptCollection()
+        repository = str(Path(__file__).parent.parent.absolute())
 
         # act
-        result = sc.file_is_git_ignored(__file__)
+        result = sc.file_is_git_ignored("Tests/tests.py", repository)
 
         # assert
         assert result is False
+
+    def test_file_is_git_ignored_2(self) -> None:
+        tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
+        ensure_directory_exists(tests_folder)
+        sc = ScriptCollection()
+        sc.start_program_synchronously("git", "init", tests_folder)
+
+        ignored_logfolder_name = "logfolder"
+        ignored_logfolder = tests_folder+os.path.sep+ignored_logfolder_name
+        ensure_directory_exists(ignored_logfolder)
+
+        gitignore_file = tests_folder+os.path.sep+".gitignore"
+        ensure_file_exists(gitignore_file)
+        write_lines_to_file(gitignore_file, [ignored_logfolder_name+"/**", "!"+ignored_logfolder_name+"/.gitkeep"])
+
+        gitkeep_file = ignored_logfolder+os.path.sep+".gitkeep"
+        ensure_file_exists(gitkeep_file)
+
+        log_file = ignored_logfolder+os.path.sep+"logfile.log"
+        ensure_file_exists(log_file)
+
+        assert not sc.file_is_git_ignored(".gitignore", tests_folder)
+        assert not sc.file_is_git_ignored(".gitkeep", tests_folder)
+        assert sc.file_is_git_ignored(ignored_logfolder_name+os.path.sep+"logfile.log", tests_folder)
+
+        ensure_directory_does_not_exist(tests_folder)
 
     def test_simple_program_call_prevent_argsasarray(self) -> None:
         # arrange
