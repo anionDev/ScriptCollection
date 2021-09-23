@@ -29,7 +29,7 @@ get_advanced_errormessage_for_os_error = getattr(module, "get_advanced_errormess
 
 testfileprefix = "testfile_"
 encoding = "utf-8"
-version = "2.6.4"
+version = "2.6.5"
 
 
 class MiscellaneousTests(unittest.TestCase):
