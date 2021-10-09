@@ -1270,6 +1270,15 @@ class ScriptCollection:
             with open(file+".sha256", "w+") as f:
                 f.write(get_sha256_of_file(file))
 
+    def SCCreateSimpleMerge(self, repository: str, sourcebranch: str, targetbranch: str,remotename: str) -> None:
+        raise Exception("Not implemented yet")
+        # TODO do the following things
+        # - merge sourcebranch into targetbranch (no-ff)
+        # - merge targetbranch into sourcebranch (ff)
+        # - create git-tag
+        # - push both branches to origin
+
+
     def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
                                   remove_empty_lines: bool = True, ignored_start_character: list = list()) -> int:
         if os.path.isfile(file):
@@ -2301,6 +2310,16 @@ def SCCreateHashOfAllFiles_cli() -> int:
     parser.add_argument('folder', help='Folder where the files are stored which should be hashed')
     args = parser.parse_args()
     ScriptCollection().SCCreateHashOfAllFiles(args.folder)
+    return 0
+
+def SCCreateSimpleMerge_cli() -> int:
+    parser = argparse.ArgumentParser(description='TODO')
+    parser.add_argument('repository', help='TODO')
+    parser.add_argument('sourcebranch',default="stable", help='TODO')
+    parser.add_argument('targetbranch',default="stable", help='TODO')
+    parser.add_argument('remotename',default="origin", help='TODO')
+    args = parser.parse_args()
+    ScriptCollection().SCCreateSimpleMerge(args.repository,args.sourcebranch,args.targetbranch,args.remotename)
     return 0
 
 
