@@ -1281,7 +1281,7 @@ class ScriptCollection:
         self.git_create_tag(repository,commitid,f"v{created_version}",True)
         self.git_push(repository,remotename,targetbranch,targetbranch,False,True)
         if (remotename is not None):
-                self.git_push(repository,remotename,sourcebranch,sourcebranch,False,True)
+            self.git_push(repository,remotename,sourcebranch,sourcebranch,False,True)
         if(remove_source_branch):
             self.git_remove_branch(repository,sourcebranch)
 
