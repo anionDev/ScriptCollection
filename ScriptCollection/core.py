@@ -781,6 +781,10 @@ class ScriptCollection:
                                                      print_errors_as_information=print_errors_as_information,
                                                      prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
+    def git_remove_branch(self, folder: str, branchname: str, verbosity=1) -> None:
+        self.start_program_synchronously_argsasarray("git", f"branch -D {branchname}", folder, timeoutInSeconds=30, verbosity=verbosity,
+                                                              prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
@@ -1270,14 +1274,16 @@ class ScriptCollection:
             with open(file+".sha256", "w+") as f:
                 f.write(get_sha256_of_file(file))
 
-    def SCCreateSimpleMerge(self, repository: str, sourcebranch: str, targetbranch: str,remotename: str) -> None:
-        raise Exception("Not implemented yet")
-        # TODO do the following things
-        # - merge sourcebranch into targetbranch (no-ff)
-        # - merge targetbranch into sourcebranch (ff)
-        # - create git-tag
-        # - push both branches to origin
-
+    def SCCreateSimpleMergeWithoutRelease(self, repository: str, sourcebranch: str, targetbranch: str,remotename: str, remove_source_branch:bool) -> None:
+        commitid=self.git_merge(repository,sourcebranch,targetbranch,False,True)
+        self.git_merge(repository,targetbranch,sourcebranch,True,True)
+        created_version=self.get_semver_version_from_gitversion(repository)
+        self.git_create_tag(repository,commitid,f"v{created_version}",True)
+        self.git_push(repository,remotename,targetbranch,targetbranch,False,True)
+        if (remotename is not None):
+                self.git_push(repository,remotename,sourcebranch,sourcebranch,False,True)
+        if(remove_source_branch):
+            self.git_remove_branch(repository,sourcebranch)
 
     def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
                                   remove_empty_lines: bool = True, ignored_start_character: list = list()) -> int:
@@ -2312,14 +2318,17 @@ def SCCreateHashOfAllFiles_cli() -> int:
     ScriptCollection().SCCreateHashOfAllFiles(args.folder)
     return 0
 
-def SCCreateSimpleMerge_cli() -> int:
+def SCCreateSimpleMergeWithoutRelease_cli() -> int:
     parser = argparse.ArgumentParser(description='TODO')
-    parser.add_argument('repository', help='TODO')
-    parser.add_argument('sourcebranch',default="stable", help='TODO')
-    parser.add_argument('targetbranch',default="stable", help='TODO')
-    parser.add_argument('remotename',default="origin", help='TODO')
+    parser.add_argument('repository', required=True, help='TODO')
+    parser.add_argument('sourcebranch',default="stable", required=True, help='TODO')
+    parser.add_argument('targetbranch',default="master", required=True, help='TODO')
+    parser.add_argument('remotename',default=None, help='TODO')
+    parser.add_argument('--remove-sourcebranch', dest='removesourcebranch', action='store_true', help='TODO')
+    parser.add_argument('--no-remove-sourcebranch', dest='removesourcebranch', action='store_false', help='TODO')
+    parser.set_defaults(removesourcebranch=False)
     args = parser.parse_args()
-    ScriptCollection().SCCreateSimpleMerge(args.repository,args.sourcebranch,args.targetbranch,args.remotename)
+    ScriptCollection().SCCreateSimpleMergeWithoutRelease(args.repository,args.sourcebranch,args.targetbranch,args.remotename,args.removesourcebranch)
     return 0
 
 
