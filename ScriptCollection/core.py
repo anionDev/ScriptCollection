@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.6.5"
+version = "2.6.6"
 __version__ = version
 
 
@@ -781,6 +781,10 @@ class ScriptCollection:
                                                      print_errors_as_information=print_errors_as_information,
                                                      prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
+    def git_remove_branch(self, folder: str, branchname: str, verbosity=1) -> None:
+        self.start_program_synchronously_argsasarray("git", f"branch -D {branchname}", folder, timeoutInSeconds=30, verbosity=verbosity,
+                                                              prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
@@ -891,6 +895,8 @@ class ScriptCollection:
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
         argument = ["tag", tag, target_for_tag]
         if sign:
+            if message is None:
+                message=f"Created {target_for_tag}"
             argument.extend(["-s", "-m", message])
         self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100,
                                                      verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
@@ -1269,6 +1275,17 @@ class ScriptCollection:
         for file in absolute_file_paths(folder):
             with open(file+".sha256", "w+") as f:
                 f.write(get_sha256_of_file(file))
+
+    def SCCreateSimpleMergeWithoutRelease(self, repository: str, sourcebranch: str, targetbranch: str,remotename: str, remove_source_branch:bool) -> None:
+        commitid=self.git_merge(repository,sourcebranch,targetbranch,False,True)
+        self.git_merge(repository,targetbranch,sourcebranch,True,True)
+        created_version=self.get_semver_version_from_gitversion(repository)
+        self.git_create_tag(repository,commitid,f"v{created_version}",True)
+        self.git_push(repository,remotename,targetbranch,targetbranch,False,True)
+        if (string_has_nonwhitespace_content(remotename)):
+            self.git_push(repository,remotename,sourcebranch,sourcebranch,False,True)
+        if(remove_source_branch):
+            self.git_remove_branch(repository,sourcebranch)
 
     def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
                                   remove_empty_lines: bool = True, ignored_start_character: list = list()) -> int:
@@ -2301,6 +2318,19 @@ def SCCreateHashOfAllFiles_cli() -> int:
     parser.add_argument('folder', help='Folder where the files are stored which should be hashed')
     args = parser.parse_args()
     ScriptCollection().SCCreateHashOfAllFiles(args.folder)
+    return 0
+
+def SCCreateSimpleMergeWithoutRelease_cli() -> int:
+    parser = argparse.ArgumentParser(description='TODO')
+    parser.add_argument('repository',  help='TODO')
+    parser.add_argument('sourcebranch',default="stable", help='TODO')
+    parser.add_argument('targetbranch',default="master",  help='TODO')
+    parser.add_argument('remotename',default=None, help='TODO')
+    parser.add_argument('--remove-sourcebranch', dest='removesourcebranch', action='store_true', help='TODO')
+    parser.add_argument('--no-remove-sourcebranch', dest='removesourcebranch', action='store_false', help='TODO')
+    parser.set_defaults(removesourcebranch=False)
+    args = parser.parse_args()
+    ScriptCollection().SCCreateSimpleMergeWithoutRelease(args.repository,args.sourcebranch,args.targetbranch,args.remotename,args.removesourcebranch)
     return 0
 
 
