@@ -75,7 +75,7 @@ setup(
             f"SCPythonRunTests = {productname}.core:SCPythonRunTests_cli",
             f"SCReplaceSubstringsInFilenames = {productname}.core:SCReplaceSubstringsInFilenames_cli",
             f"SCSearchInFiles = {productname}.core:SCSearchInFiles_cli",
-            f"SCCreateSimpleMergeWithoutRelease_cli = {productname}.core:SCCreateSimpleMergeWithoutRelease_cli_cli",
+            f"SCCreateSimpleMergeWithoutRelease = {productname}.core:SCCreateSimpleMergeWithoutRelease_cli",
             f"SCShow2FAAsQRCode = {productname}.core:SCShow2FAAsQRCode_cli",
             f"SCShowMissingFiles = {productname}.core:SCShowMissingFiles_cli",
             f"SCUpdateNugetpackagesInCsharpProject = {productname}.core:UpdateNugetpackagesInCsharpProject_cli",

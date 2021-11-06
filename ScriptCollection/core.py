@@ -895,6 +895,8 @@ class ScriptCollection:
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
         argument = ["tag", tag, target_for_tag]
         if sign:
+            if message is None:
+                message=f"Created {target_for_tag}"
             argument.extend(["-s", "-m", message])
         self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100,
                                                      verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
@@ -1280,7 +1282,7 @@ class ScriptCollection:
         created_version=self.get_semver_version_from_gitversion(repository)
         self.git_create_tag(repository,commitid,f"v{created_version}",True)
         self.git_push(repository,remotename,targetbranch,targetbranch,False,True)
-        if (remotename is not None):
+        if (string_has_nonwhitespace_content(remotename)):
             self.git_push(repository,remotename,sourcebranch,sourcebranch,False,True)
         if(remove_source_branch):
             self.git_remove_branch(repository,sourcebranch)
@@ -2320,9 +2322,9 @@ def SCCreateHashOfAllFiles_cli() -> int:
 
 def SCCreateSimpleMergeWithoutRelease_cli() -> int:
     parser = argparse.ArgumentParser(description='TODO')
-    parser.add_argument('repository', required=True, help='TODO')
-    parser.add_argument('sourcebranch',default="stable", required=True, help='TODO')
-    parser.add_argument('targetbranch',default="master", required=True, help='TODO')
+    parser.add_argument('repository',  help='TODO')
+    parser.add_argument('sourcebranch',default="stable", help='TODO')
+    parser.add_argument('targetbranch',default="master",  help='TODO')
     parser.add_argument('remotename',default=None, help='TODO')
     parser.add_argument('--remove-sourcebranch', dest='removesourcebranch', action='store_true', help='TODO')
     parser.add_argument('--no-remove-sourcebranch', dest='removesourcebranch', action='store_false', help='TODO')

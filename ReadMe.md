@@ -88,4 +88,4 @@ This tools must be available on the system where the functions should be execute
 
 ## License
 
-See [License.txt](https://raw.githubusercontent.com/anionDev/ScriptCollection/master/License.txt) for license-information.
+See [License.txt](https://raw.githubusercontent.com/anionDev/ScriptCollection/main/License.txt) for license-information.
