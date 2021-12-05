@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.6.7"
+version = "2.6.8"
 __version__ = version
 
 
@@ -948,6 +948,11 @@ class ScriptCollection:
     def discard_all_changes(self, repository: str) -> None:
         self.start_program_synchronously_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
         self.start_program_synchronously_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
+
+    def git_get_current_branch_name(self, repository: str) -> str:
+        result=self.start_program_synchronously_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository,
+                                                            timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+        return result[1].replace("\r","").replace("\n","")
 
     # </git>
 
