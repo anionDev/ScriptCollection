@@ -37,7 +37,7 @@ import ntplib
 import pycdlib
 import send2trash
 
-version = "2.6.8"
+version = "2.6.9"
 __version__ = version
 
 
@@ -783,7 +783,7 @@ class ScriptCollection:
 
     def git_remove_branch(self, folder: str, branchname: str, verbosity=1) -> None:
         self.start_program_synchronously_argsasarray("git", f"branch -D {branchname}", folder, timeoutInSeconds=30, verbosity=verbosity,
-                                                              prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+                                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
@@ -810,7 +810,7 @@ class ScriptCollection:
         finally:
             os.chdir(original_cwd)
 
-    def git_get_all_remote_names(self, directory) -> list:
+    def git_get_all_remote_names(self, directory) -> list[str]:
         lines = self.start_program_synchronously_argsasarray("git", ["remote"], directory, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)[1]
         result = []
         for line in lines:
@@ -896,7 +896,7 @@ class ScriptCollection:
         argument = ["tag", tag, target_for_tag]
         if sign:
             if message is None:
-                message=f"Created {target_for_tag}"
+                message = f"Created {target_for_tag}"
             argument.extend(["-s", "-m", message])
         self.start_program_synchronously_argsasarray("git", argument, directory, timeoutInSeconds=100,
                                                      verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
@@ -980,14 +980,14 @@ class ScriptCollection:
 
     def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8") -> None:
         for line in read_lines_from_file(source_file, encoding):
-            splitted = line.split(";")
-            full_path_of_file_or_folder = os.path.join(folder, splitted[0])
-            filetype = splitted[1]
-            user = splitted[2]
-            permissions = splitted[3]
+            splitted: list = line.split(";")
+            full_path_of_file_or_folder: str = os.path.join(folder, splitted[0])
+            filetype: str = splitted[1]
+            user: str = splitted[2]
+            permissions: str = splitted[3]
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
-                self.set_file_owner(full_path_of_file_or_folder, user, os.name != 'nt')
-                self.set_file_permission(full_path_of_file_or_folder, permissions)
+                self.set_owner(full_path_of_file_or_folder, user, os.name != 'nt')
+                self.set_permission(full_path_of_file_or_folder, permissions)
             else:
                 if strict:
                     if filetype == "f":
@@ -1048,7 +1048,7 @@ class ScriptCollection:
         self._private_verbose_check_for_not_available_item(configparser, [result], section, propertyname)
         return result
 
-    def get_items_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> list:
+    def get_items_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> list[str]:
         itemlist_as_string = self._private_replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
         if not string_has_content(itemlist_as_string):
             return []
@@ -1281,16 +1281,16 @@ class ScriptCollection:
             with open(file+".sha256", "w+") as f:
                 f.write(get_sha256_of_file(file))
 
-    def SCCreateSimpleMergeWithoutRelease(self, repository: str, sourcebranch: str, targetbranch: str,remotename: str, remove_source_branch:bool) -> None:
-        commitid=self.git_merge(repository,sourcebranch,targetbranch,False,True)
-        self.git_merge(repository,targetbranch,sourcebranch,True,True)
-        created_version=self.get_semver_version_from_gitversion(repository)
-        self.git_create_tag(repository,commitid,f"v{created_version}",True)
-        self.git_push(repository,remotename,targetbranch,targetbranch,False,True)
+    def SCCreateSimpleMergeWithoutRelease(self, repository: str, sourcebranch: str, targetbranch: str, remotename: str, remove_source_branch: bool) -> None:
+        commitid = self.git_merge(repository, sourcebranch, targetbranch, False, True)
+        self.git_merge(repository, targetbranch, sourcebranch, True, True)
+        created_version = self.get_semver_version_from_gitversion(repository)
+        self.git_create_tag(repository, commitid, f"v{created_version}", True)
+        self.git_push(repository, remotename, targetbranch, targetbranch, False, True)
         if (string_has_nonwhitespace_content(remotename)):
-            self.git_push(repository,remotename,sourcebranch,sourcebranch,False,True)
+            self.git_push(repository, remotename, sourcebranch, sourcebranch, False, True)
         if(remove_source_branch):
-            self.git_remove_branch(repository,sourcebranch)
+            self.git_remove_branch(repository, sourcebranch)
 
     def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
                                   remove_empty_lines: bool = True, ignored_start_character: list = list()) -> int:
@@ -1665,21 +1665,25 @@ class ScriptCollection:
         assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
-    def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
-        """This function expects an usual octet-triple, for example "0700"."""
-        argument = f'{permissions} "{file}"'
+    def set_permission(self, file_or_folder: str, permissions: str, recursive: bool = False) -> None:
+        """This function expects an usual octet-triple, for example "700"."""
+        args = []
         if recursive:
-            argument = f" --recursive {argument}"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
+            args.append("--recursive")
+        args.append(permissions)
+        args.append(f'"{file_or_folder}"')
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod",  ' '.join(args))
 
-    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
+    def set_owner(self, file_or_folder: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
         """This function expects the user and the group in the format "user:group"."""
-        argument = f'{owner} "{file}"'
+        args = []
         if recursive:
-            argument = f" --recursive {argument}"
+            args.append("--recursive")
         if follow_symlinks:
-            argument = f" --no-dereference {argument}"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("chown", argument)
+            args.append("--no-dereference")
+        args.append(owner)
+        args.append(f'"{file_or_folder}"')
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chown", ' '.join(args))
 
     def _private_adapt_workingdirectory(self, workingdirectory: str) -> str:
         if workingdirectory is None:
@@ -2325,17 +2329,18 @@ def SCCreateHashOfAllFiles_cli() -> int:
     ScriptCollection().SCCreateHashOfAllFiles(args.folder)
     return 0
 
+
 def SCCreateSimpleMergeWithoutRelease_cli() -> int:
     parser = argparse.ArgumentParser(description='TODO')
     parser.add_argument('repository',  help='TODO')
-    parser.add_argument('sourcebranch',default="stable", help='TODO')
-    parser.add_argument('targetbranch',default="master",  help='TODO')
-    parser.add_argument('remotename',default=None, help='TODO')
+    parser.add_argument('sourcebranch', default="stable", help='TODO')
+    parser.add_argument('targetbranch', default="master",  help='TODO')
+    parser.add_argument('remotename', default=None, help='TODO')
     parser.add_argument('--remove-sourcebranch', dest='removesourcebranch', action='store_true', help='TODO')
     parser.add_argument('--no-remove-sourcebranch', dest='removesourcebranch', action='store_false', help='TODO')
     parser.set_defaults(removesourcebranch=False)
     args = parser.parse_args()
-    ScriptCollection().SCCreateSimpleMergeWithoutRelease(args.repository,args.sourcebranch,args.targetbranch,args.remotename,args.removesourcebranch)
+    ScriptCollection().SCCreateSimpleMergeWithoutRelease(args.repository, args.sourcebranch, args.targetbranch, args.remotename, args.removesourcebranch)
     return 0
 
 
@@ -2408,7 +2413,7 @@ Caution: This script can cause harm if you pass a wrong inputfolder-argument.'''
 # <miscellaneous>
 
 
-def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list:
+def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list[str]:
     result = list()
     if(string is not None):
         lines = list()
@@ -2688,7 +2693,7 @@ def write_binary_to_file(file: str, content: bytearray) -> None:
         file_object.write(content)
 
 
-def read_lines_from_file(file: str, encoding="utf-8") -> list:
+def read_lines_from_file(file: str, encoding="utf-8") -> list[str]:
     return read_text_from_file(file, encoding).split(os.linesep)
 
 
@@ -2753,17 +2758,17 @@ def rename_names_of_all_files_and_folders(folder: str, replace_from: str, replac
     replace_in_foldername(folder, replace_from, replace_to, replace_only_full_match)
 
 
-def get_direct_files_of_folder(folder: str) -> list:
+def get_direct_files_of_folder(folder: str) -> list[str]:
     result = [os.path.join(folder, f) for f in listdir(folder) if isfile(join(folder, f))]
     return result
 
 
-def get_direct_folders_of_folder(folder: str) -> list:
+def get_direct_folders_of_folder(folder: str) -> list[str]:
     result = [os.path.join(folder, f) for f in listdir(folder) if isdir(join(folder, f))]
     return result
 
 
-def get_all_files_of_folder(folder: str) -> list:
+def get_all_files_of_folder(folder: str) -> list[str]:
     result = list()
     result.extend(get_direct_files_of_folder(folder))
     for subfolder in get_direct_folders_of_folder(folder):
@@ -2771,7 +2776,7 @@ def get_all_files_of_folder(folder: str) -> list:
     return result
 
 
-def get_all_folders_of_folder(folder: str) -> list:
+def get_all_folders_of_folder(folder: str) -> list[str]:
     result = list()
     subfolders = get_direct_folders_of_folder(folder)
     result.extend(subfolders)
@@ -2780,7 +2785,7 @@ def get_all_folders_of_folder(folder: str) -> list:
     return result
 
 
-def get_all_objects_of_folder(folder: str) -> list:
+def get_all_objects_of_folder(folder: str) -> list[str]:
     return get_all_files_of_folder(folder) + get_all_folders_of_folder(folder)
 
 
@@ -2812,7 +2817,7 @@ def str_none_safe(variable) -> str:
         return str(variable)
 
 
-def arguments_to_array(arguments_as_string: str) -> list:
+def arguments_to_array(arguments_as_string: str) -> list[str]:
     return arguments_as_string.split(" ")  # TODO this function should get heavily improved
 
 
