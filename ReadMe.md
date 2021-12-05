@@ -51,6 +51,10 @@ Or you can simply run `pip3 freeze` folder to get information about (all) curren
 
 ## Development
 
+### Branching-system
+
+This repository applies the [GitFlowSimplified](https://projects.aniondev.de/CommonUtilities/Templates/ProjectTemplates/-/blob/main/Templates/Conventions/BranchingSystem/GitFlowSimplified.md)-branching-system.
+
 ### Install dependencies
 
 To develop ScriptCollection it is obviously required that the following commandline-commands are available on your system:
