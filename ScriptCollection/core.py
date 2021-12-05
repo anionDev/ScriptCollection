@@ -981,8 +981,8 @@ class ScriptCollection:
             user = splitted[2]
             permissions = splitted[3]
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
-                self.set_file_owner(full_path_of_file_or_folder, user, os.name != 'nt')
-                self.set_file_permission(full_path_of_file_or_folder, permissions)
+                self.set_owner(full_path_of_file_or_folder, user, os.name != 'nt')
+                self.set_permission(full_path_of_file_or_folder, permissions)
             else:
                 if strict:
                     if filetype == "f":
@@ -1660,21 +1660,25 @@ class ScriptCollection:
         assert_condition(not string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
-    def set_file_permission(self, file: str, permissions: str, recursive: bool = False) -> None:
-        """This function expects an usual octet-triple, for example "0700"."""
-        argument = f'{permissions} "{file}"'
+    def set_permission(self, file_or_folder: str, permissions: str, recursive: bool = False) -> None:
+        """This function expects an usual octet-triple, for example "700"."""
+        args=[]
         if recursive:
-            argument = f" --recursive {argument}"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod", argument)
+            args.append("--recursive")
+        args.append(permissions)
+        args.append(f'"{file_or_folder}"')
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chmod",  ' '.join(args))
 
-    def set_file_owner(self, file: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
+    def set_owner(self, file_or_folder: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
         """This function expects the user and the group in the format "user:group"."""
-        argument = f'{owner} "{file}"'
+        args=[]
         if recursive:
-            argument = f" --recursive {argument}"
+            args.append("--recursive")
         if follow_symlinks:
-            argument = f" --no-dereference {argument}"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("chown", argument)
+            args.append("--no-dereference")
+        args.append(owner)
+        args.append(f'"{file_or_folder}"')
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("chown", ' '.join(args))
 
     def _private_adapt_workingdirectory(self, workingdirectory: str) -> str:
         if workingdirectory is None:
