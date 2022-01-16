@@ -53,7 +53,7 @@ Or you can simply run `pip3 freeze` folder to get information about (all) curren
 
 ### Branching-system
 
-This repository applies the [GitFlowSimplified](https://projects.aniondev.de/CommonUtilities/Templates/ProjectTemplates/-/blob/main/Templates/Conventions/BranchingSystem/GitFlowSimplified.md)-branching-system.
+This repository applies the [GitFlowSimplified](https://projects.aniondev.de/Common/Templates/ProjectTemplates/-/blob/main/Templates/Conventions/BranchingSystem/GitFlowSimplified.md)-branching-system.
 
 ### Install dependencies
 
@@ -62,15 +62,15 @@ To develop ScriptCollection it is obviously required that the following commandl
 - `python` (on some systems `python3`)
 - `pip3`
 
-To install the required dependencies simply install the packages defined in `requirements.txt`.
+The pip-packaged which are required for developing on this project are defined in `requirements.txt`.
 
 ### IDE
 
 The recommended IDE for developing ScriptCollection is Visual Studio Code.
 The recommended addons for developing ScriptCollection with Visual Studio Code are:
 
+- [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
 - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-- [Python Test Explorer for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=LittleFoxTeam.vscode-python-test-adapter)
 - [Spell Right](https://marketplace.visualstudio.com/items?itemName=ban.spellright)
 - [docs-markdown](https://marketplace.visualstudio.com/items?itemName=docsmsft.docs-markdown)
 
