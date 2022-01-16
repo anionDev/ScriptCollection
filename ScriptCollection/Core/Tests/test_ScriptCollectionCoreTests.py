@@ -3,94 +3,20 @@ import unittest
 from pathlib import Path
 import tempfile
 import re
-import importlib.util
 import uuid
-
-scriptcollection_module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"..{os.path.sep}ScriptCollection{os.path.sep}core.py"))
-spec = importlib.util.spec_from_file_location("core", scriptcollection_module_path)
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-
-get_ScriptCollection_version = getattr(module, "get_ScriptCollection_version")
-string_is_none_or_whitespace = getattr(module, "string_is_none_or_whitespace")
-string_is_none_or_empty = getattr(module, "string_is_none_or_empty")
-write_lines_to_file = getattr(module, "write_lines_to_file")
-read_lines_from_file = getattr(module, "read_lines_from_file")
-to_list = getattr(module, "to_list")
-ensure_directory_exists = getattr(module, "ensure_directory_exists")
-ensure_directory_does_not_exist = getattr(module, "ensure_directory_does_not_exist")
-ensure_file_does_not_exist = getattr(module, "ensure_file_does_not_exist")
-ScriptCollection = getattr(module, "ScriptCollection")
-ensure_file_exists = getattr(module, "ensure_file_exists")
-write_lines_to_file = getattr(module, "write_lines_to_file")
-resolve_relative_path = getattr(module, "resolve_relative_path")
-get_next_square_number = getattr(module, "get_next_square_number")
-get_advanced_errormessage_for_os_error = getattr(module, "get_advanced_errormessage_for_os_error")
-
-testfileprefix = "testfile_"
-encoding = "utf-8"
-version = "2.6.10"
+from ...Utilities.GeneralUtilities import GeneralUtilities
+from ..ScriptCollectionCore import ScriptCollectionCore
 
 
-class MiscellaneousTests(unittest.TestCase):
+class ScriptCollectionCoreTests(unittest.TestCase):
 
-    def test_version(self) -> None:
-        assert version == get_ScriptCollection_version()
-
-    def test_string_is_none_or_whitespace(self) -> None:
-        assert string_is_none_or_whitespace(None)
-        assert string_is_none_or_whitespace("")
-        assert string_is_none_or_whitespace(" ")
-        assert string_is_none_or_whitespace("   ")
-        assert not string_is_none_or_whitespace("not empty string")
-
-    def test_string_is_none_or_empty(self) -> None:
-        assert string_is_none_or_empty(None)
-        assert string_is_none_or_empty("")
-        assert not string_is_none_or_empty(" ")
-        assert not string_is_none_or_empty("   ")
-        assert not string_is_none_or_empty("not empty string")
-
-    def test_write_read_file(self) -> None:
-        # arrange
-        testfile = testfileprefix+"test_write_read_file.txt"
-        try:
-            expected = ["a", "bö", "testß\\testend"]
-
-            # act
-            write_lines_to_file(testfile, expected)
-            actual = read_lines_from_file(testfile)
-
-            # assert
-            assert expected == actual
-        finally:
-            os.remove(testfile)
-
-    def test_get_next_square_number_0(self) -> None:
-        assert get_next_square_number(0) == 1
-
-    def test_get_next_square_number_1(self) -> None:
-        assert get_next_square_number(1) == 1
-
-    def test_get_next_square_number_2(self) -> None:
-        assert get_next_square_number(2) == 4
-
-    def test_get_next_square_number_3(self) -> None:
-        assert get_next_square_number(3) == 4
-
-    def test_get_next_square_number_15(self) -> None:
-        assert get_next_square_number(15) == 16
-
-    def test_get_next_square_number_16(self) -> None:
-        assert get_next_square_number(16) == 16
-
-    def test_get_next_square_number_17(self) -> None:
-        assert get_next_square_number(17) == 25
+    encoding = "utf-8"
+    testfileprefix = "testfile_"
 
     def test_generate_thumbnail(self) -> None:
         # arrange
         fd, temporary_file = tempfile.mkstemp()
-        sc = ScriptCollection()
+        sc = ScriptCollectionCore()
         try:
             folder = os.path.dirname(temporary_file)
             filename = os.path.basename(temporary_file)
@@ -123,7 +49,7 @@ class MiscellaneousTests(unittest.TestCase):
     def test_generate_thumbnail_fps(self) -> None:
         # arrange
         fd, temporary_file = tempfile.mkstemp()
-        sc = ScriptCollection()
+        sc = ScriptCollectionCore()
         try:
             folder = os.path.dirname(temporary_file)
             filename = os.path.basename(temporary_file)
@@ -159,7 +85,7 @@ class MiscellaneousTests(unittest.TestCase):
         expected = []
 
         # act
-        actual = to_list(testinput, ",")
+        actual = GeneralUtilities.to_list(testinput, ",")
 
         # assert
         assert expected == actual
@@ -170,7 +96,7 @@ class MiscellaneousTests(unittest.TestCase):
         expected = []
 
         # act
-        actual = to_list(testinput, ",")
+        actual = GeneralUtilities.to_list(testinput, ",")
 
         # assert
         assert expected == actual
@@ -181,7 +107,7 @@ class MiscellaneousTests(unittest.TestCase):
         expected = ["a"]
 
         # act
-        actual = to_list(testinput, ",")
+        actual = GeneralUtilities.to_list(testinput, ",")
 
         # assert
         assert expected == actual
@@ -192,7 +118,7 @@ class MiscellaneousTests(unittest.TestCase):
         expected = ["a", "b", "c"]
 
         # act
-        actual = to_list(testinput, ",")
+        actual = GeneralUtilities.to_list(testinput, ",")
 
         # assert
         assert expected == actual
@@ -206,7 +132,7 @@ class MiscellaneousTests(unittest.TestCase):
         expected = f"Related path(s): {filename}"
 
         # act
-        actual = get_advanced_errormessage_for_os_error(exception)
+        actual = GeneralUtilities.get_advanced_errormessage_for_os_error(exception)
 
         # assert
         assert expected == actual
@@ -220,88 +146,84 @@ class MiscellaneousTests(unittest.TestCase):
         expected = f"Related path(s): {filename}"
 
         # act
-        actual = get_advanced_errormessage_for_os_error(exception)
+        actual = GeneralUtilities.get_advanced_errormessage_for_os_error(exception)
 
         # assert
         assert expected == actual
 
 
-class OrganizeLinesInFileTests(unittest.TestCase):
-
     def test_sc_organize_lines_in_file_test_basic(self) -> None:
         # arrange
-        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_basic.txt"
+        testfile = ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_basic.txt"
         try:
             example_input = ["line1", "line2", "line3"]
             expected_output = ["line1", "line2", "line3"]
-            write_lines_to_file(testfile, example_input)
+            GeneralUtilities.write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)
+            ScriptCollectionCore().sc_organize_lines_in_file(testfile, ScriptCollectionCoreTests.encoding, True, True, True, True)
             # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
-            assert expected_output == read_lines_from_file(testfile)
+            assert expected_output == GeneralUtilities.read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
 
     def test_sc_organize_lines_in_file_test_emptylineandignorefirstline(self) -> None:
         # arrange
-        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_emptylineandignorefirstline.txt"
+        testfile = ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_emptylineandignorefirstline.txt"
         try:
             example_input = ["line1", "", "line3"]
             expected_output = ["line1", "line3"]
-            write_lines_to_file(testfile, example_input)
+            GeneralUtilities.write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, True, True)
+            ScriptCollectionCore().sc_organize_lines_in_file(testfile,ScriptCollectionCoreTests. encoding, True, True, True, True)
             # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
-            assert expected_output == read_lines_from_file(testfile)
+            assert expected_output == GeneralUtilities.read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
 
     def test_sc_organize_lines_in_file_test_emptyline(self) -> None:
         # arrange
-        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
+        testfile =ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
         try:
             example_input = ["line1", "", "line3"]
             expected_output = ["line1", "line3"]
-            write_lines_to_file(testfile, example_input)
+            GeneralUtilities.write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True, [])
+            ScriptCollectionCore().sc_organize_lines_in_file(testfile, ScriptCollectionCoreTests.encoding, True, True, False, True, [])
             # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
-            assert expected_output == read_lines_from_file(testfile)
+            assert expected_output ==GeneralUtilities. read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
 
     def test_sc_organize_lines_in_file_with_ignored_character(self) -> None:
         # arrange
-        testfile = testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
+        testfile = ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
         try:
             example_input = ["line5", " line4", "line3", "#line2", "# line6", "line7", "line1"]
             expected_output = ["line1", "#line2", "line3", " line4", "line5", "# line6", "line7"]
-            write_lines_to_file(testfile, example_input)
+            GeneralUtilities.write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollection().sc_organize_lines_in_file(testfile, encoding, True, True, False, True, ["#", " "])
+            ScriptCollectionCore().sc_organize_lines_in_file(testfile,  ScriptCollectionCoreTests.encoding, True, True, False, True, ["#", " "])
             # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
-            assert expected_output == read_lines_from_file(testfile)
+            assert expected_output == GeneralUtilities.read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
 
 
-class ExecuteProgramTests(unittest.TestCase):
-
     def test_simple_program_call_is_mockable(self) -> None:
         # arrange
-        sc = ScriptCollection()
+        sc = ScriptCollectionCore()
         sc.mock_program_calls = True
         sc.register_mock_program_call("p", "a1", "/tmp", 0, "out 1", "err 1", 40)
         sc.register_mock_program_call("p", "a2", "/tmp", 0, "out 2", "err 2", 44)
@@ -317,7 +239,7 @@ class ExecuteProgramTests(unittest.TestCase):
 
     def test_simple_program_call_prevent(self) -> None:
         # arrange
-        sc = ScriptCollection()
+        sc = ScriptCollectionCore()
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
@@ -328,7 +250,7 @@ class ExecuteProgramTests(unittest.TestCase):
 
     def test_file_is_git_ignored_1(self) -> None:
         # arrange
-        sc = ScriptCollection()
+        sc = ScriptCollectionCore()
         repository = str(Path(__file__).parent.parent.absolute())
 
         # act
@@ -339,33 +261,33 @@ class ExecuteProgramTests(unittest.TestCase):
 
     def test_file_is_git_ignored_2(self) -> None:
         tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
-        ensure_directory_exists(tests_folder)
-        sc = ScriptCollection()
+        GeneralUtilities.ensure_directory_exists(tests_folder)
+        sc = ScriptCollectionCore()
         sc.start_program_synchronously("git", "init", tests_folder)
 
         ignored_logfolder_name = "logfolder"
         ignored_logfolder = tests_folder+os.path.sep+ignored_logfolder_name
-        ensure_directory_exists(ignored_logfolder)
+        GeneralUtilities.ensure_directory_exists(ignored_logfolder)
 
         gitignore_file = tests_folder+os.path.sep+".gitignore"
-        ensure_file_exists(gitignore_file)
-        write_lines_to_file(gitignore_file, [ignored_logfolder_name+"/**", "!"+ignored_logfolder_name+"/.gitkeep"])
+        GeneralUtilities.ensure_file_exists(gitignore_file)
+        GeneralUtilities.write_lines_to_file(gitignore_file, [ignored_logfolder_name+"/**", "!"+ignored_logfolder_name+"/.gitkeep"])
 
         gitkeep_file = ignored_logfolder+os.path.sep+".gitkeep"
-        ensure_file_exists(gitkeep_file)
+        GeneralUtilities.ensure_file_exists(gitkeep_file)
 
         log_file = ignored_logfolder+os.path.sep+"logfile.log"
-        ensure_file_exists(log_file)
+        GeneralUtilities.ensure_file_exists(log_file)
 
         assert not sc.file_is_git_ignored(".gitignore", tests_folder)
         assert not sc.file_is_git_ignored(".gitkeep", tests_folder)
         assert sc.file_is_git_ignored(ignored_logfolder_name+os.path.sep+"logfile.log", tests_folder)
 
-        ensure_directory_does_not_exist(tests_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
 
     def test_simple_program_call_prevent_argsasarray(self) -> None:
         # arrange
-        sc = ScriptCollection()
+        sc = ScriptCollectionCore()
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
@@ -378,10 +300,10 @@ class ExecuteProgramTests(unittest.TestCase):
     def test_simple_program_call_prevent_argsasarray_wiith_folder(self) -> None:
         try:
             # arrange
-            sc = ScriptCollection()
+            sc = ScriptCollectionCore()
             dir_path = os.path.dirname(os.path.realpath(__file__))
             tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
-            ensure_directory_exists(tests_folder)
+            GeneralUtilities.ensure_directory_exists(tests_folder)
 
             # act
             (exit_code, _, _2, _3) = sc.start_program_synchronously("ls", f"-ld {tests_folder}",
@@ -390,18 +312,18 @@ class ExecuteProgramTests(unittest.TestCase):
             # assert
             assert exit_code == 0
         finally:
-            ensure_directory_does_not_exist(tests_folder)
+            GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
 
     def test_export_filemetadata(self) -> None:
         # arrange
         try:
-            sc = ScriptCollection()
+            sc = ScriptCollectionCore()
             tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
-            ensure_directory_exists(tests_folder)
+            GeneralUtilities.ensure_directory_exists(tests_folder)
             target_file = os.path.join(tests_folder, "test.csv")
             assert not os.path.isfile(target_file)
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            folder_for_export = resolve_relative_path(".." + os.path.sep + "Other", dir_path)
+            folder_for_export = GeneralUtilities.resolve_relative_path("..", dir_path)
 
             # act
             sc.export_filemetadata(folder_for_export, target_file)
@@ -410,6 +332,6 @@ class ExecuteProgramTests(unittest.TestCase):
             assert os.path.isfile(target_file)
             # TODO add more assertions
         finally:
-            ensure_file_does_not_exist(target_file)
+            GeneralUtilities.ensure_file_does_not_exist(target_file)
 
 # TODO all testcases should be independent of epew

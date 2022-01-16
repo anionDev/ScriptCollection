@@ -4,22 +4,47 @@
 			"path": "."
 		}
 	],
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Create wheel file",
+				"command": "python",
+				"args": ["Setup.py", "bdist_wheel", "--dist-dir", "."],
+				"type": "shell"
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Debug creating wheel file",
+				"type": "python",
+				"request": "launch",
+				"program": "Setup.py",
+				"args": ["bdist_wheel", "--dist-dir", "."],
+				"console": "integratedTerminal"
+			}
+		]
+	},
 	"settings": {
-		"python.testing.unittestEnabled": false,
-		"python.testing.nosetestsEnabled": false,
-		"python.testing.pytestEnabled": true,
+
 		"python.testing.autoTestDiscoverOnSaveEnabled": true,
+		"python.testing.unittestEnabled": false,
+		"python.testing.pytestEnabled": true,
 		"python.testing.pytestArgs": [
-			"./Tests/tests.py"
+			"--verbose",
+			"ScriptCollection/",
 		],
 		"python.linting.pylintEnabled": true,
 		"spellright.language": [
-			"en"
+			"en",
 		],
 		"spellright.documentTypes": [
 			"markdown",
 			"latex",
-			"plaintext"
+			"plaintext",
 		],
 	}
 }

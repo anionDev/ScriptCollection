@@ -1,4 +1,4 @@
-ScriptCollectionTests/testfile_*
+**/testfile_*
 .vscode/*
 !.vscode/settings.json
 *.whl

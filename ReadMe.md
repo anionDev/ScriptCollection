@@ -4,7 +4,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
 ![Generic badge](https://img.shields.io/badge/coverage-1%25-green)
 
-This repository is the place for little scripts which are also useful in future so that someone does not have remember them and write them new from scratch. You can simply use the scripts.
+The ScriptCollection is the place for reusable scripts.
 
 When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
 
@@ -34,7 +34,7 @@ You can simply git-clone the ScriptCollection and then use the scripts under the
 
 `git clone https://github.com/anionDev/ScriptCollection.git`
 
-It may be more easy to pip-install the ScriptCollection but technically pip is not required. Actually you need to git-clone (or download as zip-file from [Github](https://github.com/anionDev/ScriptCollection) the ScriptCollection to use the scripts in this repository which are not written in python.
+It may be more easy to pip-install the ScriptCollection but technically pip is not required. Actually you need to git-clone (or download as zip-file from [GitHub](https://github.com/anionDev/ScriptCollection) the ScriptCollection to use the scripts in this repository which are not written in python.
 
 ## Troubleshooting
 
