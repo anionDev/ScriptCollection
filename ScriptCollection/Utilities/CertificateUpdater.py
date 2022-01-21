@@ -8,11 +8,8 @@ from .GeneralUtilities import GeneralUtilities
 class CertificateUpdater:
 
     domains:list(str)
+    email:str
 
-    def __init__(self, domains):
-        self.domains=domains
-
-    email = "marius.goecke@gmail.com"
     current_folder = os.path.dirname(os.path.abspath(__file__))
     repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}..{os.path.sep}", current_folder)
     letsencrypt_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Volumes{os.path.sep}letsencrypt", current_folder)
@@ -22,13 +19,17 @@ class CertificateUpdater:
     sc = ScriptCollectionCore()
     line = "___________________________________________________________________"
 
+    def __init__(self, domains:list(str), email:str):
+        self.domains=domains
+        self.email = email
 
-    def get_latest_index_by_domain(self,domain: str) -> int:
-        result= self.get_latest_index_by_filelist(GeneralUtilities.get_all_files_of_folder(os.path.join(self.letsencrypt_archive_folder, domain)))
+
+    def __get_latest_index_by_domain(self,domain: str) -> int:
+        result= self.__get_latest_index_by_filelist(GeneralUtilities.get_all_files_of_folder(os.path.join(self.letsencrypt_archive_folder, domain)))
         GeneralUtilities.write_message_to_stdout(f"Debug: Latest found existing number for domain {domain}: {result}")
         return result
 
-    def get_latest_index_by_filelist(self,filenames:list) -> int:
+    def __get_latest_index_by_filelist(self,filenames:list) -> int:
         print("files:")
         print(filenames)
         filenames=[Path(os.path.basename(file)).stem for file in filenames]
@@ -42,7 +43,7 @@ class CertificateUpdater:
         return result
 
 
-    def replace_symlink_by_file(self,domain: str, filename: str, index: int) -> None:
+    def __replace_symlink_by_file(self,domain: str, filename: str, index: int) -> None:
         # ".../live/example.com/cert.pem" is a symlink but should replaced by a copy of ".../archive/example.com/cert.42pem"
         archive_file = os.path.join(self.letsencrypt_archive_folder, domain, filename+str(index)+".pem")
         live_folder = os.path.join(self.letsencrypt_live_folder, domain)
@@ -52,7 +53,7 @@ class CertificateUpdater:
         copyfile(archive_file, live_file)
 
 
-    def replace_file_by_symlink(self,domain: str, filename: str, index: int) -> None:
+    def __replace_file_by_symlink(self,domain: str, filename: str, index: int) -> None:
         # new ".../live/example.com/cert.pem" is a file but should replaced by a symlink which points to ".../archive/example.com/cert42.pem"
         live_folder = os.path.join(self.letsencrypt_live_folder, domain)
         live_filename = filename+".pem"
@@ -61,25 +62,23 @@ class CertificateUpdater:
                                     prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
 
-    def replace_symlinks_by_files(self,domain):
-        index = self.get_latest_index_by_domain(domain)
-        self.replace_symlink_by_file(domain, "cert", index)
-        self.replace_symlink_by_file(domain, "chain", index)
-        self.replace_symlink_by_file(domain, "fullchain", index)
-        self.replace_symlink_by_file(domain, "privkey", index)
+    def __replace_symlinks_by_files(self,domain):
+        index = self.__get_latest_index_by_domain(domain)
+        self.__replace_symlink_by_file(domain, "cert", index)
+        self.__replace_symlink_by_file(domain, "chain", index)
+        self.__replace_symlink_by_file(domain, "fullchain", index)
+        self.__replace_symlink_by_file(domain, "privkey", index)
 
 
-    def replace_files_by_symlinks(self,domain):
-        index = self.get_latest_index_by_domain(domain)
-        self.replace_file_by_symlink(domain, "cert", index)
-        self.replace_file_by_symlink(domain, "chain", index)
-        self.replace_file_by_symlink(domain, "fullchain", index)
-        self.replace_file_by_symlink(domain, "privkey", index)
+    def __replace_files_by_symlinks(self,domain):
+        index = self.__get_latest_index_by_domain(domain)
+        self.__replace_file_by_symlink(domain, "cert", index)
+        self.__replace_file_by_symlink(domain, "chain", index)
+        self.__replace_file_by_symlink(domain, "fullchain", index)
+        self.__replace_file_by_symlink(domain, "privkey", index)
 
 
-    def update_certificates(self) -> None:
-
-
+    def update_certificate_managed_by_docker_and_letsencrypt(self) -> None:
         GeneralUtilities.write_message_to_stdout("current_folder:")
         GeneralUtilities.write_message_to_stdout(self.current_folder)
         GeneralUtilities.write_message_to_stdout("letsencrypt_folder:")
@@ -101,7 +100,7 @@ class CertificateUpdater:
                 certificate_for_domain_already_exists = os.path.isfile(f"{self.letsencrypt_folder}/renewal/{domain}.conf")
                 if certificate_for_domain_already_exists:
                     GeneralUtilities.write_message_to_stdout(f"Update certificate for domain {domain}")
-                    self.replace_files_by_symlinks(domain)
+                    self.__replace_files_by_symlinks(domain)
                 else:
                     GeneralUtilities.write_message_to_stdout(f"Create certificate for domain {domain}")
                 certbot_container_name = "r2_updatecertificates_certbot"
@@ -111,7 +110,7 @@ class CertificateUpdater:
                 if(certificate_for_domain_already_exists):
                     self.sc.start_program_synchronously("docker", f"{dockerargument} certonly --no-random-sleep-on-renew {certbotargument}",
                                                 self.current_folder, throw_exception_if_exitcode_is_not_zero=True)
-                    self.replace_symlinks_by_files(domain)
+                    self.__replace_symlinks_by_files(domain)
                 else:
                     self.sc.start_program_synchronously("docker", f"{dockerargument} certonly --cert-name {domain} {certbotargument}",
                                                 self.current_folder, throw_exception_if_exitcode_is_not_zero=True)
