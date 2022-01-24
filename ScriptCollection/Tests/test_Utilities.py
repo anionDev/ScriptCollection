@@ -1,9 +1,16 @@
 import os
 import unittest
-from ..GeneralUtilities import GeneralUtilities
+from ..Utilities import GeneralUtilities
+from ..Core import ScriptCollectionCore
 
 class GeneralUtilitiesTests(unittest.TestCase):
     testfileprefix = "testfile_"
+
+    def test_dummy(self)->None:
+        sc=ScriptCollectionCore()
+        sc.register_mock_program_call("test","","",0,"","",0,0)
+        GeneralUtilities.string_is_none_or_whitespace("")
+        assert True is True
 
     def test_string_is_none_or_whitespace(self) -> None:
         assert GeneralUtilities.string_is_none_or_whitespace(None)

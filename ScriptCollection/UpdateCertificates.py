@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 import traceback
 from shutil import copyfile
-from ..Core.ScriptCollectionCore import ScriptCollectionCore
-from .GeneralUtilities import GeneralUtilities
+from .Core import ScriptCollectionCore
+from .Utilities import GeneralUtilities
 
 class CertificateUpdater:
 

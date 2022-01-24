@@ -8,7 +8,6 @@ import stat
 import sys
 import traceback
 from datetime import datetime
-from distutils.spawn import find_executable
 from os import listdir
 from os.path import isfile, join, isdir
 from pathlib import Path
@@ -215,7 +214,7 @@ class GeneralUtilities:
     @staticmethod
     def ensure_file_exists(path: str) -> None:
         if(not os.path.isfile(path)):
-            with open(path, "a+"):
+            with open(path, "a+", encoding="utf-8"):
                 pass
 
     @staticmethod
@@ -526,7 +525,7 @@ class GeneralUtilities:
     @staticmethod
     def epew_is_available() -> bool:
         try:
-            return find_executable("epew") is not None
+            return shutil.which("epew") is not None
         except:
             return False
 
@@ -570,3 +569,6 @@ class GeneralUtilities:
     def assert_condition(condition: bool, information: str):
         if(not condition):
             raise ValueError("Condition failed. "+information)
+
+class GitUtilities:
+    pass

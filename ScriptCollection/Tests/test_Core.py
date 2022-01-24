@@ -4,14 +4,20 @@ from pathlib import Path
 import tempfile
 import re
 import uuid
-from ...Utilities.GeneralUtilities import GeneralUtilities
-from ..ScriptCollectionCore import ScriptCollectionCore
+from ..Utilities import GeneralUtilities
+from ..Core import ScriptCollectionCore
 
 
 class ScriptCollectionCoreTests(unittest.TestCase):
 
     encoding = "utf-8"
     testfileprefix = "testfile_"
+
+    def test_dummy(self)->None:
+        sc=ScriptCollectionCore()
+        sc.register_mock_program_call("test","","",0,"","",0,0)
+        GeneralUtilities.string_is_none_or_whitespace("")
+        assert True is True
 
     def test_generate_thumbnail(self) -> None:
         # arrange

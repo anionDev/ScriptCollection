@@ -23,7 +23,7 @@ from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
-from ..Utilities.GeneralUtilities import GeneralUtilities
+from .Utilities import GeneralUtilities
 
 
 class ScriptCollectionCore:
@@ -176,7 +176,7 @@ class ScriptCollectionCore:
                 return 1
             else:
                 self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname'),
-                                self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
+                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
                 tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
                 tag_message = f"Created {tag}"
                 self.git_create_tag(repository, commit_id,

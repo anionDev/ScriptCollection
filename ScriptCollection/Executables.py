@@ -2,8 +2,8 @@ import argparse
 import time
 import traceback
 import keyboard
-from ScriptCollection.Core.ScriptCollectionCore import ScriptCollectionCore
-from ..Utilities.GeneralUtilities import GeneralUtilities
+from .Core import ScriptCollectionCore
+from .Utilities import GeneralUtilities
 
 
 def CreateRelease() -> int:
