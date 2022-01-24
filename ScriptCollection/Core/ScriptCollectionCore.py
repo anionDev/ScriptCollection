@@ -45,24 +45,24 @@ class ScriptCollectionCore:
             with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
                 configparser.read_file(text_io_wrapper)
             error_occurred = False
-            prepare = self.get_boolean_value_from_configuration(configparser, 'general', 'prepare')
-            repository_version = self.get_version_for_buildscripts(configparser)
             repository = self.get_item_from_configuration(configparser, "general", "repository")
-            GeneralUtilities.write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
             releaserepository = self.get_item_from_configuration(configparser, "other", "releaserepository")
 
             if (self.__repository_has_changes(repository) or self.__repository_has_changes(releaserepository)):
                 return 1
 
-            if prepare:
-                devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')
-                mainbranch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
-                commitid = self.git_get_current_commit_id(repository, mainbranch)
-                if(commitid == self.git_get_current_commit_id(repository, devbranch)):
-                    GeneralUtilities.write_message_to_stderr(f"Can not prepare since the main-branch and the development-branch are on the same commit (commit-id: {commitid})")
-                    return 1
-                self.git_checkout(repository, devbranch)
-                self.git_merge(repository, devbranch, mainbranch, False, False)
+            devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')
+            mainbranch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
+            commitid = self.git_get_current_commit_id(repository, mainbranch)
+
+            if(commitid == self.git_get_current_commit_id(repository, devbranch)):
+                GeneralUtilities.write_message_to_stderr(f"Can not prepare since the main-branch and the development-branch are on the same commit (commit-id: {commitid})")
+                return 1
+
+            self.git_checkout(repository, devbranch)
+            repository_version = self.get_version_for_buildscripts(configparser)
+            GeneralUtilities.write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
+            self.git_merge(repository, devbranch, mainbranch, False, False)
 
             try:
                 current_release_information = {}
@@ -169,23 +169,21 @@ class ScriptCollectionCore:
 
             if error_occurred:
                 GeneralUtilities.write_message_to_stderr("Creating release was not successful")
-                if prepare:
-                    self.git_merge_abort(repository)
-                    self.__undo_changes(repository)
-                    self.__undo_changes(releaserepository)
-                    self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'))
+                self.git_merge_abort(repository)
+                self.__undo_changes(repository)
+                self.__undo_changes(releaserepository)
+                self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'))
                 return 1
             else:
-                if prepare:
-                    self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname'),
-                                   self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
-                    tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
-                    tag_message = f"Created {tag}"
-                    self.git_create_tag(repository, commit_id,
-                                        tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
-                    if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
-                        branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
-                        self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
+                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname'),
+                                self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
+                tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
+                tag_message = f"Created {tag}"
+                self.git_create_tag(repository, commit_id,
+                                    tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
+                if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
+                    branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
+                    self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
                 GeneralUtilities.write_message_to_stdout("Creating release was successful")
                 return 0
 
@@ -1282,7 +1280,7 @@ class ScriptCollectionCore:
 
     def SCCreateHashOfAllFiles(self, folder: str) -> None:
         for file in GeneralUtilities.absolute_file_paths(folder):
-            with open(file+".sha256", "w+") as f:
+            with open(file+".sha256", "w+", encoding="utf-8") as f:
                 f.write(GeneralUtilities.get_sha256_of_file(file))
 
     def SCCreateSimpleMergeWithoutRelease(self, repository: str, sourcebranch: str, targetbranch: str, remotename: str, remove_source_branch: bool) -> None:
@@ -1462,7 +1460,7 @@ class ScriptCollectionCore:
         outputfile = inputfile + '.modified'
 
         shutil.copy2(inputfile, outputfile)
-        with open(outputfile, 'a') as file:
+        with open(outputfile, 'a', encoding="utf-8") as file:
             # TODO use rcedit for .exe-files instead of appending valuetoappend ( https://github.com/electron/rcedit/ )
             # background: you can retrieve the "original-filename" from the .exe-file like discussed here:
             # https://security.stackexchange.com/questions/210843/ is-it-possible-to-change-original-filename-of-an-exe
@@ -1520,7 +1518,7 @@ class ScriptCollectionCore:
             printtableheadline = GeneralUtilities.string_to_boolean(printtableheadline)
             files = []
             if not os.path.isfile(namemappingfile):
-                with open(namemappingfile, "a"):
+                with open(namemappingfile, "a", encoding="utf-8"):
                     pass
             if printtableheadline:
                 GeneralUtilities.append_line_to_file(namemappingfile, "Original filename;new filename;SHA2-hash of file")
