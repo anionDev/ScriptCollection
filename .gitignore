@@ -1,6 +1,6 @@
 **/testfile_*
 .vscode/*
-!.vscode/settings.json
+!.vscode/spellright.dict
 *.whl
 
 # Byte-compiled / optimized / DLL files
