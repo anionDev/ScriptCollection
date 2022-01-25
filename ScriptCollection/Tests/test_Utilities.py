@@ -6,7 +6,7 @@ from ..Core import ScriptCollectionCore
 class GeneralUtilitiesTests(unittest.TestCase):
     testfileprefix = "testfile_"
 
-    def test_dummy(self)->None:
+    def test_dummy3(self)->None:
         sc=ScriptCollectionCore()
         sc.register_mock_program_call("test","","",0,"","",0,0)
         GeneralUtilities.string_is_none_or_whitespace("")

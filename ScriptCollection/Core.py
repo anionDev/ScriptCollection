@@ -4,7 +4,6 @@ import binascii
 from configparser import ConfigParser
 from distutils.dir_util import copy_tree
 import filecmp
-from functools import lru_cache
 import hashlib
 from io import BytesIO
 import itertools
@@ -41,18 +40,19 @@ class ScriptCollectionCore:
     # TODO use typechecks everywhere like discussed here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
     def create_release(self, configurationfile: str) -> int:
         try:
+            current_release_information = {}
             configparser = ConfigParser()
             with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
                 configparser.read_file(text_io_wrapper)
             error_occurred = False
-            repository = self.get_item_from_configuration(configparser, "general", "repository")
-            releaserepository = self.get_item_from_configuration(configparser, "other", "releaserepository")
+            repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
+            releaserepository = self.get_item_from_configuration(configparser, "other", "releaserepository", current_release_information)
 
             if (self.__repository_has_changes(repository) or self.__repository_has_changes(releaserepository)):
                 return 1
 
-            devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')
-            mainbranch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
+            devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname', current_release_information)
+            mainbranch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname', current_release_information)
             commitid = self.git_get_current_commit_id(repository, mainbranch)
 
             if(commitid == self.git_get_current_commit_id(repository, devbranch)):
@@ -60,101 +60,101 @@ class ScriptCollectionCore:
                 return 1
 
             self.git_checkout(repository, devbranch)
-            repository_version = self.get_version_for_buildscripts(configparser)
+            self.__calculate_version(configparser,current_release_information)
+            repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
+
             GeneralUtilities.write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
             self.git_merge(repository, devbranch, mainbranch, False, False)
 
             try:
-                current_release_information = {}
-
-                if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
+                if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease', current_release_information) and not error_occurred:
                     GeneralUtilities.write_message_to_stdout("Start to create .NET-release")
                     error_occurred = not self.__execute_and_return_boolean("create_dotnet_release",
                                                                            lambda: self.__create_dotnet_release_premerge(
                                                                                configurationfile, current_release_information))
 
-                if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
+                if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease', current_release_information) and not error_occurred:
                     GeneralUtilities.write_message_to_stdout("Start to create Python-release")
                     error_occurred = not self.__execute_and_return_boolean("python_create_wheel_release",
                                                                            lambda: self.python_create_wheel_release_premerge(
                                                                                configurationfile, current_release_information))
 
-                if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
+                if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease', current_release_information) and not error_occurred:
                     GeneralUtilities.write_message_to_stdout("Start to create Deb-release")
                     error_occurred = not self.__execute_and_return_boolean("deb_create_installer_release",
                                                                            lambda: self.deb_create_installer_release_premerge(
                                                                                configurationfile, current_release_information))
 
-                if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
+                if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease', current_release_information) and not error_occurred:
                     GeneralUtilities.write_message_to_stdout("Start to create docker-release")
                     error_occurred = not self.__execute_and_return_boolean("docker_create_installer_release",
                                                                            lambda: self.docker_create_image_release_premerge(
                                                                                configurationfile, current_release_information))
 
-                if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
+                if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease', current_release_information) and not error_occurred:
                     GeneralUtilities.write_message_to_stdout("Start to create FlutterAndroid-release")
                     error_occurred = not self.__execute_and_return_boolean("flutterandroid_create_installer_release",
                                                                            lambda: self.flutterandroid_create_installer_release_premerge(
                                                                                configurationfile, current_release_information))
 
-                if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
+                if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease', current_release_information) and not error_occurred:
                     GeneralUtilities.write_message_to_stdout("Start to create FlutterIOS-release")
                     error_occurred = not self.__execute_and_return_boolean("flutterios_create_installer_release",
                                                                            lambda: self.flutterios_create_installer_release_premerge(
                                                                                configurationfile, current_release_information))
 
-                if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
+                if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease', current_release_information) and not error_occurred:
                     GeneralUtilities.write_message_to_stdout("Start to create Script-release")
                     error_occurred = not self.__execute_and_return_boolean("generic_create_installer_release",
                                                                            lambda: self.generic_create_script_release_premerge(
                                                                                configurationfile, current_release_information))
 
                 if not error_occurred:
-                    commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname')}' "
-                                                f"into '{self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')}'")
+                    commit_id = self.git_commit(repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname',current_release_information)}' "
+                                                f"into '{self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname',current_release_information)}'")
                     current_release_information["builtin.mergecommitid"] = commit_id
 
                     # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
                     # (like "!\[Generic\ badge\]\(https://img\.shields\.io/badge/coverage\-\d(\d)?%25\-green\)"
                     # -> "![Generic badge](https://img.shields.io/badge/coverage-__testcoverage__%25-green)" in all "**/*.md"-files)
 
-                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease') and not error_occurred:
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease', current_release_information) and not error_occurred:
                         GeneralUtilities.write_message_to_stdout("Start to create .NET-release")
                         error_occurred = not self.__execute_and_return_boolean("create_dotnet_release",
                                                                                lambda: self.__create_dotnet_release_postmerge(
                                                                                    configurationfile, current_release_information))
 
-                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease') and not error_occurred:
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createpythonrelease', current_release_information) and not error_occurred:
                         GeneralUtilities.write_message_to_stdout("Start to create Python-release")
                         error_occurred = not self.__execute_and_return_boolean("python_create_wheel_release",
                                                                                lambda: self.python_create_wheel_release_postmerge(
                                                                                    configurationfile, current_release_information))
 
-                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease') and not error_occurred:
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdebrelease', current_release_information) and not error_occurred:
                         GeneralUtilities.write_message_to_stdout("Start to create Deb-release")
                         error_occurred = not self.__execute_and_return_boolean("deb_create_installer_release",
                                                                                lambda: self.deb_create_installer_release_postmerge(
                                                                                    configurationfile, current_release_information))
 
-                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease') and not error_occurred:
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createdockerrelease', current_release_information) and not error_occurred:
                         GeneralUtilities.write_message_to_stdout("Start to create docker-release")
                         error_occurred = not self.__execute_and_return_boolean("docker_create_installer_release",
                                                                                lambda: self.docker_create_image_release_postmerge(configurationfile,
                                                                                                                                   current_release_information))
 
-                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease') and not error_occurred:
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutterandroidrelease', current_release_information) and not error_occurred:
                         GeneralUtilities.write_message_to_stdout("Start to create FlutterAndroid-release")
                         error_occurred = not self.__execute_and_return_boolean("flutterandroid_create_installer_release",
                                                                                lambda: self.flutterandroid_create_installer_release_postmerge(configurationfile,
                                                                                                                                               current_release_information))
 
-                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease') and not error_occurred:
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createflutteriosrelease', current_release_information) and not error_occurred:
                         GeneralUtilities.write_message_to_stdout("Start to create FlutterIOS-release")
                         error_occurred = not self.__execute_and_return_boolean("flutterios_create_installer_release",
                                                                                lambda: self.flutterios_create_installer_release_postmerge(configurationfile,
                                                                                                                                           current_release_information))
 
-                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease') and not error_occurred:
+                    if self.get_boolean_value_from_configuration(configparser, 'general', 'createscriptrelease', current_release_information) and not error_occurred:
                         GeneralUtilities.write_message_to_stdout("Start to create Script-release")
                         error_occurred = not self.__execute_and_return_boolean("generic_create_installer_release",
                                                                                lambda: self.generic_create_script_release_postmerge(
@@ -172,18 +172,18 @@ class ScriptCollectionCore:
                 self.git_merge_abort(repository)
                 self.__undo_changes(repository)
                 self.__undo_changes(releaserepository)
-                self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'))
+                self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname',current_release_information))
                 return 1
             else:
-                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname'),
-                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname'), True)
-                tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix') + repository_version
+                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname',current_release_information),
+                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname',current_release_information), True)
+                tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix',current_release_information) + repository_version
                 tag_message = f"Created {tag}"
                 self.git_create_tag(repository, commit_id,
-                                    tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags'), tag_message)
-                if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository'):
-                    branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
-                    self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename'), branch, branch, False, True)
+                                    tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags', current_release_information), tag_message)
+                if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository', current_release_information):
+                    branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname',current_release_information)
+                    self.git_push(repository, self.get_item_from_configuration(configparser, 'other', 'exportrepositoryremotename',current_release_information), branch, branch, False, True)
                 GeneralUtilities.write_message_to_stdout("Creating release was successful")
                 return 0
 
@@ -196,39 +196,39 @@ class ScriptCollectionCore:
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         verbosity = self.__get_verbosity_for_exuecutor(configparser)
-        sign_things = self.__get_sign_things(configparser)
-        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')
-        for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
-            self.dotnet_build(self.__get_csprojfile_folder(configparser), self.__get_csprojfile_filename(configparser),
-                              self.__get_buildoutputdirectory(configparser, runtime), config,
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
-                              verbosity, sign_things[0], sign_things[1], current_release_information)
-        publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
+        sign_things = self.__get_sign_things(configparser,current_release_information)
+        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration',current_release_information)
+        for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes',current_release_information):
+            self.dotnet_build(current_release_information,self.__get_csprojfile_folder(configparser,current_release_information), self.__get_csprojfile_filename(configparser,current_release_information),
+                              self.__get_buildoutputdirectory(configparser, runtime,current_release_information), config,
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework',current_release_information), True,
+                              verbosity, sign_things[0], sign_things[1])
+        publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory',current_release_information)
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
-        copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory)
+        copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory',current_release_information), publishdirectory)
 
     def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         verbosity = self.__get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
             self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
-    def __get_sign_things(self, configparser: ConfigParser) -> tuple:
-        files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign')
+    def __get_sign_things(self, configparser: ConfigParser, current_release_information: dict) -> tuple:
+        files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign',current_release_information)
         if(GeneralUtilities.string_is_none_or_whitespace(files_to_sign_raw_value)):
             return [None, None]
         else:
-            return [GeneralUtilities.to_list(files_to_sign_raw_value, ";"), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile')]
+            return [GeneralUtilities.to_list(files_to_sign_raw_value, ";"), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile',current_release_information)]
 
     def dotnet_create_executable_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        repository_version = self.get_version_for_buildscripts(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
-            GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
+        repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile', current_release_information):
+            GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile',current_release_information), repository_version)
         self.dotnet_executable_run_tests(configurationfile, current_release_information)
 
     def dotnet_create_executable_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
@@ -242,9 +242,9 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        repository_version = self.get_version_for_buildscripts(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile'):
-            GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile'), repository_version)
+        repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile', current_release_information):
+            GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile',current_release_information), repository_version)
         self.dotnet_nuget_run_tests(configurationfile, current_release_information)
 
     def dotnet_create_nuget_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
@@ -286,46 +286,45 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        sign_things = self.__get_sign_things(configparser)
-        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration')
-        for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes'):
-            self.dotnet_build(self.__get_csprojfile_folder(configparser), self.__get_csprojfile_filename(configparser),
-                              self.__get_buildoutputdirectory(configparser, runtime), config,
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework'), True,
+        sign_things = self.__get_sign_things(configparser,current_release_information)
+        config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration',current_release_information)
+        for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes',current_release_information):
+            self.dotnet_build(self.__get_csprojfile_folder(configparser,current_release_information), self.__get_csprojfile_filename(configparser,current_release_information),
+                              self.__get_buildoutputdirectory(configparser, runtime,current_release_information), config,
+                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework',current_release_information), True,
                               self.__get_verbosity_for_exuecutor(configparser),
                               sign_things[0], sign_things[1], current_release_information)
-        publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
+        publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory',current_release_information)
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
         GeneralUtilities.ensure_directory_exists(publishdirectory_binary)
-        copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory'), publishdirectory_binary)
-        replacements = {}
+        copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory',current_release_information), publishdirectory_binary)
 
-        nuspec_content = self.__replace_underscores_for_buildconfiguration(self.__nuget_template, configparser, replacements)
+        nuspec_content = self.__replace_underscores_for_buildconfiguration(self.__nuget_template, configparser, current_release_information)
 
         if(self.configuration_item_is_available(configparser, "other", "projecturl")):
             nuspec_content = nuspec_content.replace("__.internal.projecturlentry.__",
-                                                    f"<projectUrl>{self.get_item_from_configuration(configparser, 'other', 'projecturl')}</projectUrl>")
+                                                    f"<projectUrl>{self.get_item_from_configuration(configparser, 'other', 'projecturl',current_release_information)}</projectUrl>")
         else:
             nuspec_content = nuspec_content.replace("__.internal.projecturlentry.__", "")
 
         if "builtin.commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
-            repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl')
-            branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname')
+            repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl',current_release_information)
+            branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname',current_release_information)
             commitid = current_release_information["builtin.commitid"]
             nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />')
         else:
             nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", "")
 
         if self.configuration_item_is_available(configparser, "dotnet", "iconfile"):
-            shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile"), os.path.join(publishdirectory, "icon.png"))
+            shutil.copy2(self.get_item_from_configuration(configparser, "dotnet", "iconfile",current_release_information), os.path.join(publishdirectory, "icon.png"))
             nuspec_content = nuspec_content.replace("__.internal.iconentry.__", '<icon>images\\icon.png</icon>')
             nuspec_content = nuspec_content.replace("__.internal.iconfileentry.__", '<file src=".\\icon.png" target="images\\" />')
         else:
             nuspec_content = nuspec_content.replace("__.internal.iconentry.__", "")
             nuspec_content = nuspec_content.replace("__.internal.iconfileentry.__", "")
 
-        nuspecfilename = self.get_item_from_configuration(configparser, 'general', 'productname')+".nuspec"
+        nuspecfilename = self.get_item_from_configuration(configparser, 'general', 'productname',current_release_information)+".nuspec"
         nuspecfile = os.path.join(publishdirectory, nuspecfilename)
         with open(nuspecfile, encoding="utf-8", mode="w") as file_object:
             file_object.write(nuspec_content)
@@ -337,23 +336,23 @@ class ScriptCollectionCore:
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         verbosity = self.__get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
             self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        repository_version = self.get_version_for_buildscripts(configparser)
-        publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory')
-        latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname')+"."+repository_version+".nupkg"
-        for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets'):
+        repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
+        publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory',current_release_information)
+        latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname',current_release_information)+"."+repository_version+".nupkg"
+        for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets',current_release_information):
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",
                                                                       publishdirectory, 3600,  self.__get_verbosity_for_exuecutor(configparser))
-        if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile')):
-            with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
+        if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile', current_release_information)):
+            with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile',current_release_information), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
-            nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource')
+            nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource',current_release_information)
             self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {nugetsource} --api-key {api_key}",
                                                                       publishdirectory, 3600, self.__get_verbosity_for_exuecutor(configparser))
 
@@ -361,10 +360,10 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference', current_release_information):
             self.git_checkout(
-                self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
-                self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname'))
+                self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository',current_release_information),
+                self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname',current_release_information))
             verbosity = self.__get_verbosity_for_exuecutor(configparser)
             if verbosity == 0:
                 verbose_argument_for_reportgenerator = "Off"
@@ -378,29 +377,28 @@ class ScriptCollectionCore:
             if verbosity == 3:
                 verbose_argument_for_reportgenerator = "Verbose"
                 verbose_argument_for_docfx = "verbose"
-            docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile')
+            docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile',current_release_information)
             docfx_folder = os.path.dirname(docfx_file)
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
             self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx",
                                                                       f'"{os.path.basename(docfx_file)}" --loglevel {verbose_argument_for_docfx}', docfx_folder, 3600, verbosity)
-            coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder')
+            coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder',current_release_information)
             GeneralUtilities.ensure_directory_exists(coveragefolder)
-            coverage_target_file = coveragefolder+os.path.sep+self.__get_coverage_filename(configparser)
-            shutil.copyfile(self.__get_test_csprojfile_folder(configparser)+os.path.sep+self.__get_coverage_filename(configparser), coverage_target_file)
+            coverage_target_file = coveragefolder+os.path.sep+self.__get_coverage_filename(configparser,current_release_information)
+            shutil.copyfile(self.__get_test_csprojfile_folder(configparser,current_release_information)+os.path.sep+self.__get_coverage_filename(configparser,current_release_information), coverage_target_file)
             self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator",
-                                                                      f'-reports:"{self.__get_coverage_filename(configparser)}"'
+                                                                      f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'
                                                                       f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
                                                                       coveragefolder, 3600, verbosity)
-            self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'), "Updated reference")
-            if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference'):
-                self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository'),
-                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename'),
-                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname'),
-                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotebranchname'), False, False)
+            self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository',current_release_information), "Updated reference")
+            if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference', current_release_information):
+                self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository',current_release_information),
+                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename',current_release_information),
+                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname',current_release_information),
+                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotebranchname',current_release_information), False, False)
 
-    def dotnet_build(self, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
-                     clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None,
-                     current_release_information: dict = {}) -> None:
+    def dotnet_build(self,current_release_information:dict, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
+                     clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None) -> None:
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             GeneralUtilities.ensure_directory_does_not_exist(outputDirectory)
         GeneralUtilities.ensure_directory_exists(outputDirectory)
@@ -436,13 +434,13 @@ class ScriptCollectionCore:
             verbose_argument_for_dotnet = "normal"
         if verbosity == 3:
             verbose_argument_for_dotnet = "detailed"
-        coveragefilename = self.__get_coverage_filename(configparser)
-        testargument = f"test {self.__get_test_csprojfile_filename(configparser)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration')}" \
+        coveragefilename = self.__get_coverage_filename(configparser,current_release_information)
+        testargument = f"test {self.__get_test_csprojfile_filename(configparser,current_release_information)} -c {self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration',current_release_information)}" \
             f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefilename}" \
             f" /p:CoverletOutputFormat=opencover"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self.__get_test_csprojfile_folder(configparser),
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self.__get_test_csprojfile_folder(configparser,current_release_information),
                                                                   3600, verbosity, False, "Execute tests")
-        root = etree.parse(self.__get_test_csprojfile_folder(configparser)+os.path.sep+coveragefilename)
+        root = etree.parse(self.__get_test_csprojfile_folder(configparser,current_release_information)+os.path.sep+coveragefilename)
         coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
         module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
         if module_count == 0:
@@ -457,11 +455,11 @@ class ScriptCollectionCore:
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}.")
         coverage_regex_begin = "https://img.shields.io/badge/testcoverage-"
         coverage_regex_end = "%25-green"
-        for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles"):
+        for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles",current_release_information):
             GeneralUtilities.replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
                                                              coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end, verbose=verbose)
 
-    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict = {}) -> None:
+    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict) -> None:
         dllOrExeFile = GeneralUtilities.resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = GeneralUtilities.resolve_relative_path_from_current_working_directory(snkfile)
         directory = os.path.dirname(dllOrExeFile)
@@ -496,19 +494,19 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        contextfolder: str = self.get_item_from_configuration(configparser, "docker", "contextfolder")
-        imagename: str = self.get_item_from_configuration(configparser, "general", "productname").lower()
-        registryaddress: str = self.get_item_from_configuration(configparser, "docker", "registryaddress")
-        dockerfile_filename: str = self.get_item_from_configuration(configparser, "docker", "dockerfile")
-        repository_version: str = self.get_version_for_buildscripts(configparser)
-        environmentconfiguration_for_latest_tag: str = self.get_item_from_configuration(configparser, "docker", "environmentconfigurationforlatesttag").lower()
-        pushimagetoregistry: bool = self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry")
+        contextfolder: str = self.get_item_from_configuration(configparser, "docker", "contextfolder",current_release_information)
+        imagename: str = self.get_item_from_configuration(configparser, "general", "productname",current_release_information).lower()
+        registryaddress: str = self.get_item_from_configuration(configparser, "docker", "registryaddress",current_release_information)
+        dockerfile_filename: str = self.get_item_from_configuration(configparser, "docker", "dockerfile",current_release_information)
+        repository_version: str = self.get_version_for_buildscripts(configparser, current_release_information)
+        environmentconfiguration_for_latest_tag: str = self.get_item_from_configuration(configparser, "docker", "environmentconfigurationforlatesttag",current_release_information).lower()
+        pushimagetoregistry: bool = self.get_boolean_value_from_configuration(configparser, "docker", "pushimagetoregistry", current_release_information)
         latest_tag: str = f"{imagename}:latest"
 
         # collect tags
         tags_for_push = []
         tags_by_environment = dict()
-        for environmentconfiguration in self.get_items_from_configuration(configparser, "docker", "environmentconfigurations"):
+        for environmentconfiguration in self.get_items_from_configuration(configparser, "docker", "environmentconfigurations",current_release_information):
             environmentconfiguration_lower: str = environmentconfiguration.lower()
             tags_for_current_environment = []
             version_tag = repository_version  # "1.0.0"
@@ -544,12 +542,12 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        overwriteexistingfilesinartefactdirectory: bool = self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory")
+        overwriteexistingfilesinartefactdirectory: bool = self.get_boolean_value_from_configuration(configparser, "docker", "overwriteexistingfilesinartefactdirectory", current_release_information)
         verbosity: int = self.__get_verbosity_for_exuecutor(configparser)
 
         # export to file
-        if (self.get_boolean_value_from_configuration(configparser, "docker", "storeimageinartefactdirectory")):
-            artefactdirectory = self.get_item_from_configuration(configparser, "docker", "artefactdirectory")
+        if (self.get_boolean_value_from_configuration(configparser, "docker", "storeimageinartefactdirectory", current_release_information)):
+            artefactdirectory = self.get_item_from_configuration(configparser, "docker", "artefactdirectory",current_release_information)
             GeneralUtilities.ensure_directory_exists(artefactdirectory)
             for environment in current_release_information["builtin.docker.tags_by_environment"]:
                 for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
@@ -563,7 +561,7 @@ class ScriptCollectionCore:
                                                                       verbosity=self.__get_verbosity_for_exuecutor(configparser))
 
         # remove local stored images:
-        if self.get_boolean_value_from_configuration(configparser, "docker", "removenewcreatedlocalimagesafterexport"):
+        if self.get_boolean_value_from_configuration(configparser, "docker", "removenewcreatedlocalimagesafterexport", current_release_information):
             for environment in current_release_information["builtin.docker.tags_by_environment"]:
                 for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
                     self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"image rm {tag}",
@@ -609,34 +607,34 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'premerge_program')):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program'),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_argument'),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory'))
+        if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'premerge_program',current_release_information)):
+            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program',current_release_information),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_argument',current_release_information),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory',current_release_information))
 
     def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'postmerge_program')):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'postmerge_program'),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_argument'),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory'))
+        if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'postmerge_program',current_release_information)):
+            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'postmerge_program',current_release_information),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_argument',current_release_information),
+                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory',current_release_information))
 
     def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        repository_version = self.get_version_for_buildscripts(configparser)
+        repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
         # Update version
-        if(self.get_boolean_value_from_configuration(configparser, 'python', 'updateversion')):
-            for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion'):
+        if(self.get_boolean_value_from_configuration(configparser, 'python', 'updateversion', current_release_information)):
+            for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion',current_release_information):
                 GeneralUtilities.replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
 
         # lint-checks
         errors_found = False
-        for file in self.get_items_from_configuration(configparser, "python", "lintcheckfiles"):
+        for file in self.get_items_from_configuration(configparser, "python", "lintcheckfiles",current_release_information):
             linting_result = self.python_file_has_errors(file)
             if (linting_result[0]):
                 errors_found = True
@@ -671,12 +669,12 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        for folder in self.get_items_from_configuration(configparser, "python", "deletefolderbeforcreatewheel"):
+        for folder in self.get_items_from_configuration(configparser, "python", "deletefolderbeforcreatewheel",current_release_information):
             GeneralUtilities.ensure_directory_does_not_exist(folder)
-        setuppyfile = self.get_item_from_configuration(configparser, "python", "pythonsetuppyfile")
+        setuppyfile = self.get_item_from_configuration(configparser, "python", "pythonsetuppyfile",current_release_information)
         setuppyfilename = os.path.basename(setuppyfile)
         setuppyfilefolder = os.path.dirname(setuppyfile)
-        publishdirectoryforwhlfile = self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile")
+        publishdirectoryforwhlfile = self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile",current_release_information)
         GeneralUtilities.ensure_directory_exists(publishdirectoryforwhlfile)
         self.execute_and_raise_exception_if_exit_code_is_not_zero("python",
                                                                   setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
@@ -687,8 +685,8 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject'):
-            pythontestfile = self.get_item_from_configuration(configparser, 'python', 'pythontestfile')
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
+            pythontestfile = self.get_item_from_configuration(configparser, 'python', 'pythontestfile',current_release_information)
             pythontestfilename = os.path.basename(pythontestfile)
             pythontestfilefolder = os.path.dirname(pythontestfile)
             # TODO set verbosity-level for pytest
@@ -699,12 +697,12 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        if self.get_boolean_value_from_configuration(configparser, 'python', 'publishwhlfile'):
-            with open(self.get_item_from_configuration(configparser, 'python', 'pypiapikeyfile'), 'r', encoding='utf-8') as apikeyfile:
+        if self.get_boolean_value_from_configuration(configparser, 'python', 'publishwhlfile', current_release_information):
+            with open(self.get_item_from_configuration(configparser, 'python', 'pypiapikeyfile',current_release_information), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
-            gpgidentity = self.get_item_from_configuration(configparser, 'other', 'gpgidentity')
-            repository_version = self.get_version_for_buildscripts(configparser)
-            productname = self.get_item_from_configuration(configparser, 'general', 'productname')
+            gpgidentity = self.get_item_from_configuration(configparser, 'other', 'gpgidentity',current_release_information)
+            repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
+            productname = self.get_item_from_configuration(configparser, 'general', 'productname',current_release_information)
             verbosity = self.__get_verbosity_for_exuecutor(configparser)
             if verbosity > 2:
                 verbose_argument = "--verbose"
@@ -713,7 +711,7 @@ class ScriptCollectionCore:
             twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl" \
                 f" --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
             self.execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument,
-                                                                      self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile"),
+                                                                      self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile",current_release_information),
                                                                       3600, verbosity)
 
     # </Build>
@@ -1017,20 +1015,20 @@ class ScriptCollectionCore:
     def __get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         return self.get_number_value_from_configuration(configparser, 'other', 'verbose')
 
-    def __get_buildoutputdirectory(self, configparser: ConfigParser, runtime: str) -> str:
-        result = self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory')
-        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'separatefolderforeachruntime'):
+    def __get_buildoutputdirectory(self, configparser: ConfigParser, runtime: str,current_release_information: dict) -> str:
+        result = self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory',current_release_information)
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'separatefolderforeachruntime', current_release_information):
             result = result+os.path.sep+runtime
         return result
 
-    def get_boolean_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> bool:
+    def get_boolean_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str,current_release_information: dict) -> bool:
         try:
             value = configparser.get(section, propertyname)
             self.private_check_for_not_available_config_item(value, section, propertyname)
             return configparser.getboolean(section, propertyname)
         except:
             try:
-                return GeneralUtilities.string_to_boolean(self.get_item_from_configuration(configparser, section, propertyname, {}, False))
+                return GeneralUtilities.string_to_boolean(self.get_item_from_configuration(configparser, section, propertyname, current_release_information))
             except:
                 return False
 
@@ -1049,14 +1047,24 @@ class ScriptCollectionCore:
             return False
         return True
 
-    def get_item_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> str:
-        result = self.__replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    def __calculate_version(self, configparser: ConfigParser, current_release_information: dict) -> None:
+        if "builtin.version" not in current_release_information:
+            current_release_information['builtin.version']= self.get_semver_version_from_gitversion(self.get_item_from_configuration(configparser, 'general','repository',current_release_information))
+
+    def get_item_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, current_release_information: dict ) -> str:
+
+        now = datetime.now()
+        current_release_information["builtin.year"] = str(now.year)
+        current_release_information["builtin.month"] = str(now.month)
+        current_release_information["builtin.day"] = str(now.day)
+
+        result = self.__replace_underscores_for_buildconfiguration(f"__.{section}.{propertyname}.__", configparser, current_release_information)
         result = GeneralUtilities.strip_new_line_character(result)
         self.__verbose_check_for_not_available_item(configparser, [result], section, propertyname)
         return result
 
-    def get_items_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, custom_replacements: dict = {}, include_version=True) -> list[str]:
-        itemlist_as_string = self.__replace_underscores_for_buildconfiguration(configparser.get(section, propertyname), configparser, custom_replacements, include_version)
+    def get_items_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, current_release_information: dict) -> list[str]:
+        itemlist_as_string = self.__replace_underscores_for_buildconfiguration(f"__.{section}.{propertyname}.__", configparser, current_release_information)
         if not GeneralUtilities.string_has_content(itemlist_as_string):
             return []
         if ',' in itemlist_as_string:
@@ -1066,47 +1074,38 @@ class ScriptCollectionCore:
         self.__verbose_check_for_not_available_item(configparser, result, section, propertyname)
         return result
 
-    def __get_csprojfile_filename(self, configparser: ConfigParser) -> str:
-        file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile")
+    def __get_csprojfile_filename(self, configparser: ConfigParser, current_release_information: dict) -> str:
+        file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.basename(file)
         return result
 
-    def __get_test_csprojfile_filename(self, configparser: ConfigParser) -> str:
-        file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile")
+    def __get_test_csprojfile_filename(self, configparser: ConfigParser, current_release_information: dict) -> str:
+        file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.basename(file)
         return result
 
-    def __get_csprojfile_folder(self, configparser: ConfigParser) -> str:
-        file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile")
+    def __get_csprojfile_folder(self, configparser: ConfigParser, current_release_information: dict) -> str:
+        file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.dirname(file)
         return result
 
-    def __get_test_csprojfile_folder(self, configparser: ConfigParser) -> str:
-        file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile")
+    def __get_test_csprojfile_folder(self, configparser: ConfigParser, current_release_information: dict) -> str:
+        file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.dirname(file)
         return result
 
-    def __get_coverage_filename(self, configparser: ConfigParser) -> str:
-        return self.get_item_from_configuration(configparser, "general", "productname")+".TestCoverage.opencover.xml"
+    def __get_coverage_filename(self, configparser: ConfigParser, current_release_information: dict) -> str:
+        return self.get_item_from_configuration(configparser, "general", "productname", current_release_information)+".TestCoverage.opencover.xml"
 
-    def get_version_for_buildscripts(self, configparser: ConfigParser) -> str:
-        return self.get_version_for_buildscripts_helper(self.get_item_from_configuration(configparser, 'general', 'repository', {}, False))
+    def get_version_for_buildscripts(self, configparser: ConfigParser, current_release_information: dict) -> str:
+        return self.get_item_from_configuration(configparser, 'builtin', 'version', current_release_information)
 
-    @lru_cache(maxsize=None)
-    def get_version_for_buildscripts_helper(self, folder: str) -> str:
-        return self.get_semver_version_from_gitversion(folder)
-
-    def __replace_underscores_for_buildconfiguration(self, string: str, configparser: ConfigParser, replacements: dict = {}, include_version=True) -> str:
-        now = datetime.now()
-        replacements["builtin.year"] = str(now.year)
-        replacements["builtin.month"] = str(now.month)
-        replacements["builtin.day"] = str(now.day)
-        if include_version:
-            replacements["builtin.version"] = self.get_version_for_buildscripts(configparser)
+    def __replace_underscores_for_buildconfiguration(self, string:str, configparser: ConfigParser, current_release_information: dict) -> str:
+        #TODO improve performance: the content of this function must mostly be executed once at the begining of a create-release-process, not always again
 
         available_configuration_items = []
 
@@ -1166,24 +1165,25 @@ class ScriptCollectionCore:
 
         for item in available_configuration_items:
             if configparser.has_option(item[0], item[1]):
-                replacements[f"{item[0]}.{item[1]}"] = configparser.get(item[0], item[1])
+                current_release_information[f"{item[0]}.{item[1]}"] = configparser.get(item[0], item[1])
 
         changed = True
         result = string
         while changed:
             changed = False
-            for key, value in replacements.items():
+            for key, value in current_release_information.items():
                 previousValue = result
                 result = result.replace(f"__.{key}.__", value)
                 if(not result == previousValue):
                     changed = True
+
         return result
 
     def __create_dotnet_release_premerge(self, configurationfile: str, current_release_information: dict):
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe', current_release_information):
             self.dotnet_create_executable_release_premerge(configurationfile, current_release_information)
         else:
             self.dotnet_create_nuget_release_premerge(configurationfile, current_release_information)
@@ -1192,7 +1192,7 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe'):
+        if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'createexe', current_release_information):
             self.dotnet_create_executable_release_postmerge(configurationfile, current_release_information)
         else:
             self.dotnet_create_nuget_release_postmerge(configurationfile, current_release_information)
