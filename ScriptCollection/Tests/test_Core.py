@@ -13,7 +13,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
     encoding = "utf-8"
     testfileprefix = "testfile_"
 
-    def test_dummy(self)->None:
+    def test_dummy1(self)->None:
         sc=ScriptCollectionCore()
         sc.register_mock_program_call("test","","",0,"","",0,0)
         GeneralUtilities.string_is_none_or_whitespace("")
