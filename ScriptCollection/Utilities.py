@@ -18,11 +18,6 @@ from defusedxml.minidom import parse
 class GeneralUtilities:
 
     @staticmethod
-    def get_scriptcollection_version() -> str:
-        version = "2.6.10"
-        return version
-
-    @staticmethod
     def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list[str]:
         result = list()
         if(string is not None):

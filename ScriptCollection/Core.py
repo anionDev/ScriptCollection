@@ -25,6 +25,9 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
+version = "2.6.10"
+__version__ = version
+
 class ScriptCollectionCore:
 
     mock_program_calls: bool = False  # This property is for test-purposes only
@@ -35,16 +38,22 @@ class ScriptCollectionCore:
     def __init__(self):
         self.__epew_is_available = GeneralUtilities.epew_is_available()
 
+    @staticmethod
+    def get_scriptcollection_version() -> str:
+        return __version__
     # <Build>
 
     # TODO use typechecks everywhere like discussed here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
     def create_release(self, configurationfile: str) -> int:
+        error_occurred = False
         try:
             current_release_information: dict[str, str]= {}
             configparser = ConfigParser()
             with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
                 configparser.read_file(text_io_wrapper)
-            error_occurred = False
+
+            self.__calculate_version(configparser,current_release_information)
+            repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
             repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
             releaserepository = self.get_item_from_configuration(configparser, "other", "releaserepository", current_release_information)
 
@@ -60,8 +69,6 @@ class ScriptCollectionCore:
                 return 1
 
             self.git_checkout(repository, devbranch)
-            self.__calculate_version(configparser,current_release_information)
-            repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
             GeneralUtilities.write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
             self.git_merge(repository, devbranch, mainbranch, False, False)
