@@ -4,7 +4,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
 ![Generic badge](https://img.shields.io/badge/coverage-1%25-green)
 
-This repository is the place for little scripts which are also useful in future so that someone does not have remember them and write them new from scratch. You can simply use the scripts.
+The ScriptCollection is the place for reusable scripts.
 
 When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
 
@@ -34,7 +34,7 @@ You can simply git-clone the ScriptCollection and then use the scripts under the
 
 `git clone https://github.com/anionDev/ScriptCollection.git`
 
-It may be more easy to pip-install the ScriptCollection but technically pip is not required. Actually you need to git-clone (or download as zip-file from [Github](https://github.com/anionDev/ScriptCollection) the ScriptCollection to use the scripts in this repository which are not written in python.
+It may be more easy to pip-install the ScriptCollection but technically pip is not required. Actually you need to git-clone (or download as zip-file from [GitHub](https://github.com/anionDev/ScriptCollection) the ScriptCollection to use the scripts in this repository which are not written in python.
 
 ## Troubleshooting
 
@@ -53,7 +53,7 @@ Or you can simply run `pip3 freeze` folder to get information about (all) curren
 
 ### Branching-system
 
-This repository applies the [GitFlowSimplified](https://projects.aniondev.de/CommonUtilities/Templates/ProjectTemplates/-/blob/main/Templates/Conventions/BranchingSystem/GitFlowSimplified.md)-branching-system.
+This repository applies the [GitFlowSimplified](https://projects.aniondev.de/Common/Templates/ProjectTemplates/-/blob/main/Templates/Conventions/BranchingSystem/GitFlowSimplified.md)-branching-system.
 
 ### Install dependencies
 
@@ -62,21 +62,36 @@ To develop ScriptCollection it is obviously required that the following commandl
 - `python` (on some systems `python3`)
 - `pip3`
 
-To install the required dependencies simply install the packages defined in `requirements.txt`.
+The pip-packaged which are required for developing on this project are defined in `requirements.txt`.
 
 ### IDE
 
 The recommended IDE for developing ScriptCollection is Visual Studio Code.
 The recommended addons for developing ScriptCollection with Visual Studio Code are:
 
+- [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
 - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-- [Python Test Explorer for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=LittleFoxTeam.vscode-python-test-adapter)
 - [Spell Right](https://marketplace.visualstudio.com/items?itemName=ban.spellright)
 - [docs-markdown](https://marketplace.visualstudio.com/items?itemName=docsmsft.docs-markdown)
 
 ### Build
 
 To Create an installable whl-package simply execute `python Setup.py bdist_wheel --dist-dir .`.
+
+When doing this multiple times you should also clean temporary files created by python before creating the whl-package.
+So to do this and install the local created package the steps are:
+
+```bash
+pip3 uninstall -y ScriptCollection
+git clean -dfx
+python Setup.py bdist_wheel --dist-dir .
+pip3 install ScriptCollection-x.x.x-py3-none-any.whl
+```
+
+### Coding style
+
+In this repository [pylint](https://pylint.org/) will be used to report linting-issues.
+If you change code in this repository consider executing `find . -type f -name "*.py" | xargs pylint` before creating a pull-request.
 
 ## Runtime-Dependencies
 
