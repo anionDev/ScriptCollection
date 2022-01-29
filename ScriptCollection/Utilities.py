@@ -532,7 +532,7 @@ class GeneralUtilities:
 
     @staticmethod
     def os_is_linux():
-        return sys.platform == "linux" or sys.platform == "linux2"
+        return sys.platform in ('linux', 'linux2')
 
     @staticmethod
     def to_list(list_as_string: str, separator: str = ",") -> list:

@@ -4,7 +4,7 @@ import traceback
 import keyboard
 from .Core import ScriptCollectionCore
 from .Utilities import GeneralUtilities
-
+from .Hardening import HardeningScript
 
 def CreateRelease() -> int:
     parser = argparse.ArgumentParser(description="""SCCreateRelease_cli:
@@ -446,4 +446,12 @@ Caution: This script can cause harm if you pass a wrong inputfolder-argument.'''
 
     args = parser.parse_args()
     ScriptCollectionCore().SCObfuscateFilesFolder(args.inputfolder, args.printtableheadline, args.namemappingfile, args.extensions)
+    return 0
+
+def Hardening() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--applicationstokeep', required=True)
+    parser.add_argument('--additionalfolderstoremove', required=True)
+    args = parser.parse_args()
+    HardeningScript(args.applicationstokeep, args.additionalfolderstoremove).run()
     return 0

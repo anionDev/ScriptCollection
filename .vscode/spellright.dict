@@ -7,3 +7,4 @@ chmod
 chown
 Pylance
 sourcecode
+pylint

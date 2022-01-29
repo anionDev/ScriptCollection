@@ -7,7 +7,7 @@ additionalfolderstoremove="$2" #semicolon-separated list
 apt-get install -y python3 python3-pip
 pip3 install ScriptCollection
 
-python3 Hardening.py --applicationstokeep "$applicationstokeep" --additionalfolderstoremove "$additionalfolderstoremove"
+SCHardening --applicationstokeep "$applicationstokeep" --additionalfolderstoremove "$additionalfolderstoremove"
 
 # Remove unnecessary binaries
 apt-get remove -y python-pip3 python3

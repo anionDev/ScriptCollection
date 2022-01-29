@@ -88,6 +88,11 @@ python Setup.py bdist_wheel --dist-dir .
 pip3 install ScriptCollection-x.x.x-py3-none-any.whl
 ```
 
+### Coding style
+
+In this repository [pylint](https://pylint.org/) will be used to report linting-issues.
+If you change code in this repository consider executing `find . -type f -name "*.py" | xargs pylint` before creating a pull-request.
+
 ## Runtime-Dependencies
 
 The usual Python-dependencies will be installed automagically by pip.

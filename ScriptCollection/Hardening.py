@@ -4,12 +4,13 @@
 
 import argparse
 import traceback
-from ScriptCollection.core import ScriptCollection, to_list, ensure_directory_does_not_exist, write_exception_to_stderr_with_traceback, write_message_to_stdout
+from .Utilities import GeneralUtilities
+from .Core import ScriptCollectionCore
 
 
 class Hardening:
 
-    _private_sc: ScriptCollection = ScriptCollection()
+    _private_sc: ScriptCollectionCore = ScriptCollectionCore()
     applicationstokeep: "list[str]" = None
     additionalfolderstoremove: "list[str]" = None
     applicationstodelete: "list[str]" = [
@@ -19,14 +20,14 @@ class Hardening:
     ]
 
     def __init__(self, applicationstokeep, additionalfoldertoremove):
-        self.applicationstokeep = to_list(applicationstokeep, ";")
-        self.additionalfolderstoremove = to_list(additionalfoldertoremove, ";")
+        self.applicationstokeep = GeneralUtilities.to_list(applicationstokeep, ";")
+        self.additionalfolderstoremove = GeneralUtilities.to_list(additionalfoldertoremove, ";")
 
     def run(self):
         try:
-            write_message_to_stdout("Hardening-configuration:")
-            write_message_to_stdout(f"  applicationstokeep: {self.applicationstokeep}")
-            write_message_to_stdout(f"  additionalFolderToRemove: {self.additionalfolderstoremove}")
+            GeneralUtilities.write_message_to_stdout("Hardening-configuration:")
+            GeneralUtilities.write_message_to_stdout(f"  applicationstokeep: {self.applicationstokeep}")
+            GeneralUtilities.write_message_to_stdout(f"  additionalFolderToRemove: {self.additionalfolderstoremove}")
 
             # TODO:
             # - kill applications which opens undesired ports
@@ -41,27 +42,19 @@ class Hardening:
 
             # Remove undesired folders
             for additionalfoldertoremove in self.additionalfolderstoremove:
-                write_message_to_stdout(f"Remove folder {additionalfoldertoremove}...")
-                ensure_directory_does_not_exist(additionalfoldertoremove)
+                GeneralUtilities.write_message_to_stdout(f"Remove folder {additionalfoldertoremove}...")
+                GeneralUtilities.ensure_directory_does_not_exist(additionalfoldertoremove)
 
             # Remove undesired packages
             for applicationtodelete in self.applicationstodelete:
                 if not applicationtodelete in self.applicationstokeep and self._private_package_is_installed(applicationtodelete):
-                    write_message_to_stdout(f"Remove application {applicationtodelete}...")
+                    GeneralUtilities.write_message_to_stdout(f"Remove application {applicationtodelete}...")
                     self._private_execute("apt-get", f"purge -y {applicationtodelete}")
         except Exception as exception:
-            write_exception_to_stderr_with_traceback(exception, traceback, "Exception occurred while hardening.")
+            GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, "Exception occurred while hardening.")
 
     def _private_package_is_installed(self, package: str) -> bool:
         return True  # TODO see https://askubuntu.com/questions/660305/how-to-tell-if-a-certain-package-exists-in-the-apt-repos
 
     def _private_execute(self, program: str, argument: str, workding_directory: str = None):
         return self._private_sc.start_program_synchronously(program, argument, workding_directory, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--applicationstokeep', required=True)
-    parser.add_argument('--additionalfolderstoremove', required=True)
-    args = parser.parse_args()
-    Hardening(args.applicationstokeep, args.additionalfolderstoremove).run()
