@@ -5,7 +5,7 @@ from .Utilities import GeneralUtilities
 from .Core import ScriptCollectionCore
 
 
-class Hardening:
+class HardeningScript:
 
     _private_sc: ScriptCollectionCore = ScriptCollectionCore()
     applicationstokeep: "list[str]" = None

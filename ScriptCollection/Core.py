@@ -694,7 +694,6 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
         setuppyfile = self.get_item_from_configuration(configparser, "python", "pythonsetuppyfile", current_release_information)
         setuppyfilename = os.path.basename(setuppyfile)
         setuppyfilefolder = os.path.dirname(setuppyfile)
