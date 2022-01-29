@@ -1,8 +1,5 @@
 #!/usr/bin/python3
 
-# This script is intended to be called from Hardening.py
-
-import argparse
 import traceback
 from .Utilities import GeneralUtilities
 from .Core import ScriptCollectionCore

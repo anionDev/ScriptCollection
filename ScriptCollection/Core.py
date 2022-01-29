@@ -67,6 +67,7 @@ class ScriptCollectionCore:
                 return 1
 
             self.git_checkout(repository, srcbranch)
+            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "clean -dfx", repository)
             self.__calculate_version(configparser, current_release_information)
             repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
@@ -694,7 +695,6 @@ class ScriptCollectionCore:
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "clean -dfx", repository)
         setuppyfile = self.get_item_from_configuration(configparser, "python", "pythonsetuppyfile", current_release_information)
         setuppyfilename = os.path.basename(setuppyfile)
         setuppyfilefolder = os.path.dirname(setuppyfile)
