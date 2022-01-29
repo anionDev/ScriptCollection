@@ -2,7 +2,6 @@ from datetime import timedelta, datetime
 import base64
 import binascii
 from configparser import ConfigParser
-from distutils.dir_util import copy_tree
 import filecmp
 import hashlib
 from io import BytesIO
@@ -53,26 +52,26 @@ class ScriptCollectionCore:
             with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
                 configparser.read_file(text_io_wrapper)
 
-            self.__calculate_version(configparser, current_release_information)
-            repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
             repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
             releaserepository = self.get_item_from_configuration(configparser, "other", "releaserepository", current_release_information)
 
             if (self.__repository_has_changes(repository) or self.__repository_has_changes(releaserepository)):
                 return 1
 
-            devbranch = self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname', current_release_information)
-            mainbranch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname', current_release_information)
-            commitid = self.git_get_current_commit_id(repository, mainbranch)
+            srcbranch = self.get_item_from_configuration(configparser, 'prepare', 'sourcebranchname', current_release_information)
+            trgbranch = self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information)
+            commitid = self.git_get_current_commit_id(repository, trgbranch)
 
-            if(commitid == self.git_get_current_commit_id(repository, devbranch)):
-                GeneralUtilities.write_message_to_stderr(f"Can not prepare since the main-branch and the development-branch are on the same commit (commit-id: {commitid})")
+            if(commitid == self.git_get_current_commit_id(repository, srcbranch)):
+                GeneralUtilities.write_message_to_stderr(f"Can not create release because the main-branch and the development-branch are on the same commit (commit-id: {commitid})")
                 return 1
 
-            self.git_checkout(repository, devbranch)
+            self.git_checkout(repository, srcbranch)
+            self.__calculate_version(configparser, current_release_information)
+            repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
             GeneralUtilities.write_message_to_stdout(f"Create release v{repository_version} for repository {repository}")
-            self.git_merge(repository, devbranch, mainbranch, False, False)
+            self.git_merge(repository, srcbranch, trgbranch, False, False)
 
             try:
                 if self.get_boolean_value_from_configuration(configparser, 'general', 'createdotnetrelease', current_release_information) and not error_occurred:
@@ -119,8 +118,8 @@ class ScriptCollectionCore:
 
                 if not error_occurred:
                     commit_id = self.git_commit(
-                        repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname',current_release_information)}' "
-                                                f"into '{self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname',current_release_information)}'")
+                        repository, f"Merge branch '{self.get_item_from_configuration(configparser, 'prepare', 'sourcebranchname',current_release_information)}' "
+                        f"into '{self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname',current_release_information)}'")
                     current_release_information["builtin.mergecommitid"] = commit_id
 
                     # TODO allow multiple custom pre- (and post)-build-regex-replacements for files specified by glob-pattern
@@ -174,24 +173,24 @@ class ScriptCollectionCore:
                 GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, f"Error occurred while creating release defined by '{configurationfile}'.")
 
             finally:
-                GeneralUtilities.write_message_to_stdout("Finished to create releases")
+                GeneralUtilities.write_message_to_stdout("Finished to create release")
 
             if error_occurred:
                 GeneralUtilities.write_message_to_stderr("Creating release was not successful")
                 self.git_merge_abort(repository)
                 self.__undo_changes(repository)
                 self.__undo_changes(releaserepository)
-                self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname', current_release_information))
+                self.git_checkout(repository, self.get_item_from_configuration(configparser, 'prepare', 'sourcebranchname', current_release_information))
                 return 1
             else:
-                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname', current_release_information),
-                               self.get_item_from_configuration(configparser, 'prepare', 'developmentbranchname', current_release_information), True)
+                self.git_merge(repository, self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information),
+                               self.get_item_from_configuration(configparser, 'prepare', 'sourcebranchname', current_release_information), True)
                 tag = self.get_item_from_configuration(configparser, 'prepare', 'gittagprefix', current_release_information) + repository_version
                 tag_message = f"Created {tag}"
                 self.git_create_tag(repository, commit_id,
                                     tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags', current_release_information), tag_message)
                 if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository', current_release_information):
-                    branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname', current_release_information)
+                    branch = self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information)
                     self.git_push(repository, self.get_item_from_configuration(configparser, 'other',
                                   'exportrepositoryremotename', current_release_information), branch, branch, False, True)
                 GeneralUtilities.write_message_to_stdout("Creating release was successful")
@@ -210,13 +209,13 @@ class ScriptCollectionCore:
         config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration', current_release_information)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes', current_release_information):
             self.dotnet_build(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
-            self.__get_csprojfile_filename(configparser, current_release_information),
+                              self.__get_csprojfile_filename(configparser, current_release_information),
                               self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
                               verbosity, sign_things[0], sign_things[1])
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory', current_release_information)
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
-        copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory)
+        shutil.copytree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory)
 
     def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -301,7 +300,7 @@ class ScriptCollectionCore:
         config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration', current_release_information)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes', current_release_information):
             self.dotnet_build(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
-            self.__get_csprojfile_filename(configparser, current_release_information),
+                              self.__get_csprojfile_filename(configparser, current_release_information),
                               self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
                               self.__get_verbosity_for_exuecutor(configparser),
@@ -310,7 +309,7 @@ class ScriptCollectionCore:
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
         GeneralUtilities.ensure_directory_exists(publishdirectory_binary)
-        copy_tree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory_binary)
+        shutil.copytree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory_binary)
 
         nuspec_content = self.__replace_underscores_for_buildconfiguration(self.__nuget_template, configparser, current_release_information)
 
@@ -322,7 +321,7 @@ class ScriptCollectionCore:
 
         if "builtin.commitid" in current_release_information and self.configuration_item_is_available(configparser, "other", "repositoryurl"):
             repositoryurl = self.get_item_from_configuration(configparser, 'other', 'repositoryurl', current_release_information)
-            branch = self.get_item_from_configuration(configparser, 'prepare', 'mainbranchname', current_release_information)
+            branch = self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information)
             commitid = current_release_information["builtin.commitid"]
             nuspec_content = nuspec_content.replace("__.internal.repositoryentry.__", f'<repository type="git" url="{repositoryurl}" branch="{branch}" commit="{commitid}" />')
         else:
@@ -452,8 +451,8 @@ class ScriptCollectionCore:
         if verbosity == 3:
             verbose_argument_for_dotnet = "detailed"
         coveragefilename = self.__get_coverage_filename(configparser, current_release_information)
-        csproj=self.__get_test_csprojfile_filename(configparser,current_release_information)
-        testbuildconfig=self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration',current_release_information)
+        csproj = self.__get_test_csprojfile_filename(configparser, current_release_information)
+        testbuildconfig = self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration', current_release_information)
         testargument = f"test {csproj} -c {testbuildconfig}" \
             f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefilename}" \
             f" /p:CoverletOutputFormat=opencover"
@@ -651,7 +650,7 @@ class ScriptCollectionCore:
         # Update version
         if(self.get_boolean_value_from_configuration(configparser, 'python', 'updateversion', current_release_information)):
             for file in self.get_items_from_configuration(configparser, 'python', 'filesforupdatingversion', current_release_information):
-                GeneralUtilities.replace_regex_each_line_of_file(file, '^version = ".+"\n$', 'version = "'+repository_version+'"\n')
+                GeneralUtilities.replace_regex_each_line_of_file(file, '^version = ".+"\n$', f'version = "{repository_version}"\n')
 
         # lint-checks
         errors_found = False
@@ -694,8 +693,8 @@ class ScriptCollectionCore:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        for folder in self.get_items_from_configuration(configparser, "python", "deletefolderbeforcreatewheel", current_release_information):
-            GeneralUtilities.ensure_directory_does_not_exist(folder)
+        repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
+        self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "clean -dfx", repository)
         setuppyfile = self.get_item_from_configuration(configparser, "python", "pythonsetuppyfile", current_release_information)
         setuppyfilename = os.path.basename(setuppyfile)
         setuppyfilefolder = os.path.dirname(setuppyfile)
@@ -1165,8 +1164,8 @@ class ScriptCollectionCore:
         available_configuration_items.append(["general", "repository"])
         available_configuration_items.append(["general", "author"])
         available_configuration_items.append(["general", "description"])
-        available_configuration_items.append(["prepare", "developmentbranchname"])
-        available_configuration_items.append(["prepare", "mainbranchname"])
+        available_configuration_items.append(["prepare", "sourcebranchname"])
+        available_configuration_items.append(["prepare", "targetbranchname"])
         available_configuration_items.append(["prepare", "gittagprefix"])
         available_configuration_items.append(["script", "premerge_program"])
         available_configuration_items.append(["script", "premerge_argument"])
@@ -1185,7 +1184,6 @@ class ScriptCollectionCore:
         available_configuration_items.append(["python", "pythonsetuppyfile"])
         available_configuration_items.append(["python", "filesforupdatingversion"])
         available_configuration_items.append(["python", "pypiapikeyfile"])
-        available_configuration_items.append(["python", "deletefolderbeforcreatewheel"])
         available_configuration_items.append(["python", "publishdirectoryforwhlfile"])
 
         for item in available_configuration_items:
