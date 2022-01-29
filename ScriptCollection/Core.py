@@ -658,7 +658,7 @@ class ScriptCollectionCore:
 
         repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
         for file in GeneralUtilities.get_all_files_of_folder(repository):
-            relative_file_path_in_repository = ""
+            relative_file_path_in_repository = os.path.relpath(file, repository)
             if file.endswith(".py") and os.path.getsize(file) > 0 and not self.file_is_git_ignored(relative_file_path_in_repository, repository):
                 linting_result = self.python_file_has_errors(file)
                 if (linting_result[0]):
@@ -1182,8 +1182,6 @@ class ScriptCollectionCore:
         available_configuration_items.append(["other", "exportrepositoryremotename"])
         available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])
         available_configuration_items.append(["python", "readmefile"])
-        available_configuration_items.append(["python", "lintcheckfiles"])
-        available_configuration_items.append(["python", "pythontestfile"])
         available_configuration_items.append(["python", "pythonsetuppyfile"])
         available_configuration_items.append(["python", "filesforupdatingversion"])
         available_configuration_items.append(["python", "pypiapikeyfile"])
