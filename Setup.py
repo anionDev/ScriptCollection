@@ -2,9 +2,10 @@ import os
 from setuptools import setup, find_packages
 
 
+version = "2.6.10"
+
 def create_wheel_file():
 
-    version = "2.6.10"
     productname = "ScriptCollection"
 
     executables_namespace=f"{productname}.Executables"

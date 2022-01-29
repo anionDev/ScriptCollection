@@ -10,7 +10,7 @@ class GeneralUtilitiesTests(unittest.TestCase):
         sc=ScriptCollectionCore()
         sc.register_mock_program_call("test","","",0,"","",0,0)
         GeneralUtilities.string_is_none_or_whitespace("")
-        assert True is True
+        assert True# TODO implement real tests
 
     def test_string_is_none_or_whitespace(self) -> None:
         assert GeneralUtilities.string_is_none_or_whitespace(None)
