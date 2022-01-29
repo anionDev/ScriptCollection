@@ -78,6 +78,16 @@ The recommended addons for developing ScriptCollection with Visual Studio Code a
 
 To Create an installable whl-package simply execute `python Setup.py bdist_wheel --dist-dir .`.
 
+When doing this multiple times you should also clean temporary files created by python before creating the whl-package.
+So to do this and install the local created package the steps are:
+
+```bash
+pip3 uninstall -y ScriptCollection
+git clean -dfx
+python Setup.py bdist_wheel --dist-dir .
+pip3 install ScriptCollection-x.x.x-py3-none-any.whl
+```
+
 ## Runtime-Dependencies
 
 The usual Python-dependencies will be installed automagically by pip.
