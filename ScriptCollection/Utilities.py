@@ -213,6 +213,15 @@ class GeneralUtilities:
                 pass
 
     @staticmethod
+    def __remove_readonly(func, path, _):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    @staticmethod
+    def rmtree(directory:str)->None:
+        shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)
+
+    @staticmethod
     def ensure_directory_does_not_exist(path: str) -> None:
         if(os.path.isdir(path)):
             for root, dirs, files in os.walk(path, topdown=False):
@@ -221,8 +230,8 @@ class GeneralUtilities:
                     os.chmod(filename, stat.S_IWUSR)
                     os.remove(filename)
                 for name in dirs:
-                    os.rmdir(os.path.join(root, name))
-            os.rmdir(path)
+                    GeneralUtilities.rmtree(os.path.join(root, name))
+            GeneralUtilities.rmtree(path)
 
     @staticmethod
     def ensure_file_does_not_exist(path: str) -> None:
