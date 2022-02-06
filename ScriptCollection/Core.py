@@ -8,6 +8,7 @@ from io import BytesIO
 import itertools
 import math
 import os
+from shutil import copyfile
 from pathlib import Path
 from random import randrange
 import re
@@ -24,7 +25,7 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
-version = "2.7.1"
+version = "2.7.2"
 __version__ = version
 
 
@@ -1994,5 +1995,9 @@ class ScriptCollectionCore:
         result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
+
+    def export_released_file_and_commit(self, whl_file_with_path: str, target_file: str, targetfolder_repository: str, product_name: str, version_of_release: str):
+        copyfile(whl_file_with_path, target_file)
+        self.git_commit(targetfolder_repository, f"Added {product_name} v{version_of_release}")
 
     # </miscellaneous>
