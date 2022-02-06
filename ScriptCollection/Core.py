@@ -25,7 +25,7 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
-version = "2.7.2"
+version = "2.7.3"
 __version__ = version
 
 
@@ -191,16 +191,23 @@ class ScriptCollectionCore:
                 tag_message = f"Created {tag}"
                 self.git_create_tag(repository, commit_id,
                                     tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags', current_release_information), tag_message)
-                if self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepository', current_release_information):
-                    branch = self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information)
-                    self.git_push(repository, self.get_item_from_configuration(configparser, 'other',
-                                  'exportrepositoryremotename', current_release_information), branch, branch, False, True)
+                self.__push_branch_of_release(configparser, current_release_information, repository,
+                    self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepositorysourcebranch', current_release_information),
+                    self.get_item_from_configuration(configparser, 'prepare', 'sourcebranchname', current_release_information))
+                self.__push_branch_of_release(configparser, current_release_information, repository,
+                    self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepositorytargetbranch', current_release_information),
+                    self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information))
                 GeneralUtilities.write_message_to_stdout("Creating release was successful")
                 return 0
 
         except Exception as e:
             GeneralUtilities.write_exception_to_stderr_with_traceback(e, traceback, f"Fatal error occurred while creating release defined by '{configurationfile}'.")
             return 1
+
+    def __push_branch_of_release(self,configparser:ConfigParser,current_release_information: dict[str, str],repository:str, export:bool, branch:str):
+        if export:
+            self.git_push(repository, self.get_item_from_configuration(configparser, 'other',
+                            'exportrepositoryremotename', current_release_information), branch, branch, False, True)
 
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
