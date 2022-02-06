@@ -24,7 +24,7 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
-version = "2.7.0"
+version = "2.7.1"
 __version__ = version
 
 
@@ -804,7 +804,7 @@ class ScriptCollectionCore:
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_fetch(self, folder: str, remotename: str = "--all", print_errors_as_information: bool = True, verbosity=1) -> None:
-        self.start_program_synchronously_argsasarray("git", ["fetch", remotename, "--tags", "--prune", folder], timeoutInSeconds=100, verbosity=verbosity,
+        self.start_program_synchronously_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, timeoutInSeconds=100, verbosity=verbosity,
                                                      print_errors_as_information=print_errors_as_information,
                                                      prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
