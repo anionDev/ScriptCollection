@@ -25,7 +25,7 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
-version = "2.7.4"
+version = "2.7.5"
 __version__ = version
 
 
@@ -1893,8 +1893,7 @@ class ScriptCollectionCore:
         if verbosity == 3:
             args_as_string = " ".join(args)
             GeneralUtilities.write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
-        with Popen(args, shell=False) as process:  # pylint: disable=bad-option-value
-            return process
+        return Popen(args, shell=False)
 
     def verify_no_pending_mock_program_calls(self):
         if(len(self.__mocked_program_calls) > 0):
