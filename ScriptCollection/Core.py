@@ -25,7 +25,7 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
-version = "2.7.5"
+version = "2.7.6"
 __version__ = version
 
 
@@ -317,7 +317,6 @@ class ScriptCollectionCore:
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory', current_release_information)
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
-        GeneralUtilities.ensure_directory_exists(publishdirectory_binary)
         shutil.copytree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory_binary)
 
         nuspec_content = self.__replace_underscores_for_buildconfiguration(self.__nuget_template, configparser, current_release_information)
