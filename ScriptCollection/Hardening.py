@@ -34,6 +34,7 @@ class HardeningScript:
             # - prevent executing files as much as possible
             # - shrink rights of all user as much as possible
             # - deinstall/disable find, chown, chmod, apt etc. and all other applications which are not listed in $applicationstokeep
+            # - disable unnecessary services/daemons if available (e. g. "systemctl disable avahi-daemon")
             # etc.
             # general idea: remove as much as possible from the file-system. all necessary binaries should already be available in the RAM usually.
 
