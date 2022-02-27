@@ -181,6 +181,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         try:
             example_input = ["line1", "", "line3"]
             expected_output = ["line1", "line3"]
+            GeneralUtilities.ensure_file_exists(testfile)
             GeneralUtilities.write_lines_to_file(testfile, example_input)
 
             # act
@@ -198,6 +199,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         try:
             example_input = ["line1", "", "line3"]
             expected_output = ["line1", "line3"]
+            GeneralUtilities.ensure_file_exists(testfile)
             GeneralUtilities.write_lines_to_file(testfile, example_input)
 
             # act

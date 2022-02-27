@@ -194,15 +194,15 @@ class GeneralUtilities:
 
     @staticmethod
     def __strip_new_line_character_helper_value_is_ok(value: str) -> bool:
-        return value.strip('\n').strip('\r')
-
-    @staticmethod
-    def __strip_new_line_character_helper_normalize_value(value: str) -> str:
         if value.startswith("\r") or value.endswith("\r"):
             return False
         if value.startswith("\n") or value.endswith("\n"):
             return False
         return True
+
+    @staticmethod
+    def __strip_new_line_character_helper_normalize_value(value: str) -> str:
+        return value.strip('\n').strip('\r')
 
     @staticmethod
     def file_ends_with_newline(file: str) -> bool:
@@ -303,7 +303,9 @@ class GeneralUtilities:
 
     @staticmethod
     def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
-        GeneralUtilities.write_text_to_file(file, os.linesep.join(GeneralUtilities.strip_new_line_character(line) for line in lines), encoding)
+        lines=[GeneralUtilities.strip_new_line_character(line) for line in lines]
+        content=os.linesep.join(lines)
+        GeneralUtilities.write_text_to_file(file, content, encoding)
 
     @staticmethod
     def write_text_to_file(file: str, content: str, encoding="utf-8") -> None:
