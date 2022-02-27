@@ -25,7 +25,7 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
-version = "2.7.7"
+version = "2.7.8"
 __version__ = version
 
 
