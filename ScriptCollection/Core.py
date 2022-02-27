@@ -25,7 +25,7 @@ from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 
 
-version = "2.7.6"
+version = "2.7.7"
 __version__ = version
 
 
@@ -1570,6 +1570,20 @@ class ScriptCollectionCore:
             if file.lower().endswith("."+extension.lower()):
                 return True
         return False
+
+    def SCHealthcheck(self, file: str) -> int:
+        lines=GeneralUtilities.read_lines_from_file(file)
+        for line in reversed(lines):
+            if not GeneralUtilities.string_is_none_or_whitespace(line):
+                if "RunningHealthy (" in line:# TODO use regex
+                    GeneralUtilities.write_message_to_stderr(f"Healthy running due to line '{line}' in file '{file}'.")
+                    return 0
+                else:
+                    GeneralUtilities.write_message_to_stderr(f"Not healthy running due to line '{line}' in file '{file}'.")
+                    return 1
+        GeneralUtilities.write_message_to_stderr(f"No valid line found for healthycheck in file '{file}'.")
+        return 2
+
 
     def SCObfuscateFilesFolder(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"

@@ -6,6 +6,7 @@ from .Core import ScriptCollectionCore
 from .Utilities import GeneralUtilities
 from .Hardening import HardeningScript
 
+
 def CreateRelease() -> int:
     parser = argparse.ArgumentParser(description="""SCCreateRelease_cli:
 Description: TODO
@@ -448,6 +449,7 @@ Caution: This script can cause harm if you pass a wrong inputfolder-argument.'''
     ScriptCollectionCore().SCObfuscateFilesFolder(args.inputfolder, args.printtableheadline, args.namemappingfile, args.extensions)
     return 0
 
+
 def Hardening() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--applicationstokeep', required=True)
@@ -455,3 +457,10 @@ def Hardening() -> int:
     args = parser.parse_args()
     HardeningScript(args.applicationstokeep, args.additionalfolderstoremove).run()
     return 0
+
+
+def HealthCheck() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--file', required=True)
+    args = parser.parse_args()
+    return ScriptCollectionCore().SCHealthcheck(args.file)
