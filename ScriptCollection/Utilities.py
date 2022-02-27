@@ -188,11 +188,34 @@ class GeneralUtilities:
 
     @staticmethod
     def strip_new_line_character(value: str) -> str:
-        return value.strip().strip('\n').strip('\r').strip()
+        while not GeneralUtilities.__strip_new_line_character_helper_value_is_ok(value):
+            value = GeneralUtilities.__strip_new_line_character_helper_normalize_value(value)
+        return value
+
+    @staticmethod
+    def __strip_new_line_character_helper_value_is_ok(value: str) -> bool:
+        return value.strip('\n').strip('\r')
+
+    @staticmethod
+    def __strip_new_line_character_helper_normalize_value(value: str) -> str:
+        if value.startswith("\r") or value.endswith("\r"):
+            return False
+        if value.startswith("\n") or value.endswith("\n"):
+            return False
+        return True
+
+    @staticmethod
+    def file_ends_with_newline(file: str) -> bool:
+        with open(file, "rb", encoding="utf-8") as file_object:
+            return file_object.read().endswith('\n')
+
+    @staticmethod
+    def file_not_ends_with_newline(file: str) -> bool:
+        return not GeneralUtilities.file_ends_with_newline(file)
 
     @staticmethod
     def append_line_to_file(file: str, line: str, encoding: str = "utf-8") -> None:
-        if not GeneralUtilities.file_is_empty(file):
+        if GeneralUtilities.file_ends_with_newline(file):
             line = os.linesep+line
         GeneralUtilities.append_to_file(file, line, encoding)
 
@@ -218,7 +241,7 @@ class GeneralUtilities:
         func(path)
 
     @staticmethod
-    def rmtree(directory:str)->None:
+    def rmtree(directory: str) -> None:
         shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)
 
     @staticmethod
@@ -280,7 +303,7 @@ class GeneralUtilities:
 
     @staticmethod
     def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
-        GeneralUtilities.write_text_to_file(file, os.linesep.join(lines), encoding)
+        GeneralUtilities.write_text_to_file(file, os.linesep.join(GeneralUtilities.strip_new_line_character(line) for line in lines), encoding)
 
     @staticmethod
     def write_text_to_file(file: str, content: str, encoding="utf-8") -> None:
@@ -293,7 +316,7 @@ class GeneralUtilities:
 
     @staticmethod
     def read_lines_from_file(file: str, encoding="utf-8") -> list[str]:
-        return GeneralUtilities.read_text_from_file(file, encoding).split(os.linesep)
+        return [GeneralUtilities.strip_new_line_character(line) for line in GeneralUtilities.read_text_from_file(file, encoding).split(os.linesep)]
 
     @staticmethod
     def read_text_from_file(file: str, encoding="utf-8") -> str:
@@ -573,6 +596,7 @@ class GeneralUtilities:
     def assert_condition(condition: bool, information: str):
         if(not condition):
             raise ValueError("Condition failed. "+information)
+
 
 class GitUtilities:
     pass
