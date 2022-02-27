@@ -71,6 +71,7 @@ def create_wheel_file():
                 f"SCGenerateSnkFiles = {executables_namespace}:GenerateSnkFiles",
                 f"SCGenerateThumbnail = {executables_namespace}:GenerateThumbnail",
                 f"SCHardening = {executables_namespace}:Hardening",
+                f"SCHealthcheck = {executables_namespace}:Healthcheck",
                 f"SCKeyboardDiagnosis = {executables_namespace}:KeyboardDiagnosis",
                 f"SCMergePDFs = {executables_namespace}:MergePDFs",
                 f"SCObfuscateFilesFolder = {executables_namespace}:ObfuscateFilesFolder",
