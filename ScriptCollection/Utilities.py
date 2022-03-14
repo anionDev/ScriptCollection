@@ -23,12 +23,12 @@ class GeneralUtilities:
         if(string is not None):
             lines = list()
             if("\n" in string):
-                lines = string.splitlines()
+                lines = string.split("\n")
             else:
                 lines.append(string)
         for rawline in lines:
             if adapt_lines:
-                line = rawline.replace("\r", "\n").strip()
+                line = rawline.replace("\r", "").strip()
             else:
                 line = rawline
             if GeneralUtilities.string_is_none_or_whitespace(line):
