@@ -64,7 +64,8 @@ class ScriptCollectionCore:
             commitid = self.git_get_current_commit_id(repository, trgbranch)
 
             if(commitid == self.git_get_current_commit_id(repository, srcbranch)):
-                GeneralUtilities.write_message_to_stderr(f"Can not create release because the main-branch and the development-branch are on the same commit (commit-id: {commitid})")
+                GeneralUtilities.write_message_to_stderr(
+                    f"Can not create release because the main-branch and the development-branch are on the same commit (commit-id: {commitid})")
                 return 1
 
             self.git_checkout(repository, srcbranch)
@@ -192,11 +193,11 @@ class ScriptCollectionCore:
                 self.git_create_tag(repository, commit_id,
                                     tag, self.get_boolean_value_from_configuration(configparser, 'other', 'signtags', current_release_information), tag_message)
                 self.__push_branch_of_release(configparser, current_release_information, repository,
-                    self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepositorysourcebranch', current_release_information),
-                    self.get_item_from_configuration(configparser, 'prepare', 'sourcebranchname', current_release_information))
+                                              self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepositorysourcebranch', current_release_information),
+                                              self.get_item_from_configuration(configparser, 'prepare', 'sourcebranchname', current_release_information))
                 self.__push_branch_of_release(configparser, current_release_information, repository,
-                    self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepositorytargetbranch', current_release_information),
-                    self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information))
+                                              self.get_boolean_value_from_configuration(configparser, 'other', 'exportrepositorytargetbranch', current_release_information),
+                                              self.get_item_from_configuration(configparser, 'prepare', 'targetbranchname', current_release_information))
                 GeneralUtilities.write_message_to_stdout("Creating release was successful")
                 return 0
 
@@ -204,10 +205,10 @@ class ScriptCollectionCore:
             GeneralUtilities.write_exception_to_stderr_with_traceback(e, traceback, f"Fatal error occurred while creating release defined by '{configurationfile}'.")
             return 1
 
-    def __push_branch_of_release(self,configparser:ConfigParser,current_release_information: dict[str, str],repository:str, export:bool, branch:str):
+    def __push_branch_of_release(self, configparser: ConfigParser, current_release_information: dict[str, str], repository: str, export: bool, branch: str):
         if export:
             self.git_push(repository, self.get_item_from_configuration(configparser, 'other',
-                            'exportrepositoryremotename', current_release_information), branch, branch, False, True)
+                                                                       'exportrepositoryremotename', current_release_information), branch, branch, False, True)
 
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -829,20 +830,17 @@ class ScriptCollectionCore:
                                                               prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\r', '').replace('\n', '')
 
-    def git_clone_if_not_already_done(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
-        original_cwd = os.getcwd()
-        args = ["clone", remote_repository_path]
-        try:
-            if(not os.path.isdir(clone_target_folder)):
-                if include_submodules:
-                    args.append("--recurse-submodules")
-                    args.append("--remote-submodules")
-                if mirror:
-                    args.append("--mirror")
-                GeneralUtilities.ensure_directory_exists(clone_target_folder)
-                self.start_program_synchronously_argsasarray("git", args, clone_target_folder, throw_exception_if_exitcode_is_not_zero=True)
-        finally:
-            os.chdir(original_cwd)
+    def git_clone(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
+        if(os.path.isdir(clone_target_folder)):
+            pass  # TODO throw error
+        else:
+            args = ["clone", remote_repository_path, clone_target_folder]
+            if include_submodules:
+                args.append("--recurse-submodules")
+                args.append("--remote-submodules")
+            if mirror:
+                args.append("--mirror")
+            self.start_program_synchronously_argsasarray("git", args, throw_exception_if_exitcode_is_not_zero=True)
 
     def git_get_all_remote_names(self, directory) -> list[str]:
         lines = self.start_program_synchronously_argsasarray("git", ["remote"], directory, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)[1]
@@ -969,6 +967,23 @@ class ScriptCollectionCore:
             return True
         else:
             return False
+
+    def git_fetch_or_clone_all_in_directory(self, source_directory: str, target_directory: str) -> None:
+        for subfolder in GeneralUtilities.get_direct_folders_of_folder(source_directory):
+            foldername = os.path.basename(subfolder)
+            if self.is_git_repository(subfolder):
+                source_repository = subfolder
+                target_repository = os.path.join(target_directory, foldername)
+                if os.path.isdir(target_directory):
+                    # fetch
+                    self.git_fetch(target_directory)
+                else:
+                    # clone
+                    self.git_clone(target_repository, source_repository, include_submodules=True, mirror=True)
+
+    def is_git_repository(self, folder: str) -> bool:
+        combined = os.path.join(folder, ".git")
+        return os.path.isdir(combined) or os.path.isfile(combined)
 
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
         exit_code = self.start_program_synchronously_argsasarray("git", ['check-ignore', file_in_repository],
@@ -1572,10 +1587,10 @@ class ScriptCollectionCore:
         return False
 
     def SCHealthcheck(self, file: str) -> int:
-        lines=GeneralUtilities.read_lines_from_file(file)
+        lines = GeneralUtilities.read_lines_from_file(file)
         for line in reversed(lines):
             if not GeneralUtilities.string_is_none_or_whitespace(line):
-                if "RunningHealthy (" in line:# TODO use regex
+                if "RunningHealthy (" in line:  # TODO use regex
                     GeneralUtilities.write_message_to_stderr(f"Healthy running due to line '{line}' in file '{file}'.")
                     return 0
                 else:
@@ -1583,7 +1598,6 @@ class ScriptCollectionCore:
                     return 1
         GeneralUtilities.write_message_to_stderr(f"No valid line found for healthycheck in file '{file}'.")
         return 2
-
 
     def SCObfuscateFilesFolder(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"

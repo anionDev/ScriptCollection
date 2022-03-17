@@ -598,7 +598,3 @@ class GeneralUtilities:
     def assert_condition(condition: bool, information: str):
         if(not condition):
             raise ValueError("Condition failed. "+information)
-
-
-class GitUtilities:
-    pass
