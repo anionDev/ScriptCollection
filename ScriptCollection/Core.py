@@ -31,8 +31,11 @@ __version__ = version
 
 class ScriptCollectionCore:
 
-    mock_program_calls: bool = False  # This property is for test-purposes only
-    execute_programy_really_if_no_mock_call_is_defined: bool = False  # This property is for test-purposes only
+    # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
+    # Do not change this value for productive environments.
+    mock_program_calls: bool = False
+    # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
+    execute_programy_really_if_no_mock_call_is_defined: bool = False
     __mocked_program_calls: list = list()
     __epew_is_available: bool = False
 
@@ -42,7 +45,6 @@ class ScriptCollectionCore:
     @staticmethod
     def get_scriptcollection_version() -> str:
         return __version__
-    # <Build>
 
     # TODO use typechecks everywhere like discussed here https://stackoverflow.com/questions/19684434/best-way-to-check-function-arguments/37961120
     def create_release(self, configurationfile: str) -> int:
@@ -69,7 +71,7 @@ class ScriptCollectionCore:
                 return 1
 
             self.git_checkout(repository, srcbranch)
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("git", "clean -dfx", repository)
+            self.start_program_synchronously("git", "clean -dfx", repository)
             self.__calculate_version(configparser, current_release_information)
             repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
@@ -348,8 +350,7 @@ class ScriptCollectionCore:
         nuspecfile = os.path.join(publishdirectory, nuspecfilename)
         with open(nuspecfile, encoding="utf-8", mode="w") as file_object:
             file_object.write(nuspec_content)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("nuget", f"pack {nuspecfilename}", publishdirectory, 3600,
-                                                                  self.__get_verbosity_for_exuecutor(configparser))
+        self.start_program_synchronously("nuget", f"pack {nuspecfilename}", publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
     def dotnet_nuget_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -367,14 +368,14 @@ class ScriptCollectionCore:
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory', current_release_information)
         latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname', current_release_information)+"."+repository_version+".nupkg"
         for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets', current_release_information):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",
-                                                                      publishdirectory, 3600,  self.__get_verbosity_for_exuecutor(configparser))
+            self.start_program_synchronously("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",
+                                             publishdirectory,  self.__get_verbosity_for_exuecutor(configparser))
         if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile', current_release_information)):
             with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile', current_release_information), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
             nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource', current_release_information)
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {nugetsource} --api-key {api_key}",
-                                                                      publishdirectory, 3600, self.__get_verbosity_for_exuecutor(configparser))
+            self.start_program_synchronously("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {nugetsource} --api-key {api_key}",
+                                             publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
     def dotnet_reference(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -400,17 +401,16 @@ class ScriptCollectionCore:
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile', current_release_information)
             docfx_folder = os.path.dirname(docfx_file)
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("docfx",
-                                                                      f'"{os.path.basename(docfx_file)}" --loglevel {verbose_argument_for_docfx}', docfx_folder, 3600, verbosity)
+            self.start_program_synchronously("docfx", f'"{os.path.basename(docfx_file)}" --loglevel {verbose_argument_for_docfx}',
+                                             docfx_folder, verbosity)
             coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder', current_release_information)
             GeneralUtilities.ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self.__get_coverage_filename(configparser, current_release_information)
             shutil.copyfile(self.__get_test_csprojfile_folder(configparser, current_release_information)+os.path.sep +
                             self.__get_coverage_filename(configparser, current_release_information), coverage_target_file)
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("reportgenerator",
-                                                                      f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'
-                                                                      f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
-                                                                      coveragefolder, 3600, verbosity)
+            self.start_program_synchronously("reportgenerator",  f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'
+                                             f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
+                                             coveragefolder, verbosity)
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference', current_release_information):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information),
@@ -442,7 +442,7 @@ class ScriptCollectionCore:
         argument = argument + f' --runtime {runtimeId}'
         argument = argument + f' --verbosity {verbose_argument_for_dotnet}'
         argument = argument + f' --output "{outputDirectory}"'
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'build {argument}', folderOfCsprojFile, 3600, verbosity, False, "Build")
+        self.start_program_synchronously("dotnet", f'build {argument}', folderOfCsprojFile, verbosity, addLogOverhead=False, title="Build")
         if(filesToSign is not None):
             for fileToSign in filesToSign:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
@@ -465,8 +465,8 @@ class ScriptCollectionCore:
         testargument = f"test {csproj} -c {testbuildconfig}" \
             f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefilename}" \
             f" /p:CoverletOutputFormat=opencover"
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", testargument, self.__get_test_csprojfile_folder(configparser, current_release_information),
-                                                                  3600, verbosity, False, "Execute tests")
+        self.start_program_synchronously("dotnet", testargument, self.__get_test_csprojfile_folder(configparser, current_release_information),
+                                         verbosity, False, "Execute tests")
         root = etree.parse(self.__get_test_csprojfile_folder(configparser, current_release_information)+os.path.sep+coveragefilename)
         coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
         module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
@@ -499,12 +499,12 @@ class ScriptCollectionCore:
             extension = "exe"
         else:
             raise Exception("Only .dll-files and .exe-files can be signed")
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("ildasm",
-                                                                  f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
-                                                                  directory, 3600, verbosity, False, "Sign: ildasm")
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("ilasm",
-                                                                  f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
-                                                                  directory, 3600, verbosity, False, "Sign: ilasm")
+        self.start_program_synchronously("ildasm",
+                                         f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
+                                         directory,  verbosity, False, "Sign: ildasm")
+        self.start_program_synchronously("ilasm",
+                                         f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
+                                         directory,  verbosity, False, "Sign: ilasm")
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
@@ -562,9 +562,9 @@ class ScriptCollectionCore:
             for tag in tags:
                 argument = f"{argument} --tag {tag}"
             argument = f"{argument} --file {dockerfile_filename} ."
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", argument,
-                                                                      contextfolder,  print_errors_as_information=True,
-                                                                      verbosity=self.__get_verbosity_for_exuecutor(configparser))
+            self.start_program_synchronously("docker", argument,
+                                             contextfolder,  print_errors_as_information=True,
+                                             verbosity=self.__get_verbosity_for_exuecutor(configparser))
 
     def docker_create_image_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -585,17 +585,17 @@ class ScriptCollectionCore:
 
         # push to registry
         for tag in current_release_information["builtin.docker.tags_for_push"]:
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"push {tag}",
-                                                                      print_errors_as_information=True,
-                                                                      verbosity=self.__get_verbosity_for_exuecutor(configparser))
+            self.start_program_synchronously("docker", f"push {tag}",
+                                             print_errors_as_information=True,
+                                             verbosity=self.__get_verbosity_for_exuecutor(configparser))
 
         # remove local stored images:
         if self.get_boolean_value_from_configuration(configparser, "docker", "removenewcreatedlocalimagesafterexport", current_release_information):
             for environment in current_release_information["builtin.docker.tags_by_environment"]:
                 for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
-                    self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"image rm {tag}",
-                                                                              print_errors_as_information=True,
-                                                                              verbosity=verbosity)
+                    self.start_program_synchronously("docker", f"image rm {tag}",
+                                                     print_errors_as_information=True,
+                                                     verbosity=verbosity)
 
     def __export_tag_to_file(self, tag: str, artefactdirectory: str, overwriteexistingfilesinartefactdirectory: bool, verbosity: int) -> None:
         if tag.endswith(":latest"):
@@ -610,9 +610,9 @@ class ScriptCollectionCore:
             else:
                 raise Exception(f"File '{targetfile}' does already exist")
 
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("docker", f"save -o {targetfile} {tag}",
-                                                                  print_errors_as_information=True,
-                                                                  verbosity=verbosity)
+        self.start_program_synchronously("docker", f"save -o {targetfile} {tag}",
+                                         print_errors_as_information=True,
+                                         verbosity=verbosity)
 
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         pass
@@ -637,18 +637,18 @@ class ScriptCollectionCore:
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'premerge_program', current_release_information)):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'premerge_program', current_release_information),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_argument', current_release_information),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory', current_release_information))
+            self.start_program_synchronously(self.get_item_from_configuration(configparser, 'script', 'premerge_program', current_release_information),
+                                             self.get_item_from_configuration(configparser, 'script', 'premerge_argument', current_release_information),
+                                             self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory', current_release_information))
 
     def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'postmerge_program', current_release_information)):
-            self.execute_and_raise_exception_if_exit_code_is_not_zero(self.get_item_from_configuration(configparser, 'script', 'postmerge_program', current_release_information),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_argument', current_release_information),
-                                                                      self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory', current_release_information))
+            self.start_program_synchronously(self.get_item_from_configuration(configparser, 'script', 'postmerge_program', current_release_information),
+                                             self.get_item_from_configuration(configparser, 'script', 'postmerge_argument', current_release_information),
+                                             self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory', current_release_information))
 
     def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -707,9 +707,9 @@ class ScriptCollectionCore:
         setuppyfilefolder = os.path.dirname(setuppyfile)
         publishdirectoryforwhlfile = self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile", current_release_information)
         GeneralUtilities.ensure_directory_exists(publishdirectoryforwhlfile)
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("python",
-                                                                  setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
-                                                                  setuppyfilefolder, 3600, self.__get_verbosity_for_exuecutor(configparser))
+        self.start_program_synchronously("python",
+                                         setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
+                                         setuppyfilefolder,  self.__get_verbosity_for_exuecutor(configparser))
 
     def python_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         # TODO check minimalrequiredtestcoverageinpercent and generate coverage report
@@ -719,8 +719,8 @@ class ScriptCollectionCore:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
             pythontestfilefolder = self.get_item_from_configuration(configparser, 'general', 'repository', current_release_information)
             # TODO set verbosity-level for pytest
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("pytest", "", pythontestfilefolder, 3600,
-                                                                      self.__get_verbosity_for_exuecutor(configparser), False, "Pytest")
+            self.start_program_synchronously("pytest", "", pythontestfilefolder,
+                                             self.__get_verbosity_for_exuecutor(configparser), False, "Pytest")
 
     def python_release_wheel(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -739,14 +739,10 @@ class ScriptCollectionCore:
                 verbose_argument = ""
             twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl" \
                 f" --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("twine", twine_argument,
-                                                                      self.get_item_from_configuration(
-                                                                          configparser, "python", "publishdirectoryforwhlfile", current_release_information),
-                                                                      3600, verbosity)
-
-    # </Build>
-
-    # <git>
+            self.start_program_synchronously("twine", twine_argument,
+                                             self.get_item_from_configuration(
+                                                 configparser, "python", "publishdirectoryforwhlfile", current_release_information),
+                                             verbosity)
 
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
         result = self.start_program_synchronously("git", f"verify-commit {revision_identifier}", repository_folder)
@@ -761,17 +757,17 @@ class ScriptCollectionCore:
         return True
 
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
-        return self.execute_and_raise_exception_if_exit_code_is_not_zero("git",
-                                                                         f'log --pretty=%P -n 1 "{commit_id}"',
-                                                                         repository_folder)[1].replace("\r", "").replace("\n", "").split(" ")
+        return self.start_program_synchronously("git",
+                                                f'log --pretty=%P -n 1 "{commit_id}"',
+                                                repository_folder)[1].replace("\r", "").replace("\n", "").split(" ")
 
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = self.datetime_to_string_for_git(since)
         until_as_string = self.datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line),
-                        self.execute_and_raise_exception_if_exit_code_is_not_zero("git",
-                                                                                  f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
-                                                                                  repository_folder)[1].split("\n").replace("\r", ""))
+                        self.start_program_synchronously("git",
+                                                         f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
+                                                         repository_folder)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
@@ -1002,10 +998,6 @@ class ScriptCollectionCore:
         result = self.start_program_synchronously_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository,
                                                               timeoutInSeconds=100, verbosity=0, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace("\r", "").replace("\n", "")
-
-    # </git>
-
-    # <miscellaneous>
 
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
         folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(folder)
@@ -1243,18 +1235,18 @@ class ScriptCollectionCore:
 
     def __calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'
-        return float(self.execute_and_raise_exception_if_exit_code_is_not_zero("ffprobe", argument, folder)[1])
+        return float(self.start_program_synchronously("ffprobe", argument, folder)[1])
 
     def __create_thumbnails(self, filename: str, fps: float, folder: str, tempname_for_thumbnails: str) -> None:
         argument = f'-i "{filename}" -r {str(fps)} -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("ffmpeg", argument, folder)
+        self.start_program_synchronously("ffmpeg", argument, folder)
 
     def __create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails: str, amount_of_images: int) -> None:
         duration = timedelta(seconds=length_in_seconds)
         info = GeneralUtilities.timedelta_to_simple_string(duration)
         next_square_number = str(int(math.sqrt(GeneralUtilities.get_next_square_number(amount_of_images))))
         argument = f'-title "{outputfilename} ({info})" -geometry +{next_square_number}+{next_square_number} {tempname_for_thumbnails}*.png "{outputfilename}.png"'
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("montage", argument, folder)
+        self.start_program_synchronously("montage", argument, folder)
 
     def generate_thumbnail(self, file: str, frames_per_second: str, tempname_for_thumbnails: str = None) -> None:
         if tempname_for_thumbnails is None:
@@ -1391,7 +1383,7 @@ class ScriptCollectionCore:
         for _ in range(amountofkeys):
             file = os.path.join(outputfolder, str(uuid.uuid4())+".snk")
             argument = f"-k {keysize} {file}"
-            self.execute_and_raise_exception_if_exit_code_is_not_zero("sn", argument, outputfolder)
+            self.start_program_synchronously("sn", argument, outputfolder)
 
     def __merge_files(self, sourcefile: str, targetfile: str) -> None:
         with open(sourcefile, "rb") as f:
@@ -1673,12 +1665,12 @@ class ScriptCollectionCore:
         return (False, errors)
 
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'restore --disable-parallel --force --force-evaluate "{csproj_file}"')
+        self.start_program_synchronously("dotnet", f'restore --disable-parallel --force --force-evaluate "{csproj_file}"')
         if only_outdated_packages:
             only_outdated_packages_argument = " --outdated"
         else:
             only_outdated_packages_argument = ""
-        stdout = self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'list "{csproj_file}" package{only_outdated_packages_argument}')[1]
+        stdout = self.start_program_synchronously("dotnet", f'list "{csproj_file}" package{only_outdated_packages_argument}')[1]
         result = []
         for line in stdout.splitlines():
             trimmed_line = line.replace("\t", "").strip()
@@ -1687,7 +1679,7 @@ class ScriptCollectionCore:
         return result
 
     def update_nuget_package(self, csproj_file: str, name: str) -> None:
-        self.execute_and_raise_exception_if_exit_code_is_not_zero("dotnet", f'add "{csproj_file}" package {name}')
+        self.start_program_synchronously("dotnet", f'add "{csproj_file}" package {name}')
 
     def get_file_permission(self, file: str) -> str:
         """This function returns an usual octet-triple, for example "0700"."""
@@ -1785,15 +1777,6 @@ class ScriptCollectionCore:
         return self.__start_process_asynchronously_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
                                                                log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
 
-    def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
-                                                             timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
-                                                             print_errors_as_information: bool = False, log_file: str = None, prevent_using_epew: bool = False,
-                                                             log_namespace: str = "", arguments_for_log: str = None) -> None:
-        # TODO remove this function
-        return self.start_program_synchronously(program, arguments, workingdirectory, verbosity,
-                                                print_errors_as_information, log_file, timeoutInSeconds,
-                                                addLogOverhead, title, True, prevent_using_epew, log_namespace, arguments_for_log)
-
     def __start_internal_for_helper(self, program: str, arguments: list, workingdirectory: str = None, arguments_for_log: list = None):
         return self.start_program_synchronously_argsasarray(program, arguments,
                                                             workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True,
@@ -1881,7 +1864,8 @@ class ScriptCollectionCore:
 
         return result
 
-    def __format_program_execution_information(self, exitcode: int = None,  stdout: str = None, stderr: str = None, program: str = None, argument: str = None, workingdirectory: str = None, title: str = None, pid: int = None, execution_duration: timedelta = None):
+    def __format_program_execution_information(self, exitcode: int = None,  stdout: str = None, stderr: str = None, program: str = None, argument: str = None,
+                                               workingdirectory: str = None, title: str = None, pid: int = None, execution_duration: timedelta = None):
         result = ""
         if(exitcode is not None and stdout is not None and stderr is not None):
             result = f"{result} Exitcode: {exitcode}; StdOut: '{stdout}'; StdErr: '{stderr}'"
@@ -2028,7 +2012,7 @@ class ScriptCollectionCore:
             argument = f"{argument} -p\"{password}\""
         argument = f"{argument} -o {output_directory}"
         argument = f"{argument} {file_name}"
-        return self.execute_and_raise_exception_if_exit_code_is_not_zero(unzip_program_file, argument, file_folder)
+        return self.start_program_synchronously(unzip_program_file, argument, file_folder)
 
     def get_internet_time(self) -> datetime:
         response = ntplib.NTPClient().request('pool.ntp.org')
@@ -2054,7 +2038,7 @@ class ScriptCollectionCore:
         return self.get_version_from_gitversion(folder, "MajorMinorPatch")
 
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
-        # called twice as workaround for bug in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
+        # called twice as workaround for issue 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
         result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
@@ -2062,5 +2046,3 @@ class ScriptCollectionCore:
     def export_released_file_and_commit(self, whl_file_with_path: str, target_file: str, targetfolder_repository: str, product_name: str, version_of_release: str):
         copyfile(whl_file_with_path, target_file)
         self.git_commit(targetfolder_repository, f"Added {product_name} v{version_of_release}")
-
-    # </miscellaneous>
