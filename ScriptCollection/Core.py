@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, time
 import base64
 import binascii
 from configparser import ConfigParser
@@ -1757,13 +1757,9 @@ class ScriptCollectionCore:
         else:
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
-    def __log_program_start(self, program: str, arguments: str, workingdirectory: str, verbosity: int = 1) -> None:
-        if(verbosity == 2):
-            GeneralUtilities.write_message_to_stdout(f"Start '{workingdirectory}>{program} {arguments}'")
-
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "") -> int:
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> int:
         workingdirectory = self.__adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
@@ -1771,13 +1767,14 @@ class ScriptCollectionCore:
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
-        return self.__start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
-                                    log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
+        return self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
+                                                   log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
 
     def start_program_asynchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
                                                  print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
-                                                 title: str = None, log_namespace: str = "") -> int:
+                                                 title: str = None, log_namespace: str = "", arguments_for_log:  list = None) -> int:
         arguments = ' '.join(argument_list)
+        arguments_for_log = ' '.join(argument_list)
         workingdirectory = self.__adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
@@ -1785,37 +1782,42 @@ class ScriptCollectionCore:
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
-        return self.__start_process_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
-                                                log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None)
+        return self.__start_process_asynchronously_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
+                                                               log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
 
     def execute_and_raise_exception_if_exit_code_is_not_zero(self, program: str, arguments: str = "", workingdirectory: str = "",
                                                              timeoutInSeconds: int = 3600, verbosity: int = 1, addLogOverhead: bool = False, title: str = None,
                                                              print_errors_as_information: bool = False, log_file: str = None, prevent_using_epew: bool = False,
-                                                             log_namespace: str = "") -> None:
+                                                             log_namespace: str = "", arguments_for_log: str = None) -> None:
         # TODO remove this function
         return self.start_program_synchronously(program, arguments, workingdirectory, verbosity,
                                                 print_errors_as_information, log_file, timeoutInSeconds,
-                                                addLogOverhead, title, True, prevent_using_epew, log_namespace)
+                                                addLogOverhead, title, True, prevent_using_epew, log_namespace, arguments_for_log)
 
-    def __start_internal_for_helper(self, program: str, arguments: list, workingdirectory: str = None):
+    def __start_internal_for_helper(self, program: str, arguments: list, workingdirectory: str = None, arguments_for_log: list = None):
         return self.start_program_synchronously_argsasarray(program, arguments,
-                                                            workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
+                                                            workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True,
+                                                            prevent_using_epew=True, argument_list_for_log=arguments_for_log)
 
     def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
                                     throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
-                                    log_namespace: str = ""):
+                                    log_namespace: str = "", arguments_for_log: str = None):
         return self.start_program_synchronously_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), workingdirectory, verbosity, print_errors_as_information,
                                                             log_file, timeoutInSeconds, addLogOverhead, title,
-                                                            throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace)
+                                                            throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace, GeneralUtilities.arguments_to_array(arguments_for_log))
 
     def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
                                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                                 addLogOverhead: bool = False, title: str = None,
                                                 throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
-                                                log_namespace: str = ""):
+                                                log_namespace: str = "", argument_list_for_log: list = None):
         arguments = ' '.join(argument_list)
+        if argument_list_for_log is None:
+            arguments_for_log = ' '.join(argument_list_for_log)
+        else:
+            arguments_for_log = ' '.join(argument_list)
         workingdirectory = self.__adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
@@ -1823,17 +1825,19 @@ class ScriptCollectionCore:
             except LookupError:
                 if not self.execute_programy_really_if_no_mock_call_is_defined:
                     raise
-        cmd = f'{workingdirectory}>{program} {arguments}'
+        cmd = f'{workingdirectory}>{program} {arguments_for_log}'
         if (self.__epew_is_available and not prevent_using_epew):
             tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
             output_file_for_stdout = tempdir + ".epew.stdout.txt"
             output_file_for_stderr = tempdir + ".epew.stderr.txt"
             output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
             output_file_for_pid = tempdir + ".epew.pid.txt"
-            process = self.__start_process(program, arguments, workingdirectory, verbosity, print_errors_as_information,
-                                           log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr,
-                                           output_file_for_pid, output_file_for_exit_code)
+            start_datetime = time()
+            process = self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
+                                                          log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr,
+                                                          output_file_for_pid, output_file_for_exit_code)
             process.wait()
+            end_datetime = time()
             stdout = self.__load_text(output_file_for_stdout)
             stderr = self.__load_text(output_file_for_stderr)
             exit_code = self.__get_number_from_filecontent(self.__load_text(output_file_for_exit_code))
@@ -1852,44 +1856,70 @@ class ScriptCollectionCore:
                 title_local = title
             arguments_for_process = [program]
             arguments_for_process.extend(argument_list)
+            start_datetime = time()
             with Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False) as process:
                 pid = process.pid
                 stdout, stderr = process.communicate()
                 exit_code = process.wait()
+                end_datetime = time()
                 stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
                 stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
                 result = (exit_code, stdout, stderr, pid)
-        if verbosity == 3:
-            GeneralUtilities.write_message_to_stdout(f"Finished executing '{title_local}' with exitcode {str(exit_code)}")
-        if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-            raise Exception(f"'{title_local}' had exitcode {str(exit_code)}. (StdOut: '{stdout}'; StdErr: '{stderr}')")
+
+        duration: timedelta = end_datetime-start_datetime
+
+        if verbosity < 3:
+            formatted = self.__format_program_execution_information(title=title_local, program=program, argument=arguments_for_log, workingdirectory=workingdirectory)
         else:
-            return result
+            formatted = self.__format_program_execution_information(exit_code, stdout, stderr, program, arguments_for_log, workingdirectory, title_local, pid, duration)
+        summary = f"Finished program execution. Details: '{formatted}"
 
-    def __start_process_argsasarray(self, program: str, argument_list: str, workingdirectory: str = None, verbosity: int = 1,
-                                    print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
-                                    addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
-                                    stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
-        return self.__start_process(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
-                                    timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile)
+        if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+            raise Exception(summary)
+        if verbosity == 3:
+            GeneralUtilities.write_message_to_stdout(summary)
 
-    def __start_process(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
-                        print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
-                        addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
-                        stderrfile: str = None, pidfile: str = None, exitcodefile: str = None):
+        return result
+
+    def __format_program_execution_information(self, exitcode: int = None,  stdout: str = None, stderr: str = None, program: str = None, argument: str = None, workingdirectory: str = None, title: str = None, pid: int = None, execution_duration: timedelta = None):
+        result = ""
+        if(exitcode is not None and stdout is not None and stderr is not None):
+            result = f"{result} Exitcode: {exitcode}; StdOut: '{stdout}'; StdErr: '{stderr}'"
+        if(pid is not None):
+            result = f"Pid: '{pid}'; {result}"
+        if(program is not None and argument is not None and workingdirectory is not None):
+            result = f"Command: '{workingdirectory}> {program} {argument}'; {result}"
+        if(execution_duration is not None):
+            result = f"{result}; Duration: '{str(execution_duration)}'"
+        if(title is not None):
+            result = f"Title: '{title}'; {result}"
+        return result.strip()
+
+    def __start_process_asynchronously_argsasarray(self, program: str, argument_list: list, workingdirectory: str = None, verbosity: int = 1,
+                                                   print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                                                   addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
+                                                   stderrfile: str = None, pidfile: str = None, exitcodefile: str = None, arguments_for_log:  list = None):
+        return self.__start_process_asynchronously(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
+                                                   timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile, ' '.join(arguments_for_log))
+
+    def __start_process_asynchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
+                                       print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
+                                       addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
+                                       stderrfile: str = None, pidfile: str = None, exitcodefile: str = None, arguments_for_log:  str = None):
         workingdirectory = self.__adapt_workingdirectory(workingdirectory)
-        cmd = f'{workingdirectory}>{program} {arguments}'
         if(arguments is None):
             arguments = ""
+        if arguments_for_log is None:
+            arguments_for_log = arguments
+        cmd = f'{workingdirectory}>{program} {arguments_for_log}'
         if GeneralUtilities.string_is_none_or_whitespace(title):
             title = ""
             title_for_message = ""
             title_argument = cmd
         title_for_message = f"for task '{title}' "
         title_argument = title
-        self.__log_program_start(program, arguments, workingdirectory, verbosity)
         title_argument = title_argument.replace("\"", "'").replace("\\", "/")
-        cmdcall = f"{workingdirectory}>{program} {arguments}"
+        cmdcall = f"{workingdirectory}>{program} {arguments_for_log}"
         if verbosity >= 1:
             GeneralUtilities.write_message_to_stdout("Run "+cmdcall)
         title_local = f"epew {title_for_message}('{cmdcall}')"
