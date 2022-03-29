@@ -1815,12 +1815,12 @@ class ScriptCollectionCore:
             output_file_for_stderr = tempdir + ".epew.stderr.txt"
             output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
             output_file_for_pid = tempdir + ".epew.pid.txt"
-            start_datetime = time()
+            start_datetime = datetime.utcnow()
             process = self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                                           log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr,
                                                           output_file_for_pid, output_file_for_exit_code)
             process.wait()
-            end_datetime = time()
+            end_datetime = datetime.utcnow()
             stdout = self.__load_text(output_file_for_stdout)
             stderr = self.__load_text(output_file_for_stderr)
             exit_code = self.__get_number_from_filecontent(self.__load_text(output_file_for_exit_code))
@@ -1839,12 +1839,12 @@ class ScriptCollectionCore:
                 title_local = title
             arguments_for_process = [program]
             arguments_for_process.extend(argument_list)
-            start_datetime = time()
+            start_datetime = datetime.utcnow()
             with Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=workingdirectory, shell=False) as process:
                 pid = process.pid
                 stdout, stderr = process.communicate()
                 exit_code = process.wait()
-                end_datetime = time()
+                end_datetime = datetime.utcnow()
                 stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
                 stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
                 result = (exit_code, stdout, stderr, pid)

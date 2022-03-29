@@ -442,7 +442,11 @@ class GeneralUtilities:
 
     @staticmethod
     def arguments_to_array(arguments_as_string: str) -> list[str]:
-        return arguments_as_string.split(" ")  # TODO this function should get improved to allow whitespaces in quote-substrings
+        if GeneralUtilities.string_has_content(arguments_as_string):
+            return arguments_as_string.split(" ")  # TODO this function should get improved to allow whitespaces in quote-substrings
+        else:
+            return []
+
 
     @staticmethod
     def get_sha256_of_file(file: str) -> str:
