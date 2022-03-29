@@ -23,12 +23,12 @@ class GeneralUtilities:
         if(string is not None):
             lines = list()
             if("\n" in string):
-                lines = string.splitlines()
+                lines = string.split("\n")
             else:
                 lines.append(string)
         for rawline in lines:
             if adapt_lines:
-                line = rawline.replace("\r", "\n").strip()
+                line = rawline.replace("\r", "").strip()
             else:
                 line = rawline
             if GeneralUtilities.string_is_none_or_whitespace(line):
@@ -442,7 +442,11 @@ class GeneralUtilities:
 
     @staticmethod
     def arguments_to_array(arguments_as_string: str) -> list[str]:
-        return arguments_as_string.split(" ")  # TODO this function should get improved to allow whitespaces in quote-substrings
+        if GeneralUtilities.string_has_content(arguments_as_string):
+            return arguments_as_string.split(" ")  # TODO this function should get improved to allow whitespaces in quote-substrings
+        else:
+            return []
+
 
     @staticmethod
     def get_sha256_of_file(file: str) -> str:
@@ -598,7 +602,3 @@ class GeneralUtilities:
     def assert_condition(condition: bool, information: str):
         if(not condition):
             raise ValueError("Condition failed. "+information)
-
-
-class GitUtilities:
-    pass

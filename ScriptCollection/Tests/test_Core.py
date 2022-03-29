@@ -305,7 +305,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # assert
         assert exit_code == 0
 
-    def test_simple_program_call_prevent_argsasarray_wiith_folder(self) -> None:
+    def test_simple_program_call_prevent_argsasarray_with_folder(self) -> None:
         try:
             # arrange
             sc = ScriptCollectionCore()

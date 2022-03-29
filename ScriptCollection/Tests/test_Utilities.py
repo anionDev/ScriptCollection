@@ -1,16 +1,21 @@
 import os
 import unittest
 from ..Utilities import GeneralUtilities
-from ..Core import ScriptCollectionCore
+
 
 class GeneralUtilitiesTests(unittest.TestCase):
     testfileprefix = "testfile_"
 
-    def test_dummy3(self)->None:
-        sc=ScriptCollectionCore()
-        sc.register_mock_program_call("test","","",0,"","",0,0)
-        GeneralUtilities.string_is_none_or_whitespace("")
-        assert True# TODO implement real tests
+    def test_string_to_lines(self) -> None:
+        # arrange
+        test_string = "a\r\nb\n"
+        expected = ["a", "b", ""]
+
+        # act
+        actual = GeneralUtilities.string_to_lines(test_string)
+
+        # assert
+        assert actual == expected
 
     def test_string_is_none_or_whitespace(self) -> None:
         assert GeneralUtilities.string_is_none_or_whitespace(None)
