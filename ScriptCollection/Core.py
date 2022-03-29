@@ -1798,9 +1798,9 @@ class ScriptCollectionCore:
                                                 log_namespace: str = "", argument_list_for_log: list = None):
         arguments = ' '.join(argument_list)
         if argument_list_for_log is None:
-            arguments_for_log = ' '.join(argument_list_for_log)
-        else:
             arguments_for_log = ' '.join(argument_list)
+        else:
+            arguments_for_log = ' '.join(argument_list_for_log)
         workingdirectory = self.__adapt_workingdirectory(workingdirectory)
         if self.mock_program_calls:
             try:
