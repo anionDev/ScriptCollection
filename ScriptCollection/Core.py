@@ -16,6 +16,7 @@ import shutil
 from subprocess import PIPE, Popen, call
 import tempfile
 import traceback
+from typing import Callable
 import uuid
 import ntplib
 from lxml import etree
@@ -24,7 +25,7 @@ import send2trash
 from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
 from .GitRunnerBase import GitRunnerBase
-from .DefaultGitRunner import DefaultGitRunner
+from .GenericGitRunner import GenericGitRunner
 
 version = "2.7.9"
 __version__ = version
@@ -43,7 +44,17 @@ class ScriptCollectionCore:
 
     def __init__(self):
         self.__epew_is_available = GeneralUtilities.epew_is_available()
-        self.git_runner = DefaultGitRunner(self)
+        self.git_runner = GenericGitRunner(ScriptCollectionCore.default_git_runner, [self])
+
+    git_command_runner_function: Callable[[list[str], str, bool], list[int, str, str, int]] = None
+
+    @staticmethod
+    def default_git_runner(arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool, custom_arguments:
+                           list[object]) -> list[int, str, str, int]:
+        sc: ScriptCollectionCore = custom_arguments[0]
+        return sc.start_program_synchronously_argsasarray("git", arguments_as_array, working_directory,
+                                                          timeoutInSeconds=3600, verbosity=0,  prevent_using_epew=True,
+                                                          throw_exception_if_exitcode_is_not_zero=throw_exception_if_exitcode_is_not_zero)
 
     @staticmethod
     def get_scriptcollection_version() -> str:
