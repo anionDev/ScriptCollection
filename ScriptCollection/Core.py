@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime
-from typing import Callable
+from abc import abstractmethod
 import base64
 import binascii
 from configparser import ConfigParser
@@ -29,22 +29,33 @@ version = "2.7.9"
 __version__ = version
 
 
+class GitRunnerBase:
+    # Arguments of git_runner: scriptCollection, git-arguments, working-directory, throw_exception_if_exitcode_is_not_zero
+    # Return-values git_runner: Exitcode, StdOut, StdErr, Pid
+    @abstractmethod
+    def run_git(self, arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
+        raise NotImplementedError
+    # Arguments of git_runner: scriptCollection, git-arguments, working-directory, throw_exception_if_exitcode_is_not_zero
+    # Return-values git_runner: Exitcode, StdOut, StdErr, Pid
+
+    def run_git_argsasarray(self, arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
+        return self.run_git(GeneralUtilities.arguments_to_array(arguments_as_array), working_directory, throw_exception_if_exitcode_is_not_zero)
+
+
 class ScriptCollectionCore:
 
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     # Do not change this value for productive environments.
     mock_program_calls: bool = False
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
-    execute_programy_really_if_no_mock_call_is_defined: bool = False
+    execute_program_really_if_no_mock_call_is_defined: bool = False
     __mocked_program_calls: list = list()
     __epew_is_available: bool = False
-    # Arguments of git_runner: scriptCollection, git-arguments, working-directory, throw_exception_if_exitcode_is_not_zero
-    # Return-values git_runner: Exitcode, StdOut, StdErr, Pid
-    git_runner: Callable[[object, list[str], str, bool], tuple[int, str, str, int]] = None
+    git_runner: GitRunnerBase = None
 
     def __init__(self):
         self.__epew_is_available = GeneralUtilities.epew_is_available()
-        self.git_runner = ScriptCollectionCore.__default_git_runner
+        self.git_runner = DefaultGitRunner(self)
 
     @staticmethod
     def get_scriptcollection_version() -> str:
@@ -75,7 +86,7 @@ class ScriptCollectionCore:
                 return 1
 
             self.git_checkout(repository, srcbranch)
-            self.git_runner(self, "clean -dfx", repository, True)
+            self.git_runner.run_git_argsasarray("clean -dfx", repository, True)
             self.__calculate_version(configparser, current_release_information)
             repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
@@ -748,17 +759,8 @@ class ScriptCollectionCore:
                                                  configparser, "python", "publishdirectoryforwhlfile", current_release_information),
                                              verbosity)
 
-    @staticmethod
-    def __default_git_runner(sc, arguments_as_array, working_directory, throw_exception_if_exitcode_is_not_zero) -> None:
-        sc_typed: ScriptCollectionCore = sc
-        arguments_as_array_typed: list[str] = arguments_as_array
-        working_directory_typed: str = working_directory
-        return sc_typed.start_program_synchronously_argsasarray("git", arguments_as_array_typed, working_directory_typed,
-                                                                timeoutInSeconds=3600, verbosity=0,  prevent_using_epew=True,
-                                                                throw_exception_if_exitcode_is_not_zero=throw_exception_if_exitcode_is_not_zero)
-
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
-        result = self.git_runner(self, f"verify-commit {revision_identifier}", repository_folder, False)
+        result = self.git_runner.run_git_argsasarray(f"verify-commit {revision_identifier}", repository_folder, False)
         if(result[0] != 0):
             return False
         if(not GeneralUtilities.contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):
@@ -770,15 +772,15 @@ class ScriptCollectionCore:
         return True
 
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
-        return self.git_runner(self, f'log --pretty=%P -n 1 "{commit_id}"',
-                               repository_folder, True)[1].replace("\r", "").replace("\n", "").split(" ")
+        return self.git_runner.run_git_argsasarray(f'log --pretty=%P -n 1 "{commit_id}"',
+                                                   repository_folder, True)[1].replace("\r", "").replace("\n", "").split(" ")
 
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line),
-                        self.git_runner(self, f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
-                                        repository_folder, True)[1].split("\n").replace("\r", ""))
+                        self.git_runner.run_git_argsasarray(f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
+                                                            repository_folder, True)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
@@ -787,10 +789,10 @@ class ScriptCollectionCore:
         return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
 
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        return self.git_runner(self, ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, False)[0] == 0
+        return self.git_runner.run_git_argsasarray(["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, False)[0] == 0
 
     def __git_changes_helper(self, argument: list[str], repository_folder: str) -> bool:
-        lines = GeneralUtilities.string_to_lines(self.git_runner(self, repository_folder, argument, True)[1], False)
+        lines = GeneralUtilities.string_to_lines(self.git_runner.run_git_argsasarray(repository_folder, argument, True)[1], False)
         for line in lines:
             if GeneralUtilities.string_has_content(line):
                 return True
@@ -820,14 +822,14 @@ class ScriptCollectionCore:
         return False
 
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result = self.git_runner(self, ["rev-parse", "--verify", commit], repository_folder, True)[1]
+        result = self.git_runner.run_git_argsasarray(["rev-parse", "--verify", commit], repository_folder, True)[1]
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
-        self.git_runner(self, ["fetch", remotename, "--tags", "--prune"], folder, True)
+        self.git_runner.run_git_argsasarray(["fetch", remotename, "--tags", "--prune"], folder, True)
 
     def git_remove_branch(self, folder: str, branchname: str) -> None:
-        self.git_runner(self, f"branch -D {branchname}", folder, True)
+        self.git_runner.run_git_argsasarray(f"branch -D {branchname}", folder, True)
 
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
@@ -835,7 +837,7 @@ class ScriptCollectionCore:
             argument.append("--force")
         if (pushalltags):
             argument.append("--tags")
-        result: tuple[int, str, str, int] = self.git_runner(self, argument, folder, True)
+        result: tuple[int, str, str, int] = self.git_runner.run_git_argsasarray(argument, folder, True)
         return result[1].replace('\r', '').replace('\n', '')
 
     def git_clone(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
@@ -848,10 +850,10 @@ class ScriptCollectionCore:
                 args.append("--remote-submodules")
             if mirror:
                 args.append("--mirror")
-            self.git_runner(self, args, os.getcwd(), True)
+            self.git_runner.run_git_argsasarray(args, os.getcwd(), True)
 
     def git_get_all_remote_names(self, directory) -> list[str]:
-        result = GeneralUtilities.string_to_lines(self.git_runner(self, ["remote"], directory, True)[1], False)
+        result = GeneralUtilities.string_to_lines(self.git_runner.run_git_argsasarray(["remote"], directory, True)[1], False)
         return result
 
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
@@ -859,30 +861,30 @@ class ScriptCollectionCore:
 
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.git_runner(self, ['remote', 'set-url', 'remote_name', remote_address], directory, True)
+            self.git_runner.run_git_argsasarray(['remote', 'set-url', 'remote_name', remote_address], directory, True)
         else:
-            self.git_runner(self, ['remote', 'add', remote_name, remote_address], directory, True)
+            self.git_runner.run_git_argsasarray(['remote', 'add', remote_name, remote_address], directory, True)
 
     def git_stage_all_changes(self, directory: str) -> None:
-        self.git_runner(self, ["add", "-A"], directory, True)
+        self.git_runner.run_git_argsasarray(["add", "-A"], directory, True)
 
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.git_runner(self, ["reset"], directory, True)
+        self.git_runner.run_git_argsasarray(["reset"], directory, True)
 
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.git_runner(self, ['stage', file], directory, True)
+        self.git_runner.run_git_argsasarray(['stage', file], directory, True)
 
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.git_runner(self, ['reset', file], directory, True)
+        self.git_runner.run_git_argsasarray(['reset', file], directory, True)
 
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.git_runner(self, ['checkout', file], directory, True)
+        self.git_runner.run_git_argsasarray(['checkout', file], directory, True)
 
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.git_runner(self, ['clean', '-df'], directory, True)
-        self.git_runner(self, ['checkout', '.'], directory, True)
+        self.git_runner.run_git_argsasarray(['clean', '-df'], directory, True)
+        self.git_runner.run_git_argsasarray(['checkout', '.'], directory, True)
 
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
                    no_changes_behavior: int = 0) -> None:
@@ -913,7 +915,7 @@ class ScriptCollectionCore:
 
         if do_commit:
             GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'...")
-            self.git_runner(self, argument, directory, True)
+            self.git_runner.run_git_argsasarray(argument, directory, True)
 
         return self.git_get_current_commit_id(directory)
 
@@ -923,13 +925,13 @@ class ScriptCollectionCore:
             if message is None:
                 message = f"Created {target_for_tag}"
             argument.extend(["-s", "-m", message])
-        self.git_runner(self, argument, directory, True)
+        self.git_runner.run_git_argsasarray(argument, directory, True)
 
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.git_runner(self, ["checkout", branch], directory, True)
+        self.git_runner.run_git_argsasarray(["checkout", branch], directory, True)
 
     def git_merge_abort(self, directory: str) -> None:
-        self.git_runner(self, ["merge", "--abort"], directory, True)
+        self.git_runner.run_git_argsasarray(["merge", "--abort"], directory, True)
 
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
         self.git_checkout(directory, targetbranch)
@@ -939,7 +941,7 @@ class ScriptCollectionCore:
         if not fastforward:
             args.append("--no-ff")
         args.append(sourcebranch)
-        self.git_runner(self, args, directory, True)
+        self.git_runner.run_git_argsasarray(args, directory, True)
         return self.git_get_current_commit_id(directory)
 
     def git_undo_all_changes(self, directory: str) -> None:
@@ -976,7 +978,7 @@ class ScriptCollectionCore:
         return os.path.isdir(combined) or os.path.isfile(combined)
 
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
-        exit_code = self.git_runner(self, ['check-ignore', file_in_repository], repositorybasefolder, False)[0]
+        exit_code = self.git_runner.run_git_argsasarray(['check-ignore', file_in_repository], repositorybasefolder, False)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
@@ -984,11 +986,11 @@ class ScriptCollectionCore:
         raise Exception(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
     def discard_all_changes(self, repository: str) -> None:
-        self.git_runner(self, ["reset", "HEAD", "."], repository, True)
-        self.git_runner(self, ["checkout", "."], repository, True)
+        self.git_runner.run_git_argsasarray(["reset", "HEAD", "."], repository, True)
+        self.git_runner.run_git_argsasarray(["checkout", "."], repository, True)
 
     def git_get_current_branch_name(self, repository: str) -> str:
-        result = self.git_runner(self, ["rev-parse", "--abbrev-ref", "HEAD"], repository, True)
+        result = self.git_runner.run_git_argsasarray(["rev-parse", "--abbrev-ref", "HEAD"], repository, True)
         return result[1].replace("\r", "").replace("\n", "")
 
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
@@ -1749,7 +1751,7 @@ class ScriptCollectionCore:
             try:
                 return self.__get_mock_program_call(program, arguments, workingdirectory)[3]
             except LookupError:
-                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                if not self.execute_program_really_if_no_mock_call_is_defined:
                     raise
         return self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                                    log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
@@ -1764,7 +1766,7 @@ class ScriptCollectionCore:
             try:
                 return self.__get_mock_program_call(program, arguments, workingdirectory)[3]
             except LookupError:
-                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                if not self.execute_program_really_if_no_mock_call_is_defined:
                     raise
         return self.__start_process_asynchronously_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
                                                                log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
@@ -1798,7 +1800,7 @@ class ScriptCollectionCore:
             try:
                 return self.__get_mock_program_call(program, arguments, workingdirectory)
             except LookupError:
-                if not self.execute_programy_really_if_no_mock_call_is_defined:
+                if not self.execute_program_really_if_no_mock_call_is_defined:
                     raise
         cmd = f'{workingdirectory}>{program} {arguments_for_log}'
         if (self.__epew_is_available and not prevent_using_epew):
@@ -2038,3 +2040,15 @@ class ScriptCollectionCore:
     def export_released_file_and_commit(self, whl_file_with_path: str, target_file: str, targetfolder_repository: str, product_name: str, version_of_release: str):
         copyfile(whl_file_with_path, target_file)
         self.git_commit(targetfolder_repository, f"Added {product_name} v{version_of_release}")
+
+
+class DefaultGitRunner(GitRunnerBase):
+
+    __sc: ScriptCollectionCore = ScriptCollectionCore()
+
+    def run_git(self, arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
+        arguments_as_array_typed: list[str] = arguments_as_array
+        working_directory_typed: str = working_directory
+        return self.__sc.start_program_synchronously_argsasarray("git", arguments_as_array_typed, working_directory_typed,
+                                                                 timeoutInSeconds=3600, verbosity=0,  prevent_using_epew=True,
+                                                                 throw_exception_if_exitcode_is_not_zero=throw_exception_if_exitcode_is_not_zero)
