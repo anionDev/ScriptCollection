@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-from abc import abstractmethod
 import base64
 import binascii
 from configparser import ConfigParser
@@ -24,22 +23,11 @@ import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
 from .Utilities import GeneralUtilities
+from .GitRunnerBase import GitRunnerBase
+from .DefaultGitRunner import DefaultGitRunner
 
 version = "2.7.9"
 __version__ = version
-
-
-class GitRunnerBase:
-    # Arguments of git_runner: scriptCollection, git-arguments, working-directory, throw_exception_if_exitcode_is_not_zero
-    # Return-values git_runner: Exitcode, StdOut, StdErr, Pid
-    @abstractmethod
-    def run_git(self, arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
-        raise NotImplementedError
-    # Arguments of git_runner: scriptCollection, git-arguments, working-directory, throw_exception_if_exitcode_is_not_zero
-    # Return-values git_runner: Exitcode, StdOut, StdErr, Pid
-
-    def run_git_argsasarray(self, arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
-        return self.run_git(GeneralUtilities.arguments_to_array(arguments_as_array), working_directory, throw_exception_if_exitcode_is_not_zero)
 
 
 class ScriptCollectionCore:
@@ -2040,15 +2028,3 @@ class ScriptCollectionCore:
     def export_released_file_and_commit(self, whl_file_with_path: str, target_file: str, targetfolder_repository: str, product_name: str, version_of_release: str):
         copyfile(whl_file_with_path, target_file)
         self.git_commit(targetfolder_repository, f"Added {product_name} v{version_of_release}")
-
-
-class DefaultGitRunner(GitRunnerBase):
-
-    __sc: ScriptCollectionCore = ScriptCollectionCore()
-
-    def run_git(self, arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
-        arguments_as_array_typed: list[str] = arguments_as_array
-        working_directory_typed: str = working_directory
-        return self.__sc.start_program_synchronously_argsasarray("git", arguments_as_array_typed, working_directory_typed,
-                                                                 timeoutInSeconds=3600, verbosity=0,  prevent_using_epew=True,
-                                                                 throw_exception_if_exitcode_is_not_zero=throw_exception_if_exitcode_is_not_zero)
