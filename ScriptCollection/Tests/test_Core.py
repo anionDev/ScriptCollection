@@ -13,12 +13,6 @@ class ScriptCollectionCoreTests(unittest.TestCase):
     encoding = "utf-8"
     testfileprefix = "testfile_"
 
-    def test_dummy1(self)->None:
-        sc=ScriptCollectionCore()
-        sc.register_mock_program_call("test","","",0,"","",0,0)
-        GeneralUtilities.string_is_none_or_whitespace("")
-        assert True# TODO implement real tests
-
     def test_generate_thumbnail(self) -> None:
         # arrange
         fd, temporary_file = tempfile.mkstemp()
@@ -305,7 +299,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # assert
         assert exit_code == 0
 
-    def test_simple_program_call_prevent_argsasarray_wiith_folder(self) -> None:
+    def test_simple_program_call_prevent_argsasarray_with_folder(self) -> None:
         try:
             # arrange
             sc = ScriptCollectionCore()
