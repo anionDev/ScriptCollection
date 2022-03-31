@@ -447,7 +447,6 @@ class GeneralUtilities:
         else:
             return []
 
-
     @staticmethod
     def get_sha256_of_file(file: str) -> str:
         sha256 = hashlib.sha256()
