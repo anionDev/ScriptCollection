@@ -27,7 +27,7 @@ from .Utilities import GeneralUtilities, checkargs
 from .GitRunnerBase import GitRunnerBase
 from .GenericGitRunner import GenericGitRunner
 
-version = "2.7.10"
+version = "2.7.9"
 __version__ = version
 
 
