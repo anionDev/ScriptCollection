@@ -798,7 +798,7 @@ class ScriptCollectionCore:
         return False
 
     def git_repository_has_new_untracked_files(self, repositoryFolder: str):
-        return self.__git_changes_helper(repositoryFolder, ["ls-files", "--exclude-standard --others"])
+        return self.__git_changes_helper(repositoryFolder, ["ls-files", "--exclude-standard"], ["--others"])
 
     def git_repository_has_unstaged_changes_of_tracked_files(self, repositoryFolder: str):
         return self.__git_changes_helper(repositoryFolder, ["diff"])
@@ -828,7 +828,7 @@ class ScriptCollectionCore:
         self.git_runner.run_git_argsasarray(["fetch", remotename, "--tags", "--prune"], folder, True)
 
     def git_remove_branch(self, folder: str, branchname: str) -> None:
-        self.git_runner.run_git_argsasarray(f"branch -D {branchname}", folder, True)
+        self.git_runner.run_git(f"branch -D {branchname}", folder, True)
 
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
