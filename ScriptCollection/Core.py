@@ -1851,7 +1851,7 @@ class ScriptCollectionCore:
         summary = f"Finished program execution. Details: '{formatted}"
 
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-            raise Exception(summary)
+            raise ValueError(summary)
         if verbosity == 3:
             GeneralUtilities.write_message_to_stdout(summary)
 
