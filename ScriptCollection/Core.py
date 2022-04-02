@@ -1778,7 +1778,7 @@ class ScriptCollectionCore:
     def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
-                                    throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
+                                    throw_exception_if_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
                                     log_namespace: str = "", arguments_for_log: str = None) -> tuple[int, str, str, int]:
         return self.start_program_synchronously_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), workingdirectory, verbosity, print_errors_as_information,
                                                             log_file, timeoutInSeconds, addLogOverhead, title,
@@ -1787,7 +1787,7 @@ class ScriptCollectionCore:
     def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
                                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                                 addLogOverhead: bool = False, title: str = None,
-                                                throw_exception_if_exitcode_is_not_zero: bool = False, prevent_using_epew: bool = False,
+                                                throw_exception_if_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
                                                 log_namespace: str = "", argument_list_for_log: list = None) -> tuple[int, str, str, int]:
         arguments = ' '.join(argument_list)
         if argument_list_for_log is None:
