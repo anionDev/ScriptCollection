@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from .Utilities import GeneralUtilities,checkargs
+from .Utilities import GeneralUtilities, checkargs
 
 
 class GitRunnerBase:
