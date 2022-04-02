@@ -57,7 +57,7 @@ class CertificateUpdater:
         live_filename = filename+".pem"
         self.__sc.start_program_synchronously("rm", live_filename, live_folder, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         self.__sc.start_program_synchronously("ln", f"-s ../../archive/{domain}/{filename+str(index)}.pem {live_filename}", live_folder,
-                                            prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+                                              prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
     def __replace_symlinks_by_files(self, domain):
         index = self.__get_latest_index_by_domain(domain)
@@ -104,11 +104,11 @@ class CertificateUpdater:
                 certbotargument = f"--standalone --email {self.__email} --agree-tos --force-renewal --rsa-key-size 4096 --non-interactive --no-eff-email --domain {domain}"
                 if(certificate_for_domain_already_exists):
                     self.__sc.start_program_synchronously("docker", f"{dockerargument} certonly --no-random-sleep-on-renew {certbotargument}",
-                                                        self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
+                                                          self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
                     self.__replace_symlinks_by_files(domain)
                 else:
                     self.__sc.start_program_synchronously("docker", f"{dockerargument} certonly --cert-name {domain} {certbotargument}",
-                                                        self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
+                                                          self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
             except Exception as exception:
                 GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, "Error while updating certificate")
             finally:
