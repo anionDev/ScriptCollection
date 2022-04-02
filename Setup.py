@@ -4,11 +4,12 @@ from setuptools import setup, find_packages
 
 version = "2.8.0"
 
+
 def create_wheel_file():
 
     productname = "ScriptCollection"
 
-    executables_namespace=f"{productname}.Executables"
+    executables_namespace = f"{productname}.Executables"
 
     folder_of_current_file = os.path.dirname(os.path.realpath(__file__))
     packages = [package for package in find_packages(folder_of_current_file) if not package.endswith(".Tests")]
@@ -91,5 +92,6 @@ def create_wheel_file():
             ],
         },
     )
+
 
 create_wheel_file()
