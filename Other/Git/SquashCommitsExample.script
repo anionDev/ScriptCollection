@@ -1,8 +1,0 @@
-#Removes the last 3 commits. The changes of these commits will be preserved as staged changes.
-git reset --soft HEAD~3
-
-#Create new commit with the changes of the last 3 commits.
-git commit -m "mycommitmessage"
-
-#Force to push the branch with the squashed commits to the remote.
-git push myremotename mybranchname --force

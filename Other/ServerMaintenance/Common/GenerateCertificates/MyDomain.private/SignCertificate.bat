@@ -1,2 +1,0 @@
-openssl x509 -req -in MyDomain.private.csr -CA ..\MyRootCA\MyRootCA.crt -CAkey ..\MyRootCA\MyRootCA.key -CAserial ..\MyRootCA\MyRootCA.srl -out MyDomain.private.crt -days 358000 -sha256 -extensions v3_req -extfile san.conf
-openssl pkcs12 -export -out MyDomain.private.pfx -password pass:4X35cfe6ddb_39476fa868627ea473ff9e -inkey MyDomain.private.key -in MyDomain.private.crt

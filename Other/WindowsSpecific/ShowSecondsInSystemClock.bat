@@ -1,1 +1,0 @@
-C:\Windows\System32\reg.exe Add HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\ /f /v "ShowSecondsInSystemClock" /t REG_DWORD /d "1"
