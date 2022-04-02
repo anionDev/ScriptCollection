@@ -1,0 +1,2 @@
+openssl req -new -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -days 358000 -nodes -x509 -subj "/C=DE/ST=MyST/L=MyL/O=MyO/CN=MyCN" -passout pass:bZ495f060ebd942c48f80c03_002cdde68 -keyout MyRootCA.key -out MyRootCA.crt
+echo 000000 >MyRootCA.srl
