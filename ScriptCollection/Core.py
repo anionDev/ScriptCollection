@@ -1811,7 +1811,7 @@ class ScriptCollectionCore:
             start_datetime = datetime.utcnow()
             process = self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                                           log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr,
-                                                          output_file_for_pid, output_file_for_exit_code)
+                                                          output_file_for_pid, output_file_for_exit_code,argument_list_for_log)
             process.wait()
             end_datetime = datetime.utcnow()
             stdout = self.__load_text(output_file_for_stdout)
