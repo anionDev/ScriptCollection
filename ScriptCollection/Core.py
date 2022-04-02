@@ -85,7 +85,7 @@ class ScriptCollectionCore:
                 return 1
 
             self.git_checkout(repository, srcbranch)
-            self.git_runner.run_git_argsasarray("clean -dfx", repository, True)
+            self.git_runner.run_git("clean -dfx", repository, True)
             self.__calculate_version(configparser, current_release_information)
             repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
@@ -759,7 +759,7 @@ class ScriptCollectionCore:
                                              verbosity)
 
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
-        result = self.git_runner.run_git_argsasarray(f"verify-commit {revision_identifier}", repository_folder, False)
+        result = self.git_runner.run_git(f"verify-commit {revision_identifier}", repository_folder, False)
         if(result[0] != 0):
             return False
         if(not GeneralUtilities.contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):
@@ -771,14 +771,14 @@ class ScriptCollectionCore:
         return True
 
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
-        return self.git_runner.run_git_argsasarray(f'log --pretty=%P -n 1 "{commit_id}"',
+        return self.git_runner.run_git(f'log --pretty=%P -n 1 "{commit_id}"',
                                                    repository_folder, True)[1].replace("\r", "").replace("\n", "").split(" ")
 
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line),
-                        self.git_runner.run_git_argsasarray(f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
+                        self.git_runner.run_git(f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
                                                             repository_folder, True)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
