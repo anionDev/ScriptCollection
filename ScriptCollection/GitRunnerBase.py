@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from .Utilities import GeneralUtilities
+from .Utilities import GeneralUtilities,checkargs
 
 
 class GitRunnerBase:
@@ -11,5 +11,6 @@ class GitRunnerBase:
     # Arguments of git_runner: scriptCollection, git-arguments, working-directory, throw_exception_if_exitcode_is_not_zero
     # Return-values git_runner: Exitcode, StdOut, StdErr, Pid
 
+    @checkargs
     def run_git(self, arguments: str, working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
         return self.run_git(GeneralUtilities.arguments_to_array(arguments), working_directory, throw_exception_if_exitcode_is_not_zero)

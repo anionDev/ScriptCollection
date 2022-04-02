@@ -1,4 +1,5 @@
 import codecs
+import inspect
 import ctypes
 import hashlib
 import re
@@ -14,6 +15,14 @@ from pathlib import Path
 from shutil import copyfile
 from defusedxml.minidom import parse
 
+def checkargs(function):
+    def __check_function(*arguments):
+        for index, argument in enumerate(inspect.getfullargspec(function)[0]):#TODO check counf
+            if not isinstance(arguments[index], function.__annotations__[argument]):
+                raise TypeError(f"{arguments[index]} is not of type { function.__annotations__[argument]}")
+        return function(*arguments)
+    __check_function.__doc__ = function.__doc__
+    return __check_function
 
 class GeneralUtilities:
 
@@ -330,14 +339,17 @@ class GeneralUtilities:
             return file_object.read()
 
     @staticmethod
+    @checkargs
     def timedelta_to_simple_string(delta) -> str:
         return (datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
 
     @staticmethod
+    @checkargs
     def resolve_relative_path_from_current_working_directory(path: str) -> str:
         return GeneralUtilities.resolve_relative_path(path, os.getcwd())
 
     @staticmethod
+    @checkargs
     def resolve_relative_path(path: str, base_path: str):
         if(os.path.isabs(path)):
             return path
@@ -345,6 +357,7 @@ class GeneralUtilities:
             return str(Path(os.path.join(base_path, path)).resolve())
 
     @staticmethod
+    @checkargs
     def get_metadata_for_file_for_clone_folder_structure(file: str) -> str:
         size = os.path.getsize(file)
         last_modified_timestamp = os.path.getmtime(file)
@@ -442,6 +455,10 @@ class GeneralUtilities:
 
     @staticmethod
     def arguments_to_array(arguments_as_string: str) -> list[str]:
+        if arguments_as_string is None:
+            return []
+        if not isinstance(arguments_as_string, str):
+            raise ValueError("type of arguments_as_string is "+type(arguments_as_string))
         if GeneralUtilities.string_has_content(arguments_as_string):
             return arguments_as_string.split(" ")  # TODO this function should get improved to allow whitespaces in quote-substrings
         else:
