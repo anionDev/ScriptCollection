@@ -1844,15 +1844,13 @@ class ScriptCollectionCore:
 
         duration: timedelta = end_datetime-start_datetime
 
-        if verbosity < 3:
-            formatted = self.__format_program_execution_information(title=title_local, program=program, argument=arguments_for_log, workingdirectory=workingdirectory)
-        else:
-            formatted = self.__format_program_execution_information(exit_code, stdout, stderr, program, arguments_for_log, workingdirectory, title_local, pid, duration)
-        summary = f"Finished program execution. Details: '{formatted}"
-
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+            summary = f"Finished program execution. Details: '{formatted}"
+            formatted = self.__format_program_execution_information(exit_code, stdout, stderr, program, arguments_for_log, workingdirectory, title_local, pid, duration)
             raise ValueError(summary)
-        if verbosity == 3:
+        if 2 < verbosity:
+            formatted = self.__format_program_execution_information(title=title_local, program=program, argument=arguments_for_log, workingdirectory=workingdirectory)
+            summary = f"Finished program execution. Details: '{formatted}"
             GeneralUtilities.write_message_to_stdout(summary)
 
         return result
