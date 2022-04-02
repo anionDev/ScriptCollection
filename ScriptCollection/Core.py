@@ -798,7 +798,7 @@ class ScriptCollectionCore:
         return False
 
     def git_repository_has_new_untracked_files(self, repositoryFolder: str):
-        return self.__git_changes_helper(repositoryFolder, ["ls-files", "--exclude-standard"], ["--others"])
+        return self.__git_changes_helper(repositoryFolder, ["ls-files", "--exclude-standard", "--others"])
 
     def git_repository_has_unstaged_changes_of_tracked_files(self, repositoryFolder: str):
         return self.__git_changes_helper(repositoryFolder, ["diff"])
