@@ -27,7 +27,7 @@ from .Utilities import GeneralUtilities, checkargs
 from .GitRunnerBase import GitRunnerBase
 from .GenericGitRunner import GenericGitRunner
 
-version = "2.8.2"
+version = "2.8.3"
 __version__ = version
 
 
@@ -2059,7 +2059,7 @@ class ScriptCollectionCore:
 
     def __load_text(self, file: str) -> str:
         if os.path.isfile(file):
-            content = GeneralUtilities.read_text_from_file(file)
+            content = GeneralUtilities.read_text_from_file(file).replace('\r', '')
             os.remove(file)
             return content
         else:
