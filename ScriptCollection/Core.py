@@ -790,8 +790,8 @@ class ScriptCollectionCore:
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
         return self.git_runner.run_git_argsasarray(["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, False)[0] == 0
 
-    def __git_changes_helper(self, argument: list[str], repository_folder: str) -> bool:
-        lines = GeneralUtilities.string_to_lines(self.git_runner.run_git_argsasarray(repository_folder, argument, True)[1], False)
+    def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
+        lines = GeneralUtilities.string_to_lines(self.git_runner.run_git_argsasarray(arguments_as_array, repository_folder, True)[1], False)
         for line in lines:
             if GeneralUtilities.string_has_content(line):
                 return True
