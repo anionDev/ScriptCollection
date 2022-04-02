@@ -46,12 +46,12 @@ class ScriptCollectionCore:
         self.__epew_is_available = GeneralUtilities.epew_is_available()
         self.git_runner = GenericGitRunner(ScriptCollectionCore.default_git_runner, [self])
 
-    git_command_runner_function: Callable[[list[str], str, bool], list[int, str, str, int]] = None
+    git_command_runner_function: Callable[[list[str], str, bool], tuple[int, str, str, int]] = None
 
     @staticmethod
     @checkargs
     def default_git_runner(arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool, custom_arguments:
-                           list[object]) -> list[int, str, str, int]:
+                           list[object]) -> tuple[int, str, str, int]:
         sc: ScriptCollectionCore = custom_arguments[0]
         return sc.start_program_synchronously_argsasarray("git", arguments_as_array, working_directory,
                                                           timeoutInSeconds=3600, verbosity=0,  prevent_using_epew=True,
@@ -777,7 +777,7 @@ class ScriptCollectionCore:
     @checkargs
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
         return self.git_runner.run_git(f'log --pretty=%P -n 1 "{commit_id}"',
-                                                   repository_folder, True)[1].replace("\r", "").replace("\n", "").split(" ")
+                                       repository_folder, True)[1].replace("\r", "").replace("\n", "").split(" ")
 
     @checkargs
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
@@ -785,7 +785,7 @@ class ScriptCollectionCore:
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line),
                         self.git_runner.run_git(f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
-                                                            repository_folder, True)[1].split("\n").replace("\r", ""))
+                                                repository_folder, True)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
@@ -836,8 +836,8 @@ class ScriptCollectionCore:
 
     @checkargs
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result = self.git_runner.run_git_argsasarray(["rev-parse", "--verify", commit], repository_folder, True)[1]
-        return result[1].replace('\r', '').replace('\n', '')
+        result: tuple[int, str, str, int] = self.git_runner.run_git_argsasarray(["rev-parse", "--verify", commit], repository_folder, True)
+        return result[1].replace('\n', '')
 
     @checkargs
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
@@ -1016,7 +1016,7 @@ class ScriptCollectionCore:
 
     @checkargs
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
-        exit_code = self.git_runner.run_git_argsasarray(['check-ignore', file_in_repository], repositorybasefolder,False)[0]
+        exit_code = self.git_runner.run_git_argsasarray(['check-ignore', file_in_repository], repositorybasefolder, False)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
@@ -1880,7 +1880,7 @@ class ScriptCollectionCore:
             start_datetime = datetime.utcnow()
             process = self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                                           log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr,
-                                                          output_file_for_pid, output_file_for_exit_code,arguments_for_log)
+                                                          output_file_for_pid, output_file_for_exit_code, arguments_for_log)
             process.wait()
             end_datetime = datetime.utcnow()
             stdout = self.__load_text(output_file_for_stdout)
