@@ -13,4 +13,4 @@ class GitRunnerBase:
 
     @checkargs
     def run_git(self, arguments: str, working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
-        return self.run_git(GeneralUtilities.arguments_to_array(arguments), working_directory, throw_exception_if_exitcode_is_not_zero)
+        return self.run_git_argsasarray(GeneralUtilities.arguments_to_array(arguments), working_directory, throw_exception_if_exitcode_is_not_zero)
