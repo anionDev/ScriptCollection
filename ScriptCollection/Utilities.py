@@ -1,4 +1,5 @@
 import codecs
+import inspect
 import ctypes
 import hashlib
 import re
@@ -7,12 +8,43 @@ import shutil
 import stat
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import listdir
 from os.path import isfile, join, isdir
 from pathlib import Path
 from shutil import copyfile
+import typing
 from defusedxml.minidom import parse
+
+
+def is_generic(t: typing.Type):
+    return hasattr(t, "__origin__")
+
+
+def checkargs(function):
+    def __check_function(*args, **named_args):
+        parameters: list = inspect.getfullargspec(function)[0].copy()
+        arguments: list = list(tuple(args)).copy()
+        if "self" in parameters:
+            parameters.remove("self")
+            arguments.pop(0)
+        for index, argument in enumerate(arguments):
+            if argument is not None:#Check type of None is not possible. None is always a valid argument-value
+                if parameters[index] in function.__annotations__:#Check if a type-hint for parameter exist. If not, no parameter-type available for argument-type-check
+                    if not is_generic(function.__annotations__[parameters[index]]):#Check type of arguments if the type is a generic type seems to be impossible.
+                        if not isinstance(argument, function.__annotations__[parameters[index]]):
+                            raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
+                                            f"{ function.__annotations__[parameters[index]]}")
+        for index, named_argument in enumerate(named_args):
+            if named_args[named_argument] is not None:
+                if parameters[index] in function.__annotations__:
+                    if not is_generic(function.__annotations__.get(named_argument)):
+                        if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
+                            raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') " +
+                                            f"is not of type { function.__annotations__.get(named_argument)}")
+        return function(*args, **named_args)
+    __check_function.__doc__ = function.__doc__
+    return __check_function
 
 
 class GeneralUtilities:
@@ -303,8 +335,8 @@ class GeneralUtilities:
 
     @staticmethod
     def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
-        lines=[GeneralUtilities.strip_new_line_character(line) for line in lines]
-        content=os.linesep.join(lines)
+        lines = [GeneralUtilities.strip_new_line_character(line) for line in lines]
+        content = os.linesep.join(lines)
         GeneralUtilities.write_text_to_file(file, content, encoding)
 
     @staticmethod
@@ -330,14 +362,17 @@ class GeneralUtilities:
             return file_object.read()
 
     @staticmethod
-    def timedelta_to_simple_string(delta) -> str:
+    @checkargs
+    def timedelta_to_simple_string(delta: timedelta) -> str:
         return (datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
 
     @staticmethod
+    @checkargs
     def resolve_relative_path_from_current_working_directory(path: str) -> str:
         return GeneralUtilities.resolve_relative_path(path, os.getcwd())
 
     @staticmethod
+    @checkargs
     def resolve_relative_path(path: str, base_path: str):
         if(os.path.isabs(path)):
             return path
@@ -345,6 +380,7 @@ class GeneralUtilities:
             return str(Path(os.path.join(base_path, path)).resolve())
 
     @staticmethod
+    @checkargs
     def get_metadata_for_file_for_clone_folder_structure(file: str) -> str:
         size = os.path.getsize(file)
         last_modified_timestamp = os.path.getmtime(file)
@@ -442,6 +478,10 @@ class GeneralUtilities:
 
     @staticmethod
     def arguments_to_array(arguments_as_string: str) -> list[str]:
+        if arguments_as_string is None:
+            return []
+        if not isinstance(arguments_as_string, str):
+            raise ValueError("type of arguments_as_string is "+type(arguments_as_string))
         if GeneralUtilities.string_has_content(arguments_as_string):
             return arguments_as_string.split(" ")  # TODO this function should get improved to allow whitespaces in quote-substrings
         else:
