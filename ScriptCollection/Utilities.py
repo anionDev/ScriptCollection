@@ -29,17 +29,19 @@ def checkargs(function):
             parameters.remove("self")
             arguments.pop(0)
         for index, argument in enumerate(arguments):
-            if argument is not None:
-                if not is_generic(function.__annotations__[parameters[index]]):
-                    if not isinstance(argument, function.__annotations__[parameters[index]]):
-                        raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
-                                        f"{ function.__annotations__[parameters[index]]}")
+            if argument is not None:#Check type of None is not possible. None is always a valid argument-value
+                if parameters[index] in function.__annotations__:#Check if a type-hint for parameter exist. If not, no parameter-type available for argument-type-check
+                    if not is_generic(function.__annotations__[parameters[index]]):#Check type of arguments if the type is a generic type seems to be impossible.
+                        if not isinstance(argument, function.__annotations__[parameters[index]]):
+                            raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
+                                            f"{ function.__annotations__[parameters[index]]}")
         for index, named_argument in enumerate(named_args):
             if named_args[named_argument] is not None:
-                if not is_generic(function.__annotations__.get(named_argument)):
-                    if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
-                        raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') " +
-                                        f"is not of type { function.__annotations__.get(named_argument)}")
+                if parameters[index] in function.__annotations__:
+                    if not is_generic(function.__annotations__.get(named_argument)):
+                        if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
+                            raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') " +
+                                            f"is not of type { function.__annotations__.get(named_argument)}")
         return function(*args, **named_args)
     __check_function.__doc__ = function.__doc__
     return __check_function
