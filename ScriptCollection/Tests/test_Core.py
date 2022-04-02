@@ -1,4 +1,5 @@
 import os
+from typing import NoReturn
 import unittest
 from pathlib import Path
 import tempfile
@@ -231,8 +232,8 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         sc.register_mock_program_call("p", "a2", "/tmp", 0, "out 2", "err 2", 44)
 
         # act
-        result1 = sc.start_program_synchronously("p", "a1", "/tmp", 3600, 1, False, None, False, None, True, True)
-        result2 = sc.start_program_synchronously("p", "a2", "/tmp", 3600, 1, False, None, False, None, True, False)
+        result1 = sc.start_program_synchronously("p", "a1", "/tmp")
+        result2 = sc.start_program_synchronously("p", "a2", "/tmp")
 
         # assert
         assert result1 == (0, "out 1", "err 1", 40)
@@ -247,10 +248,10 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # act
         (exit_code, _, _2, _3) = sc.start_program_synchronously("git", "status", dir_path, throw_exception_if_exitcode_is_not_zero=False, verbosity=3, prevent_using_epew=True)
 
-        # assert
+        # assert    def test_file_is_git_ignored_1(self) -> None:
+
         assert exit_code == 0
 
-    def test_file_is_git_ignored_1(self) -> None:
         # arrange
         sc = ScriptCollectionCore()
         repository = str(Path(__file__).parent.parent.absolute())
@@ -261,7 +262,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # assert
         assert result is False
 
-    def test_file_is_git_ignored_2(self) -> None:
+    def test_file_is_git_ignored_2(self) -> NoReturn:
         tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
         GeneralUtilities.ensure_directory_exists(tests_folder)
         sc = ScriptCollectionCore()

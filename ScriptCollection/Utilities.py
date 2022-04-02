@@ -8,21 +8,42 @@ import shutil
 import stat
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import listdir
 from os.path import isfile, join, isdir
 from pathlib import Path
 from shutil import copyfile
+import typing
 from defusedxml.minidom import parse
 
+
+def is_generic(t: typing.Type):
+    return hasattr(t, "__origin__")
+
+
 def checkargs(function):
-    def __check_function(*arguments):
-        for index, argument in enumerate(inspect.getfullargspec(function)[0]):#TODO check counf
-            if not isinstance(arguments[index], function.__annotations__[argument]):
-                raise TypeError(f"{arguments[index]} is not of type { function.__annotations__[argument]}")
-        return function(*arguments)
+    def __check_function(*args, **named_args):
+        parameters: list = inspect.getfullargspec(function)[0].copy()
+        arguments: list = list(tuple(args)).copy()
+        if "self" in parameters:
+            parameters.remove("self")
+            arguments.pop(0)
+        for index, argument in enumerate(arguments):
+            if argument is not None:
+                if not is_generic(function.__annotations__[parameters[index]]):
+                    if not isinstance(argument, function.__annotations__[parameters[index]]):
+                        raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
+                                        f"{ function.__annotations__[parameters[index]]}")
+        for index, named_argument in enumerate(named_args):
+            if named_args[named_argument] is not None:
+                if not is_generic(function.__annotations__.get(named_argument)):
+                    if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
+                        raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') " +
+                                        f"is not of type { function.__annotations__.get(named_argument)}")
+        return function(*args, **named_args)
     __check_function.__doc__ = function.__doc__
     return __check_function
+
 
 class GeneralUtilities:
 
@@ -312,8 +333,8 @@ class GeneralUtilities:
 
     @staticmethod
     def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
-        lines=[GeneralUtilities.strip_new_line_character(line) for line in lines]
-        content=os.linesep.join(lines)
+        lines = [GeneralUtilities.strip_new_line_character(line) for line in lines]
+        content = os.linesep.join(lines)
         GeneralUtilities.write_text_to_file(file, content, encoding)
 
     @staticmethod
@@ -340,7 +361,7 @@ class GeneralUtilities:
 
     @staticmethod
     @checkargs
-    def timedelta_to_simple_string(delta) -> str:
+    def timedelta_to_simple_string(delta: timedelta) -> str:
         return (datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
 
     @staticmethod

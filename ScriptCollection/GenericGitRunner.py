@@ -7,7 +7,6 @@ class GenericGitRunner(GitRunnerBase):
     custom_arguments: list[object] = None
     git_command_runner_function: Callable[[list[str], str, bool, list[object]], list[int, str, str, int]] = None
 
-    @checkargs
     def __init__(self, git_command_runner_function: Callable[[list[str], str, bool, list[object]], list[int, str, str, int]], custom_arguments: list[object]):
         self.git_command_runner_function = git_command_runner_function
         self.custom_arguments = custom_arguments
