@@ -2059,7 +2059,7 @@ class ScriptCollectionCore:
 
     def __load_text(self, file: str) -> str:
         if os.path.isfile(file):
-            content = GeneralUtilities.read_text_from_file(file)
+            content = GeneralUtilities.read_text_from_file(file).replace('\r', '')
             os.remove(file)
             return content
         else:
