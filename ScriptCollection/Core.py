@@ -844,6 +844,10 @@ class ScriptCollectionCore:
         self.git_runner.run_git_argsasarray(["fetch", remotename, "--tags", "--prune"], folder, True)
 
     @checkargs
+    def git_fetch_in_bare_repository(self, folder: str, remotename,localbranch:str, remotebranch:str) -> None:
+        self.git_runner.run_git_argsasarray(["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, True)
+
+    @checkargs
     def git_remove_branch(self, folder: str, branchname: str) -> None:
         self.git_runner.run_git(f"branch -D {branchname}", folder, True)
 
