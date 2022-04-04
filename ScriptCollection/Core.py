@@ -27,7 +27,7 @@ from .Utilities import GeneralUtilities, checkargs
 from .GitRunnerBase import GitRunnerBase
 from .GenericGitRunner import GenericGitRunner
 
-version = "2.8.4"
+version = "2.8.5"
 __version__ = version
 
 
@@ -842,6 +842,10 @@ class ScriptCollectionCore:
     @checkargs
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
         self.git_runner.run_git_argsasarray(["fetch", remotename, "--tags", "--prune"], folder, True)
+
+    @checkargs
+    def git_fetch_in_bare_repository(self, folder: str, remotename,localbranch:str, remotebranch:str) -> None:
+        self.git_runner.run_git_argsasarray(["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, True)
 
     @checkargs
     def git_remove_branch(self, folder: str, branchname: str) -> None:

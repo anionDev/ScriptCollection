@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 
-version = "2.8.4"
+version = "2.8.5"
 
 
 def create_wheel_file():
