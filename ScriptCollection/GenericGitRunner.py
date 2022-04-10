@@ -1,6 +1,6 @@
 from typing import Callable
 from .GitRunnerBase import GitRunnerBase
-from .Utilities import checkargs
+from .GeneralUtilities import GeneralUtilities
 
 
 class GenericGitRunner(GitRunnerBase):
@@ -11,6 +11,6 @@ class GenericGitRunner(GitRunnerBase):
         self.git_command_runner_function = git_command_runner_function
         self.custom_arguments = custom_arguments
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def run_git_argsasarray(self, arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool) -> list[int, str, str, int]:
         return self.git_command_runner_function(arguments_as_array, working_directory, throw_exception_if_exitcode_is_not_zero, self.custom_arguments)

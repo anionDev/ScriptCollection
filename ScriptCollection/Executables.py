@@ -2,8 +2,8 @@ import argparse
 import time
 import traceback
 import keyboard
-from .Core import ScriptCollectionCore
-from .Utilities import GeneralUtilities
+from .ScriptCollectionCore import ScriptCollectionCore
+from .GeneralUtilities import GeneralUtilities
 from .Hardening import HardeningScript
 
 

@@ -17,39 +17,41 @@ import typing
 from defusedxml.minidom import parse
 
 
-def is_generic(t: typing.Type):
-    return hasattr(t, "__origin__")
-
-
-def checkargs(function):
-    def __check_function(*args, **named_args):
-        parameters: list = inspect.getfullargspec(function)[0].copy()
-        arguments: list = list(tuple(args)).copy()
-        if "self" in parameters:
-            parameters.remove("self")
-            arguments.pop(0)
-        for index, argument in enumerate(arguments):
-            if argument is not None:  # Check type of None is not possible. None is always a valid argument-value
-                if parameters[index] in function.__annotations__:  # Check if a type-hint for parameter exist. If not, no parameter-type available for argument-type-check
-                    if not is_generic(function.__annotations__[parameters[index]]):  # Check type of arguments if the type is a generic type seems to be impossible.
-                        if not isinstance(argument, function.__annotations__[parameters[index]]):
-                            raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
-                                            f"{ function.__annotations__[parameters[index]]}")
-        for index, named_argument in enumerate(named_args):
-            if named_args[named_argument] is not None:
-                if parameters[index] in function.__annotations__:
-                    if not is_generic(function.__annotations__.get(named_argument)):
-                        if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
-                            raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') " +
-                                            f"is not of type { function.__annotations__.get(named_argument)}")
-        return function(*args, **named_args)
-    __check_function.__doc__ = function.__doc__
-    return __check_function
-
-
 class GeneralUtilities:
 
     @staticmethod
+    def is_generic(t: typing.Type):
+        return hasattr(t, "__origin__")
+
+    @staticmethod
+    def check_arguments(function):
+        def __check_function(*args, **named_args):
+            parameters: list = inspect.getfullargspec(function)[0].copy()
+            arguments: list = list(tuple(args)).copy()
+            if "self" in parameters:
+                parameters.remove("self")
+                arguments.pop(0)
+            for index, argument in enumerate(arguments):
+                if argument is not None:  # Check type of None is not possible. None is always a valid argument-value
+                    if parameters[index] in function.__annotations__:  # Check if a type-hint for parameter exist. If not, no parameter-type available for argument-type-check
+                        # Check type of arguments if the type is a generic type seems to be impossible.
+                        if not GeneralUtilities.is_generic(function.__annotations__[parameters[index]]):
+                            if not isinstance(argument, function.__annotations__[parameters[index]]):
+                                raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
+                                                f"{ function.__annotations__[parameters[index]]}")
+            for index, named_argument in enumerate(named_args):
+                if named_args[named_argument] is not None:
+                    if parameters[index] in function.__annotations__:
+                        if not GeneralUtilities.is_generic(function.__annotations__.get(named_argument)):
+                            if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
+                                raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') " +
+                                                f"is not of type { function.__annotations__.get(named_argument)}")
+            return function(*args, **named_args)
+        __check_function.__doc__ = function.__doc__
+        return __check_function
+
+    @staticmethod
+    @check_arguments
     def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list[str]:
         result = list()
         if(string is not None):
@@ -71,6 +73,7 @@ class GeneralUtilities:
         return result
 
     @staticmethod
+    @check_arguments
     def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> None:
         srcDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(srcDir)
         dstDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(dstDir)
@@ -94,6 +97,7 @@ class GeneralUtilities:
             raise ValueError(f"Folder '{srcDir}' does not exist")
 
     @staticmethod
+    @check_arguments
     def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8", verbose: bool = False) -> None:
         """This function iterates over each line in the file and replaces it by the line which applied regex.
         Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
@@ -109,6 +113,7 @@ class GeneralUtilities:
             f.writelines(replaced_lines)
 
     @staticmethod
+    @check_arguments
     def replace_regex_in_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8") -> None:
         with open(file, encoding=encoding, mode="r") as f:
             content = f.read()
@@ -117,16 +122,19 @@ class GeneralUtilities:
             f.write(content)
 
     @staticmethod
+    @check_arguments
     def replace_xmltag_in_file(file: str, tag: str, new_value: str, encoding="utf-8") -> None:
         GeneralUtilities.replace_regex_in_file(file, f"<{tag}>.*</{tag}>", f"<{tag}>{new_value}</{tag}>", encoding)
 
     @staticmethod
+    @check_arguments
     def update_version_in_csproj_file(file: str, target_version: str) -> None:
         GeneralUtilities.replace_xmltag_in_file(file, "Version", target_version)
         GeneralUtilities.replace_xmltag_in_file(file, "AssemblyVersion", target_version + ".0")
         GeneralUtilities.replace_xmltag_in_file(file, "FileVersion", target_version + ".0")
 
     @staticmethod
+    @check_arguments
     def replace_underscores_in_text(text: str, replacements: dict) -> str:
         changed = True
         while changed:
@@ -139,22 +147,26 @@ class GeneralUtilities:
         return text
 
     @staticmethod
+    @check_arguments
     def replace_underscores_in_file(file: str, replacements: dict, encoding: str = "utf-8"):
         text = GeneralUtilities.read_text_from_file(file, encoding)
         text = GeneralUtilities.replace_underscores_in_text(text, replacements)
         GeneralUtilities.write_text_to_file(file, text, encoding)
 
     @staticmethod
+    @check_arguments
     def write_message_to_stdout(message: str):
         sys.stdout.write(GeneralUtilities.str_none_safe(message)+"\n")
         sys.stdout.flush()
 
     @staticmethod
+    @check_arguments
     def write_message_to_stderr(message: str):
         sys.stderr.write(GeneralUtilities.str_none_safe(message)+"\n")
         sys.stderr.flush()
 
     @staticmethod
+    @check_arguments
     def get_advanced_errormessage_for_os_error(os_error: OSError) -> str:
         if GeneralUtilities.string_has_content(os_error.filename2):
             secondpath = f" {os_error.filename2}"
@@ -163,10 +175,12 @@ class GeneralUtilities:
         return f"Related path(s): {os_error.filename}{secondpath}"
 
     @staticmethod
+    @check_arguments
     def write_exception_to_stderr(exception: Exception, extra_message: str = None):
         GeneralUtilities.write_exception_to_stderr_with_traceback(exception, None, extra_message)
 
     @staticmethod
+    @check_arguments
     def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback=None, extra_message: str = None):
         GeneralUtilities.write_message_to_stderr("Exception(")
         GeneralUtilities.write_message_to_stderr("Type: "+str(type(exception)))
@@ -180,6 +194,7 @@ class GeneralUtilities:
         GeneralUtilities.write_message_to_stderr(")")
 
     @staticmethod
+    @check_arguments
     def string_has_content(string: str) -> bool:
         if string is None:
             return False
@@ -187,14 +202,17 @@ class GeneralUtilities:
             return len(string) > 0
 
     @staticmethod
+    @check_arguments
     def datetime_to_string_for_logfile_name(datetime_object: datetime) -> str:
         return datetime_object.strftime('%Y-%m-%d_%H-%M-%S')
 
     @staticmethod
+    @check_arguments
     def datetime_to_string_for_logfile_entry(datetime_object: datetime) -> str:
         return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
 
     @staticmethod
+    @check_arguments
     def string_has_nonwhitespace_content(string: str) -> bool:
         if string is None:
             return False
@@ -202,6 +220,7 @@ class GeneralUtilities:
             return len(string.strip()) > 0
 
     @staticmethod
+    @check_arguments
     def string_is_none_or_empty(argument: str) -> bool:
         if argument is None:
             return True
@@ -212,6 +231,7 @@ class GeneralUtilities:
             raise Exception(f"expected string-variable in argument of string_is_none_or_empty but the type was '{str(type_of_argument)}'")
 
     @staticmethod
+    @check_arguments
     def string_is_none_or_whitespace(string: str) -> bool:
         if GeneralUtilities.string_is_none_or_empty(string):
             return True
@@ -219,12 +239,14 @@ class GeneralUtilities:
             return string.strip() == ""
 
     @staticmethod
+    @check_arguments
     def strip_new_line_character(value: str) -> str:
         while not GeneralUtilities.__strip_new_line_character_helper_value_is_ok(value):
             value = GeneralUtilities.__strip_new_line_character_helper_normalize_value(value)
         return value
 
     @staticmethod
+    @check_arguments
     def __strip_new_line_character_helper_value_is_ok(value: str) -> bool:
         if value.startswith("\r") or value.endswith("\r"):
             return False
@@ -233,50 +255,60 @@ class GeneralUtilities:
         return True
 
     @staticmethod
+    @check_arguments
     def __strip_new_line_character_helper_normalize_value(value: str) -> str:
         return value.strip('\n').strip('\r')
 
     @staticmethod
+    @check_arguments
     def file_ends_with_newline(file: str) -> bool:
         with open(file, "rb", encoding="utf-8") as file_object:
             return file_object.read().endswith('\n')
 
     @staticmethod
+    @check_arguments
     def file_not_ends_with_newline(file: str) -> bool:
         return not GeneralUtilities.file_ends_with_newline(file)
 
     @staticmethod
+    @check_arguments
     def append_line_to_file(file: str, line: str, encoding: str = "utf-8") -> None:
         if GeneralUtilities.file_ends_with_newline(file):
             line = os.linesep+line
         GeneralUtilities.append_to_file(file, line, encoding)
 
     @staticmethod
+    @check_arguments
     def append_to_file(file: str, content: str, encoding: str = "utf-8") -> None:
         with open(file, "a", encoding=encoding) as fileObject:
             fileObject.write(content)
 
     @staticmethod
+    @check_arguments
     def ensure_directory_exists(path: str) -> None:
         if not os.path.isdir(path):
             os.makedirs(path)
 
     @staticmethod
+    @check_arguments
     def ensure_file_exists(path: str) -> None:
         if(not os.path.isfile(path)):
             with open(path, "a+", encoding="utf-8"):
                 pass
 
     @staticmethod
+    @check_arguments
     def __remove_readonly(func, path, _):
         os.chmod(path, stat.S_IWRITE)
         func(path)
 
     @staticmethod
+    @check_arguments
     def rmtree(directory: str) -> None:
         shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)
 
     @staticmethod
+    @check_arguments
     def ensure_directory_does_not_exist(path: str) -> None:
         if(os.path.isdir(path)):
             for root, dirs, files in os.walk(path, topdown=False):
@@ -289,15 +321,18 @@ class GeneralUtilities:
             GeneralUtilities.rmtree(path)
 
     @staticmethod
+    @check_arguments
     def ensure_file_does_not_exist(path: str) -> None:
         if(os.path.isfile(path)):
             os.remove(path)
 
     @staticmethod
+    @check_arguments
     def format_xml_file(filepath: str) -> None:
         GeneralUtilities.format_xml_file_with_encoding(filepath, "utf-8")
 
     @staticmethod
+    @check_arguments
     def format_xml_file_with_encoding(filepath: str, encoding: str) -> None:
         with codecs.open(filepath, 'r', encoding=encoding) as file:
             text = file.read()
@@ -306,6 +341,7 @@ class GeneralUtilities:
             file.write(text)
 
     @staticmethod
+    @check_arguments
     def get_clusters_and_sectors_of_disk(diskpath: str) -> None:
         sectorsPerCluster = ctypes.c_ulonglong(0)
         bytesPerSector = ctypes.c_ulonglong(0)
@@ -314,6 +350,7 @@ class GeneralUtilities:
         return (sectorsPerCluster.value, bytesPerSector.value)
 
     @staticmethod
+    @check_arguments
     def ensure_path_is_not_quoted(path: str) -> str:
         if (path.startswith("\"") and path.endswith("\"")) or (path.startswith("'") and path.endswith("'")):
             path = path[1:]
@@ -323,6 +360,7 @@ class GeneralUtilities:
             return path
 
     @staticmethod
+    @check_arguments
     def get_missing_files(folderA: str, folderB: str) -> list:
         folderA_length = len(folderA)
         result = []
@@ -334,45 +372,51 @@ class GeneralUtilities:
         return result
 
     @staticmethod
+    @check_arguments
     def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
         lines = [GeneralUtilities.strip_new_line_character(line) for line in lines]
         content = os.linesep.join(lines)
         GeneralUtilities.write_text_to_file(file, content, encoding)
 
     @staticmethod
+    @check_arguments
     def write_text_to_file(file: str, content: str, encoding="utf-8") -> None:
         GeneralUtilities.write_binary_to_file(file, bytearray(content, encoding))
 
     @staticmethod
+    @check_arguments
     def write_binary_to_file(file: str, content: bytearray) -> None:
         with open(file, "wb") as file_object:
             file_object.write(content)
 
     @staticmethod
+    @check_arguments
     def read_lines_from_file(file: str, encoding="utf-8") -> list[str]:
         return [GeneralUtilities.strip_new_line_character(line) for line in GeneralUtilities.read_text_from_file(file, encoding).split(os.linesep)]
 
     @staticmethod
+    @check_arguments
     def read_text_from_file(file: str, encoding="utf-8") -> str:
         return GeneralUtilities.bytes_to_string(GeneralUtilities.read_binary_from_file(file), encoding)
 
     @staticmethod
+    @check_arguments
     def read_binary_from_file(file: str) -> bytes:
         with open(file, "rb") as file_object:
             return file_object.read()
 
     @staticmethod
-    @checkargs
+    @check_arguments
     def timedelta_to_simple_string(delta: timedelta) -> str:
         return (datetime(1970, 1, 1, 0, 0, 0) + delta).strftime('%H:%M:%S')
 
     @staticmethod
-    @checkargs
+    @check_arguments
     def resolve_relative_path_from_current_working_directory(path: str) -> str:
         return GeneralUtilities.resolve_relative_path(path, os.getcwd())
 
     @staticmethod
-    @checkargs
+    @check_arguments
     def resolve_relative_path(path: str, base_path: str):
         if(os.path.isabs(path)):
             return path
@@ -380,7 +424,7 @@ class GeneralUtilities:
             return str(Path(os.path.join(base_path, path)).resolve())
 
     @staticmethod
-    @checkargs
+    @check_arguments
     def get_metadata_for_file_for_clone_folder_structure(file: str) -> str:
         size = os.path.getsize(file)
         last_modified_timestamp = os.path.getmtime(file)
@@ -389,6 +433,7 @@ class GeneralUtilities:
         return f'{{"size":"{size}","sha256":"{hash_value}","mtime":"{last_modified_timestamp}","atime":"{last_access_timestamp}"}}'
 
     @staticmethod
+    @check_arguments
     def clone_folder_structure(source: str, target: str, copy_only_metadata: bool):
         source = GeneralUtilities.resolve_relative_path(source, os.getcwd())
         target = GeneralUtilities.resolve_relative_path(target, os.getcwd())
@@ -403,6 +448,7 @@ class GeneralUtilities:
                 copyfile(source_file, target_file)
 
     @staticmethod
+    @check_arguments
     def current_user_has_elevated_privileges() -> bool:
         try:
             return os.getuid() == 0
@@ -410,6 +456,7 @@ class GeneralUtilities:
             return ctypes.windll.shell32.IsUserAnAdmin() == 1
 
     @staticmethod
+    @check_arguments
     def rename_names_of_all_files_and_folders(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
             GeneralUtilities.replace_in_filename(file, replace_from, replace_to, replace_only_full_match)
@@ -418,16 +465,19 @@ class GeneralUtilities:
         GeneralUtilities.replace_in_foldername(folder, replace_from, replace_to, replace_only_full_match)
 
     @staticmethod
+    @check_arguments
     def get_direct_files_of_folder(folder: str) -> list[str]:
         result = [os.path.join(folder, f) for f in listdir(folder) if isfile(join(folder, f))]
         return result
 
     @staticmethod
+    @check_arguments
     def get_direct_folders_of_folder(folder: str) -> list[str]:
         result = [os.path.join(folder, f) for f in listdir(folder) if isdir(join(folder, f))]
         return result
 
     @staticmethod
+    @check_arguments
     def get_all_files_of_folder(folder: str) -> list[str]:
         result = list()
         result.extend(GeneralUtilities.get_direct_files_of_folder(folder))
@@ -436,6 +486,7 @@ class GeneralUtilities:
         return result
 
     @staticmethod
+    @check_arguments
     def get_all_folders_of_folder(folder: str) -> list[str]:
         result = list()
         subfolders = GeneralUtilities.get_direct_folders_of_folder(folder)
@@ -445,10 +496,12 @@ class GeneralUtilities:
         return result
 
     @staticmethod
+    @check_arguments
     def get_all_objects_of_folder(folder: str) -> list[str]:
         return GeneralUtilities.get_all_files_of_folder(folder) + GeneralUtilities.get_all_folders_of_folder(folder)
 
     @staticmethod
+    @check_arguments
     def replace_in_filename(file: str, replace_from: str, replace_to: str, replace_only_full_match=False):
         filename = Path(file).name
         if(GeneralUtilities.__should_get_replaced(filename, replace_from, replace_only_full_match)):
@@ -456,6 +509,7 @@ class GeneralUtilities:
             os.rename(file, os.path.join(folder_of_file, filename.replace(replace_from, replace_to)))
 
     @staticmethod
+    @check_arguments
     def replace_in_foldername(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
         foldername = Path(folder).name
         if(GeneralUtilities.__should_get_replaced(foldername, replace_from, replace_only_full_match)):
@@ -463,6 +517,7 @@ class GeneralUtilities:
             os.rename(folder, os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to)))
 
     @staticmethod
+    @check_arguments
     def __should_get_replaced(input_text, search_text, replace_only_full_match) -> bool:
         if replace_only_full_match:
             return input_text == search_text
@@ -470,6 +525,7 @@ class GeneralUtilities:
             return search_text in input_text
 
     @staticmethod
+    @check_arguments
     def str_none_safe(variable) -> str:
         if variable is None:
             return ''
@@ -477,6 +533,7 @@ class GeneralUtilities:
             return str(variable)
 
     @staticmethod
+    @check_arguments
     def arguments_to_array(arguments_as_string: str) -> list[str]:
         if arguments_as_string is None:
             return []
@@ -488,6 +545,7 @@ class GeneralUtilities:
             return []
 
     @staticmethod
+    @check_arguments
     def get_sha256_of_file(file: str) -> str:
         sha256 = hashlib.sha256()
         with open(file, "rb") as fileObject:
@@ -496,6 +554,7 @@ class GeneralUtilities:
         return sha256.hexdigest()
 
     @staticmethod
+    @check_arguments
     def remove_duplicates(input_list) -> list:
         result = []
         for item in input_list:
@@ -504,11 +563,13 @@ class GeneralUtilities:
         return result
 
     @staticmethod
+    @check_arguments
     def print_stacktrace() -> None:
         for line in traceback.format_stack():
             GeneralUtilities.write_message_to_stdout(line.strip())
 
     @staticmethod
+    @check_arguments
     def string_to_boolean(value: str) -> bool:
         value = value.strip().lower()
         if value in ('yes', 'true', 't', 'y', '1'):
@@ -519,18 +580,22 @@ class GeneralUtilities:
             raise Exception(f"Can not convert '{value}' to a boolean value")
 
     @staticmethod
+    @check_arguments
     def file_is_empty(file: str) -> bool:
         return os.stat(file).st_size == 0
 
     @staticmethod
+    @check_arguments
     def folder_is_empty(folder: str) -> bool:
         return len(GeneralUtilities.get_direct_files_of_folder(folder)) == 0 and len(GeneralUtilities.get_direct_folders_of_folder(folder)) == 0
 
     @staticmethod
+    @check_arguments
     def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc: bool = False) -> str:
         return os.path.join(GeneralUtilities.resolve_relative_path_from_current_working_directory(folder), f"{GeneralUtilities.get_time_based_logfilename(name, in_utc)}.log")
 
     @staticmethod
+    @check_arguments
     def get_time_based_logfilename(name: str = "Log", in_utc: bool = False) -> str:
         if(in_utc):
             d = datetime.utcnow()
@@ -539,14 +604,17 @@ class GeneralUtilities:
         return f"{name}_{GeneralUtilities.datetime_to_string_for_logfile_name(d)}"
 
     @staticmethod
+    @check_arguments
     def bytes_to_string(payload: bytes, encoding: str = 'utf-8') -> str:
         return payload.decode(encoding, errors="ignore")
 
     @staticmethod
+    @check_arguments
     def string_to_bytes(payload: str, encoding: str = 'utf-8') -> bytes:
         return payload.encode(encoding, errors="ignore")
 
     @staticmethod
+    @check_arguments
     def contains_line(lines, regex: str) -> bool:
         for line in lines:
             if(re.match(regex, line)):
@@ -554,6 +622,7 @@ class GeneralUtilities:
         return False
 
     @staticmethod
+    @check_arguments
     def read_csv_file(file: str, ignore_first_line: bool = False, treat_number_sign_at_begin_of_line_as_comment: bool = True, trim_values: bool = True,
                       encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list:
         lines = GeneralUtilities.read_lines_from_file(file, encoding)
@@ -595,6 +664,7 @@ class GeneralUtilities:
         return result
 
     @staticmethod
+    @check_arguments
     def epew_is_available() -> bool:
         try:
             return shutil.which("epew") is not None
@@ -602,16 +672,19 @@ class GeneralUtilities:
             return False
 
     @staticmethod
+    @check_arguments
     def absolute_file_paths(directory: str) -> list:
         for dirpath, _, filenames in os.walk(directory):
             for filename in filenames:
                 yield os.path.abspath(os.path.join(dirpath, filename))
 
     @staticmethod
+    @check_arguments
     def os_is_linux():
         return sys.platform in ('linux', 'linux2')
 
     @staticmethod
+    @check_arguments
     def to_list(list_as_string: str, separator: str = ",") -> list:
         result = list()
         if list_as_string is not None:
@@ -626,6 +699,7 @@ class GeneralUtilities:
         return result
 
     @staticmethod
+    @check_arguments
     def get_next_square_number(number: int):
         GeneralUtilities.assert_condition(number >= 0, "get_next_square_number is only applicable for nonnegative numbers")
         if number == 0:
@@ -638,6 +712,7 @@ class GeneralUtilities:
         return root*root
 
     @staticmethod
+    @check_arguments
     def assert_condition(condition: bool, information: str):
         if(not condition):
             raise ValueError("Condition failed. "+information)
