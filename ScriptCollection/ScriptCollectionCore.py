@@ -876,7 +876,7 @@ class ScriptCollectionCore:
         self.git_runner.run_git_argsasarray(["fetch", remotename, "--tags", "--prune"], folder, True)
 
     @GeneralUtilities.check_arguments
-    def git_fetch_in_bare_repository(self, folder: str, remotename,localbranch:str, remotebranch:str) -> None:
+    def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
         self.git_runner.run_git_argsasarray(["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, True)
 
     @GeneralUtilities.check_arguments
@@ -1357,10 +1357,10 @@ class ScriptCollectionCore:
             if(frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
                 frames_per_second = round(float(frames_per_second[:-3]), 2)
-                amounf_of_previewframes = math.floor(length_in_seconds*frames_per_second)
+                amounf_of_previewframes = int(math.floor(length_in_seconds*frames_per_second))
             else:
                 # concrete amount of frame, examples: frames_per_second="16" => 16 frames for entire video
-                amounf_of_previewframes = float(frames_per_second)
+                amounf_of_previewframes = int(float(frames_per_second))
                 frames_per_second = round(amounf_of_previewframes/length_in_seconds, 2)
             self.__create_thumbnails(filename, frames_per_second, folder, tempname_for_thumbnails)
             self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)

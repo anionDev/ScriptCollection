@@ -16,12 +16,12 @@ from shutil import copyfile
 import typing
 from defusedxml.minidom import parse
 
+
 class GeneralUtilities:
 
     @staticmethod
     def is_generic(t: typing.Type):
         return hasattr(t, "__origin__")
-
 
     @staticmethod
     def check_arguments(function):
@@ -34,7 +34,8 @@ class GeneralUtilities:
             for index, argument in enumerate(arguments):
                 if argument is not None:  # Check type of None is not possible. None is always a valid argument-value
                     if parameters[index] in function.__annotations__:  # Check if a type-hint for parameter exist. If not, no parameter-type available for argument-type-check
-                        if not GeneralUtilities.is_generic(function.__annotations__[parameters[index]]):  # Check type of arguments if the type is a generic type seems to be impossible.
+                        # Check type of arguments if the type is a generic type seems to be impossible.
+                        if not GeneralUtilities.is_generic(function.__annotations__[parameters[index]]):
                             if not isinstance(argument, function.__annotations__[parameters[index]]):
                                 raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
                                                 f"{ function.__annotations__[parameters[index]]}")

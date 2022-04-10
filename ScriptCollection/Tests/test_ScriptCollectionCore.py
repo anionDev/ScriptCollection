@@ -152,7 +152,6 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # assert
         assert expected == actual
 
-
     def test_sc_organize_lines_in_file_test_basic(self) -> None:
         # arrange
         testfile = ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_basic.txt"
@@ -180,7 +179,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             GeneralUtilities.write_lines_to_file(testfile, example_input)
 
             # act
-            ScriptCollectionCore().sc_organize_lines_in_file(testfile,ScriptCollectionCoreTests. encoding, True, True, True, True)
+            ScriptCollectionCore().sc_organize_lines_in_file(testfile, ScriptCollectionCoreTests. encoding, True, True, True, True)
             # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
@@ -190,7 +189,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
 
     def test_sc_organize_lines_in_file_test_emptyline(self) -> None:
         # arrange
-        testfile =ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
+        testfile = ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
         try:
             example_input = ["line1", "", "line3"]
             expected_output = ["line1", "line3"]
@@ -202,7 +201,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             # arguments: sort ,remove_duplicated_lines, ignore_first_line, remove_empty_lines, ignored_character
 
             # assert
-            assert expected_output ==GeneralUtilities. read_lines_from_file(testfile)
+            assert expected_output == GeneralUtilities. read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
 
@@ -222,7 +221,6 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             assert expected_output == GeneralUtilities.read_lines_from_file(testfile)
         finally:
             os.remove(testfile)
-
 
     def test_simple_program_call_is_mockable(self) -> None:
         # arrange
@@ -261,7 +259,6 @@ class ScriptCollectionCoreTests(unittest.TestCase):
 
         # assert
         assert result is False
-
 
     def test_file_is_git_ignored_2(self) -> NoReturn:
         tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
