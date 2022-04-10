@@ -5,8 +5,8 @@ from pathlib import Path
 import tempfile
 import re
 import uuid
-from ..Utilities import GeneralUtilities, checkargs
-from ..Core import ScriptCollectionCore
+from ..GeneralUtilities import GeneralUtilities
+from ..ScriptCollectionCore import ScriptCollectionCore
 
 
 class ScriptCollectionCoreTests(unittest.TestCase):
@@ -262,12 +262,8 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # assert
         assert result is False
 
-    @checkargs
-    def x(self,param1,param2:str):
-        pass
 
     def test_file_is_git_ignored_2(self) -> NoReturn:
-        self.x("arg1","arg2")
         tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
         GeneralUtilities.ensure_directory_exists(tests_folder)
         sc = ScriptCollectionCore()

@@ -1,8 +1,6 @@
-#!/usr/bin/python3
-
 import traceback
-from .Utilities import GeneralUtilities
-from .Core import ScriptCollectionCore
+from .GeneralUtilities import GeneralUtilities
+from .ScriptCollectionCore import ScriptCollectionCore
 
 
 class HardeningScript:
@@ -20,6 +18,7 @@ class HardeningScript:
         self.__applicationstokeep = GeneralUtilities.to_list(applicationstokeep, ";")
         self.__additionalfolderstoremove = GeneralUtilities.to_list(additionalfoldertoremove, ";")
 
+    @GeneralUtilities.check_arguments
     def run(self):
         try:
             GeneralUtilities.write_message_to_stdout("Hardening-configuration:")
@@ -51,8 +50,10 @@ class HardeningScript:
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, "Exception occurred while hardening.")
 
+    @GeneralUtilities.check_arguments
     def __package_is_installed(self, package: str) -> bool:
         return True  # TODO see https://askubuntu.com/questions/660305/how-to-tell-if-a-certain-package-exists-in-the-apt-repos
 
+    @GeneralUtilities.check_arguments
     def __execute(self, program: str, argument: str, workding_directory: str = None):
         return self.__sc.start_program_synchronously(program, argument, workding_directory, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)

@@ -1,6 +1,6 @@
 import os
 import unittest
-from ..Utilities import GeneralUtilities
+from ..GeneralUtilities import GeneralUtilities
 
 
 class GeneralUtilitiesTests(unittest.TestCase):
