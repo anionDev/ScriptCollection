@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 import traceback
 from shutil import copyfile
-from .Core import ScriptCollectionCore
-from .Utilities import GeneralUtilities
+from .ScriptCollectionCore import ScriptCollectionCore
+from .GeneralUtilities import GeneralUtilities
 
 
 class CertificateUpdater:
@@ -24,11 +24,13 @@ class CertificateUpdater:
         self.__domains = domains
         self.__email = email
 
+    @GeneralUtilities.check_arguments
     def __get_latest_index_by_domain(self, domain: str) -> int:
         result = self.__get_latest_index_by_filelist(GeneralUtilities.get_all_files_of_folder(os.path.join(self.__letsencrypt_archive_folder, domain)))
         GeneralUtilities.write_message_to_stdout(f"Debug: Latest found existing number for domain {domain}: {result}")
         return result
 
+    @GeneralUtilities.check_arguments
     def __get_latest_index_by_filelist(self, filenames: list) -> int:
         print("files:")
         print(filenames)
@@ -42,6 +44,7 @@ class CertificateUpdater:
         result = max(numbers)
         return result
 
+    @GeneralUtilities.check_arguments
     def __replace_symlink_by_file(self, domain: str, filename: str, index: int) -> None:
         # ".../live/example.com/cert.pem" is a symlink but should replaced by a copy of ".../archive/example.com/cert.42pem"
         archive_file = os.path.join(self.__letsencrypt_archive_folder, domain, filename+str(index)+".pem")
@@ -51,6 +54,7 @@ class CertificateUpdater:
         self.__sc.start_program_synchronously("rm", live_filename, live_folder, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
         copyfile(archive_file, live_file)
 
+    @GeneralUtilities.check_arguments
     def __replace_file_by_symlink(self, domain: str, filename: str, index: int) -> None:
         # new ".../live/example.com/cert.pem" is a file but should replaced by a symlink which points to ".../archive/example.com/cert42.pem"
         live_folder = os.path.join(self.__letsencrypt_live_folder, domain)
@@ -59,6 +63,7 @@ class CertificateUpdater:
         self.__sc.start_program_synchronously("ln", f"-s ../../archive/{domain}/{filename+str(index)}.pem {live_filename}", live_folder,
                                               prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
 
+    @GeneralUtilities.check_arguments
     def __replace_symlinks_by_files(self, domain):
         index = self.__get_latest_index_by_domain(domain)
         self.__replace_symlink_by_file(domain, "cert", index)
@@ -66,6 +71,7 @@ class CertificateUpdater:
         self.__replace_symlink_by_file(domain, "fullchain", index)
         self.__replace_symlink_by_file(domain, "privkey", index)
 
+    @GeneralUtilities.check_arguments
     def __replace_files_by_symlinks(self, domain):
         index = self.__get_latest_index_by_domain(domain)
         self.__replace_file_by_symlink(domain, "cert", index)
@@ -73,6 +79,7 @@ class CertificateUpdater:
         self.__replace_file_by_symlink(domain, "fullchain", index)
         self.__replace_file_by_symlink(domain, "privkey", index)
 
+    @GeneralUtilities.check_arguments
     def update_certificate_managed_by_docker_and_letsencrypt(self) -> None:
         GeneralUtilities.write_message_to_stdout("current_folder:")
         GeneralUtilities.write_message_to_stdout(self.__current_folder)

@@ -8,7 +8,6 @@ from io import BytesIO
 import itertools
 import math
 import os
-from shutil import copyfile
 from pathlib import Path
 from random import randrange
 import re
@@ -23,11 +22,11 @@ from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
-from .Utilities import GeneralUtilities, checkargs
+from .GeneralUtilities import GeneralUtilities
 from .GitRunnerBase import GitRunnerBase
 from .GenericGitRunner import GenericGitRunner
 
-version = "2.8.5"
+version = "2.8.6"
 __version__ = version
 
 
@@ -49,7 +48,7 @@ class ScriptCollectionCore:
     git_command_runner_function: Callable[[list[str], str, bool], tuple[int, str, str, int]] = None
 
     @staticmethod
-    @checkargs
+    @GeneralUtilities.check_arguments
     def default_git_runner(arguments_as_array: list[str], working_directory: str, throw_exception_if_exitcode_is_not_zero: bool, custom_arguments:
                            list[object]) -> tuple[int, str, str, int]:
         sc: ScriptCollectionCore = custom_arguments[0]
@@ -58,11 +57,11 @@ class ScriptCollectionCore:
                                                           throw_exception_if_exitcode_is_not_zero=throw_exception_if_exitcode_is_not_zero)
 
     @staticmethod
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_scriptcollection_version() -> str:
         return __version__
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def create_release(self, configurationfile: str) -> int:
         error_occurred = False
         try:
@@ -223,11 +222,13 @@ class ScriptCollectionCore:
             GeneralUtilities.write_exception_to_stderr_with_traceback(e, traceback, f"Fatal error occurred while creating release defined by '{configurationfile}'.")
             return 1
 
+    @GeneralUtilities.check_arguments
     def __push_branch_of_release(self, configparser: ConfigParser, current_release_information: dict[str, str], repository: str, export: bool, branch: str):
         if export:
             self.git_push(repository, self.get_item_from_configuration(configparser, 'other',
                                                                        'exportrepositoryremotename', current_release_information), branch, branch, False, True)
 
+    @GeneralUtilities.check_arguments
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -245,6 +246,7 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
         shutil.copytree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory)
 
+    @GeneralUtilities.check_arguments
     def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -253,6 +255,7 @@ class ScriptCollectionCore:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
             self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
+    @GeneralUtilities.check_arguments
     def __get_sign_things(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> tuple:
         files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign', current_release_information)
         if(GeneralUtilities.string_is_none_or_whitespace(files_to_sign_raw_value)):
@@ -260,6 +263,7 @@ class ScriptCollectionCore:
         else:
             return [GeneralUtilities.to_list(files_to_sign_raw_value, ";"), self.get_item_from_configuration(configparser, 'dotnet', 'snkfile', current_release_information)]
 
+    @GeneralUtilities.check_arguments
     def dotnet_create_executable_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -269,6 +273,7 @@ class ScriptCollectionCore:
             GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile', current_release_information), repository_version)
         self.dotnet_executable_run_tests(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def dotnet_create_executable_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -276,6 +281,7 @@ class ScriptCollectionCore:
         self.dotnet_executable_build(configurationfile, current_release_information)
         self.dotnet_reference(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def dotnet_create_nuget_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -285,6 +291,7 @@ class ScriptCollectionCore:
             GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile', current_release_information), repository_version)
         self.dotnet_nuget_run_tests(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def dotnet_create_nuget_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -320,6 +327,7 @@ class ScriptCollectionCore:
       </files>
     </package>"""
 
+    @GeneralUtilities.check_arguments
     def dotnet_nuget_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -368,6 +376,7 @@ class ScriptCollectionCore:
             file_object.write(nuspec_content)
         self.start_program_synchronously("nuget", f"pack {nuspecfilename}", publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
+    @GeneralUtilities.check_arguments
     def dotnet_nuget_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -376,6 +385,7 @@ class ScriptCollectionCore:
         if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
             self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
 
+    @GeneralUtilities.check_arguments
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -393,6 +403,7 @@ class ScriptCollectionCore:
             self.start_program_synchronously("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {nugetsource} --api-key {api_key}",
                                              publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
+    @GeneralUtilities.check_arguments
     def dotnet_reference(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -434,6 +445,7 @@ class ScriptCollectionCore:
                               self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname', current_release_information),
                               self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotebranchname', current_release_information), False, False)
 
+    @GeneralUtilities.check_arguments
     def dotnet_build(self, current_release_information: dict, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
                      clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None) -> None:
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
@@ -463,6 +475,7 @@ class ScriptCollectionCore:
             for fileToSign in filesToSign:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def dotnet_run_tests(self, configurationfile: str, current_release_information: dict[str, str], verbosity: int = 1) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -491,6 +504,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
         self.__handle_coverage(configparser, current_release_information, coverage_in_percent, verbosity == 3)
 
+    @GeneralUtilities.check_arguments
     def __handle_coverage(self, configparser, current_release_information, coverage_in_percent: int, verbose: bool):
         current_release_information['general.testcoverage'] = coverage_in_percent
         minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
@@ -502,6 +516,7 @@ class ScriptCollectionCore:
             GeneralUtilities.replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
                                                              coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end, verbose=verbose)
 
+    @GeneralUtilities.check_arguments
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict[str, str]) -> None:
         dllOrExeFile = GeneralUtilities.resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = GeneralUtilities.resolve_relative_path_from_current_working_directory(snkfile)
@@ -524,15 +539,18 @@ class ScriptCollectionCore:
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
+    @GeneralUtilities.check_arguments
     def deb_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         pass
 
+    @GeneralUtilities.check_arguments
     def deb_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         return False  # TODO implement
 
+    @GeneralUtilities.check_arguments
     def docker_create_image_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -582,6 +600,7 @@ class ScriptCollectionCore:
                                              contextfolder,  print_errors_as_information=True,
                                              verbosity=self.__get_verbosity_for_exuecutor(configparser))
 
+    @GeneralUtilities.check_arguments
     def docker_create_image_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -613,6 +632,7 @@ class ScriptCollectionCore:
                                                      print_errors_as_information=True,
                                                      verbosity=verbosity)
 
+    @GeneralUtilities.check_arguments
     def __export_tag_to_file(self, tag: str, artefactdirectory: str, overwriteexistingfilesinartefactdirectory: bool, verbosity: int) -> None:
         if tag.endswith(":latest"):
             separator = "_"
@@ -630,24 +650,29 @@ class ScriptCollectionCore:
                                          print_errors_as_information=True,
                                          verbosity=verbosity)
 
+    @GeneralUtilities.check_arguments
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         pass
 
+    @GeneralUtilities.check_arguments
     def flutterandroid_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         return False  # TODO implement
 
+    @GeneralUtilities.check_arguments
     def flutterios_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         pass
 
+    @GeneralUtilities.check_arguments
     def flutterios_create_installer_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         return False  # TODO implement
 
+    @GeneralUtilities.check_arguments
     def generic_create_script_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -657,6 +682,7 @@ class ScriptCollectionCore:
                                              self.get_item_from_configuration(configparser, 'script', 'premerge_argument', current_release_information),
                                              self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory', current_release_information))
 
+    @GeneralUtilities.check_arguments
     def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -666,6 +692,7 @@ class ScriptCollectionCore:
                                              self.get_item_from_configuration(configparser, 'script', 'postmerge_argument', current_release_information),
                                              self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory', current_release_information))
 
+    @GeneralUtilities.check_arguments
     def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -695,6 +722,7 @@ class ScriptCollectionCore:
         # Run testcases
         self.python_run_tests(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def python_create_wheel_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]):
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -702,6 +730,7 @@ class ScriptCollectionCore:
         self.python_build_wheel_and_run_tests(configurationfile, current_release_information)
         self.python_release_wheel(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def __execute_and_return_boolean(self, name: str, method) -> bool:
         try:
             method()
@@ -710,10 +739,12 @@ class ScriptCollectionCore:
             GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, f"'{name}' resulted in an error")
             return False
 
+    @GeneralUtilities.check_arguments
     def python_build_wheel_and_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         self.python_run_tests(configurationfile, current_release_information)
         self.python_build(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def python_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -727,6 +758,7 @@ class ScriptCollectionCore:
                                          setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
                                          setuppyfilefolder,  self.__get_verbosity_for_exuecutor(configparser))
 
+    @GeneralUtilities.check_arguments
     def python_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         # TODO check minimalrequiredtestcoverageinpercent and generate coverage report
         configparser = ConfigParser()
@@ -738,7 +770,7 @@ class ScriptCollectionCore:
             self.start_program_synchronously("pytest", "", pythontestfilefolder,
                                              self.__get_verbosity_for_exuecutor(configparser), False, "Pytest")
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def python_release_wheel(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -761,7 +793,7 @@ class ScriptCollectionCore:
                                                  configparser, "python", "publishdirectoryforwhlfile", current_release_information),
                                              verbosity)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
         result = self.git_runner.run_git(f"verify-commit {revision_identifier}", repository_folder, False)
         if(result[0] != 0):
@@ -774,12 +806,12 @@ class ScriptCollectionCore:
             return False
         return True
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
         return self.git_runner.run_git(f'log --pretty=%P -n 1 "{commit_id}"',
                                        repository_folder, True)[1].replace("\r", "").replace("\n", "").split(" ")
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
@@ -790,15 +822,15 @@ class ScriptCollectionCore:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __datetime_to_string_for_git(self, datetime_object: datetime) -> str:
         return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
         return self.git_runner.run_git_argsasarray(["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, False)[0] == 0
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
         lines = GeneralUtilities.string_to_lines(self.git_runner.run_git_argsasarray(arguments_as_array, repository_folder, True)[1], False)
         for line in lines:
@@ -806,19 +838,19 @@ class ScriptCollectionCore:
                 return True
         return False
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_repository_has_new_untracked_files(self, repositoryFolder: str):
         return self.__git_changes_helper(repositoryFolder, ["ls-files", "--exclude-standard", "--others"])
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_repository_has_unstaged_changes_of_tracked_files(self, repositoryFolder: str):
         return self.__git_changes_helper(repositoryFolder, ["diff"])
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_repository_has_staged_changes(self, repositoryFolder: str):
         return self.__git_changes_helper(repositoryFolder, ["diff", "--cached"])
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_repository_has_uncommitted_changes(self, repositoryFolder: str):
         if (self.git_repository_has_unstaged_changes(repositoryFolder)):
             return True
@@ -826,7 +858,7 @@ class ScriptCollectionCore:
             return True
         return False
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_repository_has_unstaged_changes(self, repository_folder: str) -> bool:
         if(self.git_repository_has_unstaged_changes_of_tracked_files(repository_folder)):
             return True
@@ -834,24 +866,24 @@ class ScriptCollectionCore:
             return True
         return False
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
         result: tuple[int, str, str, int] = self.git_runner.run_git_argsasarray(["rev-parse", "--verify", commit], repository_folder, True)
         return result[1].replace('\n', '')
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
         self.git_runner.run_git_argsasarray(["fetch", remotename, "--tags", "--prune"], folder, True)
 
-    @checkargs
-    def git_fetch_in_bare_repository(self, folder: str, remotename,localbranch:str, remotebranch:str) -> None:
+    @GeneralUtilities.check_arguments
+    def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
         self.git_runner.run_git_argsasarray(["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_remove_branch(self, folder: str, branchname: str) -> None:
         self.git_runner.run_git(f"branch -D {branchname}", folder, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
         argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
@@ -861,7 +893,7 @@ class ScriptCollectionCore:
         result: tuple[int, str, str, int] = self.git_runner.run_git_argsasarray(argument, folder, True)
         return result[1].replace('\r', '').replace('\n', '')
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_clone(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
         if(os.path.isdir(clone_target_folder)):
             pass  # TODO throw error
@@ -874,50 +906,50 @@ class ScriptCollectionCore:
                 args.append("--mirror")
             self.git_runner.run_git_argsasarray(args, os.getcwd(), True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_get_all_remote_names(self, directory) -> list[str]:
         result = GeneralUtilities.string_to_lines(self.git_runner.run_git_argsasarray(["remote"], directory, True)[1], False)
         return result
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
         return remote_name in self.git_get_all_remote_names(directory)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
             self.git_runner.run_git_argsasarray(['remote', 'set-url', 'remote_name', remote_address], directory, True)
         else:
             self.git_runner.run_git_argsasarray(['remote', 'add', remote_name, remote_address], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_stage_all_changes(self, directory: str) -> None:
         self.git_runner.run_git_argsasarray(["add", "-A"], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_unstage_all_changes(self, directory: str) -> None:
         self.git_runner.run_git_argsasarray(["reset"], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_stage_file(self, directory: str, file: str) -> None:
         self.git_runner.run_git_argsasarray(['stage', file], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_unstage_file(self, directory: str, file: str) -> None:
         self.git_runner.run_git_argsasarray(['reset', file], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
         self.git_runner.run_git_argsasarray(['checkout', file], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
         self.git_runner.run_git_argsasarray(['clean', '-df'], directory, True)
         self.git_runner.run_git_argsasarray(['checkout', '.'], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
                    no_changes_behavior: int = 0) -> None:
         # no_changes_behavior=0 => No commit
@@ -951,7 +983,7 @@ class ScriptCollectionCore:
 
         return self.git_get_current_commit_id(directory)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
         argument = ["tag", tag, target_for_tag]
         if sign:
@@ -960,15 +992,15 @@ class ScriptCollectionCore:
             argument.extend(["-s", f'-m "{message}"'])
         self.git_runner.run_git_argsasarray(argument, directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str) -> None:
         self.git_runner.run_git_argsasarray(["checkout", branch], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
         self.git_runner.run_git_argsasarray(["merge", "--abort"], directory, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
         self.git_checkout(directory, targetbranch)
         args = ["merge"]
@@ -980,18 +1012,18 @@ class ScriptCollectionCore:
         self.git_runner.run_git_argsasarray(args, directory, True)
         return self.git_get_current_commit_id(directory)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_undo_all_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
         self.git_unstage_all_changes(directory)
         self.git_discard_all_unstaged_changes(directory)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __undo_changes(self, repository: str) -> None:
         if(self.git_repository_has_uncommitted_changes(repository)):
             self.git_undo_all_changes(repository)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __repository_has_changes(self, repository: str) -> None:
         if(self.git_repository_has_uncommitted_changes(repository)):
             GeneralUtilities.write_message_to_stderr(f"'{repository}' contains uncommitted changes")
@@ -999,7 +1031,7 @@ class ScriptCollectionCore:
         else:
             return False
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_fetch_or_clone_all_in_directory(self, source_directory: str, target_directory: str) -> None:
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(source_directory):
             foldername = os.path.basename(subfolder)
@@ -1013,12 +1045,12 @@ class ScriptCollectionCore:
                     # clone
                     self.git_clone(target_repository, source_repository, include_submodules=True, mirror=True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def is_git_repository(self, folder: str) -> bool:
         combined = os.path.join(folder, ".git")
         return os.path.isdir(combined) or os.path.isfile(combined)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
         exit_code = self.git_runner.run_git_argsasarray(['check-ignore', file_in_repository], repositorybasefolder, False)[0]
         if(exit_code == 0):
@@ -1027,17 +1059,17 @@ class ScriptCollectionCore:
             return False
         raise Exception(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def discard_all_changes(self, repository: str) -> None:
         self.git_runner.run_git_argsasarray(["reset", "HEAD", "."], repository, True)
         self.git_runner.run_git_argsasarray(["checkout", "."], repository, True)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def git_get_current_branch_name(self, repository: str) -> str:
         result = self.git_runner.run_git_argsasarray(["rev-parse", "--abbrev-ref", "HEAD"], repository, True)
         return result[1].replace("\r", "").replace("\n", "")
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
         folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(folder)
         lines = list()
@@ -1058,7 +1090,7 @@ class ScriptCollectionCore:
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8") -> None:
         for line in GeneralUtilities.read_lines_from_file(source_file, encoding):
             splitted: list = line.split(";")
@@ -1077,31 +1109,31 @@ class ScriptCollectionCore:
                         filetype_full = "Directory"
                     raise Exception(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __verbose_check_for_not_available_item(self, configparser: ConfigParser, queried_items: list, section: str, propertyname: str) -> None:
         if self.__get_verbosity_for_exuecutor(configparser) > 0:
             for item in queried_items:
                 self.__check_for_not_available_config_item(item, section, propertyname)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __check_for_not_available_config_item(self, item, section: str, propertyname: str):
         if item == "<notavailable>":
             GeneralUtilities.write_message_to_stderr(f"Warning: The property '{section}.{propertyname}' which is not available was queried. "
                                                      + "This may result in errors or involuntary behavior")
             GeneralUtilities.print_stacktrace()
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __get_verbosity_for_exuecutor(self, configparser: ConfigParser) -> int:
         return self.get_number_value_from_configuration(configparser, 'other', 'verbose')
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __get_buildoutputdirectory(self, configparser: ConfigParser, runtime: str, current_release_information: dict[str, str]) -> str:
         result = self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'separatefolderforeachruntime', current_release_information):
             result = result+os.path.sep+runtime
         return result
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_boolean_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, current_release_information: dict[str, str]) -> bool:
         try:
             value = configparser.get(section, propertyname)
@@ -1113,13 +1145,13 @@ class ScriptCollectionCore:
             except:
                 return False
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_number_value_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str) -> int:
         value = configparser.get(section, propertyname)
         self.__check_for_not_available_config_item(value, section, propertyname)
         return int(value)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def configuration_item_is_available(self, configparser: ConfigParser, sectioon: str, item: str) -> bool:
         if not configparser.has_option(sectioon, item):
             return False
@@ -1130,13 +1162,13 @@ class ScriptCollectionCore:
             return False
         return True
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __calculate_version(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> None:
         if "builtin.version" not in current_release_information:
             current_release_information['builtin.version'] = self.get_semver_version_from_gitversion(
                 self.get_item_from_configuration(configparser, 'general', 'repository', current_release_information))
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_item_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, current_release_information: dict[str, str]) -> str:
 
         now = datetime.now()
@@ -1149,7 +1181,7 @@ class ScriptCollectionCore:
         self.__verbose_check_for_not_available_item(configparser, [result], section, propertyname)
         return result
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_items_from_configuration(self, configparser: ConfigParser, section: str, propertyname: str, current_release_information: dict[str, str]) -> list[str]:
         itemlist_as_string = self.__replace_underscores_for_buildconfiguration(f"__.{section}.{propertyname}.__", configparser, current_release_information)
         if not GeneralUtilities.string_has_content(itemlist_as_string):
@@ -1161,38 +1193,43 @@ class ScriptCollectionCore:
         self.__verbose_check_for_not_available_item(configparser, result, section, propertyname)
         return result
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __get_csprojfile_filename(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.basename(file)
         return result
 
+    @GeneralUtilities.check_arguments
     def __get_test_csprojfile_filename(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.basename(file)
         return result
 
+    @GeneralUtilities.check_arguments
     def __get_csprojfile_folder(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.dirname(file)
         return result
 
+    @GeneralUtilities.check_arguments
     def __get_test_csprojfile_folder(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         result = os.path.dirname(file)
         return result
 
+    @GeneralUtilities.check_arguments
     def __get_coverage_filename(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         return self.get_item_from_configuration(configparser, "general", "productname", current_release_information)+".TestCoverage.opencover.xml"
 
+    @GeneralUtilities.check_arguments
     def get_version_for_buildscripts(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         return self.get_item_from_configuration(configparser, 'builtin', 'version', current_release_information)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __replace_underscores_for_buildconfiguration(self, string: str, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         # TODO improve performance: the content of this function must mostly be executed once at the begining of a create-release-process, not always again
 
@@ -1267,6 +1304,7 @@ class ScriptCollectionCore:
 
         return result
 
+    @GeneralUtilities.check_arguments
     def __create_dotnet_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]):
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -1276,6 +1314,7 @@ class ScriptCollectionCore:
         else:
             self.dotnet_create_nuget_release_premerge(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def __create_dotnet_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]):
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -1285,14 +1324,17 @@ class ScriptCollectionCore:
         else:
             self.dotnet_create_nuget_release_postmerge(configurationfile, current_release_information)
 
+    @GeneralUtilities.check_arguments
     def __calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'
         return float(self.start_program_synchronously("ffprobe", argument, folder)[1])
 
+    @GeneralUtilities.check_arguments
     def __create_thumbnails(self, filename: str, fps: float, folder: str, tempname_for_thumbnails: str) -> None:
         argument = f'-i "{filename}" -r {str(fps)} -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'
         self.start_program_synchronously("ffmpeg", argument, folder)
 
+    @GeneralUtilities.check_arguments
     def __create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails: str, amount_of_images: int) -> None:
         duration = timedelta(seconds=length_in_seconds)
         info = GeneralUtilities.timedelta_to_simple_string(duration)
@@ -1300,6 +1342,7 @@ class ScriptCollectionCore:
         argument = f'-title "{outputfilename} ({info})" -geometry +{next_square_number}+{next_square_number} {tempname_for_thumbnails}*.png "{outputfilename}.png"'
         self.start_program_synchronously("montage", argument, folder)
 
+    @GeneralUtilities.check_arguments
     def generate_thumbnail(self, file: str, frames_per_second: str, tempname_for_thumbnails: str = None) -> None:
         if tempname_for_thumbnails is None:
             tempname_for_thumbnails = "t"+str(uuid.uuid4())
@@ -1314,10 +1357,10 @@ class ScriptCollectionCore:
             if(frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
                 frames_per_second = round(float(frames_per_second[:-3]), 2)
-                amounf_of_previewframes = math.floor(length_in_seconds*frames_per_second)
+                amounf_of_previewframes = int(math.floor(length_in_seconds*frames_per_second))
             else:
                 # concrete amount of frame, examples: frames_per_second="16" => 16 frames for entire video
-                amounf_of_previewframes = float(frames_per_second)
+                amounf_of_previewframes = int(float(frames_per_second))
                 frames_per_second = round(amounf_of_previewframes/length_in_seconds, 2)
             self.__create_thumbnails(filename, frames_per_second, folder, tempname_for_thumbnails)
             self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
@@ -1326,6 +1369,7 @@ class ScriptCollectionCore:
                 file = str(thumbnail_to_delete)
                 os.remove(file)
 
+    @GeneralUtilities.check_arguments
     def merge_pdf_files(self, files, outputfile: str) -> None:
         # TODO add wildcard-option
         pdfFileMerger = PdfFileMerger()
@@ -1335,10 +1379,12 @@ class ScriptCollectionCore:
         pdfFileMerger.close()
         return 0
 
+    @GeneralUtilities.check_arguments
     def SCShowMissingFiles(self, folderA: str, folderB: str):
         for file in GeneralUtilities.get_missing_files(folderA, folderB):
             GeneralUtilities.write_message_to_stdout(file)
 
+    @GeneralUtilities.check_arguments
     def SCCreateEmptyFileWithSpecificSize(self, name: str, size_string: str) -> int:
         if size_string.isdigit():
             size = int(size_string)
@@ -1366,11 +1412,13 @@ class ScriptCollectionCore:
             f.write(b"\0")
         return 0
 
+    @GeneralUtilities.check_arguments
     def SCCreateHashOfAllFiles(self, folder: str) -> None:
         for file in GeneralUtilities.absolute_file_paths(folder):
             with open(file+".sha256", "w+", encoding="utf-8") as f:
                 f.write(GeneralUtilities.get_sha256_of_file(file))
 
+    @GeneralUtilities.check_arguments
     def SCCreateSimpleMergeWithoutRelease(self, repository: str, sourcebranch: str, targetbranch: str, remotename: str, remove_source_branch: bool) -> None:
         commitid = self.git_merge(repository, sourcebranch, targetbranch, False, True)
         self.git_merge(repository, targetbranch, sourcebranch, True, True)
@@ -1382,6 +1430,7 @@ class ScriptCollectionCore:
         if(remove_source_branch):
             self.git_remove_branch(repository, sourcebranch)
 
+    @GeneralUtilities.check_arguments
     def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False,
                                   remove_empty_lines: bool = True, ignored_start_character: list = list()) -> int:
         if os.path.isfile(file):
@@ -1424,12 +1473,14 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stdout(f"File '{file}' does not exist")
             return 1
 
+    @GeneralUtilities.check_arguments
     def __adapt_line_for_sorting(self, line: str, ignored_start_characters: list):
         result = line.lower()
         while len(result) > 0 and result[0] in ignored_start_characters:
             result = result[1:]
         return result
 
+    @GeneralUtilities.check_arguments
     def SCGenerateSnkFiles(self, outputfolder, keysize=4096, amountofkeys=10) -> int:
         GeneralUtilities.ensure_directory_exists(outputfolder)
         for _ in range(amountofkeys):
@@ -1437,6 +1488,7 @@ class ScriptCollectionCore:
             argument = f"-k {keysize} {file}"
             self.start_program_synchronously("sn", argument, outputfolder)
 
+    @GeneralUtilities.check_arguments
     def __merge_files(self, sourcefile: str, targetfile: str) -> None:
         with open(sourcefile, "rb") as f:
             source_data = f.read()
@@ -1445,6 +1497,7 @@ class ScriptCollectionCore:
             fout.write(bytes(merge_separator))
             fout.write(source_data)
 
+    @GeneralUtilities.check_arguments
     def __process_file(self, file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
         new_filename = os.path.join(os.path.dirname(file), os.path.basename(file).replace(substringInFilename, newSubstringInFilename))
         if file != new_filename:
@@ -1468,10 +1521,12 @@ class ScriptCollectionCore:
             else:
                 os.rename(file, new_filename)
 
+    @GeneralUtilities.check_arguments
     def SCReplaceSubstringsInFilenames(self, folder: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
         for file in GeneralUtilities.absolute_file_paths(folder):
             self.__process_file(file, substringInFilename, newSubstringInFilename, conflictResolveMode)
 
+    @GeneralUtilities.check_arguments
     def __check_file(self, file: str, searchstring: str) -> None:
         bytes_ascii = bytes(searchstring, "ascii")
         bytes_utf16 = bytes(searchstring, "utf-16")  # often called "unicode-encoding"
@@ -1485,16 +1540,19 @@ class ScriptCollectionCore:
             elif bytes_utf8 in content:
                 GeneralUtilities.write_message_to_stdout(file)
 
+    @GeneralUtilities.check_arguments
     def SCSearchInFiles(self, folder: str, searchstring: str) -> None:
         for file in GeneralUtilities.absolute_file_paths(folder):
             self.__check_file(file, searchstring)
 
+    @GeneralUtilities.check_arguments
     def __print_qr_code_by_csv_line(self, displayname, website, emailaddress, key, period) -> None:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
         call(["qr", qrcode_content])
 
+    @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
         separator_line = "--------------------------------------------------------"
         for line in GeneralUtilities.read_csv_file(csvfile, True):
@@ -1502,6 +1560,7 @@ class ScriptCollectionCore:
             self.__print_qr_code_by_csv_line(line[0], line[1], line[2], line[3], line[4])
         GeneralUtilities.write_message_to_stdout(separator_line)
 
+    @GeneralUtilities.check_arguments
     def SCUpdateNugetpackagesInCsharpProject(self, csprojfile: str) -> int:
         outdated_packages = self.get_nuget_packages_of_csproj_file(csprojfile, True)
         GeneralUtilities.write_message_to_stdout("The following packages will be updated:")
@@ -1511,6 +1570,7 @@ class ScriptCollectionCore:
         GeneralUtilities.write_message_to_stdout(f"{len(outdated_packages)} package(s) were updated")
         return len(outdated_packages) > 0
 
+    @GeneralUtilities.check_arguments
     def SCUploadFileToFileHost(self, file: str, host: str) -> int:
         try:
             GeneralUtilities.write_message_to_stdout(self.upload_file_to_file_host(file, host))
@@ -1519,6 +1579,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback)
             return 1
 
+    @GeneralUtilities.check_arguments
     def SCFileIsAvailableOnFileHost(self, file: str) -> int:
         try:
             if self.file_is_available_on_file_host(file):
@@ -1531,6 +1592,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback)
             return 2
 
+    @GeneralUtilities.check_arguments
     def SCCalculateBitcoinBlockHash(self, block_version_number: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str) -> str:
         # Example-values:
         # block_version_number: "00000020"
@@ -1542,6 +1604,7 @@ class ScriptCollectionCore:
         header = str(block_version_number + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
         return binascii.hexlify(hashlib.sha256(hashlib.sha256(binascii.unhexlify(header)).digest()).digest()[::-1]).decode('utf-8')
 
+    @GeneralUtilities.check_arguments
     def SCChangeHashOfProgram(self, inputfile: str) -> None:
         valuetoappend = str(uuid.uuid4())
 
@@ -1556,6 +1619,7 @@ class ScriptCollectionCore:
             # this would obviously also change the hashvalue of the program so appending a whitespace is not required anymore.
             file.write(valuetoappend)
 
+    @GeneralUtilities.check_arguments
     def __adjust_folder_name(self, folder: str) -> str:
         result = os.path.dirname(folder).replace("\\", "/")
         if result == "/":
@@ -1563,6 +1627,7 @@ class ScriptCollectionCore:
         else:
             return result
 
+    @GeneralUtilities.check_arguments
     def __create_iso(self, folder, iso_file) -> None:
         created_directories = []
         files_directory = "FILES"
@@ -1584,6 +1649,7 @@ class ScriptCollectionCore:
         iso.write(iso_file)
         iso.close()
 
+    @GeneralUtilities.check_arguments
     def SCCreateISOFileWithObfuscatedFiles(self, inputfolder: str, outputfile: str, printtableheadline, createisofile, extensions) -> None:
         if (os.path.isdir(inputfolder)):
             namemappingfile = "name_map.csv"
@@ -1597,6 +1663,7 @@ class ScriptCollectionCore:
         else:
             raise Exception(f"Directory not found: '{inputfolder}'")
 
+    @GeneralUtilities.check_arguments
     def SCFilenameObfuscator(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
         if(not obfuscate_all_files):
@@ -1624,12 +1691,14 @@ class ScriptCollectionCore:
         else:
             raise Exception(f"Directory not found: '{inputfolder}'")
 
+    @GeneralUtilities.check_arguments
     def __extension_matchs(self, file: str, obfuscate_file_extensions) -> bool:
         for extension in obfuscate_file_extensions:
             if file.lower().endswith("."+extension.lower()):
                 return True
         return False
 
+    @GeneralUtilities.check_arguments
     def SCHealthcheck(self, file: str) -> int:
         lines = GeneralUtilities.read_lines_from_file(file)
         for line in reversed(lines):
@@ -1643,6 +1712,7 @@ class ScriptCollectionCore:
         GeneralUtilities.write_message_to_stderr(f"No valid line found for healthycheck in file '{file}'.")
         return 2
 
+    @GeneralUtilities.check_arguments
     def SCObfuscateFilesFolder(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
         if(not obfuscate_all_files):
@@ -1663,6 +1733,7 @@ class ScriptCollectionCore:
         else:
             raise Exception(f"Directory not found: '{inputfolder}'")
 
+    @GeneralUtilities.check_arguments
     def upload_file_to_file_host(self, file: str, host: str) -> int:
         if(host is None):
             return self.upload_file_to_random_filesharing_service(file)
@@ -1673,6 +1744,7 @@ class ScriptCollectionCore:
         GeneralUtilities.write_message_to_stderr("Unknown host: "+host)
         return 1
 
+    @GeneralUtilities.check_arguments
     def upload_file_to_random_filesharing_service(self, file: str) -> int:
         host = randrange(2)
         if host == 0:
@@ -1681,20 +1753,25 @@ class ScriptCollectionCore:
             return self.upload_file_to_bayfiles(file)
         return 1
 
+    @GeneralUtilities.check_arguments
     def upload_file_to_anonfiles(self, file) -> int:
         return self.upload_file_by_using_simple_curl_request("https://api.anonfiles.com/upload", file)
 
+    @GeneralUtilities.check_arguments
     def upload_file_to_bayfiles(self, file) -> int:
         return self.upload_file_by_using_simple_curl_request("https://api.bayfiles.com/upload", file)
 
+    @GeneralUtilities.check_arguments
     def upload_file_by_using_simple_curl_request(self, api_url: str, file: str) -> int:
         # TODO implement
         return 1
 
+    @GeneralUtilities.check_arguments
     def file_is_available_on_file_host(self, file) -> int:
         # TODO implement
         return 1
 
+    @GeneralUtilities.check_arguments
     def python_file_has_errors(self, file, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
         errors = list()
         folder = os.path.dirname(file)
@@ -1716,6 +1793,7 @@ class ScriptCollectionCore:
 
         return (False, errors)
 
+    @GeneralUtilities.check_arguments
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
         self.start_program_synchronously("dotnet", f'restore --disable-parallel --force --force-evaluate "{csproj_file}"')
         if only_outdated_packages:
@@ -1730,36 +1808,39 @@ class ScriptCollectionCore:
                 result.append(trimmed_line[2:].split(" ")[0])
         return result
 
+    @GeneralUtilities.check_arguments
     def update_nuget_package(self, csproj_file: str, name: str) -> None:
         self.start_program_synchronously("dotnet", f'add "{csproj_file}" package {name}')
 
+    @GeneralUtilities.check_arguments
     def get_file_permission(self, file: str) -> str:
         """This function returns an usual octet-triple, for example "0700"."""
         ls_output = self.__ls(file)
         return self.__get_file_permission_helper(ls_output)
 
+    @GeneralUtilities.check_arguments
     def __get_file_permission_helper(self, ls_output: str) -> str:
         permissions = ' '.join(ls_output.split()).split(' ')[0][1:]
         return str(self.__to_octet(permissions[0:3]))+str(self.__to_octet(permissions[3:6]))+str(self.__to_octet(permissions[6:9]))
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __to_octet(self, string: str) -> int:
         return int(self.__to_octet_helper(string[0])+self.__to_octet_helper(string[1])+self.__to_octet_helper(string[2]), 2)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __to_octet_helper(self, string: str) -> str:
         if(string == "-"):
             return "0"
         else:
             return "1"
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_file_owner(self, file: str) -> str:
         """This function returns the user and the group in the format "user:group"."""
         ls_output = self.__ls(file)
         return self.__get_file_owner_helper(ls_output)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __get_file_owner_helper(self, ls_output: str) -> str:
         try:
             splitted = ' '.join(ls_output.split()).split(' ')
@@ -1767,12 +1848,12 @@ class ScriptCollectionCore:
         except Exception as exception:
             raise ValueError(f"ls-output '{ls_output}' not parsable") from exception
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def get_file_owner_and_file_permission(self, file: str) -> str:
         ls_output = self.__ls(file)
         return [self.__get_file_owner_helper(ls_output), self.__get_file_permission_helper(ls_output)]
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __ls(self, file: str) -> str:
         file = file.replace("\\", "/")
         GeneralUtilities.assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
@@ -1781,7 +1862,7 @@ class ScriptCollectionCore:
         GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def set_permission(self, file_or_folder: str, permissions: str, recursive: bool = False) -> None:
         """This function expects an usual octet-triple, for example "700"."""
         args = []
@@ -1791,7 +1872,7 @@ class ScriptCollectionCore:
         args.append(file_or_folder)
         self.start_program_synchronously_argsasarray("chmod", args)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def set_owner(self, file_or_folder: str, owner: str, recursive: bool = False, follow_symlinks: bool = False) -> None:
         """This function expects the user and the group in the format "user:group"."""
         args = []
@@ -1803,14 +1884,14 @@ class ScriptCollectionCore:
         args.append(file_or_folder)
         self.start_program_synchronously_argsasarray("chown", args)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __adapt_workingdirectory(self, workingdirectory: str) -> str:
         if workingdirectory is None:
             return os.getcwd()
         else:
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> int:
@@ -1824,7 +1905,7 @@ class ScriptCollectionCore:
         return self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
                                                    log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def start_program_asynchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
                                                  print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                                  title: str = None, log_namespace: str = "", arguments_for_log:  list = None) -> int:
@@ -1840,13 +1921,13 @@ class ScriptCollectionCore:
         return self.__start_process_asynchronously_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
                                                                log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __start_internal_for_helper(self, program: str, arguments: list, workingdirectory: str = None, arguments_for_log: list = None) -> tuple[int, str, str, int]:
         return self.start_program_synchronously_argsasarray(program, arguments,
                                                             workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True,
                                                             prevent_using_epew=True, argument_list_for_log=arguments_for_log)
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
@@ -1856,7 +1937,7 @@ class ScriptCollectionCore:
                                                             log_file, timeoutInSeconds, addLogOverhead, title,
                                                             throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace, GeneralUtilities.arguments_to_array(arguments_for_log))
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
                                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                                 addLogOverhead: bool = False, title: str = None,
@@ -1928,7 +2009,7 @@ class ScriptCollectionCore:
 
         return result
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __format_program_execution_information(self, exitcode: int = None,  stdout: str = None, stderr: str = None, program: str = None, argument: str = None,
                                                workingdirectory: str = None, title: str = None, pid: int = None, execution_duration: timedelta = None):
         result = ""
@@ -1951,7 +2032,7 @@ class ScriptCollectionCore:
         return self.__start_process_asynchronously(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
                                                    timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile, ' '.join(arguments_for_log))
 
-    @checkargs
+    @GeneralUtilities.check_arguments
     def __start_process_asynchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
                                        print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                        addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
@@ -2002,11 +2083,13 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
         return Popen(args, shell=False)
 
+    @GeneralUtilities.check_arguments
     def verify_no_pending_mock_program_calls(self):
         if(len(self.__mocked_program_calls) > 0):
             raise AssertionError(
                 "The following mock-calls were not called:\n    "+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
 
+    @GeneralUtilities.check_arguments
     def __format_mock_program_call(self, r) -> str:
         return f"'{r.workingdirectory}>{r.program} {r.argument}' (" \
             f"exitcode: {GeneralUtilities.str_none_safe(str(r.exit_code))}, " \
@@ -2014,6 +2097,7 @@ class ScriptCollectionCore:
             f"stdout: {GeneralUtilities.str_none_safe(str(r.stdout))}, " \
             f"stderr: {GeneralUtilities.str_none_safe(str(r.stderr))})"
 
+    @GeneralUtilities.check_arguments
     def register_mock_program_call(self, program: str, argument: str, workingdirectory: str, result_exit_code: int, result_stdout: str, result_stderr: str,
                                    result_pid: int, amount_of_expected_calls=1):
         "This function is for test-purposes only"
@@ -2028,6 +2112,7 @@ class ScriptCollectionCore:
             mock_call.pid = result_pid
             self.__mocked_program_calls.append(mock_call)
 
+    @GeneralUtilities.check_arguments
     def __get_mock_program_call(self, program: str, argument: str, workingdirectory: str):
         result: ScriptCollectionCore.__MockProgramCall = None
         for mock_call in self.__mocked_program_calls:
@@ -2042,6 +2127,7 @@ class ScriptCollectionCore:
             self.__mocked_program_calls.remove(result)
             return (result.exit_code, result.stdout, result.stderr, result.pid)
 
+    @GeneralUtilities.check_arguments
     class __MockProgramCall:
         program: str
         argument: str
@@ -2051,6 +2137,7 @@ class ScriptCollectionCore:
         stderr: str
         pid: int
 
+    @GeneralUtilities.check_arguments
     def __get_number_from_filecontent(self, filecontent: str) -> int:
         for line in filecontent.splitlines():
             try:
@@ -2061,6 +2148,7 @@ class ScriptCollectionCore:
                 pass
         raise Exception(f"'{filecontent}' does not containe an int-line")
 
+    @GeneralUtilities.check_arguments
     def __load_text(self, file: str) -> str:
         if os.path.isfile(file):
             content = GeneralUtilities.read_text_from_file(file).replace('\r', '')
@@ -2069,6 +2157,7 @@ class ScriptCollectionCore:
         else:
             raise Exception(f"File '{file}' does not exist")
 
+    @GeneralUtilities.check_arguments
     def extract_archive_with_7z(self, unzip_program_file: str, zipfile: str, password: str, output_directory: str) -> None:
         password_set = not password is None
         file_name = Path(zipfile).name
@@ -2080,35 +2169,39 @@ class ScriptCollectionCore:
         argument = f"{argument} {file_name}"
         return self.start_program_synchronously(unzip_program_file, argument, file_folder)
 
+    @GeneralUtilities.check_arguments
     def get_internet_time(self) -> datetime:
         response = ntplib.NTPClient().request('pool.ntp.org')
         return datetime.fromtimestamp(response.tx_time)
 
+    @GeneralUtilities.check_arguments
     def system_time_equals_internet_time(self, maximal_tolerance_difference: timedelta) -> bool:
         return abs(datetime.now() - self.get_internet_time()) < maximal_tolerance_difference
 
+    @GeneralUtilities.check_arguments
     def system_time_equals_internet_time_with_default_tolerance(self) -> bool:
         return self.system_time_equals_internet_time(self.__get_default_tolerance_for_system_time_equals_internet_time())
 
+    @GeneralUtilities.check_arguments
     def check_system_time(self, maximal_tolerance_difference: timedelta):
         if not self.system_time_equals_internet_time(maximal_tolerance_difference):
             raise ValueError("System time may be wrong")
 
+    @GeneralUtilities.check_arguments
     def check_system_time_with_default_tolerance(self) -> None:
         self.check_system_time(self.__get_default_tolerance_for_system_time_equals_internet_time())
 
+    @GeneralUtilities.check_arguments
     def __get_default_tolerance_for_system_time_equals_internet_time(self) -> timedelta:
         return timedelta(hours=0, minutes=0, seconds=3)
 
+    @GeneralUtilities.check_arguments
     def get_semver_version_from_gitversion(self, folder: str) -> str:
         return self.get_version_from_gitversion(folder, "MajorMinorPatch")
 
+    @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for issue 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
         result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
-
-    def export_released_file_and_commit(self, whl_file_with_path: str, target_file: str, targetfolder_repository: str, product_name: str, version_of_release: str):
-        copyfile(whl_file_with_path, target_file)
-        self.git_commit(targetfolder_repository, f"Added {product_name} v{version_of_release}")

@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 
-version = "2.8.5"
+version = "2.8.6"
 
 
 def create_wheel_file():
@@ -27,7 +27,7 @@ def create_wheel_file():
         url="https://github.com/anionDev/ScriptCollection",
         license="MIT",
         classifiers=[
-            "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
             "License :: OSI Approved :: MIT License",
             "Operating System :: POSIX :: Linux",
             "Operating System :: Microsoft :: Windows :: Windows 10",
@@ -44,7 +44,7 @@ def create_wheel_file():
         install_requires=[
             "defusedxml>=0.7.1",
             "keyboard>=0.13.5",
-            "lxml>=4.6.3",
+            "lxml>=4.8.0",
             "ntplib>=0.3.4",
             "pycdlib>=1.10.0",
             "PyPDF2>=1.26.0",
