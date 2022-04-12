@@ -27,7 +27,7 @@ def create_wheel_file():
         url="https://github.com/anionDev/ScriptCollection",
         license="MIT",
         classifiers=[
-            "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
             "License :: OSI Approved :: MIT License",
             "Operating System :: POSIX :: Linux",
             "Operating System :: Microsoft :: Windows :: Windows 10",
