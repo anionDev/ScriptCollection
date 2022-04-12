@@ -26,7 +26,7 @@ from .GeneralUtilities import GeneralUtilities
 from .GitRunnerBase import GitRunnerBase
 from .GenericGitRunner import GenericGitRunner
 
-version = "2.8.6"
+version = "2.8.7"
 __version__ = version
 
 
