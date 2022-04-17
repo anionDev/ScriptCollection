@@ -22,11 +22,13 @@ Some functions are not entirely available on windows or require common third-par
 
 ## Get ScriptCollection
 
+ScriptCollection requires [Python](https://www.python.org) 3.10.
+
 ### Installation via pip
 
 `pip3 install ScriptCollection`
 
-pip3 requires [Python](https://www.python.org) 3. See the [PyPI-site for ScriptCollection](https://pypi.org/project/ScriptCollection)
+See the [PyPI-site for ScriptCollection](https://pypi.org/project/ScriptCollection)
 
 ### Download sourcecode using git
 
@@ -43,8 +45,8 @@ It is recommended to always use only the newest version of the ScriptCollection.
 If you have installed the ScriptCollection as pip-package you can simply check the version using Python with the following commands:
 
 ```lang-bash
-from ScriptCollection.core import get_ScriptCollection_version
-get_ScriptCollection_version()
+from ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
+ScriptCollectionCore.get_scriptcollection_version()
 ```
 
 Or you can simply run `pip3 freeze` folder to get information about (all) currently installed pip-packages.

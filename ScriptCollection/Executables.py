@@ -356,7 +356,7 @@ def OrganizeLinesInFile() -> int:
     args = parser.parse_args()
     return ScriptCollectionCore().sc_organize_lines_in_file(args.file, args.encoding,
                                                             args.sort, args.remove_duplicated_lines, args.ignore_first_line,
-                                                            args.remove_empty_lines, args.ignored_start_character)
+                                                            args.remove_empty_lines, list(args.ignored_start_character))
 
 
 def CreateHashOfAllFiles() -> int:
