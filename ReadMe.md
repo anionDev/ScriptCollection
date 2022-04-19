@@ -1,16 +1,16 @@
 # ScriptCollection
 
-![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
 ![Generic badge](https://img.shields.io/badge/coverage-1%25-green)
+![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
+[![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
+[![Downloads](https://pepy.tech/badge/scriptcollection/month)](https://pepy.tech/project/scriptcollection)
+![GitHub repo size](https://img.shields.io/github/repo-size/anionDev/ScriptCollection)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 
 The ScriptCollection is the place for reusable scripts.
 
 When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
-
-## Functions
-
-TODO
 
 ## Hints
 
