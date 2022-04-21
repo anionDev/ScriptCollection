@@ -12,6 +12,12 @@
 				"command": "python",
 				"args": ["Setup.py", "bdist_wheel", "--dist-dir", "."],
 				"type": "shell"
+			},
+			{
+				"label": "Run testcases",
+				"command": "python",
+				"args": ["InternalScripts/RunTestcases.py"],
+				"type": "shell",
 			}
 		]
 	},
@@ -19,11 +25,11 @@
 		"version": "0.2.0",
 		"configurations": [
 			{
-				"name": "Debug creating wheel file",
+				"name": "Debug current file",
 				"type": "python",
 				"request": "launch",
-				"program": "Setup.py",
-				"args": ["bdist_wheel", "--dist-dir", "."],
+				"program": "${file}",
+				"args": [],
 				"console": "integratedTerminal"
 			}
 		]
