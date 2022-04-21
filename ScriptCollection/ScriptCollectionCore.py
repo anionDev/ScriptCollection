@@ -2012,13 +2012,6 @@ This script expectes that a test-coverage-badges should be added to '<repository
         result = (exit_code, stdout, stderr, pid)
         return result
 
-    @GeneralUtilities.check_arguments
-    def __write_output(self,print_errors_as_information,stderr):
-        if print_errors_as_information:
-            GeneralUtilities.write_message_to_stdout(stderr)
-        else:
-            GeneralUtilities.write_message_to_stderr(stderr)
-
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
     def run_program(self, program:str,arguments:  str="", working_directory: str=None , verbosity: int =1 ,
@@ -2069,6 +2062,14 @@ This script expectes that a test-coverage-badges should be added to '<repository
         return self.start_program_synchronously_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), workingdirectory, verbosity, print_errors_as_information,
                                                             log_file, timeoutInSeconds, addLogOverhead, title,
                                                             throw_exception_if_exitcode_is_not_zero, log_namespace, GeneralUtilities.arguments_to_array_for_log(arguments_for_log))
+
+
+    @GeneralUtilities.check_arguments
+    def __write_output(self,print_errors_as_information,stderr):
+        if print_errors_as_information:
+            GeneralUtilities.write_message_to_stdout(stderr)
+        else:
+            GeneralUtilities.write_message_to_stderr(stderr)
 
     @GeneralUtilities.check_arguments#obsolete
     def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
@@ -2135,7 +2136,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
     def verify_no_pending_mock_program_calls(self):
         if(len(self.__mocked_program_calls) > 0):
             raise AssertionError(
-                "The following mock-calls were not called:\n    "+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
+                "The following mock-calls were not called:\n"+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
 
     @GeneralUtilities.check_arguments
     def __format_mock_program_call(self, r) -> str:
