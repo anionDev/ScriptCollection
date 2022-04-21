@@ -14,7 +14,7 @@ class ProgramRunnerBase:
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @abstractmethod
     @GeneralUtilities.check_arguments
-    def wait(self, popen:Popen ,custom_argument:object) -> tuple[int, str, str, int]:
+    def wait(self, process:Popen ,custom_argument:object) -> tuple[int, str, str, int]:
         raise NotImplementedError
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid

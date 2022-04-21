@@ -22,7 +22,7 @@ class CustomEpewArgument:
     exitcodefile = tempdir + ".epew.exitcode.txt"
     pidfile = tempdir + ".epew.pid.txt"
 
-    def __init__(self,    print_errors_as_information: bool,  log_file: str, timeoutInSeconds: int, addLogOverhead: bool, title: str, log_namespace: str, verbosity: str,  arguments_for_log:  list[str]):
+    def __init__(self, print_errors_as_information: bool, log_file: str, timeoutInSeconds: int, addLogOverhead: bool, title: str, log_namespace: str, verbosity: str,  arguments_for_log:  list[str]):
         self.print_errors_as_information=print_errors_as_information
         self.log_file=log_file
         self.timeoutInSeconds=timeoutInSeconds
@@ -74,8 +74,16 @@ class ProgramRunnerEpew(ProgramRunnerBase):
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def wait(self, popen:Popen ,custom_argument:object) -> tuple[int, str, str, int]:
-        raise NotImplementedError
+    def wait(self, process:Popen ,custom_argument:object) -> tuple[int, str, str, int]:
+        process.wait()
+        custom_argument:CustomEpewArgument=custom_argument
+        stdout = self.__load_text(custom_argument.output_file_for_stdout)
+        stderr = self.__load_text(custom_argument.output_file_for_stderr)
+        exit_code = self.__get_number_from_filecontent(self.__load_text(custom_argument.output_file_for_exit_code))
+        pid = self.__get_number_from_filecontent(self.__load_text(custom_argument.output_file_for_pid))
+        GeneralUtilities.ensure_directory_does_not_exist(custom_argument.tempdir)
+        result = (exit_code, stdout, stderr, pid)
+        return result
 
     @GeneralUtilities.check_arguments
     def run_program_argsasarray(self,program:str, arguments_as_array: list[str], working_directory: str,custom_argument:object) -> tuple[int, str, str, int]:

@@ -9,7 +9,7 @@ import math
 import os
 from pathlib import Path
 from random import randrange
-from subprocess import PIPE, Popen
+from subprocess import Popen
 import re
 import shutil
 import traceback
@@ -1945,12 +1945,13 @@ This script expectes that a test-coverage-badges should be added to '<repository
 
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
-    @GeneralUtilities.check_arguments#1
+    @GeneralUtilities.check_arguments
     def run_program_argsasarray(self, program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,throw_exception_if_exitcode_is_not_zero:bool=True) -> tuple[int, str, str, int]:
         start_datetime = datetime.utcnow()
-        process=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
+        process=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,
+            timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
         pid = process.pid
         stdout, stderr = process.communicate()
         exit_code = process.wait()
@@ -1994,26 +1995,29 @@ This script expectes that a test-coverage-badges should be added to '<repository
         return result
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
-    @GeneralUtilities.check_arguments#2
+    @GeneralUtilities.check_arguments
     def run_program(self, program:str,arguments:  str, working_directory: str, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,throw_exception_if_exitcode_is_not_zero:bool=True) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log,throw_exception_if_exitcode_is_not_zero)
+        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,
+            log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log,throw_exception_if_exitcode_is_not_zero)
 
     # Return-values program_runner: Pid
-    @GeneralUtilities.check_arguments#3
+    @GeneralUtilities.check_arguments
     def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None ) -> int:
-        process=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)[0]
+        process:Popen=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,
+            print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)[0]
         return process.pid
 
     # Return-values program_runner: Pid
-    @GeneralUtilities.check_arguments#4
+    @GeneralUtilities.check_arguments
     def run_program_async(self, program:str,arguments: str,  working_directory: str , verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> int:
-        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
+        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,
+            print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
 
 
     @GeneralUtilities.check_arguments
