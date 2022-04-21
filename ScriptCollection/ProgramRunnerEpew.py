@@ -36,7 +36,7 @@ class CustomEpewArgument:
 class ProgramRunnerEpew(ProgramRunnerBase):
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str], working_directory: str,custom_argument:object) -> Popen:
+    def run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None,custom_argument:object=None) -> Popen:
         if GeneralUtilities.epew_is_available():
             custom_argument:CustomEpewArgument=custom_argument
             arguments_for_process = ["epew"]
@@ -74,7 +74,7 @@ class ProgramRunnerEpew(ProgramRunnerBase):
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def wait(self, process:Popen ,custom_argument:object) -> tuple[int, str, str, int]:
+    def wait(self, process:Popen ,custom_argument:object=None) -> tuple[int, str, str, int]:
         process.wait()
         custom_argument:CustomEpewArgument=custom_argument
         stdout = self.__load_text(custom_argument.output_file_for_stdout)
@@ -86,20 +86,20 @@ class ProgramRunnerEpew(ProgramRunnerBase):
         return result
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self,program:str, arguments_as_array: list[str], working_directory: str,custom_argument:object) -> tuple[int, str, str, int]:
+    def run_program_argsasarray(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None,custom_argument:object=None) -> tuple[int, str, str, int]:
         process:Popen=self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,custom_argument)
         return self.wait(process, custom_argument)
 
     @GeneralUtilities.check_arguments
-    def run_program(self, program:str,arguments: str, working_directory: str,custom_argument:object) -> tuple[int, str, str, int]:
+    def run_program(self, program:str,arguments: str="", working_directory: str=None,custom_argument:object=None) -> tuple[int, str, str, int]:
         return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,custom_argument)
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self,program:str, arguments_as_array: list[str], working_directory: str,custom_argument:object) -> int:
+    def run_program_argsasarray_async(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None,custom_argument:object=None) -> int:
         return self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,custom_argument).pid
 
     @GeneralUtilities.check_arguments
-    def run_program_async(self, program:str,arguments: str, working_directory: str,custom_argument:object) -> int:
+    def run_program_async(self, program:str,arguments: str="", working_directory: str=None,custom_argument:object=None) -> int:
         return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,custom_argument)
 
     @GeneralUtilities.check_arguments

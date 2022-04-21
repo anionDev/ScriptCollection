@@ -230,8 +230,8 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         sc.register_mock_program_call("p", "a2", "/tmp", 0, "out 2", "err 2", 44)
 
         # act
-        result1 = sc.start_program_synchronously("p", "a1", "/tmp")
-        result2 = sc.start_program_synchronously("p", "a2", "/tmp")
+        result1 = sc.run_program("p", "a1", "/tmp")
+        result2 = sc.run_program("p", "a2", "/tmp")
 
         # assert
         assert result1 == (0, "out 1", "err 1", 40)
@@ -264,7 +264,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
         GeneralUtilities.ensure_directory_exists(tests_folder)
         sc = ScriptCollectionCore()
-        sc.start_program_synchronously("git", "init", tests_folder)
+        sc.run_program("git", "init", tests_folder)
 
         ignored_logfolder_name = "logfolder"
         ignored_logfolder = tests_folder+os.path.sep+ignored_logfolder_name
