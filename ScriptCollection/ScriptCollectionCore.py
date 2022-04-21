@@ -12,7 +12,7 @@ from pathlib import Path
 from random import randrange
 import re
 import shutil
-from subprocess import PIPE, Popen, call
+from subprocess import Popen, call
 import tempfile
 import traceback
 import uuid
@@ -1783,6 +1783,26 @@ class ScriptCollectionCore:
 
         return (False, errors)
 
+    def run_testcases_for_python_project(self,repository_folder:str):
+        self.start_program_synchronously("coverage","run -m pytest",repository_folder)
+        self.start_program_synchronously("coverage","xml",repository_folder)
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder,"Other/TestCoverage"))
+        coveragefile=os.path.join(repository_folder,"Other/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(coveragefile)
+        os.rename(os.path.join(repository_folder,"coverage.xml"),coveragefile)
+
+    def generate_coverage_report(self,repository_folder:str):
+        """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' exists.
+This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
+This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/Badges/TestCoverage'."""
+        self.start_program_synchronously("coverage","xml",repository_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder,"Other/TestCoverage/Report"))
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder,"Other/TestCoverage/Report"))
+        GeneralUtilities.ensure_file_exists(os.path.join(repository_folder,"Other/TestCoverage/.gitignore"))
+        self.start_program_synchronously("reportgenerator","-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report",repository_folder)
+        self.start_program_synchronously("reportgenerator","-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/Badges/TestCoverage -reporttypes:Badges",repository_folder)
+
+
     @GeneralUtilities.check_arguments
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
         self.start_program_synchronously("dotnet", f'restore --disable-parallel --force --force-evaluate "{csproj_file}"')
@@ -1925,7 +1945,7 @@ class ScriptCollectionCore:
                                     log_namespace: str = "", arguments_for_log: str = None) -> tuple[int, str, str, int]:
         return self.start_program_synchronously_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), workingdirectory, verbosity, print_errors_as_information,
                                                             log_file, timeoutInSeconds, addLogOverhead, title,
-                                                            throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace, GeneralUtilities.arguments_to_array(arguments_for_log))
+                                                            throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace, GeneralUtilities.arguments_to_array_for_log(arguments_for_log))
 
     @GeneralUtilities.check_arguments
     def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,

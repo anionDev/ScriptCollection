@@ -537,12 +537,17 @@ class GeneralUtilities:
     def arguments_to_array(arguments_as_string: str) -> list[str]:
         if arguments_as_string is None:
             return []
-        if not isinstance(arguments_as_string, str):
-            raise ValueError("type of arguments_as_string is "+type(arguments_as_string))
         if GeneralUtilities.string_has_content(arguments_as_string):
             return arguments_as_string.split(" ")  # TODO this function should get improved to allow whitespaces in quote-substrings
         else:
             return []
+
+    @staticmethod
+    @check_arguments
+    def arguments_to_array_for_log(arguments_as_string: str) -> list[str]:
+        if arguments_as_string is None:
+            return None
+        return GeneralUtilities.arguments_to_array(arguments_as_string)
 
     @staticmethod
     @check_arguments
