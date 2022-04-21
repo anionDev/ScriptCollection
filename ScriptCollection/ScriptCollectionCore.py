@@ -1795,7 +1795,6 @@ class ScriptCollectionCore:
         """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' exists.
 This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
 This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/Badges/TestCoverage'."""
-        self.start_program_synchronously("coverage","xml",repository_folder)
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder,"Other/TestCoverage/Report"))
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder,"Other/TestCoverage/Report"))
         GeneralUtilities.ensure_file_exists(os.path.join(repository_folder,"Other/TestCoverage/.gitignore"))
