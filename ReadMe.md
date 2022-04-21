@@ -1,7 +1,7 @@
 # ScriptCollection
 
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
-![Generic badge](https://img.shields.io/badge/coverage-1%25-green)
+![Coverage](./report/badge_shieldsio_linecoverage_blue.svg)
 ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection/month)](https://pepy.tech/project/scriptcollection)
