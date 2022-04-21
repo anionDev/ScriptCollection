@@ -1917,9 +1917,6 @@ This script expectes that a test-coverage-badges should be added to '<repository
         #2=Full (Prints StdOut and StdErr of the executed program.)
         #3=Verbose (Same as "Full" but with some more information.)
 
-        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
-        if mock_loader_result[0]:
-            return mock_loader_result[1]
 
         if arguments_for_log is None:
             arguments_for_log = ' '.join(arguments_as_array)
@@ -1949,11 +1946,18 @@ This script expectes that a test-coverage-badges should be added to '<repository
     def run_program_argsasarray(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,throw_exception_if_exitcode_is_not_zero:bool=True) -> tuple[int, str, str, int]:
+
+        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
+        if mock_loader_result[0]:
+            return mock_loader_result[1]
+
         start_datetime = datetime.utcnow()
         process=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,
             timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
         pid = process.pid
         stdout, stderr = process.communicate()
+        stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
+        stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
         exit_code = process.wait()
         end_datetime = datetime.utcnow()
 
@@ -2007,8 +2011,13 @@ This script expectes that a test-coverage-badges should be added to '<repository
     def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None ) -> int:
+
+        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
+        if mock_loader_result[0]:
+            return mock_loader_result[1]
+
         process:Popen=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,
-            print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)[0]
+            print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
         return process.pid
 
     # Return-values program_runner: Pid
