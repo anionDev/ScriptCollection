@@ -19,11 +19,11 @@ class ProgramRunnerBase:
     # Return-values program_runner: Pid
     @abstractmethod
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str], working_directory: str ) -> tuple[int, str, str, int]:
+    def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str], working_directory: str ) -> int:
         raise NotImplementedError
 
     # Return-values program_runner: Pid
     @abstractmethod
     @GeneralUtilities.check_arguments
-    def run_program_async(self, program:str,arguments: str,  working_directory: str ) -> tuple[int, str, str, int]:
+    def run_program_async(self, program:str,arguments: str,  working_directory: str ) -> int:
         raise NotImplementedError

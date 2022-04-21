@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-import base64
 import binascii
 from configparser import ConfigParser
 import filecmp
@@ -10,10 +9,9 @@ import math
 import os
 from pathlib import Path
 from random import randrange
+from subprocess import PIPE, Popen
 import re
 import shutil
-from subprocess import Popen, call
-import tempfile
 import traceback
 import uuid
 import ntplib
@@ -21,8 +19,7 @@ from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
-
-from ScriptCollection.ProgramRunnerPopen import ProgramRunnerPopen
+from .ProgramRunnerPopen import ProgramRunnerPopen
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 
@@ -39,11 +36,11 @@ class ScriptCollectionCore:
     execute_program_really_if_no_mock_call_is_defined: bool = False
     __mocked_program_calls: list = list()
     __epew_is_available: bool = False
-    program_runner: ProgramRunnerBase = None
+    default_program_runner: ProgramRunnerBase = None
 
     def __init__(self):
         self.__epew_is_available = GeneralUtilities.epew_is_available()
-        self.program_runner = ProgramRunnerPopen()
+        self.default_program_runner = ProgramRunnerPopen()
 
 
     @staticmethod
@@ -238,8 +235,8 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def dotnet_build(self,repository_folder:str,projectname:str,configuration:str):
-        self.start_program_synchronously("dotnet", f"clean -c {configuration}" , repository_folder, prevent_using_epew=True)
-        self.start_program_synchronously("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}" , repository_folder, prevent_using_epew=True)
+        self.start_program_synchronously("dotnet", f"clean -c {configuration}" , repository_folder)
+        self.start_program_synchronously("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}" , repository_folder)
 
     @GeneralUtilities.check_arguments
     def run_testcases_for_csharp_project2(self,repository_folder:str,testprojectname:str,configuration:str):
@@ -249,7 +246,7 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_file_does_not_exist(l1)
         self.start_program_synchronously("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {configuration}" \
             f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml" \
-            f" /p:CoverletOutputFormat=opencover", repository_folder, prevent_using_epew=True)
+            f" /p:CoverletOutputFormat=opencover", repository_folder)
         GeneralUtilities.ensure_file_does_not_exist(l2)
         os.rename(l1,l2)
 
@@ -1557,7 +1554,7 @@ class ScriptCollectionCore:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
-        call(["qr", qrcode_content])
+        self.start_program_synchronously("qr", [qrcode_content])
 
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
@@ -1883,7 +1880,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
     def __ls(self, file: str) -> str:
         file = file.replace("\\", "/")
         GeneralUtilities.assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist")
-        result = self.__start_internal_for_helper("ls", ["-ld", file])
+        result = self.start_program_synchronously_argsasarray("ls", ["-ld", file])
         GeneralUtilities.assert_condition(result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
         GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
@@ -1910,6 +1907,8 @@ This script expectes that a test-coverage-badges should be added to '<repository
         args.append(file_or_folder)
         self.start_program_synchronously_argsasarray("chown", args)
 
+    #<run programs>
+
     @GeneralUtilities.check_arguments
     def __adapt_workingdirectory(self, workingdirectory: str) -> str:
         if workingdirectory is None:
@@ -1918,56 +1917,73 @@ This script expectes that a test-coverage-badges should be added to '<repository
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
     @GeneralUtilities.check_arguments
-    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
+    def __run_program_argsasarray_asynchelper(self,program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> Popen:
+        arguments_for_process = [program]
+        arguments_for_process.extend(arguments_as_array)
+        #TODO add overhead if desired
+        return Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=working_directory, shell=False)
+
+    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
+    @GeneralUtilities.check_arguments
+    def run_program_argsasarray(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
+        popen:Popen=self.__run_program_argsasarray_asynchelper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_as_array)
+        #TODO wait and then return stdout etc
+
+    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
+    @GeneralUtilities.check_arguments
+    def run_program(self, program:str,arguments:  str="", working_directory: str=None , verbosity: int = 1,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
+        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments),throw_exception_if_exitcode_is_not_zero)
+
+    # Return-values program_runner: Pid
+    @GeneralUtilities.check_arguments
+    def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None , verbosity: int = 1,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> tuple[int, str, str, int]:
+        return self.__run_program_argsasarray_asynchelper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_as_array).pid
+
+    # Return-values program_runner: Pid
+    @GeneralUtilities.check_arguments
+    def run_program_async(self, program:str,arguments: str="",  working_directory: str=None, verbosity: int = 1,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None ) -> tuple[int, str, str, int]:
+        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments))
+
+
+
+
+    @GeneralUtilities.check_arguments#obsolete
+    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> int:
-        workingdirectory = self.__adapt_workingdirectory(workingdirectory)
-        if self.mock_program_calls:
-            try:
-                return self.__get_mock_program_call(program, arguments, workingdirectory)[3]
-            except LookupError:
-                if not self.execute_program_really_if_no_mock_call_is_defined:
-                    raise
-        return self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
-                                                   log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
+        raise NotImplementedError
 
-    @GeneralUtilities.check_arguments
-    def start_program_asynchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = "", verbosity: int = 1, prevent_using_epew: bool = False,
+    @GeneralUtilities.check_arguments#obsolete
+    def start_program_asynchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = "", verbosity: int = 1,
                                                  print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
                                                  title: str = None, log_namespace: str = "", arguments_for_log:  list = None) -> int:
-        arguments = ' '.join(argument_list)
-        arguments_for_log = ' '.join(argument_list)
-        workingdirectory = self.__adapt_workingdirectory(workingdirectory)
-        if self.mock_program_calls:
-            try:
-                return self.__get_mock_program_call(program, arguments, workingdirectory)[3]
-            except LookupError:
-                if not self.execute_program_really_if_no_mock_call_is_defined:
-                    raise
-        return self.__start_process_asynchronously_argsasarray(program, argument_list, workingdirectory, verbosity, print_errors_as_information,
-                                                               log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, None, None, None, None, arguments_for_log)
+        raise NotImplementedError
 
-    @GeneralUtilities.check_arguments
-    def __start_internal_for_helper(self, program: str, arguments: list, workingdirectory: str = None, arguments_for_log: list = None) -> tuple[int, str, str, int]:
-        return self.start_program_synchronously_argsasarray(program, arguments,
-                                                            workingdirectory, verbosity=0, throw_exception_if_exitcode_is_not_zero=True,
-                                                            prevent_using_epew=True, argument_list_for_log=arguments_for_log)
-
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.check_arguments#obsolete
     def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                     addLogOverhead: bool = False, title: str = None,
-                                    throw_exception_if_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
+                                    throw_exception_if_exitcode_is_not_zero: bool = True,
                                     log_namespace: str = "", arguments_for_log: str = None) -> tuple[int, str, str, int]:
         return self.start_program_synchronously_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), workingdirectory, verbosity, print_errors_as_information,
                                                             log_file, timeoutInSeconds, addLogOverhead, title,
-                                                            throw_exception_if_exitcode_is_not_zero, prevent_using_epew, log_namespace, GeneralUtilities.arguments_to_array_for_log(arguments_for_log))
+                                                            throw_exception_if_exitcode_is_not_zero, log_namespace, GeneralUtilities.arguments_to_array_for_log(arguments_for_log))
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.check_arguments#obsolete
     def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
                                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
                                                 addLogOverhead: bool = False, title: str = None,
-                                                throw_exception_if_exitcode_is_not_zero: bool = True, prevent_using_epew: bool = False,
+                                                throw_exception_if_exitcode_is_not_zero: bool = True,
                                                 log_namespace: str = "", argument_list_for_log: list = None) -> tuple[int, str, str, int]:
         arguments = ' '.join(argument_list)
         if argument_list_for_log is None:
@@ -1975,6 +1991,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
         else:
             arguments_for_log = ' '.join(argument_list_for_log)
         workingdirectory = self.__adapt_workingdirectory(workingdirectory)
+
         if self.mock_program_calls:
             try:
                 return self.__get_mock_program_call(program, arguments, workingdirectory)
@@ -1982,37 +1999,14 @@ This script expectes that a test-coverage-badges should be added to '<repository
                 if not self.execute_program_really_if_no_mock_call_is_defined:
                     raise
         cmd = f'{workingdirectory}>{program} {arguments_for_log}'
-        if (self.__epew_is_available and not prevent_using_epew):
-            tempdir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-            output_file_for_stdout = tempdir + ".epew.stdout.txt"
-            output_file_for_stderr = tempdir + ".epew.stderr.txt"
-            output_file_for_exit_code = tempdir + ".epew.exitcode.txt"
-            output_file_for_pid = tempdir + ".epew.pid.txt"
-            start_datetime = datetime.utcnow()
-            process = self.__start_process_asynchronously(program, arguments, workingdirectory, verbosity, print_errors_as_information,
-                                                          log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, output_file_for_stdout, output_file_for_stderr,
-                                                          output_file_for_pid, output_file_for_exit_code, arguments_for_log)
-            process.wait()
-            end_datetime = datetime.utcnow()
-            stdout = self.__load_text(output_file_for_stdout)
-            stderr = self.__load_text(output_file_for_stderr)
-            exit_code = self.__get_number_from_filecontent(self.__load_text(output_file_for_exit_code))
-            pid = self.__get_number_from_filecontent(self.__load_text(output_file_for_pid))
-            GeneralUtilities.ensure_directory_does_not_exist(tempdir)
-            if GeneralUtilities.string_is_none_or_whitespace(title):
-                title_for_message = ""
-            else:
-                title_for_message = f"for task '{title}' "
-            title_local = f"epew {title_for_message}('{cmd}')"
-            result = (exit_code, stdout, stderr, pid)
+
+        if GeneralUtilities.string_is_none_or_whitespace(title):
+            title_local = cmd
         else:
-            if GeneralUtilities.string_is_none_or_whitespace(title):
-                title_local = cmd
-            else:
-                title_local = title
-            start_datetime = datetime.utcnow()
-            result= self.program_runner.run_program(program,arguments,workingdirectory)
-            end_datetime = datetime.utcnow()
+            title_local = title
+        start_datetime = datetime.utcnow()
+        result= self.default_program_runner.run_program(program,arguments,workingdirectory)
+        end_datetime = datetime.utcnow()
 
         duration: timedelta = end_datetime-start_datetime
         exit_code = result[0]
@@ -2046,64 +2040,6 @@ This script expectes that a test-coverage-badges should be added to '<repository
             result = f"Title: '{title}'; {result}"
         return result.strip()
 
-    def __start_process_asynchronously_argsasarray(self, program: str, argument_list: list, workingdirectory: str = None, verbosity: int = 1,
-                                                   print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
-                                                   addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
-                                                   stderrfile: str = None, pidfile: str = None, exitcodefile: str = None, arguments_for_log:  list = None):
-        return self.__start_process_asynchronously(program, ' '.join(argument_list), workingdirectory, verbosity, print_errors_as_information, log_file,
-                                                   timeoutInSeconds, addLogOverhead, title, log_namespace, stdoutfile, stderrfile, pidfile, exitcodefile, ' '.join(arguments_for_log))
-
-    @GeneralUtilities.check_arguments
-    def __start_process_asynchronously(self, program: str, arguments: str, workingdirectory: str = None, verbosity: int = 1,
-                                       print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600,
-                                       addLogOverhead: bool = False, title: str = None, log_namespace: str = "", stdoutfile: str = None,
-                                       stderrfile: str = None, pidfile: str = None, exitcodefile: str = None, arguments_for_log:  str = None):
-        workingdirectory = self.__adapt_workingdirectory(workingdirectory)
-        if(arguments is None):
-            arguments = ""
-        if arguments_for_log is None:
-            arguments_for_log = arguments
-        cmd = f'{workingdirectory}>{program} {arguments_for_log}'
-        if GeneralUtilities.string_is_none_or_whitespace(title):
-            title = ""
-            title_for_message = ""
-            title_argument = cmd
-        title_for_message = f"for task '{title}' "
-        title_argument = title
-        title_argument = title_argument.replace("\"", "'").replace("\\", "/")
-        cmdcall = f"{workingdirectory}>{program} {arguments_for_log}"
-        if verbosity >= 1:
-            GeneralUtilities.write_message_to_stdout("Run "+cmdcall)
-        title_local = f"epew {title_for_message}('{cmdcall}')"
-        base64argument = base64.b64encode(arguments.encode('utf-8')).decode('utf-8')
-        args = ["epew"]
-        args.append(f'-p "{program}"')
-        args.append(f'-a {base64argument}')
-        args.append('-b')
-        args.append(f'-w "{workingdirectory}"')
-        if stdoutfile is not None:
-            args.append(f'-o {stdoutfile}')
-        if stderrfile is not None:
-            args.append(f'-e {stderrfile}')
-        if exitcodefile is not None:
-            args.append(f'-x {exitcodefile}')
-        if pidfile is not None:
-            args.append(f'-r {pidfile}')
-        args.append(f'-d {str(timeoutInSeconds*1000)}')
-        args.append(f'-t "{title_argument}"')
-        args.append(f'-l "{log_namespace}"')
-        if not GeneralUtilities.string_is_none_or_whitespace(log_file):
-            args.append(f'-f "{log_file}"')
-        if print_errors_as_information:
-            args.append("-i")
-        if addLogOverhead:
-            args.append("-h")
-        args.append("-v "+str(verbosity))
-        if verbosity == 3:
-            args_as_string = " ".join(args)
-            GeneralUtilities.write_message_to_stdout(f"Start executing '{title_local}' (epew-call: '{args_as_string}')")
-        return Popen(args, shell=False)#TODO use ProgramRunner instead
-
     @GeneralUtilities.check_arguments
     def verify_no_pending_mock_program_calls(self):
         if(len(self.__mocked_program_calls) > 0):
@@ -2112,6 +2048,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
 
     @GeneralUtilities.check_arguments
     def __format_mock_program_call(self, r) -> str:
+        r:ScriptCollectionCore.__MockProgramCall=r
         return f"'{r.workingdirectory}>{r.program} {r.argument}' (" \
             f"exitcode: {GeneralUtilities.str_none_safe(str(r.exit_code))}, " \
             f"pid: {GeneralUtilities.str_none_safe(str(r.pid))}, "\
@@ -2157,26 +2094,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
         stdout: str
         stderr: str
         pid: int
-
-    @GeneralUtilities.check_arguments
-    def __get_number_from_filecontent(self, filecontent: str) -> int:
-        for line in filecontent.splitlines():
-            try:
-                striped_line = GeneralUtilities.strip_new_line_character(line)
-                result = int(striped_line)
-                return result
-            except:
-                pass
-        raise Exception(f"'{filecontent}' does not containe an int-line")
-
-    @GeneralUtilities.check_arguments
-    def __load_text(self, file: str) -> str:
-        if os.path.isfile(file):
-            content = GeneralUtilities.read_text_from_file(file).replace('\r', '')
-            os.remove(file)
-            return content
-        else:
-            raise Exception(f"File '{file}' does not exist")
+    #</run programs>
 
     @GeneralUtilities.check_arguments
     def extract_archive_with_7z(self, unzip_program_file: str, zipfile: str, password: str, output_directory: str) -> None:
@@ -2223,6 +2141,6 @@ This script expectes that a test-coverage-badges should be added to '<repository
     @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for issue 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
-        result = self.__start_internal_for_helper("gitversion", ["/showVariable", variable], folder)
+        result = self.start_program_synchronously_argsasarray("gitversion", ["/showVariable", variable], folder)
+        result = self.start_program_synchronously_argsasarray("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
