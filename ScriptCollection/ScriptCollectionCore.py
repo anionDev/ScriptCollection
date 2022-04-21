@@ -19,9 +19,10 @@ from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
-from .ProgramRunnerPopen import ProgramRunnerPopen
 from .GeneralUtilities import GeneralUtilities
+from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
+from .ProgramRunnerEpew import ProgramRunnerEpew
 
 version = "2.8.8"
 __version__ = version
@@ -36,11 +37,11 @@ class ScriptCollectionCore:
     execute_program_really_if_no_mock_call_is_defined: bool = False
     __mocked_program_calls: list = list()
     __epew_is_available: bool = False
-    default_program_runner: ProgramRunnerBase = None
+    program_runner: ProgramRunnerBase = None
 
     def __init__(self):
         self.__epew_is_available = GeneralUtilities.epew_is_available()
-        self.default_program_runner = ProgramRunnerPopen()
+        self.program_runner = ProgramRunnerPopen()
 
 
     @staticmethod
@@ -1910,6 +1911,17 @@ This script expectes that a test-coverage-badges should be added to '<repository
     #<run programs>
 
     @GeneralUtilities.check_arguments
+    def __try_load_mock(self, program:str, arguments: str, working_directory: str) -> tuple[bool,tuple[int, str, str, int]]:
+        if self.mock_program_calls:
+            try:
+                return [True, self.__get_mock_program_call(program, arguments, working_directory)]
+            except LookupError:
+                if not self.execute_program_really_if_no_mock_call_is_defined:
+                    raise
+        else:
+            return [False,None]
+
+    @GeneralUtilities.check_arguments
     def __adapt_workingdirectory(self, workingdirectory: str) -> str:
         if workingdirectory is None:
             return os.getcwd()
@@ -1917,42 +1929,121 @@ This script expectes that a test-coverage-badges should be added to '<repository
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
     @GeneralUtilities.check_arguments
-    def __run_program_argsasarray_asynchelper(self,program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> Popen:
+    def run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> Popen:
+
         arguments_for_process = [program]
         arguments_for_process.extend(arguments_as_array)
-        #TODO add overhead if desired
-        return Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=working_directory, shell=False)
+
+        if arguments_for_log is None:
+            arguments_for_log = ' '.join(arguments_as_array)
+        else:
+            arguments_for_log = ' '.join(arguments_for_log)
+        working_directory = self.__adapt_workingdirectory(working_directory)
+        cmd = f'{working_directory}>{program} {arguments_for_log}'
+
+        if GeneralUtilities.string_is_none_or_whitespace(title):
+            info_for_log=cmd
+        else:
+            info_for_log = title
+
+        if verbosity==3:
+            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
+
+        if isinstance(self.program_runner,ProgramRunnerEpew):
+            pass#TODO set unused variables for epew in self.program_runner
+
+        return self.program_runner.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory)
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
     def run_program_argsasarray(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
-        popen:Popen=self.__run_program_argsasarray_asynchelper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_as_array)
-        #TODO wait and then return stdout etc
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
+        #Verbosity:
+        #0=Quiet (No output will be printed.)
+        #1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
+        #2=Full (Prints StdOut and StdErr of the executed program.)
+        #3=Verbose (Same as "Full" but with some more information.)
+
+        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
+        if mock_loader_result[0]:
+            return mock_loader_result[1]
+
+        if arguments_for_log is None:
+            arguments_for_log = ' '.join(arguments_as_array)
+        else:
+            arguments_for_log = ' '.join(arguments_for_log)
+        working_directory = self.__adapt_workingdirectory(working_directory)
+        cmd = f'{working_directory}>{program} {arguments_for_log}'
+
+        if GeneralUtilities.string_is_none_or_whitespace(title):
+            info_for_log=cmd
+        else:
+            info_for_log = title
+
+        start_datetime = datetime.utcnow()
+        popen:Popen=self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_as_array)
+        stdout, stderr = popen.communicate()
+        exit_code = popen.wait()
+        end_datetime = datetime.utcnow()
+        pid = popen.pid
+        stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
+        stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
+        duration: timedelta = end_datetime-start_datetime
+
+        if not isinstance(self.program_runner,ProgramRunnerEpew):
+            if verbosity==1 and exit_code != 0:
+                self.__write_output(print_errors_as_information,stderr)
+            if verbosity==2:
+                GeneralUtilities.write_message_to_stdout(stdout)
+                self.__write_output(print_errors_as_information,stderr)
+            if verbosity==3:
+                GeneralUtilities.write_message_to_stdout(stdout)
+                self.__write_output(print_errors_as_information,stderr)
+                formatted = self.__format_program_execution_information(title=info_for_log, program=program, argument=arguments_for_log, workingdirectory=working_directory)
+                GeneralUtilities.write_message_to_stdout(f"Finished '{info_for_log}'. Details: '{formatted}")
+
+        if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+            formatted = self.__format_program_execution_information(exit_code, stdout, stderr, program, arguments_for_log, working_directory, info_for_log, pid, duration)
+            raise ValueError(f"Finished '{info_for_log}'. Details: '{formatted}")
+
+        result = (exit_code, stdout, stderr, pid)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def __write_output(self,print_errors_as_information,stderr):
+        if print_errors_as_information:
+            GeneralUtilities.write_message_to_stdout(stderr)
+        else:
+            GeneralUtilities.write_message_to_stderr(stderr)
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def run_program(self, program:str,arguments:  str="", working_directory: str=None , verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+    def run_program(self, program:str,arguments:  str="", working_directory: str=None , verbosity: int =1 ,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  str = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments),throw_exception_if_exitcode_is_not_zero)
+        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments_for_log),throw_exception_if_exitcode_is_not_zero)
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
     def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None , verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> tuple[int, str, str, int]:
-        return self.__run_program_argsasarray_asynchelper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_as_array).pid
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> tuple[int, str, str, int]:
+
+        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
+        if mock_loader_result[0]:
+            return mock_loader_result[1]
+
+        return self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_for_log).pid
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
     def run_program_async(self, program:str,arguments: str="",  working_directory: str=None, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  str = None ) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments))
+        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments_for_log))
 
 
 
@@ -2005,7 +2096,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
         else:
             title_local = title
         start_datetime = datetime.utcnow()
-        result= self.default_program_runner.run_program(program,arguments,workingdirectory)
+        result= self.program_runner.run_program(program,arguments,workingdirectory)
         end_datetime = datetime.utcnow()
 
         duration: timedelta = end_datetime-start_datetime

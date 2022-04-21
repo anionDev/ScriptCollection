@@ -1,8 +1,15 @@
 from abc import abstractmethod
+from subprocess import Popen
 from .GeneralUtilities import GeneralUtilities
 
 
 class ProgramRunnerBase:
+
+    # Return-values program_runner: Pid
+    @abstractmethod
+    @GeneralUtilities.check_arguments
+    def run_program_argsasarray_async_helper(self, program:str, arguments_as_array: list[str], working_directory: str ) -> Popen:
+        raise NotImplementedError
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @abstractmethod
