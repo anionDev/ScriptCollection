@@ -227,7 +227,7 @@ class ScriptCollectionCore:
         sign_things = self.__get_sign_things(configparser, current_release_information)
         config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration', current_release_information)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes', current_release_information):
-            self.dotnet_build(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
+            self.dotnet_build_old(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
                               self.__get_csprojfile_filename(configparser, current_release_information),
                               self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
@@ -235,6 +235,23 @@ class ScriptCollectionCore:
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory', current_release_information)
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
         shutil.copytree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory)
+
+    @GeneralUtilities.check_arguments
+    def dotnet_build(self,repository_folder:str,projectname:str,configuration:str):
+        self.start_program_synchronously("dotnet", f"clean -c {configuration}" , repository_folder, prevent_using_epew=True)
+        self.start_program_synchronously("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}" , repository_folder, prevent_using_epew=True)
+
+    @GeneralUtilities.check_arguments
+    def run_testcases_for_csharp_project2(self,repository_folder:str,testprojectname:str,configuration:str):
+        self.dotnet_build(repository_folder,testprojectname,configuration)
+        l1=os.path.join(repository_folder,f"{testprojectname}/TestCoverage.xml")
+        l2=os.path.join(repository_folder,"Other/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(l1)
+        self.start_program_synchronously("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {configuration}" \
+            f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml" \
+            f" /p:CoverletOutputFormat=opencover", repository_folder, prevent_using_epew=True)
+        GeneralUtilities.ensure_file_does_not_exist(l2)
+        os.rename(l1,l2)
 
     @GeneralUtilities.check_arguments
     def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -325,7 +342,7 @@ class ScriptCollectionCore:
         sign_things = self.__get_sign_things(configparser, current_release_information)
         config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration', current_release_information)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes', current_release_information):
-            self.dotnet_build(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
+            self.dotnet_build_old(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
                               self.__get_csprojfile_filename(configparser, current_release_information),
                               self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
                               runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
@@ -436,12 +453,12 @@ class ScriptCollectionCore:
                               self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotebranchname', current_release_information), False, False)
 
     @GeneralUtilities.check_arguments
-    def dotnet_build(self, current_release_information: dict, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
+    def dotnet_build_old(self, current_release_information: dict, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
                      clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None) -> None:
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             GeneralUtilities.ensure_directory_does_not_exist(outputDirectory)
         GeneralUtilities.ensure_directory_exists(outputDirectory)
-        GeneralUtilities.write_message_to_stdout("xxxverosity")
+        GeneralUtilities.write_message_to_stdout("verbosity")
         GeneralUtilities.write_message_to_stdout(GeneralUtilities.str_none_safe(verbosity))
         if verbosity == 0:
             verbose_argument_for_dotnet = "quiet"
