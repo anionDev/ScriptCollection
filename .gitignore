@@ -1,7 +1,7 @@
-Other/TestCoverage/*
-!Other/TestCoverage/.gitignore
-Other/Badges/*
-!Other/Badges/badge_shieldsio_linecoverage_blue.svg
+Other/TestCoverage/Report/*
+!Other/TestCoverage/Report/.gitignore
+Other/Badges/TestCoverage/*
+!Other/Badges/TestCoverage/badge_shieldsio_linecoverage_blue.svg
 
 **/testfile_*
 .vscode/*
