@@ -51,7 +51,7 @@ class CertificateUpdater:
         live_folder = os.path.join(self.__letsencrypt_live_folder, domain)
         live_filename = filename+".pem"
         live_file = os.path.join(live_folder, live_filename)
-        self.__sc.start_program_synchronously("rm", live_filename, live_folder, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+        self.__sc.run_program("rm", live_filename, live_folder)
         copyfile(archive_file, live_file)
 
     @GeneralUtilities.check_arguments
@@ -59,9 +59,8 @@ class CertificateUpdater:
         # new ".../live/example.com/cert.pem" is a file but should replaced by a symlink which points to ".../archive/example.com/cert42.pem"
         live_folder = os.path.join(self.__letsencrypt_live_folder, domain)
         live_filename = filename+".pem"
-        self.__sc.start_program_synchronously("rm", live_filename, live_folder, prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
-        self.__sc.start_program_synchronously("ln", f"-s ../../archive/{domain}/{filename+str(index)}.pem {live_filename}", live_folder,
-                                              prevent_using_epew=True, throw_exception_if_exitcode_is_not_zero=True)
+        self.__sc.run_program("rm", live_filename, live_folder)
+        self.__sc.run_program("ln", f"-s ../../archive/{domain}/{filename+str(index)}.pem {live_filename}", live_folder)
 
     @GeneralUtilities.check_arguments
     def __replace_symlinks_by_files(self, domain):

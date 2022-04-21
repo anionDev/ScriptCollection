@@ -22,7 +22,7 @@ from PyPDF2 import PdfFileMerger
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
-from .ProgramRunnerEpew import ProgramRunnerEpew
+from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 version = "2.8.8"
 __version__ = version
@@ -36,13 +36,10 @@ class ScriptCollectionCore:
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     execute_program_really_if_no_mock_call_is_defined: bool = False
     __mocked_program_calls: list = list()
-    __epew_is_available: bool = False
     program_runner: ProgramRunnerBase = None
 
     def __init__(self):
-        self.__epew_is_available = GeneralUtilities.epew_is_available()
         self.program_runner = ProgramRunnerPopen()
-
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -1911,56 +1908,9 @@ This script expectes that a test-coverage-badges should be added to '<repository
     #<run programs>
 
     @GeneralUtilities.check_arguments
-    def __try_load_mock(self, program:str, arguments: str, working_directory: str) -> tuple[bool,tuple[int, str, str, int]]:
-        if self.mock_program_calls:
-            try:
-                return [True, self.__get_mock_program_call(program, arguments, working_directory)]
-            except LookupError:
-                if not self.execute_program_really_if_no_mock_call_is_defined:
-                    raise
-        else:
-            return [False,None]
-
-    @GeneralUtilities.check_arguments
-    def __adapt_workingdirectory(self, workingdirectory: str) -> str:
-        if workingdirectory is None:
-            return os.getcwd()
-        else:
-            return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
-
-    @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
+    def __run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> Popen:
-
-        arguments_for_process = [program]
-        arguments_for_process.extend(arguments_as_array)
-
-        if arguments_for_log is None:
-            arguments_for_log = ' '.join(arguments_as_array)
-        else:
-            arguments_for_log = ' '.join(arguments_for_log)
-        working_directory = self.__adapt_workingdirectory(working_directory)
-        cmd = f'{working_directory}>{program} {arguments_for_log}'
-
-        if GeneralUtilities.string_is_none_or_whitespace(title):
-            info_for_log=cmd
-        else:
-            info_for_log = title
-
-        if verbosity==3:
-            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
-
-        if isinstance(self.program_runner,ProgramRunnerEpew):
-            pass#TODO set unused variables for epew in self.program_runner
-
-        return self.program_runner.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory)
-
-    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
-    @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
         #Verbosity:
         #0=Quiet (No output will be printed.)
         #1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
@@ -1983,17 +1933,48 @@ This script expectes that a test-coverage-badges should be added to '<repository
         else:
             info_for_log = title
 
-        start_datetime = datetime.utcnow()
-        popen:Popen=self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_as_array)
-        stdout, stderr = popen.communicate()
-        exit_code = popen.wait()
-        end_datetime = datetime.utcnow()
-        pid = popen.pid
-        stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
-        stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
-        duration: timedelta = end_datetime-start_datetime
+        if verbosity==3:
+            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
-        if not isinstance(self.program_runner,ProgramRunnerEpew):
+        if isinstance(self.program_runner,ProgramRunnerEpew):
+            custom_argument=CustomEpewArgument(print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,verbosity,arguments_for_log)
+        else:
+            custom_argument=None
+        popen:Popen=self.program_runner.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,custom_argument)
+        return popen
+
+
+    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
+    @GeneralUtilities.check_arguments#1
+    def run_program_argsasarray(self, program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
+                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,throw_exception_if_exitcode_is_not_zero:bool=True) -> tuple[int, str, str, int]:
+        start_datetime = datetime.utcnow()
+        process=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
+        pid = process.pid
+        stdout, stderr = process.communicate()
+        exit_code = process.wait()
+        end_datetime = datetime.utcnow()
+
+        if arguments_for_log is None:
+            arguments_for_log = ' '.join(arguments_as_array)
+        else:
+            arguments_for_log = ' '.join(arguments_for_log)
+
+        duration: timedelta = end_datetime-start_datetime
+        cmd = f'{working_directory}>{program} {arguments_for_log}'
+
+        if GeneralUtilities.string_is_none_or_whitespace(title):
+            info_for_log=cmd
+        else:
+            info_for_log = title
+
+        if verbosity==3:
+            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
+
+        if isinstance(self.program_runner,ProgramRunnerEpew):
+            pass
+        else:
             if verbosity==1 and exit_code != 0:
                 self.__write_output(print_errors_as_information,stderr)
             if verbosity==2:
@@ -2013,45 +1994,54 @@ This script expectes that a test-coverage-badges should be added to '<repository
         return result
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
-    @GeneralUtilities.check_arguments
-    def run_program(self, program:str,arguments:  str="", working_directory: str=None , verbosity: int =1 ,
+    @GeneralUtilities.check_arguments#2
+    def run_program(self, program:str,arguments:  str, working_directory: str, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments_for_log),throw_exception_if_exitcode_is_not_zero)
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,throw_exception_if_exitcode_is_not_zero:bool=True) -> tuple[int, str, str, int]:
+        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log,throw_exception_if_exitcode_is_not_zero)
 
     # Return-values program_runner: Pid
-    @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None , verbosity: int = 1,
+    @GeneralUtilities.check_arguments#3
+    def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str], working_directory: str, verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> tuple[int, str, str, int]:
-
-        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
-        if mock_loader_result[0]:
-            return mock_loader_result[1]
-
-        return self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds, addLogOverhead,title,log_namespace,arguments_for_log).pid
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None ) -> int:
+        process=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)[0]
+        return process.pid
 
     # Return-values program_runner: Pid
-    @GeneralUtilities.check_arguments
-    def run_program_async(self, program:str,arguments: str="",  working_directory: str=None, verbosity: int = 1,
+    @GeneralUtilities.check_arguments#4
+    def run_program_async(self, program:str,arguments: str,  working_directory: str , verbosity: int = 1,
                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None ) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,GeneralUtilities.arguments_to_array_for_log(arguments_for_log))
+                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> int:
+        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
 
 
+    @GeneralUtilities.check_arguments
+    def __try_load_mock(self, program:str, arguments: str, working_directory: str) -> tuple[bool,tuple[int, str, str, int]]:
+        if self.mock_program_calls:
+            try:
+                return [True, self.__get_mock_program_call(program, arguments, working_directory)]
+            except LookupError:
+                if not self.execute_program_really_if_no_mock_call_is_defined:
+                    raise
+        else:
+            return [False,None]
+
+    @GeneralUtilities.check_arguments
+    def __adapt_workingdirectory(self, workingdirectory: str) -> str:
+        if workingdirectory is None:
+            return os.getcwd()
+        else:
+            return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
 
-    @GeneralUtilities.check_arguments#obsolete
-    def start_program_asynchronously(self, program: str, arguments: str = "", workingdirectory: str = "", verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  str = None) -> int:
-        raise NotImplementedError
+    @GeneralUtilities.check_arguments
+    def __write_output(self,print_errors_as_information,stderr):
+        if print_errors_as_information:
+            GeneralUtilities.write_message_to_stdout(stderr)
+        else:
+            GeneralUtilities.write_message_to_stderr(stderr)
 
-    @GeneralUtilities.check_arguments#obsolete
-    def start_program_asynchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = "", verbosity: int = 1,
-                                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 3600, addLogOverhead: bool = False,
-                                                 title: str = None, log_namespace: str = "", arguments_for_log:  list = None) -> int:
-        raise NotImplementedError
 
     @GeneralUtilities.check_arguments#obsolete
     def start_program_synchronously(self, program: str, arguments: str = "", workingdirectory: str = None, verbosity: int = 1,
@@ -2064,12 +2054,6 @@ This script expectes that a test-coverage-badges should be added to '<repository
                                                             throw_exception_if_exitcode_is_not_zero, log_namespace, GeneralUtilities.arguments_to_array_for_log(arguments_for_log))
 
 
-    @GeneralUtilities.check_arguments
-    def __write_output(self,print_errors_as_information,stderr):
-        if print_errors_as_information:
-            GeneralUtilities.write_message_to_stdout(stderr)
-        else:
-            GeneralUtilities.write_message_to_stderr(stderr)
 
     @GeneralUtilities.check_arguments#obsolete
     def start_program_synchronously_argsasarray(self, program: str, argument_list: list = [], workingdirectory: str = None, verbosity: int = 1,
@@ -2097,7 +2081,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
         else:
             title_local = title
         start_datetime = datetime.utcnow()
-        result= self.program_runner.run_program(program,arguments,workingdirectory)
+        result= self.program_runner.run_program(program,arguments,workingdirectory,None)
         end_datetime = datetime.utcnow()
 
         duration: timedelta = end_datetime-start_datetime
@@ -2186,6 +2170,9 @@ This script expectes that a test-coverage-badges should be added to '<repository
         stdout: str
         stderr: str
         pid: int
+
+
+
     #</run programs>
 
     @GeneralUtilities.check_arguments
