@@ -90,7 +90,7 @@ Requires the requirements of: TODO""")
     parser.add_argument("outputFilenameToSign")
     parser.add_argument("keyToSignForOutputfile")
     args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_build(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework,
+    return ScriptCollectionCore().dotnet_build_old(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework,
                                                args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile, {})
 
 

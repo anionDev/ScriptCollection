@@ -56,4 +56,4 @@ class HardeningScript:
 
     @GeneralUtilities.check_arguments
     def __execute(self, program: str, argument: str, workding_directory: str = None):
-        return self.__sc.start_program_synchronously(program, argument, workding_directory, throw_exception_if_exitcode_is_not_zero=True, prevent_using_epew=True)
+        return self.__sc.run_program(program, argument, workding_directory)

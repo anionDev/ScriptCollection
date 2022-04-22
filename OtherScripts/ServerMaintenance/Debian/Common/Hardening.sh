@@ -21,7 +21,6 @@ rm /bin/chown
 rm /bin/dpkg
 rm /bin/echo
 rm /bin/grep
-rm /bin/hostname
 rm /bin/mount
 rm /bin/sh
 rm /bin/touch
