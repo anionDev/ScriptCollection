@@ -237,7 +237,7 @@ class ScriptCollectionCore:
         self.run_program("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}" , repository_folder)
 
     @GeneralUtilities.check_arguments
-    def run_testcases_for_csharp_project2(self,repository_folder:str,testprojectname:str,configuration:str):
+    def run_testcases_for_csharp_project(self,repository_folder:str,testprojectname:str,configuration:str):
         self.dotnet_build(repository_folder,testprojectname,configuration)
         l1=os.path.join(repository_folder,f"{testprojectname}/TestCoverage.xml")
         l2=os.path.join(repository_folder,"Other/TestCoverage/TestCoverage.xml")
@@ -249,17 +249,8 @@ class ScriptCollectionCore:
         os.rename(l1,l2)
 
     @GeneralUtilities.check_arguments
-    def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        verbosity = self.__get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
-            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
-
-    @GeneralUtilities.check_arguments
     def __get_sign_things(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> tuple:
-        files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign', current_release_information)
+        files_to_sign_raw_value = self.get_items_from_configuration(configparser, 'dotnet', 'filestosign', current_release_information)
         if(GeneralUtilities.string_is_none_or_whitespace(files_to_sign_raw_value)):
             return [None, None]
         else:
@@ -273,7 +264,7 @@ class ScriptCollectionCore:
         repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile', current_release_information):
             GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile', current_release_information), repository_version)
-        self.dotnet_executable_run_tests(configurationfile, current_release_information)
+        self.__run_testcases(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
     def dotnet_create_executable_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -291,7 +282,35 @@ class ScriptCollectionCore:
         repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile', current_release_information):
             GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile', current_release_information), repository_version)
-        self.dotnet_nuget_run_tests(configurationfile, current_release_information)
+        self.__run_testcases(configurationfile, current_release_information)
+
+    @GeneralUtilities.check_arguments
+    def __run_testcases(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
+        configparser = ConfigParser()
+        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
+            configparser.read_file(text_io_wrapper)
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
+            scriptfile=self.get_item_from_configuration(configparser, 'other', "runtestcasesscript", current_release_information)
+            self.run_program("python",os.path.dirname(scriptfile),os.path.basename(scriptfile))
+            coverage_file=os.path.join( self.get_item_from_configuration(configparser,"general","repository", current_release_information),"Other","TestCoverage","TestCoverage.xml")
+            root: etree._ElementTree = etree.parse(coverage_file)
+            coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100,2)
+            current_release_information['general.testcoverage'] = coverage_in_percent
+            minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
+            if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
+                raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
+
+    @GeneralUtilities.check_arguments
+    def run_testcases_for_csharp_project(self,repository_folder:str,testprojectname:str,configuration:str):
+        self.dotnet_build(repository_folder,testprojectname,configuration)
+        l1=os.path.join(repository_folder,f"{testprojectname}/TestCoverage.xml")
+        l2=os.path.join(repository_folder,"Other/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(l1)
+        self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {configuration}" \
+            f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml" \
+            f" /p:CoverletOutputFormat=cobertura", repository_folder)
+        GeneralUtilities.ensure_file_does_not_exist(l2)
+        os.rename(l1,l2)
 
     @GeneralUtilities.check_arguments
     def dotnet_create_nuget_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -379,15 +398,6 @@ class ScriptCollectionCore:
         self.run_program("nuget", f"pack {nuspecfilename}", publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
     @GeneralUtilities.check_arguments
-    def dotnet_nuget_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        verbosity = self.__get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
-            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
-
-    @GeneralUtilities.check_arguments
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -437,7 +447,7 @@ class ScriptCollectionCore:
             coverage_target_file = coveragefolder+os.path.sep+self.__get_coverage_filename(configparser, current_release_information)
             shutil.copyfile(self.__get_test_csprojfile_folder(configparser, current_release_information)+os.path.sep +
                             self.__get_coverage_filename(configparser, current_release_information), coverage_target_file)
-            self.run_program("reportgenerator",  f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'
+            self.run_program("reportgenerator",  f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'#obsolete due to generate_coverage_report(...)
                                              f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
                                              coveragefolder, verbosity)
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information), "Updated reference")
@@ -477,46 +487,6 @@ class ScriptCollectionCore:
             for fileToSign in filesToSign:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
-    @GeneralUtilities.check_arguments
-    def dotnet_run_tests(self, configurationfile: str, current_release_information: dict[str, str], verbosity: int = 1) -> None:
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        if verbosity == 0:
-            verbose_argument_for_dotnet = "quiet"
-        if verbosity == 1:
-            verbose_argument_for_dotnet = "minimal"
-        if verbosity == 2:
-            verbose_argument_for_dotnet = "normal"
-        if verbosity == 3:
-            verbose_argument_for_dotnet = "detailed"
-        coveragefilename = self.__get_coverage_filename(configparser, current_release_information)
-        csproj = self.__get_test_csprojfile_filename(configparser, current_release_information)
-        testbuildconfig = self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration', current_release_information)
-        testargument = f"test {csproj} -c {testbuildconfig}" \
-            f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefilename}" \
-            f" /p:CoverletOutputFormat=opencover"
-        self.run_program("dotnet", testargument, self.__get_test_csprojfile_folder(configparser, current_release_information),
-                                         verbosity, False, "Execute tests")
-        root = etree.parse(self.__get_test_csprojfile_folder(configparser, current_release_information)+os.path.sep+coveragefilename)
-        coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
-        module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
-        if module_count == 0:
-            coverage_in_percent = 0
-            GeneralUtilities.write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
-        self.__handle_coverage(configparser, current_release_information, coverage_in_percent, verbosity == 3)
-
-    @GeneralUtilities.check_arguments
-    def __handle_coverage(self, configparser, current_release_information, coverage_in_percent: int, verbose: bool):
-        current_release_information['general.testcoverage'] = coverage_in_percent
-        minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
-        if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
-            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}.")
-        coverage_regex_begin = "https://img.shields.io/badge/testcoverage-"
-        coverage_regex_end = "%25-green"
-        for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles", current_release_information):
-            GeneralUtilities.replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
-                                                             coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end, verbose=verbose)
 
     @GeneralUtilities.check_arguments
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict[str, str]) -> None:
@@ -722,14 +692,14 @@ class ScriptCollectionCore:
             raise Exception("Can not continue due to errors in the python-files")
 
         # Run testcases
-        self.python_run_tests(configurationfile, current_release_information)
+        self.__run_testcases(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
     def python_create_wheel_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]):
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        self.python_build_wheel_and_run_tests(configurationfile, current_release_information)
+        self.python_build(configurationfile, current_release_information)
         self.python_release_wheel(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
@@ -740,11 +710,6 @@ class ScriptCollectionCore:
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, f"'{name}' resulted in an error")
             return False
-
-    @GeneralUtilities.check_arguments
-    def python_build_wheel_and_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        self.python_run_tests(configurationfile, current_release_information)
-        self.python_build(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
     def python_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -759,18 +724,6 @@ class ScriptCollectionCore:
         self.run_program("python",
                                          setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
                                          setuppyfilefolder,  self.__get_verbosity_for_exuecutor(configparser))
-
-    @GeneralUtilities.check_arguments
-    def python_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        # TODO check minimalrequiredtestcoverageinpercent and generate coverage report
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
-            pythontestfilefolder = self.get_item_from_configuration(configparser, 'general', 'repository', current_release_information)
-            # TODO set verbosity-level for pytest
-            self.run_program("pytest", "", pythontestfilefolder,
-                                             self.__get_verbosity_for_exuecutor(configparser), False, "Pytest")
 
     @GeneralUtilities.check_arguments
     def python_release_wheel(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -1203,13 +1156,6 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
-    def __get_test_csprojfile_filename(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
-        file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile", current_release_information)
-        file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
-        result = os.path.basename(file)
-        return result
-
-    @GeneralUtilities.check_arguments
     def __get_csprojfile_folder(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
@@ -1250,7 +1196,6 @@ class ScriptCollectionCore:
         available_configuration_items.append(["dotnet", "filestosign"])
         available_configuration_items.append(["dotnet", "snkfile"])
         available_configuration_items.append(["dotnet", "testdotnetframework"])
-        available_configuration_items.append(["dotnet", "testcsprojfile"])
         available_configuration_items.append(["dotnet", "localnugettargets"])
         available_configuration_items.append(["dotnet", "testbuildconfiguration"])
         available_configuration_items.append(["dotnet", "docfxfile"])
@@ -1283,7 +1228,7 @@ class ScriptCollectionCore:
         available_configuration_items.append(["other", "projecturl"])
         available_configuration_items.append(["other", "repositoryurl"])
         available_configuration_items.append(["other", "exportrepositoryremotename"])
-        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])
+        available_configuration_items.append(["other", "runtestcasesscript"])
         available_configuration_items.append(["python", "readmefile"])
         available_configuration_items.append(["python", "pythonsetuppyfile"])
         available_configuration_items.append(["python", "filesforupdatingversion"])
@@ -1804,7 +1749,7 @@ class ScriptCollectionCore:
         os.rename(os.path.join(repository_folder,"coverage.xml"),coveragefile)
 
     def generate_coverage_report(self,repository_folder:str):
-        """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' exists.
+        """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' which contains a test-coverage-report in the cobertura-format exists.
 This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
 This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/Badges/TestCoverage'."""
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder,"Other/TestCoverage/Report"))
