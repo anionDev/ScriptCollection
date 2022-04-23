@@ -70,7 +70,7 @@ Requires the requirements of: TODO
 """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("configurationfile")
     args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_reference(args.configurationfile, {})
+    return ScriptCollectionCore().dotnet_generate_reference(args.configurationfile, {})
 
 
 def DotNetBuild() -> int:

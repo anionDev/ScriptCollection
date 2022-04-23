@@ -260,7 +260,7 @@ class ScriptCollectionCore:
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         self.dotnet_executable_build(configurationfile, current_release_information)
-        self.dotnet_reference(configurationfile, current_release_information)
+        self.dotnet_generate_reference(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
     def dotnet_create_nuget_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -307,7 +307,7 @@ class ScriptCollectionCore:
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         self.dotnet_nuget_build(configurationfile, current_release_information)
-        self.dotnet_reference(configurationfile, current_release_information)
+        self.dotnet_generate_reference(configurationfile, current_release_information)
         self.dotnet_release_nuget(configurationfile, current_release_information)
 
     __nuget_template = r"""<?xml version="1.0" encoding="utf-8"?>
@@ -405,46 +405,34 @@ class ScriptCollectionCore:
                              publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
     @GeneralUtilities.check_arguments
-    def dotnet_reference(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
+    def dotnet_generate_reference(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'generatereference', current_release_information):
             self.git_checkout(
-                self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information),
-                self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname', current_release_information))
+                self.get_item_from_configuration(configparser, 'other', 'referencerepository', current_release_information),
+                self.get_item_from_configuration(configparser, 'other', 'exportreferencelocalbranchname', current_release_information))
             verbosity = self.__get_verbosity_for_exuecutor(configparser)
             if verbosity == 0:
-                verbose_argument_for_reportgenerator = "Off"
                 verbose_argument_for_docfx = "Error"
             if verbosity == 1:
-                verbose_argument_for_reportgenerator = "Error"
                 verbose_argument_for_docfx = "Warning"
             if verbosity == 2:
-                verbose_argument_for_reportgenerator = "Info"
                 verbose_argument_for_docfx = "Info"
             if verbosity == 3:
-                verbose_argument_for_reportgenerator = "Verbose"
                 verbose_argument_for_docfx = "verbose"
             docfx_file = self.get_item_from_configuration(configparser, 'dotnet', 'docfxfile', current_release_information)
             docfx_folder = os.path.dirname(docfx_file)
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
             self.run_program("docfx", f'"{os.path.basename(docfx_file)}" --loglevel {verbose_argument_for_docfx}',
                              docfx_folder, verbosity)
-            coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder', current_release_information)
-            GeneralUtilities.ensure_directory_exists(coveragefolder)
-            coverage_target_file = coveragefolder+os.path.sep+self.__get_coverage_filename(configparser, current_release_information)
-            shutil.copyfile(self.__get_test_csprojfile_folder(configparser, current_release_information)+os.path.sep +
-                            self.__get_coverage_filename(configparser, current_release_information), coverage_target_file)
-            self.run_program("reportgenerator",  f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'  # obsolete due to generate_coverage_report(...)
-                             f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
-                             coveragefolder, verbosity)
-            self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information), "Updated reference")
-            if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference', current_release_information):
-                self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information),
-                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotename', current_release_information),
-                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferencelocalbranchname', current_release_information),
-                              self.get_item_from_configuration(configparser, 'dotnet', 'exportreferenceremotebranchname', current_release_information), False, False)
+            self.git_commit(self.get_item_from_configuration(configparser, 'other', 'referencerepository', current_release_information), "Updated reference")
+            if self.get_boolean_value_from_configuration(configparser, 'other', 'exportreference', current_release_information):
+                self.git_push(self.get_item_from_configuration(configparser, 'other', 'referencerepository', current_release_information),
+                              self.get_item_from_configuration(configparser, 'other', 'exportreferenceremotename', current_release_information),
+                              self.get_item_from_configuration(configparser, 'other', 'exportreferencelocalbranchname', current_release_information),
+                              self.get_item_from_configuration(configparser, 'other', 'exportreferenceremotebranchname', current_release_information), False, False)
 
     @GeneralUtilities.check_arguments
     def dotnet_build_old(self, current_release_information: dict, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
@@ -1151,17 +1139,6 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
-    def __get_test_csprojfile_folder(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
-        file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile", current_release_information)
-        file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
-        result = os.path.dirname(file)
-        return result
-
-    @GeneralUtilities.check_arguments
-    def __get_coverage_filename(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
-        return self.get_item_from_configuration(configparser, "general", "productname", current_release_information)+".TestCoverage.opencover.xml"
-
-    @GeneralUtilities.check_arguments
     def get_version_for_buildscripts(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         return self.get_item_from_configuration(configparser, 'builtin', 'version', current_release_information)
 
@@ -1190,10 +1167,8 @@ class ScriptCollectionCore:
         available_configuration_items.append(["dotnet", "coveragefolder"])
         available_configuration_items.append(["dotnet", "coveragereportfolder"])
         available_configuration_items.append(["dotnet", "referencerepository"])
-        available_configuration_items.append(["dotnet", "exportreferenceremotename"])
         available_configuration_items.append(["dotnet", "nugetsource"])
         available_configuration_items.append(["dotnet", "iconfile"])
-        available_configuration_items.append(["dotnet", "exportreferencelocalbranchname"])
         available_configuration_items.append(["dotnet", "nugetapikeyfile"])
         available_configuration_items.append(["general", "productname"])
         available_configuration_items.append(["general", "basefolder"])
@@ -1210,7 +1185,8 @@ class ScriptCollectionCore:
         available_configuration_items.append(["script", "postmerge_program"])
         available_configuration_items.append(["script", "postmerge_argument"])
         available_configuration_items.append(["script", "postmerge_workingdirectory"])
-        available_configuration_items.append(["other", "codecoverageshieldreplacementfiles"])
+        available_configuration_items.append(["other", "exportreferenceremotename"])
+        available_configuration_items.append(["other", "exportreferencelocalbranchname"])
         available_configuration_items.append(["other", "releaserepository"])
         available_configuration_items.append(["other", "gpgidentity"])
         available_configuration_items.append(["other", "projecturl"])
@@ -1736,20 +1712,30 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, "coverage.xml"), coveragefile)
 
-    def generate_coverage_report(self, repository_folder: str):
+    def generate_coverage_report(self, repository_folder: str,verbosity:int):
         """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' which contains a test-coverage-report in the cobertura-format exists.
 This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
 This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/Badges/TestCoverage'."""
+        if verbosity == 0:
+            verbose_argument_for_reportgenerator = "Off"
+        if verbosity == 1:
+            verbose_argument_for_reportgenerator = "Error"
+        if verbosity == 2:
+            verbose_argument_for_reportgenerator = "Info"
+        if verbosity == 3:
+            verbose_argument_for_reportgenerator = "Verbose"
 
         # Generating report
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Report"))
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Report"))
-        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report", repository_folder)
+        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report "+
+            f"-verbosity:{verbose_argument_for_reportgenerator}", repository_folder)
 
         # Generating badges
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
-        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges", repository_folder)
+        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges "+
+            f"-verbosity:{verbose_argument_for_reportgenerator}", repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
