@@ -1,16 +1,14 @@
 # ScriptCollection
 
-[![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
-![Coverage](./Other/Badges/badge_shieldsio_linecoverage_blue.svg)
 ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
+[![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
+![Coverage](./Other/Testcoverage/Badges/badge_shieldsio_linecoverage_blue.svg)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection/month)](https://pepy.tech/project/scriptcollection)
 ![GitHub repo size](https://img.shields.io/github/repo-size/anionDev/ScriptCollection)
-![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 
 The ScriptCollection is the place for reusable scripts.
-
-When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
 
 ## Hints
 
@@ -19,6 +17,8 @@ Most of the scripts are written in [python](https://www.python.org) 3.
 Caution: Before executing **any** script of this repository read the sourcecode of the script (and the sourcecode of all functions called by this function directly or transitively) carefully and verify that the script does exactly what you want to do and nothing else.
 
 Some functions are not entirely available on windows or require common third-party tools. See the [Runtime-Dependencies](#Runtime-Dependencies)-section for more information.
+
+When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
 
 ## Get ScriptCollection
 
@@ -64,7 +64,7 @@ To develop ScriptCollection it is obviously required that the following commandl
 - `python` (on some systems `python3`)
 - `pip3`
 
-The pip-packaged which are required for developing on this project are defined in `requirements.txt`.
+The pip-packages which are required for developing on this project are defined in `requirements.txt`.
 
 ### IDE
 
@@ -81,7 +81,7 @@ The recommended addons for developing ScriptCollection with Visual Studio Code a
 To Create an installable whl-package simply execute `python Setup.py bdist_wheel --dist-dir .`.
 
 When doing this multiple times you should also clean temporary files created by python before creating the whl-package.
-So to do this and install the local created package the steps are:
+To do this and install the local created package the steps are:
 
 ```bash
 pip3 uninstall -y ScriptCollection
@@ -93,11 +93,11 @@ pip3 install ScriptCollection-x.x.x-py3-none-any.whl
 ### Coding style
 
 In this repository [pylint](https://pylint.org/) will be used to report linting-issues.
-If you change code in this repository consider executing `find . -type f -name "*.py" | xargs pylint` before creating a pull-request.
+If you change code in this repository please ensure pylint does not find any issues before creating a pull-request.
 
 ## Runtime-Dependencies
 
-The usual Python-dependencies will be installed automagically by pip.
+The usual Python-dependencies will be installed automagically by `pip`.
 
 For functions to to read or change the permissions or the owner of a file the ScriptCollection relies on the functionality of the following tools:
 
