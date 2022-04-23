@@ -71,7 +71,7 @@ class ScriptCollectionCore:
                 return 1
 
             self.git_checkout(repository, srcbranch)
-            self.run_program("git","clean -dfx", repository, throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program("git", "clean -dfx", repository, throw_exception_if_exitcode_is_not_zero=True)
             self.__calculate_version(configparser, current_release_information)
             repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
 
@@ -223,43 +223,22 @@ class ScriptCollectionCore:
         config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration', current_release_information)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes', current_release_information):
             self.dotnet_build_old(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
-                              self.__get_csprojfile_filename(configparser, current_release_information),
-                              self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
-                              verbosity, sign_things[0], sign_things[1])
+                                  self.__get_csprojfile_filename(configparser, current_release_information),
+                                  self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
+                                  runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
+                                  verbosity, sign_things[0], sign_things[1])
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory', current_release_information)
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
         shutil.copytree(self.get_item_from_configuration(configparser, 'dotnet', 'buildoutputdirectory', current_release_information), publishdirectory)
 
     @GeneralUtilities.check_arguments
-    def dotnet_build(self,repository_folder:str,projectname:str,configuration:str):
-        self.run_program("dotnet", f"clean -c {configuration}" , repository_folder)
-        self.run_program("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}" , repository_folder)
-
-    @GeneralUtilities.check_arguments
-    def run_testcases_for_csharp_project2(self,repository_folder:str,testprojectname:str,configuration:str):
-        self.dotnet_build(repository_folder,testprojectname,configuration)
-        l1=os.path.join(repository_folder,f"{testprojectname}/TestCoverage.xml")
-        l2=os.path.join(repository_folder,"Other/TestCoverage/TestCoverage.xml")
-        GeneralUtilities.ensure_file_does_not_exist(l1)
-        self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {configuration}" \
-            f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml" \
-            f" /p:CoverletOutputFormat=opencover", repository_folder)
-        GeneralUtilities.ensure_file_does_not_exist(l2)
-        os.rename(l1,l2)
-
-    @GeneralUtilities.check_arguments
-    def dotnet_executable_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        verbosity = self.__get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
-            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
+    def dotnet_build(self, repository_folder: str, projectname: str, configuration: str):
+        self.run_program("dotnet", f"clean -c {configuration}", repository_folder)
+        self.run_program("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}", repository_folder)
 
     @GeneralUtilities.check_arguments
     def __get_sign_things(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> tuple:
-        files_to_sign_raw_value = self.get_item_from_configuration(configparser, 'dotnet', 'filestosign', current_release_information)
+        files_to_sign_raw_value = self.get_items_from_configuration(configparser, 'dotnet', 'filestosign', current_release_information)
         if(GeneralUtilities.string_is_none_or_whitespace(files_to_sign_raw_value)):
             return [None, None]
         else:
@@ -273,7 +252,7 @@ class ScriptCollectionCore:
         repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile', current_release_information):
             GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile', current_release_information), repository_version)
-        self.dotnet_executable_run_tests(configurationfile, current_release_information)
+        self.__run_testcases(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
     def dotnet_create_executable_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -291,7 +270,36 @@ class ScriptCollectionCore:
         repository_version = self.get_version_for_buildscripts(configparser, current_release_information)
         if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'updateversionsincsprojfile', current_release_information):
             GeneralUtilities.update_version_in_csproj_file(self.get_item_from_configuration(configparser, 'dotnet', 'csprojfile', current_release_information), repository_version)
-        self.dotnet_nuget_run_tests(configurationfile, current_release_information)
+        self.__run_testcases(configurationfile, current_release_information)
+
+    @GeneralUtilities.check_arguments
+    def __run_testcases(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
+        configparser = ConfigParser()
+        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
+            configparser.read_file(text_io_wrapper)
+        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
+            scriptfile = self.get_item_from_configuration(configparser, 'other', "runtestcasesscript", current_release_information)
+            self.run_program("python", os.path.dirname(scriptfile), os.path.basename(scriptfile))
+            coverage_file = os.path.join(self.get_item_from_configuration(configparser, "general", "repository",
+                                         current_release_information), "Other", "TestCoverage", "TestCoverage.xml")
+            root: etree._ElementTree = etree.parse(coverage_file)
+            coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
+            current_release_information['general.testcoverage'] = coverage_in_percent
+            minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
+            if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
+                raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
+
+    @GeneralUtilities.check_arguments
+    def run_testcases_for_csharp_project(self, repository_folder: str, testprojectname: str, configuration: str):
+        self.dotnet_build(repository_folder, testprojectname, configuration)
+        coveragefilesource = os.path.join(repository_folder, f"{testprojectname}/TestCoverage.xml")
+        coveragefiletarget = os.path.join(repository_folder, "Other/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
+        self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {configuration}"
+                         f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
+                         f" /p:CoverletOutputFormat=cobertura", repository_folder)
+        GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
+        os.rename(coveragefilesource, coveragefiletarget)
 
     @GeneralUtilities.check_arguments
     def dotnet_create_nuget_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -338,11 +346,11 @@ class ScriptCollectionCore:
         config = self.get_item_from_configuration(configparser, 'dotnet', 'buildconfiguration', current_release_information)
         for runtime in self.get_items_from_configuration(configparser, 'dotnet', 'runtimes', current_release_information):
             self.dotnet_build_old(current_release_information, self.__get_csprojfile_folder(configparser, current_release_information),
-                              self.__get_csprojfile_filename(configparser, current_release_information),
-                              self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
-                              runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
-                              self.__get_verbosity_for_exuecutor(configparser),
-                              sign_things[0], sign_things[1])
+                                  self.__get_csprojfile_filename(configparser, current_release_information),
+                                  self.__get_buildoutputdirectory(configparser, runtime, current_release_information), config,
+                                  runtime, self.get_item_from_configuration(configparser, 'dotnet', 'dotnetframework', current_release_information), True,
+                                  self.__get_verbosity_for_exuecutor(configparser),
+                                  sign_things[0], sign_things[1])
         publishdirectory = self.get_item_from_configuration(configparser, 'dotnet', 'publishdirectory', current_release_information)
         publishdirectory_binary = publishdirectory+os.path.sep+"Binary"
         GeneralUtilities.ensure_directory_does_not_exist(publishdirectory)
@@ -379,15 +387,6 @@ class ScriptCollectionCore:
         self.run_program("nuget", f"pack {nuspecfilename}", publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
     @GeneralUtilities.check_arguments
-    def dotnet_nuget_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        verbosity = self.__get_verbosity_for_exuecutor(configparser)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
-            self.dotnet_run_tests(configurationfile, current_release_information, verbosity)
-
-    @GeneralUtilities.check_arguments
     def dotnet_release_nuget(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -397,13 +396,13 @@ class ScriptCollectionCore:
         latest_nupkg_file = self.get_item_from_configuration(configparser, 'general', 'productname', current_release_information)+"."+repository_version+".nupkg"
         for localnugettarget in self.get_items_from_configuration(configparser, 'dotnet', 'localnugettargets', current_release_information):
             self.run_program("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {localnugettarget}",
-                                             publishdirectory,  self.__get_verbosity_for_exuecutor(configparser))
+                             publishdirectory,  self.__get_verbosity_for_exuecutor(configparser))
         if (self.get_boolean_value_from_configuration(configparser, 'dotnet', 'publishnugetfile', current_release_information)):
             with open(self.get_item_from_configuration(configparser, 'dotnet', 'nugetapikeyfile', current_release_information), 'r', encoding='utf-8') as apikeyfile:
                 api_key = apikeyfile.read()
             nugetsource = self.get_item_from_configuration(configparser, 'dotnet', 'nugetsource', current_release_information)
             self.run_program("dotnet", f"nuget push {latest_nupkg_file} --force-english-output --source {nugetsource} --api-key {api_key}",
-                                             publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
+                             publishdirectory, self.__get_verbosity_for_exuecutor(configparser))
 
     @GeneralUtilities.check_arguments
     def dotnet_reference(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -431,15 +430,15 @@ class ScriptCollectionCore:
             docfx_folder = os.path.dirname(docfx_file)
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(docfx_folder, "obj"))
             self.run_program("docfx", f'"{os.path.basename(docfx_file)}" --loglevel {verbose_argument_for_docfx}',
-                                             docfx_folder, verbosity)
+                             docfx_folder, verbosity)
             coveragefolder = self.get_item_from_configuration(configparser, 'dotnet', 'coveragefolder', current_release_information)
             GeneralUtilities.ensure_directory_exists(coveragefolder)
             coverage_target_file = coveragefolder+os.path.sep+self.__get_coverage_filename(configparser, current_release_information)
             shutil.copyfile(self.__get_test_csprojfile_folder(configparser, current_release_information)+os.path.sep +
                             self.__get_coverage_filename(configparser, current_release_information), coverage_target_file)
-            self.run_program("reportgenerator",  f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'
-                                             f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
-                                             coveragefolder, verbosity)
+            self.run_program("reportgenerator",  f'-reports:"{self.__get_coverage_filename(configparser,current_release_information)}"'  # obsolete due to generate_coverage_report(...)
+                             f' -targetdir:"{coveragefolder}" -verbosity:{verbose_argument_for_reportgenerator}',
+                             coveragefolder, verbosity)
             self.git_commit(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information), "Updated reference")
             if self.get_boolean_value_from_configuration(configparser, 'dotnet', 'exportreference', current_release_information):
                 self.git_push(self.get_item_from_configuration(configparser, 'dotnet', 'referencerepository', current_release_information),
@@ -449,7 +448,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def dotnet_build_old(self, current_release_information: dict, folderOfCsprojFile: str, csprojFilename: str, outputDirectory: str, buildConfiguration: str, runtimeId: str, dotnet_framework: str,
-                     clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None) -> None:
+                         clearOutputDirectoryBeforeBuild: bool = True, verbosity: int = 1, filesToSign: list = None, keyToSignForOutputfile: str = None) -> None:
         if os.path.isdir(outputDirectory) and clearOutputDirectoryBeforeBuild:
             GeneralUtilities.ensure_directory_does_not_exist(outputDirectory)
         GeneralUtilities.ensure_directory_exists(outputDirectory)
@@ -478,47 +477,6 @@ class ScriptCollectionCore:
                 self.dotnet_sign(outputDirectory+os.path.sep+fileToSign, keyToSignForOutputfile, verbosity, current_release_information)
 
     @GeneralUtilities.check_arguments
-    def dotnet_run_tests(self, configurationfile: str, current_release_information: dict[str, str], verbosity: int = 1) -> None:
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        if verbosity == 0:
-            verbose_argument_for_dotnet = "quiet"
-        if verbosity == 1:
-            verbose_argument_for_dotnet = "minimal"
-        if verbosity == 2:
-            verbose_argument_for_dotnet = "normal"
-        if verbosity == 3:
-            verbose_argument_for_dotnet = "detailed"
-        coveragefilename = self.__get_coverage_filename(configparser, current_release_information)
-        csproj = self.__get_test_csprojfile_filename(configparser, current_release_information)
-        testbuildconfig = self.get_item_from_configuration(configparser, 'dotnet', 'testbuildconfiguration', current_release_information)
-        testargument = f"test {csproj} -c {testbuildconfig}" \
-            f" --verbosity {verbose_argument_for_dotnet} /p:CollectCoverage=true /p:CoverletOutput={coveragefilename}" \
-            f" /p:CoverletOutputFormat=opencover"
-        self.run_program("dotnet", testargument, self.__get_test_csprojfile_folder(configparser, current_release_information),
-                                         verbosity, False, "Execute tests")
-        root = etree.parse(self.__get_test_csprojfile_folder(configparser, current_release_information)+os.path.sep+coveragefilename)
-        coverage_in_percent = math.floor(float(str(root.xpath('//CoverageSession/Summary/@sequenceCoverage')[0])))
-        module_count = int(root.xpath('count(//CoverageSession/Modules/*)'))
-        if module_count == 0:
-            coverage_in_percent = 0
-            GeneralUtilities.write_message_to_stdout("Warning: The testcoverage-report does not contain any module, therefore the testcoverage will be set to 0.")
-        self.__handle_coverage(configparser, current_release_information, coverage_in_percent, verbosity == 3)
-
-    @GeneralUtilities.check_arguments
-    def __handle_coverage(self, configparser, current_release_information, coverage_in_percent: int, verbose: bool):
-        current_release_information['general.testcoverage'] = coverage_in_percent
-        minimalrequiredtestcoverageinpercent = self.get_number_value_from_configuration(configparser, "other", "minimalrequiredtestcoverageinpercent")
-        if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
-            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}.")
-        coverage_regex_begin = "https://img.shields.io/badge/testcoverage-"
-        coverage_regex_end = "%25-green"
-        for file in self.get_items_from_configuration(configparser, "other", "codecoverageshieldreplacementfiles", current_release_information):
-            GeneralUtilities.replace_regex_each_line_of_file(file, re.escape(coverage_regex_begin)+"\\d+"+re.escape(coverage_regex_end),
-                                                             coverage_regex_begin+str(coverage_in_percent)+coverage_regex_end, verbose=verbose)
-
-    @GeneralUtilities.check_arguments
     def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict[str, str]) -> None:
         dllOrExeFile = GeneralUtilities.resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = GeneralUtilities.resolve_relative_path_from_current_working_directory(snkfile)
@@ -533,11 +491,11 @@ class ScriptCollectionCore:
         else:
             raise Exception("Only .dll-files and .exe-files can be signed")
         self.run_program("ildasm",
-                                         f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
-                                         directory,  verbosity, False, "Sign: ildasm")
+                         f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
+                         directory,  verbosity, False, "Sign: ildasm")
         self.run_program("ilasm",
-                                         f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
-                                         directory,  verbosity, False, "Sign: ilasm")
+                         f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
+                         directory,  verbosity, False, "Sign: ilasm")
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
@@ -599,8 +557,8 @@ class ScriptCollectionCore:
                 argument = f"{argument} --tag {tag}"
             argument = f"{argument} --file {dockerfile_filename} ."
             self.run_program("docker", argument,
-                                             contextfolder,  print_errors_as_information=True,
-                                             verbosity=self.__get_verbosity_for_exuecutor(configparser))
+                             contextfolder,  print_errors_as_information=True,
+                             verbosity=self.__get_verbosity_for_exuecutor(configparser))
 
     @GeneralUtilities.check_arguments
     def docker_create_image_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -623,16 +581,16 @@ class ScriptCollectionCore:
         # push to registry
         for tag in current_release_information["builtin.docker.tags_for_push"]:
             self.run_program("docker", f"push {tag}",
-                                             print_errors_as_information=True,
-                                             verbosity=self.__get_verbosity_for_exuecutor(configparser))
+                             print_errors_as_information=True,
+                             verbosity=self.__get_verbosity_for_exuecutor(configparser))
 
         # remove local stored images:
         if self.get_boolean_value_from_configuration(configparser, "docker", "removenewcreatedlocalimagesafterexport", current_release_information):
             for environment in current_release_information["builtin.docker.tags_by_environment"]:
                 for tag in current_release_information["builtin.docker.tags_by_environment"][environment]:
                     self.run_program("docker", f"image rm {tag}",
-                                                     print_errors_as_information=True,
-                                                     verbosity=verbosity)
+                                     print_errors_as_information=True,
+                                     verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def __export_tag_to_file(self, tag: str, artefactdirectory: str, overwriteexistingfilesinartefactdirectory: bool, verbosity: int) -> None:
@@ -649,8 +607,8 @@ class ScriptCollectionCore:
                 raise Exception(f"File '{targetfile}' does already exist")
 
         self.run_program("docker", f"save -o {targetfile} {tag}",
-                                         print_errors_as_information=True,
-                                         verbosity=verbosity)
+                         print_errors_as_information=True,
+                         verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def flutterandroid_create_installer_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -681,8 +639,8 @@ class ScriptCollectionCore:
             configparser.read_file(text_io_wrapper)
         if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'premerge_program', current_release_information)):
             self.run_program(self.get_item_from_configuration(configparser, 'script', 'premerge_program', current_release_information),
-                                             self.get_item_from_configuration(configparser, 'script', 'premerge_argument', current_release_information),
-                                             self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory', current_release_information))
+                             self.get_item_from_configuration(configparser, 'script', 'premerge_argument', current_release_information),
+                             self.get_item_from_configuration(configparser, 'script', 'premerge_workingdirectory', current_release_information))
 
     @GeneralUtilities.check_arguments
     def generic_create_script_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -691,8 +649,8 @@ class ScriptCollectionCore:
             configparser.read_file(text_io_wrapper)
         if GeneralUtilities.string_has_content(self.get_item_from_configuration(configparser, 'script', 'postmerge_program', current_release_information)):
             self.run_program(self.get_item_from_configuration(configparser, 'script', 'postmerge_program', current_release_information),
-                                             self.get_item_from_configuration(configparser, 'script', 'postmerge_argument', current_release_information),
-                                             self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory', current_release_information))
+                             self.get_item_from_configuration(configparser, 'script', 'postmerge_argument', current_release_information),
+                             self.get_item_from_configuration(configparser, 'script', 'postmerge_workingdirectory', current_release_information))
 
     @GeneralUtilities.check_arguments
     def python_create_wheel_release_premerge(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -722,14 +680,14 @@ class ScriptCollectionCore:
             raise Exception("Can not continue due to errors in the python-files")
 
         # Run testcases
-        self.python_run_tests(configurationfile, current_release_information)
+        self.__run_testcases(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
     def python_create_wheel_release_postmerge(self, configurationfile: str, current_release_information: dict[str, str]):
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
             configparser.read_file(text_io_wrapper)
-        self.python_build_wheel_and_run_tests(configurationfile, current_release_information)
+        self.python_build(configurationfile, current_release_information)
         self.python_release_wheel(configurationfile, current_release_information)
 
     @GeneralUtilities.check_arguments
@@ -742,11 +700,6 @@ class ScriptCollectionCore:
             return False
 
     @GeneralUtilities.check_arguments
-    def python_build_wheel_and_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        self.python_run_tests(configurationfile, current_release_information)
-        self.python_build(configurationfile, current_release_information)
-
-    @GeneralUtilities.check_arguments
     def python_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
         with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
@@ -757,20 +710,8 @@ class ScriptCollectionCore:
         publishdirectoryforwhlfile = self.get_item_from_configuration(configparser, "python", "publishdirectoryforwhlfile", current_release_information)
         GeneralUtilities.ensure_directory_exists(publishdirectoryforwhlfile)
         self.run_program("python",
-                                         setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
-                                         setuppyfilefolder,  self.__get_verbosity_for_exuecutor(configparser))
-
-    @GeneralUtilities.check_arguments
-    def python_run_tests(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
-        # TODO check minimalrequiredtestcoverageinpercent and generate coverage report
-        configparser = ConfigParser()
-        with(open(configurationfile, mode="r", encoding="utf-8")) as text_io_wrapper:
-            configparser.read_file(text_io_wrapper)
-        if self.get_boolean_value_from_configuration(configparser, 'other', 'hastestproject', current_release_information):
-            pythontestfilefolder = self.get_item_from_configuration(configparser, 'general', 'repository', current_release_information)
-            # TODO set verbosity-level for pytest
-            self.run_program("pytest", "", pythontestfilefolder,
-                                             self.__get_verbosity_for_exuecutor(configparser), False, "Pytest")
+                         setuppyfilename+' bdist_wheel --dist-dir "'+publishdirectoryforwhlfile+'"',
+                         setuppyfilefolder,  self.__get_verbosity_for_exuecutor(configparser))
 
     @GeneralUtilities.check_arguments
     def python_release_wheel(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
@@ -791,13 +732,13 @@ class ScriptCollectionCore:
             twine_argument = f"upload --sign --identity {gpgidentity} --non-interactive {productname}-{repository_version}-py3-none-any.whl" \
                 f" --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
             self.run_program("twine", twine_argument,
-                                             self.get_item_from_configuration(
-                                                 configparser, "python", "publishdirectoryforwhlfile", current_release_information),
-                                             verbosity)
+                             self.get_item_from_configuration(
+                                 configparser, "python", "publishdirectoryforwhlfile", current_release_information),
+                             verbosity)
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
-        result = self.run_program("git",f"verify-commit {revision_identifier}", repository_folder,throw_exception_if_exitcode_is_not_zero= False)
+        result = self.run_program("git", f"verify-commit {revision_identifier}", repository_folder, throw_exception_if_exitcode_is_not_zero=False)
         if(result[0] != 0):
             return False
         if(not GeneralUtilities.contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):
@@ -810,16 +751,16 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
-        return self.run_program("git",f'log --pretty=%P -n 1 "{commit_id}"',
-                                       repository_folder,throw_exception_if_exitcode_is_not_zero= True)[1].replace("\r", "").replace("\n", "").split(" ")
+        return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"',
+                                       repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", "").replace("\n", "").split(" ")
 
     @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line),
-                        self.run_program("git",f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
-                                                repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
+                        self.run_program("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',
+                                         repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
@@ -830,11 +771,11 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        return self.run_program_argsasarray("git",["merge-base", "--is-ancestor", ancestor, descendant], repository_folder,throw_exception_if_exitcode_is_not_zero= False)[0] == 0
+        return self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0] == 0
 
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
-        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git",arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1], False)
+        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1], False)
         for line in lines:
             if GeneralUtilities.string_has_content(line):
                 return True
@@ -870,20 +811,20 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git",["rev-parse", "--verify", commit], repository_folder,throw_exception_if_exitcode_is_not_zero= True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
-        self.run_program_argsasarray("git",["fetch", remotename, "--tags", "--prune"], folder,throw_exception_if_exitcode_is_not_zero= True)
+        self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
-        self.run_program_argsasarray("git",["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_remove_branch(self, folder: str, branchname: str) -> None:
-        self.run_program("git",f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
@@ -892,7 +833,7 @@ class ScriptCollectionCore:
             argument.append("--force")
         if (pushalltags):
             argument.append("--tags")
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git",argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     @GeneralUtilities.check_arguments
@@ -906,11 +847,11 @@ class ScriptCollectionCore:
                 args.append("--remote-submodules")
             if mirror:
                 args.append("--mirror")
-            self.run_program_argsasarray("git",args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_get_all_remote_names(self, directory) -> list[str]:
-        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git",["remote"], directory, throw_exception_if_exitcode_is_not_zero=True)[1], False)
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True)[1], False)
         return result
 
     @GeneralUtilities.check_arguments
@@ -920,36 +861,36 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.run_program_argsasarray("git",['remote', 'set-url', 'remote_name', remote_address], directory,throw_exception_if_exitcode_is_not_zero= True)
+            self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address], directory, throw_exception_if_exitcode_is_not_zero=True)
         else:
-            self.run_program_argsasarray("git",['remote', 'add', remote_name, remote_address], directory, throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_stage_all_changes(self, directory: str) -> None:
-        self.run_program_argsasarray(["add", "-A"], directory,throw_exception_if_exitcode_is_not_zero= True)
+        self.run_program_argsasarray(["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.run_program_argsasarray("git",["reset"], directory,throw_exception_if_exitcode_is_not_zero= True)
+        self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.run_program_argsasarray("git",['stage', file], directory,throw_exception_if_exitcode_is_not_zero= True)
+        self.run_program_argsasarray("git", ['stage', file], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.run_program_argsasarray("git",['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.run_program_argsasarray("git",['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.run_program_argsasarray("git",['clean', '-df'], directory,throw_exception_if_exitcode_is_not_zero= True)
-        self.run_program_argsasarray("git",['checkout', '.'], directory,throw_exception_if_exitcode_is_not_zero= True)
+        self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
@@ -981,7 +922,7 @@ class ScriptCollectionCore:
 
         if do_commit:
             GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'...")
-            self.run_program_argsasarray("git",argument, directory, throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_current_commit_id(directory)
 
@@ -992,15 +933,15 @@ class ScriptCollectionCore:
             if message is None:
                 message = f"Created {target_for_tag}"
             argument.extend(["-s", f'-m "{message}"'])
-        self.run_program_argsasarray("git",argument, directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.run_program_argsasarray("git",["checkout", branch], directory,throw_exception_if_exitcode_is_not_zero= True)
+        self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
-        self.run_program_argsasarray("git",["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
@@ -1011,7 +952,7 @@ class ScriptCollectionCore:
         if not fastforward:
             args.append("--no-ff")
         args.append(sourcebranch)
-        self.run_program_argsasarray("git",args, directory,throw_exception_if_exitcode_is_not_zero= True)
+        self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True)
         return self.git_get_current_commit_id(directory)
 
     @GeneralUtilities.check_arguments
@@ -1054,7 +995,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
-        exit_code = self.run_program_argsasarray("git",['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False)[0]
+        exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
@@ -1063,12 +1004,12 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def discard_all_changes(self, repository: str) -> None:
-        self.run_program_argsasarray("git",["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
-        self.run_program_argsasarray("git",["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_get_current_branch_name(self, repository: str) -> str:
-        result = self.run_program_argsasarray("git",["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True)
+        result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace("\r", "").replace("\n", "")
 
     @GeneralUtilities.check_arguments
@@ -1203,13 +1144,6 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
-    def __get_test_csprojfile_filename(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
-        file = self.get_item_from_configuration(configparser, "dotnet", "testcsprojfile", current_release_information)
-        file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
-        result = os.path.basename(file)
-        return result
-
-    @GeneralUtilities.check_arguments
     def __get_csprojfile_folder(self, configparser: ConfigParser, current_release_information: dict[str, str]) -> str:
         file = self.get_item_from_configuration(configparser, "dotnet", "csprojfile", current_release_information)
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
@@ -1250,7 +1184,6 @@ class ScriptCollectionCore:
         available_configuration_items.append(["dotnet", "filestosign"])
         available_configuration_items.append(["dotnet", "snkfile"])
         available_configuration_items.append(["dotnet", "testdotnetframework"])
-        available_configuration_items.append(["dotnet", "testcsprojfile"])
         available_configuration_items.append(["dotnet", "localnugettargets"])
         available_configuration_items.append(["dotnet", "testbuildconfiguration"])
         available_configuration_items.append(["dotnet", "docfxfile"])
@@ -1283,7 +1216,7 @@ class ScriptCollectionCore:
         available_configuration_items.append(["other", "projecturl"])
         available_configuration_items.append(["other", "repositoryurl"])
         available_configuration_items.append(["other", "exportrepositoryremotename"])
-        available_configuration_items.append(["other", "minimalrequiredtestcoverageinpercent"])
+        available_configuration_items.append(["other", "runtestcasesscript"])
         available_configuration_items.append(["python", "readmefile"])
         available_configuration_items.append(["python", "pythonsetuppyfile"])
         available_configuration_items.append(["python", "filesforupdatingversion"])
@@ -1795,24 +1728,28 @@ class ScriptCollectionCore:
 
         return (False, errors)
 
-    def run_testcases_for_python_project(self,repository_folder:str):
-        self.run_program("coverage","run -m pytest",repository_folder)
-        self.run_program("coverage","xml",repository_folder)
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder,"Other/TestCoverage"))
-        coveragefile=os.path.join(repository_folder,"Other/TestCoverage/TestCoverage.xml")
+    def run_testcases_for_python_project(self, repository_folder: str):
+        self.run_program("coverage", "run -m pytest", repository_folder)
+        self.run_program("coverage", "xml", repository_folder)
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage"))
+        coveragefile = os.path.join(repository_folder, "Other/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
-        os.rename(os.path.join(repository_folder,"coverage.xml"),coveragefile)
+        os.rename(os.path.join(repository_folder, "coverage.xml"), coveragefile)
 
-    def generate_coverage_report(self,repository_folder:str):
-        """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' exists.
+    def generate_coverage_report(self, repository_folder: str):
+        """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' which contains a test-coverage-report in the cobertura-format exists.
 This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
 This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/Badges/TestCoverage'."""
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder,"Other/TestCoverage/Report"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder,"Other/TestCoverage/Report"))
-        GeneralUtilities.ensure_file_exists(os.path.join(repository_folder,"Other/TestCoverage/.gitignore"))
-        self.run_program("reportgenerator","-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report",repository_folder)
-        self.run_program("reportgenerator","-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/Badges/TestCoverage -reporttypes:Badges",repository_folder)
 
+        # Generating report
+        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Report"))
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Report"))
+        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report", repository_folder)
+
+        # Generating badges
+        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
+        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges", repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
@@ -1905,18 +1842,17 @@ This script expectes that a test-coverage-badges should be added to '<repository
         args.append(file_or_folder)
         self.run_program_argsasarray("chown", args)
 
-    #<run programs>
+    # <run programs>
 
     @GeneralUtilities.check_arguments
-    def __run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> Popen:
-        #Verbosity:
-        #0=Quiet (No output will be printed.)
-        #1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
-        #2=Full (Prints StdOut and StdErr of the executed program.)
-        #3=Verbose (Same as "Full" but with some more information.)
-
+    def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,
+                                               print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                                               title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> Popen:
+        # Verbosity:
+        # 0=Quiet (No output will be printed.)
+        # 1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
+        # 2=Full (Prints StdOut and StdErr of the executed program.)
+        # 3=Verbose (Same as "Full" but with some more information.)
 
         if arguments_for_log is None:
             arguments_for_log = ' '.join(arguments_as_array)
@@ -1926,34 +1862,34 @@ This script expectes that a test-coverage-badges should be added to '<repository
         cmd = f'{working_directory}>{program} {arguments_for_log}'
 
         if GeneralUtilities.string_is_none_or_whitespace(title):
-            info_for_log=cmd
+            info_for_log = cmd
         else:
             info_for_log = title
 
-        if verbosity==3:
+        if verbosity == 3:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
-        if isinstance(self.program_runner,ProgramRunnerEpew):
-            custom_argument=CustomEpewArgument(print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,verbosity,arguments_for_log)
+        if isinstance(self.program_runner, ProgramRunnerEpew):
+            custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, verbosity, arguments_for_log)
         else:
-            custom_argument=None
-        popen:Popen=self.program_runner.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,custom_argument)
+            custom_argument = None
+        popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument)
         return popen
 
-
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
-    @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,throw_exception_if_exitcode_is_not_zero:bool=True) -> tuple[int, str, str, int]:
 
-        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
+    @GeneralUtilities.check_arguments
+    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,
+                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                                title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
+
+        mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
 
         start_datetime = datetime.utcnow()
-        process=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,print_errors_as_information,log_file,
-            timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
+        process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
+                                                              timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log)
         pid = process.pid
         stdout, stderr = process.communicate()
         stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
@@ -1970,24 +1906,24 @@ This script expectes that a test-coverage-badges should be added to '<repository
         cmd = f'{working_directory}>{program} {arguments_for_log}'
 
         if GeneralUtilities.string_is_none_or_whitespace(title):
-            info_for_log=cmd
+            info_for_log = cmd
         else:
             info_for_log = title
 
-        if verbosity==3:
+        if verbosity == 3:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
-        if isinstance(self.program_runner,ProgramRunnerEpew):
+        if isinstance(self.program_runner, ProgramRunnerEpew):
             pass
         else:
-            if verbosity==1 and exit_code != 0:
-                self.__write_output(print_errors_as_information,stderr)
-            if verbosity==2:
+            if verbosity == 1 and exit_code != 0:
+                self.__write_output(print_errors_as_information, stderr)
+            if verbosity == 2:
                 GeneralUtilities.write_message_to_stdout(stdout)
-                self.__write_output(print_errors_as_information,stderr)
-            if verbosity==3:
+                self.__write_output(print_errors_as_information, stderr)
+            if verbosity == 3:
                 GeneralUtilities.write_message_to_stdout(stdout)
-                self.__write_output(print_errors_as_information,stderr)
+                self.__write_output(print_errors_as_information, stderr)
                 formatted = self.__format_program_execution_information(title=info_for_log, program=program, argument=arguments_for_log, workingdirectory=working_directory)
                 GeneralUtilities.write_message_to_stdout(f"Finished '{info_for_log}'. Details: '{formatted}")
 
@@ -2000,37 +1936,36 @@ This script expectes that a test-coverage-badges should be added to '<repository
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def run_program(self, program:str,arguments:  str="", working_directory: str=None, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,throw_exception_if_exitcode_is_not_zero:bool=True) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,print_errors_as_information,
-            log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log,throw_exception_if_exitcode_is_not_zero)
+    def run_program(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1,
+                    print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                    title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
+        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information,
+                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero)
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self, program:str, arguments_as_array: list[str]=[], working_directory: str=None, verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None ) -> int:
+    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,
+                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> int:
 
-        mock_loader_result=self.__try_load_mock(program,' '.join(arguments_as_array),working_directory)
+        mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
 
-        process:Popen=self.__run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,verbosity,
-            print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
+        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity,
+                                                                     print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log)
         return process.pid
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
-    def run_program_async(self, program:str,arguments: str="",  working_directory: str=None , verbosity: int = 1,
-                                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                     title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> int:
-        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,verbosity,
-            print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log)
-
+    def run_program_async(self, program: str, arguments: str = "",  working_directory: str = None, verbosity: int = 1,
+                          print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
+                          title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> int:
+        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity,
+                                                  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log)
 
     @GeneralUtilities.check_arguments
-    def __try_load_mock(self, program:str, arguments: str, working_directory: str) -> tuple[bool,tuple[int, str, str, int]]:
+    def __try_load_mock(self, program: str, arguments: str, working_directory: str) -> tuple[bool, tuple[int, str, str, int]]:
         if self.mock_program_calls:
             try:
                 return [True, self.__get_mock_program_call(program, arguments, working_directory)]
@@ -2038,7 +1973,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
                 if not self.execute_program_really_if_no_mock_call_is_defined:
                     raise
         else:
-            return [False,None]
+            return [False, None]
 
     @GeneralUtilities.check_arguments
     def __adapt_workingdirectory(self, workingdirectory: str) -> str:
@@ -2047,14 +1982,12 @@ This script expectes that a test-coverage-badges should be added to '<repository
         else:
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
-
     @GeneralUtilities.check_arguments
-    def __write_output(self,print_errors_as_information,stderr):
+    def __write_output(self, print_errors_as_information, stderr):
         if print_errors_as_information:
             GeneralUtilities.write_message_to_stdout(stderr)
         else:
             GeneralUtilities.write_message_to_stderr(stderr)
-
 
     @GeneralUtilities.check_arguments
     def __format_program_execution_information(self, exitcode: int = None,  stdout: str = None, stderr: str = None, program: str = None, argument: str = None,
@@ -2080,7 +2013,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
 
     @GeneralUtilities.check_arguments
     def __format_mock_program_call(self, r) -> str:
-        r:ScriptCollectionCore.__MockProgramCall=r
+        r: ScriptCollectionCore.__MockProgramCall = r
         return f"'{r.workingdirectory}>{r.program} {r.argument}' (" \
             f"exitcode: {GeneralUtilities.str_none_safe(str(r.exit_code))}, " \
             f"pid: {GeneralUtilities.str_none_safe(str(r.pid))}, "\
@@ -2127,7 +2060,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
         stderr: str
         pid: int
 
-    #</run programs>
+    # </run programs>
 
     @GeneralUtilities.check_arguments
     def extract_archive_with_7z(self, unzip_program_file: str, zipfile: str, password: str, output_directory: str) -> None:
