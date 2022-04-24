@@ -1,6 +1,10 @@
-Other/TestCoverage/Report/*
-Other/TestCoverage/Badges/*
-!Other/TestCoverage/Badges/badge_shieldsio_linecoverage_blue.svg
+
+
+ScriptCollection/Other/TestCoverage/Report
+ScriptCollection/Other/InternalScripts/Build/Result
+
+ScriptCollection/Other/TestCoverage/Badges/*
+!ScriptCollection/Other/TestCoverage/Badges/badge_shieldsio_linecoverage_blue.svg
 
 **/testfile_*
 .vscode/*

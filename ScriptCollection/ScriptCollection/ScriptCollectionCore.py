@@ -653,19 +653,7 @@ class ScriptCollectionCore:
                 GeneralUtilities.replace_regex_each_line_of_file(file, '^version = ".+"\n$', f'version = "{repository_version}"\n')
 
         # lint-checks
-        errors_found = False
-
-        repository = self.get_item_from_configuration(configparser, "general", "repository", current_release_information)
-        for file in GeneralUtilities.get_all_files_of_folder(repository):
-            relative_file_path_in_repository = os.path.relpath(file, repository)
-            if file.endswith(".py") and os.path.getsize(file) > 0 and not self.file_is_git_ignored(relative_file_path_in_repository, repository):
-                linting_result = self.python_file_has_errors(file)
-                if (linting_result[0]):
-                    errors_found = True
-                    for error in linting_result[1]:
-                        GeneralUtilities.write_message_to_stderr(error)
-        if errors_found:
-            raise Exception("Can not continue due to errors in the python-files")
+        # TODO run linting-script
 
         # Run testcases
         self.__run_testcases(configurationfile, current_release_information)
@@ -1692,7 +1680,7 @@ class ScriptCollectionCore:
             errorsonly_argument = ""
         else:
             errorsonly_argument = " --errors-only"
-        (exit_code, stdout, stderr, _) = self.run_program("pylint", filename+errorsonly_argument, folder)
+        (exit_code, stdout, stderr, _) = self.run_program("pylint", filename+errorsonly_argument, folder, throw_exception_if_exitcode_is_not_zero=False)
         if(exit_code != 0):
             errors.append(f"Linting-issues of {file}:")
             errors.append(f"Pylint-exitcode: {exit_code}")
@@ -1958,8 +1946,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
             except LookupError:
                 if not self.execute_program_really_if_no_mock_call_is_defined:
                     raise
-        else:
-            return [False, None]
+        return [False, None]
 
     @GeneralUtilities.check_arguments
     def __adapt_workingdirectory(self, workingdirectory: str) -> str:

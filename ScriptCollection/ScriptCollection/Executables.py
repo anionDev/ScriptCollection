@@ -94,18 +94,6 @@ Requires the requirements of: TODO""")
                                                args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile, {})
 
 
-def DotNetRunTests() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_run_tests(args.configurationfile, {}, 1)
-
-
 def DotNetsign() -> int:
     parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
     parser.add_argument("dllOrExefile")
@@ -149,42 +137,6 @@ Requires the requirements of: TODO
     parser.add_argument("configurationfile")
     args = parser.parse_args()
     return ScriptCollectionCore().python_build(args.configurationfile, {})
-
-
-def PythonRunTests() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonRunTests_cli:
-Description: Executes python-unit-tests.
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_run_tests(args.configurationfile, {})
-
-
-def PythonReleaseWheel() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonReleaseWheel_cli:
-Description: Uploads a .whl-file using twine.
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_release_wheel(args.configurationfile, {})
-
-
-def PythonBuildWheelAndRunTests() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonBuildWheelAndRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_build_wheel_and_run_tests(args.configurationfile, {})
 
 
 def FilenameObfuscator() -> int:

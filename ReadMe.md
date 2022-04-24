@@ -2,7 +2,7 @@
 
 ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
-![Coverage](./Other/Testcoverage/Badges/badge_shieldsio_linecoverage_blue.svg)
+![Coverage](./ScriptCollection/Other/Testcoverage/Badges/badge_shieldsio_linecoverage_blue.svg)
 ![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection/month)](https://pepy.tech/project/scriptcollection)
@@ -85,8 +85,7 @@ To do this and install the local created package the steps are:
 
 ```bash
 pip3 uninstall -y ScriptCollection
-git clean -dfx
-python Setup.py bdist_wheel --dist-dir .
+python ScriptCollection/Other/InternalScripts/Build/Build.py.
 pip3 install ScriptCollection-x.x.x-py3-none-any.whl
 ```
 
