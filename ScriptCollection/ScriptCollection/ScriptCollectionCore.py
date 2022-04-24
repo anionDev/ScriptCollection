@@ -213,6 +213,73 @@ class ScriptCollectionCore:
             self.git_push(repository, self.get_item_from_configuration(configparser, 'other',
                                                                        'exportrepositoryremotename', current_release_information), branch, branch, False, True)
 
+    def python_file_has_errors(self, file:str,working_directory:str, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
+        errors = list()
+        filename = os.path.relpath(file,working_directory)
+        if treat_warnings_as_errors:
+            errorsonly_argument = ""
+        else:
+            errorsonly_argument = " --errors-only"
+        (exit_code, stdout, stderr, _) = self.run_program("pylint", filename+errorsonly_argument, working_directory, throw_exception_if_exitcode_is_not_zero=False)
+        if(exit_code != 0):
+            errors.append(f"Linting-issues of {file}:")
+            errors.append(f"Pylint-exitcode: {exit_code}")
+            for line in GeneralUtilities.string_to_lines(stdout):
+                errors.append(line)
+            for line in GeneralUtilities.string_to_lines(stderr):
+                errors.append(line)
+            return (True, errors)
+
+        return (False, errors)
+
+    def standardized_tasks_linting_for_python_project_in_common_project_structure(self,repository_folder:str,codeunitname:str):
+        errors_found = False
+        GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}")
+        for file in GeneralUtilities.get_all_files_of_folder(os.path.join( repository_folder,codeunitname)):
+            relative_file_path_in_repository = os.path.relpath(file, repository_folder)
+            if file.endswith(".py") and os.path.getsize(file) > 0 and not self.file_is_git_ignored(relative_file_path_in_repository, repository_folder):
+                GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in {os.path.relpath(file,os.path.join(repository_folder,codeunitname))}")
+                linting_result = self.python_file_has_errors(file,repository_folder)
+                if (linting_result[0]):
+                    errors_found = True
+                    for error in linting_result[1]:
+                        GeneralUtilities.write_message_to_stderr(error)
+        if errors_found:
+            raise Exception("Linting-issues occurred")
+
+
+    def standardized_tasks_run_testcases_for_python_project(self,repository_folder:str,codeunitname:str):
+        codeunif_folder=os.path.join(repository_folder,codeunitname)
+        self.run_program("coverage","run -m pytest",codeunif_folder)
+        self.run_program("coverage","xml",codeunif_folder)
+        coveragefile=os.path.join(repository_folder,codeunitname,"Other/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(coveragefile)
+        os.rename(os.path.join(repository_folder,codeunitname,"coverage.xml"),coveragefile)
+
+    def standardized_tasks_generate_coverage_report(self,repository_folder:str,codeunitname:str, generate_badges:bool=True):
+        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/TestCoverage/TestCoverage.xml' exists.
+    This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
+    This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/TestCoverage/Badges'."""
+        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder,codeunitname,"Other/TestCoverage/Report"))
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder,codeunitname,"Other/TestCoverage/Report"))
+        self.run_program("reportgenerator","-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report",os.path.join(repository_folder,codeunitname))
+        if generate_badges:
+            self.run_program("reportgenerator","-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges",
+                os.path.join(repository_folder,codeunitname))
+
+    def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self,repository_folder:str,codeunitname:str, generate_badges:bool=True):
+        self.standardized_tasks_run_testcases_for_python_project(repository_folder,codeunitname)
+        self.standardized_tasks_generate_coverage_report(repository_folder,codeunitname, generate_badges)
+
+
+    def standardized_tasks_build_for_python_project_in_common_project_structure(self,repository_folder:str,codeunit:str):
+        self.run_program("git","clean -dfx", repository_folder)
+        target_directory=os.path.join(repository_folder,codeunit,"Other","InternalScripts","Build","Result")
+        GeneralUtilities.ensure_directory_does_not_exist(target_directory)
+        GeneralUtilities.ensure_directory_exists(target_directory)
+        self.run_program("python",f"Setup.py bdist_wheel --dist-dir {target_directory}",os.path.join( repository_folder,codeunit))
+
+
     @GeneralUtilities.check_arguments
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
         configparser = ConfigParser()
@@ -1669,28 +1736,6 @@ class ScriptCollectionCore:
     def file_is_available_on_file_host(self, file) -> int:
         # TODO implement
         return 1
-
-    @GeneralUtilities.check_arguments
-    def python_file_has_errors(self, file, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
-        errors = list()
-        folder = os.path.dirname(file)
-        filename = os.path.basename(file)
-        GeneralUtilities.write_message_to_stdout(f"Start checking {file}...")
-        if treat_warnings_as_errors:
-            errorsonly_argument = ""
-        else:
-            errorsonly_argument = " --errors-only"
-        (exit_code, stdout, stderr, _) = self.run_program("pylint", filename+errorsonly_argument, folder, throw_exception_if_exitcode_is_not_zero=False)
-        if(exit_code != 0):
-            errors.append(f"Linting-issues of {file}:")
-            errors.append(f"Pylint-exitcode: {exit_code}")
-            for line in GeneralUtilities.string_to_lines(stdout):
-                errors.append(line)
-            for line in GeneralUtilities.string_to_lines(stderr):
-                errors.append(line)
-            return (True, errors)
-
-        return (False, errors)
 
     def run_testcases_for_python_project(self, repository_folder: str):
         self.run_program("coverage", "run -m pytest", repository_folder)
