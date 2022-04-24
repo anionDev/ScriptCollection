@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = "2.8.8"
+version = "2.8.9"
 
 
 def create_wheel_file():
@@ -15,7 +15,7 @@ def create_wheel_file():
     folder_of_current_file = os.path.dirname(os.path.realpath(__file__))
     packages = find_packages(folder_of_current_file)
 
-    with open(os.path.join(Path( folder_of_current_file).parent.absolute(), "ReadMe.md"), "r", encoding='utf-8') as file:
+    with open(os.path.join(Path(folder_of_current_file).parent.absolute(), "ReadMe.md"), "r", encoding='utf-8') as file:
         long_description = file.read()
 
     setup(
