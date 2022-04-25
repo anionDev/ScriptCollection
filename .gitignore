@@ -1,10 +1,9 @@
 
-
-ScriptCollection/Other/TestCoverage/Report
-ScriptCollection/Other/InternalScripts/Build/Result
-
-ScriptCollection/Other/TestCoverage/Badges/*
-!ScriptCollection/Other/TestCoverage/Badges/badge_shieldsio_linecoverage_blue.svg
+ScriptCollection/Other/QualityCheck/TestCoverage/TestCoverageReport
+ScriptCollection/Other/QualityCheck/TestCoverage/Badges/*
+!ScriptCollection/Other/QualityCheck/TestCoverage/Badges/badge_shieldsio_linecoverage_blue.svg
+ScriptCollection/Other/Reference/GeneratedReference
+ScriptCollection/Other/Build/BuildArtifact
 
 **/testfile_*
 .vscode/*
