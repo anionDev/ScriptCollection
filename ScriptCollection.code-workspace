@@ -10,19 +10,25 @@
 			{
 				"label": "ScriptCollection: Run testcases",
 				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/InternalScripts/QualityCheck/RunTestcases.py"],
+				"args": ["${workspaceFolder}/ScriptCollection/Other/QualityCheck/RunTestcases.py"],
 				"type": "shell",
 			},
 			{
 				"label": "ScriptCollection: Linting",
 				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/InternalScripts/QualityCheck/Linting.py"],
+				"args": ["${workspaceFolder}/ScriptCollection/Other/QualityCheck/Linting.py"],
+				"type": "shell",
+			},
+			{
+				"label": "ScriptCollection: Generate reference",
+				"command": "python",
+				"args": ["${workspaceFolder}/ScriptCollection/Other/Reference/GenerateReference.py"],
 				"type": "shell",
 			},
 			{
 				"label": "ScriptCollection: Build",
 				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/InternalScripts/Build/Build.py"],
+				"args": ["${workspaceFolder}/ScriptCollection/Other/Build/Build.py"],
 				"type": "shell",
 			}
 		]

@@ -2,7 +2,7 @@
 
 ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
-![Coverage](./ScriptCollection/Other/Testcoverage/Badges/badge_shieldsio_linecoverage_blue.svg)
+![Coverage](./ScriptCollection/Other/QualityCheck/TestCoverage/Badges/badge_shieldsio_linecoverage_blue.svg)
 ![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection/month)](https://pepy.tech/project/scriptcollection)
