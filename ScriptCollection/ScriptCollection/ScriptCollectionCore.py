@@ -237,6 +237,9 @@ class ScriptCollectionCore:
         generated_reference_folder=os.path.join(folder_of_current_file,"GeneratedReference")
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
         GeneralUtilities.ensure_directory_exists(generated_reference_folder)
+        obj_folder=os.path.join(folder_of_current_file,"obj")
+        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
+        GeneralUtilities.ensure_directory_exists(obj_folder)
         self.run_program("docfx","docfx.json",folder_of_current_file)
 
     def standardized_tasks_linting_for_python_project_in_common_project_structure(self,linting_script_file):
@@ -245,6 +248,7 @@ class ScriptCollectionCore:
         errors_found = False
         GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}")
         for file in GeneralUtilities.get_all_files_of_folder(os.path.join(repository_folder, codeunitname)):
+            #TODO ignore files in the "<repository>/<codeunit>/other"-folder
             relative_file_path_in_repository = os.path.relpath(file, repository_folder)
             if file.endswith(".py") and os.path.getsize(file) > 0 and not self.file_is_git_ignored(relative_file_path_in_repository, repository_folder):
                 GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in {os.path.relpath(file,os.path.join(repository_folder,codeunitname))}")
@@ -256,24 +260,25 @@ class ScriptCollectionCore:
         if errors_found:
             raise Exception("Linting-issues occurred")
 
+
     def standardized_tasks_run_testcases_for_python_project(self, repository_folder: str, codeunitname: str):
-        codeunif_folder = os.path.join(repository_folder, codeunitname)
-        self.run_program("coverage", "run -m pytest", codeunif_folder)
-        self.run_program("coverage", "xml", codeunif_folder)
-        coveragefile = os.path.join(repository_folder, codeunitname, "Other/TestCoverage/TestCoverage.xml")
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        self.run_program("coverage", "run -m pytest", codeunit_folder)
+        self.run_program("coverage", "xml", codeunit_folder)
+        coveragefile = os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
 
     def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, generate_badges: bool = True):
-        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/TestCoverage/TestCoverage.xml' exists.
-    This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
-    This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/TestCoverage/Badges'."""
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/TestCoverage/Report"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/TestCoverage/Report"))
-        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report", os.path.join(repository_folder, codeunitname))
+        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml' exists.
+    This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
+    This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>other//QualityCheck/TestCoverage/Badges'."""
+        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
+        self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport", os.path.join(repository_folder, codeunitname))
         if generate_badges:
-            self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges",
-                             os.path.join(repository_folder, codeunitname))
+            self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges -reporttypes:Badges",
+                                os.path.join(repository_folder, codeunitname))
 
     def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self,run_testcases_file:str, generate_badges: bool = True):
         repository_folder: str=str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
@@ -281,14 +286,18 @@ class ScriptCollectionCore:
         self.standardized_tasks_run_testcases_for_python_project(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, generate_badges)
 
-    def standardized_tasks_build_for_python_project_in_common_project_structure(self,build_file:str):
-        repository_folder: str=str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
-        codeunitname: str=Path(os.path.dirname(build_file)).parent.parent.name
+    def standardized_tasks_build_for_python_project_in_common_project_structure(self, build_file: str, setuppy_file: str):
+        setuppy_file_folder = os.path.dirname(setuppy_file)
+        setuppy_file_filename = os.path.basename(setuppy_file)
+        repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
+        codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
         self.run_program("git", "clean -dfx", repository_folder)
-        target_directory = os.path.join(repository_folder, codeunitname, "Other", "InternalScripts", "Build", "Result")
+        target_directory = os.path.join(repository_folder, codeunitname, "Other", "Build", "BuildArtifact")
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
         GeneralUtilities.ensure_directory_exists(target_directory)
-        self.run_program("python", f"Setup.py bdist_wheel --dist-dir {target_directory}", os.path.join(repository_folder, codeunitname))
+        self.run_program("python", f"{setuppy_file_filename} bdist_wheel --dist-dir {target_directory}", setuppy_file_folder)
+
+
 
     @GeneralUtilities.check_arguments
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:
