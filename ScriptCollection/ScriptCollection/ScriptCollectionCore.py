@@ -232,7 +232,16 @@ class ScriptCollectionCore:
 
         return (False, errors)
 
-    def standardized_tasks_linting_for_python_project_in_common_project_structure(self, repository_folder: str, codeunitname: str):
+    def standardized_tasks_generate_reference_by_docfx(self,generate_reference_script_file:str)->None:
+        folder_of_current_file=os.path.dirname(generate_reference_script_file)
+        generated_reference_folder=os.path.join(folder_of_current_file,"GeneratedReference")
+        GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
+        GeneralUtilities.ensure_directory_exists(generated_reference_folder)
+        self.run_program("docfx","docfx.json",folder_of_current_file)
+
+    def standardized_tasks_linting_for_python_project_in_common_project_structure(self,linting_script_file):
+        repository_folder: str=str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
+        codeunitname: str=Path(os.path.dirname(linting_script_file)).parent.parent.name
         errors_found = False
         GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}")
         for file in GeneralUtilities.get_all_files_of_folder(os.path.join(repository_folder, codeunitname)):
@@ -266,16 +275,20 @@ class ScriptCollectionCore:
             self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges",
                              os.path.join(repository_folder, codeunitname))
 
-    def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self, repository_folder: str, codeunitname: str, generate_badges: bool = True):
+    def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self,run_testcases_file:str, generate_badges: bool = True):
+        repository_folder: str=str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
+        codeunitname: str=Path(os.path.dirname(run_testcases_file)).parent.parent.name
         self.standardized_tasks_run_testcases_for_python_project(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, generate_badges)
 
-    def standardized_tasks_build_for_python_project_in_common_project_structure(self, repository_folder: str, codeunit: str):
+    def standardized_tasks_build_for_python_project_in_common_project_structure(self,build_file:str):
+        repository_folder: str=str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
+        codeunitname: str=Path(os.path.dirname(build_file)).parent.parent.name
         self.run_program("git", "clean -dfx", repository_folder)
-        target_directory = os.path.join(repository_folder, codeunit, "Other", "InternalScripts", "Build", "Result")
+        target_directory = os.path.join(repository_folder, codeunitname, "Other", "InternalScripts", "Build", "Result")
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
         GeneralUtilities.ensure_directory_exists(target_directory)
-        self.run_program("python", f"Setup.py bdist_wheel --dist-dir {target_directory}", os.path.join(repository_folder, codeunit))
+        self.run_program("python", f"Setup.py bdist_wheel --dist-dir {target_directory}", os.path.join(repository_folder, codeunitname))
 
     @GeneralUtilities.check_arguments
     def dotnet_executable_build(self, configurationfile: str, current_release_information: dict[str, str]) -> None:

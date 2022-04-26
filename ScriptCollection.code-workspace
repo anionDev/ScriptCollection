@@ -54,7 +54,7 @@
 		"python.testing.pytestEnabled": true,
 		"python.testing.pytestArgs": [
 			"--verbose",
-			"ScriptCollection/",
+			"ScriptCollection/ScriptCollectionTests/",
 		],
 		"python.linting.pylintEnabled": true,
 		"spellright.language": [
@@ -62,7 +62,6 @@
 		],
 		"spellright.documentTypes": [
 			"markdown",
-			"latex",
 			"plaintext",
 		],
 	}
