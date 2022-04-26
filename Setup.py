@@ -9,12 +9,9 @@ version = "2.8.9"
 def create_wheel_file():
 
     productname = "ScriptCollection"
-
     executables_namespace = f"{productname}.Executables"
-
-    folder_of_current_file = os.path.dirname(os.path.realpath(__file__))
-    packages = find_packages(folder_of_current_file)
-
+    packages = find_packages()
+    folder_of_current_file = os.path.dirname(__file__)
     with open(os.path.join(Path(folder_of_current_file).absolute(), "ReadMe.md"), "r", encoding='utf-8') as file:
         long_description = file.read()
 
