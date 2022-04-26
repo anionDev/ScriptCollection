@@ -15,7 +15,7 @@ def create_wheel_file():
     folder_of_current_file = os.path.dirname(__file__)
     packages = [package for package in find_packages() if not package.endswith("Tests")]
 
-    with open(os.path.join(Path(folder_of_current_file).absolute(), "ReadMe.md"), "r", encoding='utf-8') as file:
+    with open(os.path.join(Path(folder_of_current_file).parent.absolute(), "ReadMe.md"), "r", encoding='utf-8') as file:
         long_description = file.read()
 
     setup(
