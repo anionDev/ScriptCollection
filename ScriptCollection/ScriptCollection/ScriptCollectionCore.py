@@ -287,7 +287,7 @@ class ScriptCollectionCore:
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, generate_badges)
 
     def standardized_tasks_build_for_python_project_in_common_project_structure(self, build_file: str):
-        setuppy_file_folder = str(Path(os.path.dirname(__file__)).parent.parent.absolute())
+        setuppy_file_folder = str(Path(os.path.dirname(build_file)).parent.parent.absolute())
         setuppy_file_filename = "Setup.py"
         repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
