@@ -277,7 +277,7 @@ class ScriptCollectionCore:
         self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport",
                          os.path.join(repository_folder, codeunitname))
         if generate_badges:
-            self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges" +
+            self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges " +
                              "-reporttypes:Badges", os.path.join(repository_folder, codeunitname))
 
     def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
