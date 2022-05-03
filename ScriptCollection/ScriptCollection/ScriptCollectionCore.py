@@ -232,17 +232,36 @@ class ScriptCollectionCore:
 
         return (False, errors)
 
-    def standardized_tasks_create_release_for_project_in_common_project_format(self,parameter:object) -> None:
-        pass
-        #TODO:
-        # -create merge (from arbitrary source-branch to main-branch) without commit (exception if merge-commits)
-        # -run testcases
-        # -linting
-        # -generate reference
-        # -commit merge
-        # -run build.py (pass version and git-commit via commandline-argument to build-script
-        # -export build-artefact, coverage-report and reference to specified location(s)
-        # -merge
+    class ReleaseInformationForProjectInCommonProjectFormat:
+        repository:str
+        sourcebranch:str="main"
+        targetbranch:str="stable"
+
+        def __init__(self,repository:str):
+            self.repository=repository
+
+
+    def __get_code_units(self,release_information:ReleaseInformationForProjectInCommonProjectFormat) -> list[str]:
+        result=[]
+        for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(release_information.repository):
+            if os.path.isfile(os.path.join(direct_subfolder,os.path.basename(direct_subfolder)+".codeunit")):
+                # TODO validate .codeunit file against appropriate xsd-file
+                result.append(direct_subfolder)
+        return result
+
+    def standardized_tasks_create_release_for_project_in_common_project_format(self,release_information:ReleaseInformationForProjectInCommonProjectFormat) -> None:
+        #TODO add ability to add custom commandline arguments for example to sign .net-assemblies
+        self.git_merge(release_information.repository,release_information.sourcebranch,release_information.targetbranch,False,False)
+        for codeunitname in self.__get_code_units(release_information.repository):
+            GeneralUtilities.write_message_to_stdout(f"Do common checks for codeunit {codeunitname}")
+            self.run_program("python","RunTestcases.py",os.path.join(release_information.repository,codeunitname,"Other","QualityCheck"))
+            self.run_program("python","Linting.py",os.path.join(release_information.repository,codeunitname,"Other","QualityCheck"))
+            self.run_program("python","GenerateReference.py",os.path.join(release_information.repository,codeunitname,"Other","Reference"))
+        self.git_commit(release_information.repository,"Merge")
+        for codeunitname in self.__get_code_units(release_information.repository):
+            self.run_program("python","Build.py",os.path.join(release_information.repository,codeunitname,"Other","Build"))
+            #TODO: -export build-artifact, coverage-report and reference to specified location(s)
+        self.git_merge(release_information.repository,release_information.targetbranch,release_information.sourcebranch,True, True)
 
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
