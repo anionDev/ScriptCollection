@@ -232,6 +232,18 @@ class ScriptCollectionCore:
 
         return (False, errors)
 
+    def standardized_tasks_create_release_for_project_in_common_project_format(self,parameter:object) -> None:
+        pass
+        #TODO:
+        # -create merge (from arbitrary source-branch to main-branch) without commit (exception if merge-commits)
+        # -run testcases
+        # -linting
+        # -generate reference
+        # -commit merge
+        # -run build.py (pass version and git-commit via commandline-argument to build-script
+        # -export build-artefact, coverage-report and reference to specified location(s)
+        # -merge
+
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
         generated_reference_folder = os.path.join(folder_of_current_file, "GeneratedReference")
