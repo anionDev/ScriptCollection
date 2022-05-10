@@ -231,37 +231,119 @@ class ScriptCollectionCore:
             return (True, errors)
 
         return (False, errors)
-
-    class ReleaseInformationForProjectInCommonProjectFormat:
+    class MergeToStableBranchInformationForProjectInCommonProjectFormat:
         repository:str
         sourcebranch:str="main"
         targetbranch:str="stable"
+        run_build_py:bool=True
+        build_py_arguments:str=""
+        sign_git_tags:bool=True
+
+        push_source_branch:bool=False
+        push_source_branch_remote_name:str=None#This value will be ignored if push_source_branch = False
+
+        merge_target_as_fast_forward_into_source_after_merge:bool=True
+        push_target_branch:bool=False#This value will be ignored if merge_target_as_fast_forward_into_source_after_merge = False
+        push_target_branch_remote_name:str=None#This value will be ignored if or merge_target_as_fast_forward_into_source_after_merge push_target_branch = False
+
+        verbosity:int=1
 
         def __init__(self,repository:str):
             self.repository=repository
 
+    class CreateReleaseInformationForProjectInCommonProjectFormat:
+        repository:str
+        build_artifacts_target_folder:str
+        build_py_arguments:str=""
+        verbosity:int=1
 
-    def __get_code_units(self,release_information:ReleaseInformationForProjectInCommonProjectFormat) -> list[str]:
+        def __init__(self,repository:str,build_artifacts_target_folder:str):
+            self.repository=repository
+            self.build_artifacts_target_folder=build_artifacts_target_folder
+
+
+    def __get_code_units(self,release_information:MergeToStableBranchInformationForProjectInCommonProjectFormat) -> list[str]:
         result=[]
         for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(release_information.repository):
-            if os.path.isfile(os.path.join(direct_subfolder,os.path.basename(direct_subfolder)+".codeunit")):
+            subfolder_name=os.path.basename(direct_subfolder)
+            if os.path.isfile(os.path.join(direct_subfolder,subfolder_name+".codeunit")):
                 # TODO validate .codeunit file against appropriate xsd-file
-                result.append(direct_subfolder)
+                result.append(subfolder_name)
         return result
 
-    def standardized_tasks_create_release_for_project_in_common_project_format(self,release_information:ReleaseInformationForProjectInCommonProjectFormat) -> None:
-        #TODO add ability to add custom commandline arguments for example to sign .net-assemblies
-        self.git_merge(release_information.repository,release_information.sourcebranch,release_information.targetbranch,False,False)
-        for codeunitname in self.__get_code_units(release_information.repository):
-            GeneralUtilities.write_message_to_stdout(f"Do common checks for codeunit {codeunitname}")
-            self.run_program("python","RunTestcases.py",os.path.join(release_information.repository,codeunitname,"Other","QualityCheck"))
-            self.run_program("python","Linting.py",os.path.join(release_information.repository,codeunitname,"Other","QualityCheck"))
-            self.run_program("python","GenerateReference.py",os.path.join(release_information.repository,codeunitname,"Other","Reference"))
-        self.git_commit(release_information.repository,"Merge")
-        for codeunitname in self.__get_code_units(release_information.repository):
-            self.run_program("python","Build.py",os.path.join(release_information.repository,codeunitname,"Other","Build"))
-            #TODO: -export build-artifact, coverage-report and reference to specified location(s)
-        self.git_merge(release_information.repository,release_information.targetbranch,release_information.sourcebranch,True, True)
+    def __get_testcoverage_threshold_from_codeunit_file(self,codeunit_file):
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return float(str(root.xpath('//codeunit:codeunit/codeunit:version/text()')))
+
+    def check_testcoverage(self,testcoverage_file_in_cobertura_format:str,threshold_in_percent:float):
+        root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
+        coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
+        minimalrequiredtestcoverageinpercent = threshold_in_percent
+        if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
+            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
+
+    def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self,information:MergeToStableBranchInformationForProjectInCommonProjectFormat) -> None:
+        self.git_merge(information.repository,information.sourcebranch,information.targetbranch,False,False)
+        success=False
+        try:
+            project_version=self.get_semver_version_from_gitversion(information.repository)
+            for codeunitname in self.__get_code_units(information.repository):
+                GeneralUtilities.write_message_to_stdout("Do common checks for codeunit {codeunitname}")
+                GeneralUtilities.write_message_to_stdout("Run testcases...")
+                self.run_program("python","RunTestcases.py",os.path.join(information.repository,codeunitname,"Other","QualityCheck"),verbosity=information.verbosity)
+                self.check_testcoverage(os.path.join(information.repository,codeunitname,"Other","QualityCheck","TestCoverage","TestCoverage.xml"),
+                    self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository,codeunitname,f"{codeunitname}.codeunit")))
+                GeneralUtilities.write_message_to_stdout("Run linting...")
+                self.run_program("python","Linting.py",os.path.join(information.repository,codeunitname,"Other","QualityCheck"),verbosity=information.verbosity)
+                GeneralUtilities.write_message_to_stdout("Generate reference...")
+                self.run_program("python","GenerateReference.py",os.path.join(information.repository,codeunitname,"Other","Reference"),verbosity=information.verbosity)
+                if information.run_build_py:
+                    #only as test to ensure building works before the merge will be committed
+                    GeneralUtilities.write_message_to_stdout("Run buildscript...")
+                    self.run_program("python","Build.py "+information.build_py_arguments,os.path.join(information.repository,codeunitname,"Other","Build"),
+                        verbosity=information.verbosity)
+            commit_id= self.git_commit(information.repository,f"Merge branch {information.sourcebranch} into {information.targetbranch}")
+            success=True
+        except Exception as exception:
+            GeneralUtilities.write_exception_to_stderr(exception,"Error while doing merge-tasks. Merge will be aborted.")
+            self.git_merge_abort(information.repository)
+        if not success:
+            raise Exception("Release was not successful.")
+        self.git_create_tag(information.repository,commit_id,f"v{project_version}",information.sign_git_tags)
+
+        if information.push_source_branch:
+            GeneralUtilities.write_message_to_stdout("Push source-branch...")
+            self.git_push(information.repository,information.push_source_branch_remote_name,information.sourcebranch,information.sourcebranch,pushalltags=True,verbosity=False)
+
+        if information.merge_target_as_fast_forward_into_source_after_merge:
+            self.git_merge(information.repository,information.targetbranch,information.sourcebranch,True,True)
+            if information.push_target_branch:
+                GeneralUtilities.write_message_to_stdout("Push target-branch...")
+                self.git_push(information.repository,information.push_target_branch_remote_name,information.targetbranch,information.targetbranch,pushalltags=True,verbosity=False)
+
+    def standardized_tasks_create_for_project_in_common_project_format(self,information:CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
+        #This function is intended to be called directly after standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format
+        project_version=self.get_semver_version_from_gitversion(information.repository)
+        target_folder_base=os.path.join(information.build_artifacts_target_folder,f"v{project_version}")
+        if os.path.isdir(target_folder_base):
+            raise ValueError(f"The folder '{target_folder_base}' already exists.")
+        GeneralUtilities.ensure_directory_exists(target_folder_base)
+        for codeunitname in self.__get_code_units(information.repository):
+            codeunit_folder=os.path.join(information.repository,codeunitname)
+            self.run_program("python","Build.py "+information.build_py_arguments,os.path.join(codeunit_folder,"Other","Build"))
+            target_folder_for_codeunit=os.path.join(target_folder_base,codeunitname)
+            GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
+
+            target_folder_for_codeunit_buildartifact=os.path.join(target_folder_for_codeunit,"BuildArtifact")
+            shutil.copytree(os.path.join(codeunit_folder,"Other","Build","BuildArtifact"), target_folder_for_codeunit_buildartifact)
+
+            target_folder_for_codeunit_testcoveragereport=os.path.join(target_folder_for_codeunit,"TestCoverageReport")
+            shutil.copytree(os.path.join(codeunit_folder,"Other","QualityCheck","TestCoverage","TestCoverageReport"), target_folder_for_codeunit_testcoveragereport)
+
+            target_folder_for_codeunit_generatedreference=os.path.join(target_folder_for_codeunit,"GeneratedReference")
+            shutil.copytree(os.path.join(codeunit_folder,"Other","Reference","GeneratedReference"), target_folder_for_codeunit_generatedreference)
+
+            #TODO: push build-artifact to registry
 
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
@@ -866,7 +948,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
-        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1], False)
+        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)[1], False)
         for line in lines:
             if GeneralUtilities.string_has_content(line):
                 return True
@@ -902,20 +984,20 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
-        self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
-        self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_remove_branch(self, folder: str, branchname: str) -> None:
-        self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
@@ -924,7 +1006,7 @@ class ScriptCollectionCore:
             argument.append("--force")
         if (pushalltags):
             argument.append("--tags")
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
         return result[1].replace('\r', '').replace('\n', '')
 
     @GeneralUtilities.check_arguments
@@ -938,11 +1020,11 @@ class ScriptCollectionCore:
                 args.append("--remote-submodules")
             if mirror:
                 args.append("--mirror")
-            self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_get_all_remote_names(self, directory) -> list[str]:
-        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True)[1], False)
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)[1], False)
         return result
 
     @GeneralUtilities.check_arguments
@@ -952,40 +1034,40 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address], directory, throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
         else:
-            self.run_program_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory, throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_stage_all_changes(self, directory: str) -> None:
-        self.run_program_argsasarray(["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray(["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.run_program_argsasarray("git", ['stage', file], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['stage', file], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.run_program_argsasarray("git", ['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.run_program_argsasarray("git", ['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True)
-        self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
+        self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
-                   no_changes_behavior: int = 0) -> None:
+                   no_changes_behavior: int = 0) -> str:
         # no_changes_behavior=0 => No commit
         # no_changes_behavior=1 => Commit anyway
         # no_changes_behavior=2 => Exception
@@ -1013,7 +1095,7 @@ class ScriptCollectionCore:
 
         if do_commit:
             GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'...")
-            self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True)
+            self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
         return self.git_get_current_commit_id(directory)
 
@@ -1024,15 +1106,15 @@ class ScriptCollectionCore:
             if message is None:
                 message = f"Created {target_for_tag}"
             argument.extend(["-s", f'-m "{message}"'])
-        self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
-        self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
@@ -1043,7 +1125,7 @@ class ScriptCollectionCore:
         if not fastforward:
             args.append("--no-ff")
         args.append(sourcebranch)
-        self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
         return self.git_get_current_commit_id(directory)
 
     @GeneralUtilities.check_arguments
@@ -1082,11 +1164,12 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def is_git_repository(self, folder: str) -> bool:
         combined = os.path.join(folder, ".git")
+        #TODO consider check for bare-repositories
         return os.path.isdir(combined) or os.path.isfile(combined)
 
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
-        exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False)[0]
+        exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False,verbosity=0)[0]
         if(exit_code == 0):
             return True
         if(exit_code == 1):
@@ -1095,12 +1178,12 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def discard_all_changes(self, repository: str) -> None:
-        self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
-        self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
+        self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_get_current_branch_name(self, repository: str) -> str:
-        result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True)
+        result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True,verbosity=0)
         return result[1].replace("\r", "").replace("\n", "")
 
     @GeneralUtilities.check_arguments
