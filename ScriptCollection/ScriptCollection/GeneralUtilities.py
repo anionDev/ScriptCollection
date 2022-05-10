@@ -262,8 +262,13 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def file_ends_with_newline(file: str) -> bool:
-        with open(file, "rb", encoding="utf-8") as file_object:
-            return file_object.read().endswith('\n')
+        with open(file, "rb") as file_object:
+            return GeneralUtilities._ends_with_newline_character(file_object.read())
+
+    @staticmethod
+    @check_arguments
+    def _ends_with_newline_character(content:bytes) -> bool:
+        return content.endswith(b'\x0a')
 
     @staticmethod
     @check_arguments

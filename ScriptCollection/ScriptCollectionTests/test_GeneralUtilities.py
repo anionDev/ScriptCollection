@@ -66,3 +66,15 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
     def test_get_next_square_number_17(self) -> None:
         assert GeneralUtilities.get_next_square_number(17) == 25
+
+    def test_internal_ends_with_newline_character_empty_string(self) -> None:
+        # pylint: disable=W0212
+        assert GeneralUtilities._ends_with_newline_character("".encode())is False
+
+    def test_internal_ends_with_newline_character_nonempty_string_true(self) -> None:
+        # pylint: disable=W0212
+        assert GeneralUtilities._ends_with_newline_character("a\n".encode())is True
+
+    def test_internal_ends_with_newline_character_nonempty_string_false(self) -> None:
+        # pylint: disable=W0212
+        assert GeneralUtilities._ends_with_newline_character("ab".encode())is False
