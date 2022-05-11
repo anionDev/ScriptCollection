@@ -257,6 +257,7 @@ class ScriptCollectionCore:
         build_artifacts_target_folder: str
         build_py_arguments: str = ""
         verbosity: int = 1
+        push_artifact_to_registry_scripts: dict[str, str] = dict[str, str]()#key: codeunit, value: scriptfile for pushing codeunit's artifact to one or more registries
 
         def __init__(self, repository: str, build_artifacts_target_folder: str):
             self.repository = repository
@@ -346,7 +347,11 @@ class ScriptCollectionCore:
             target_folder_for_codeunit_generatedreference = os.path.join(target_folder_for_codeunit, "GeneratedReference")
             shutil.copytree(os.path.join(codeunit_folder, "Other", "Reference", "GeneratedReference"), target_folder_for_codeunit_generatedreference)
 
-            # TODO: push build-artifact to registry
+            if codeunitname in information.push_artifact_to_registry_scripts:
+                push_artifact_to_registry_script = information.push_artifact_to_registry_scripts[codeunitname]
+                folder = os.path.dirname(push_artifact_to_registry_script)
+                file = os.path.basename(push_artifact_to_registry_script)
+                self.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
@@ -913,6 +918,24 @@ class ScriptCollectionCore:
                              self.get_item_from_configuration(
                                  configparser, "python", "publishdirectoryforwhlfile", current_release_information),
                              verbosity)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_push_wheel_file_to_registry(self, wheel_file:str,api_key:str,repository="pypi",gpg_identity:str=None,verbosity:int=1) -> None:
+        folder=os.path.dirname(wheel_file)
+        filename=os.path.basename(wheel_file)
+
+        if gpg_identity is None:
+            gpg_identity_argument=""
+        else:
+            gpg_identity_argument=f" --sign --identity {gpg_identity}"
+
+        if verbosity > 2:
+            verbose_argument = "--verbose"
+        else:
+            verbose_argument = ""
+
+        twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
+        self.run_program("twine", twine_argument,folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
