@@ -233,6 +233,7 @@ class ScriptCollectionCore:
         return (False, errors)
 
     class MergeToStableBranchInformationForProjectInCommonProjectFormat:
+        project_has_source_code:bool=True
         repository: str
         sourcebranch: str = "main"
         targetbranch: str = "stable"
@@ -289,20 +290,25 @@ class ScriptCollectionCore:
         try:
             project_version = self.get_semver_version_from_gitversion(information.repository)
             for codeunitname in self.__get_code_units(information.repository):
-                GeneralUtilities.write_message_to_stdout(f"Do common checks for codeunit {codeunitname}")
-                GeneralUtilities.write_message_to_stdout("Run testcases...")
-                self.run_program("python", "RunTestcases.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
-                self.check_testcoverage(os.path.join(information.repository, codeunitname, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
+                GeneralUtilities.write_message_to_stdout(f"Do common checks for codeunit {codeunitname}...")
+
+                if information.project_has_source_code:
+                    GeneralUtilities.write_message_to_stdout("Run testcases.")
+                    self.run_program("python", "RunTestcases.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
+                    self.check_testcoverage(os.path.join(information.repository, codeunitname, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
                                         self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit")))
-                GeneralUtilities.write_message_to_stdout("Run linting...")
-                self.run_program("python", "Linting.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
-                GeneralUtilities.write_message_to_stdout("Generate reference...")
-                self.run_program("python", "GenerateReference.py", os.path.join(information.repository, codeunitname, "Other", "Reference"), verbosity=information.verbosity)
-                if information.run_build_py:
-                    # only as test to ensure building works before the merge will be committed
-                    GeneralUtilities.write_message_to_stdout("Run buildscript...")
-                    self.run_program("python", "Build.py "+information.build_py_arguments, os.path.join(information.repository, codeunitname, "Other", "Build"),
-                                     verbosity=information.verbosity)
+
+                    GeneralUtilities.write_message_to_stdout("Run linting.")
+                    self.run_program("python", "Linting.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
+
+                    GeneralUtilities.write_message_to_stdout("Generate reference.")
+                    self.run_program("python", "GenerateReference.py", os.path.join(information.repository, codeunitname, "Other", "Reference"), verbosity=information.verbosity)
+
+                    if information.run_build_py:
+                        # only as test to ensure building works before the merge will be committed
+                        GeneralUtilities.write_message_to_stdout("Run buildscript...")
+                        self.run_program("python", "Build.py "+information.build_py_arguments, os.path.join(information.repository, codeunitname, "Other", "Build"),
+                                        verbosity=information.verbosity)
             commit_id = self.git_commit(information.repository, f"Merge branch {information.sourcebranch} into {information.targetbranch}")
             success = True
         except Exception as exception:
