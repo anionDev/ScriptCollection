@@ -8,15 +8,27 @@
 		"version": "2.0.0",
 		"tasks": [
 			{
-				"label": "Create wheel file",
+				"label": "ScriptCollection: Run testcases",
 				"command": "python",
-				"args": ["Setup.py", "bdist_wheel", "--dist-dir", "."],
-				"type": "shell"
+				"args": ["${workspaceFolder}/ScriptCollection/Other/QualityCheck/RunTestcases.py"],
+				"type": "shell",
 			},
 			{
-				"label": "Run testcases",
+				"label": "ScriptCollection: Linting",
 				"command": "python",
-				"args": ["InternalScripts/RunTestcases.py"],
+				"args": ["${workspaceFolder}/ScriptCollection/Other/QualityCheck/Linting.py"],
+				"type": "shell",
+			},
+			{
+				"label": "ScriptCollection: Generate reference",
+				"command": "python",
+				"args": ["${workspaceFolder}/ScriptCollection/Other/Reference/GenerateReference.py"],
+				"type": "shell",
+			},
+			{
+				"label": "ScriptCollection: Build",
+				"command": "python",
+				"args": ["${workspaceFolder}/ScriptCollection/Other/Build/Build.py"],
 				"type": "shell",
 			}
 		]
@@ -29,18 +41,20 @@
 				"type": "python",
 				"request": "launch",
 				"program": "${file}",
-				"args": [],
 				"console": "integratedTerminal"
 			}
 		]
 	},
 	"settings": {
+		"files.associations": {
+			"*.codeunit": "xml",
+		  },
 		"python.testing.autoTestDiscoverOnSaveEnabled": true,
 		"python.testing.unittestEnabled": false,
 		"python.testing.pytestEnabled": true,
 		"python.testing.pytestArgs": [
 			"--verbose",
-			"ScriptCollection/",
+			"ScriptCollection/ScriptCollectionTests/",
 		],
 		"python.linting.pylintEnabled": true,
 		"spellright.language": [
@@ -48,7 +62,6 @@
 		],
 		"spellright.documentTypes": [
 			"markdown",
-			"latex",
 			"plaintext",
 		],
 	}

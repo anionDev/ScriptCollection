@@ -1,8 +1,9 @@
 import os
+from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = "2.8.8"
+version = "3.0.0"
 
 
 def create_wheel_file():
@@ -11,10 +12,10 @@ def create_wheel_file():
 
     executables_namespace = f"{productname}.Executables"
 
-    folder_of_current_file = os.path.dirname(os.path.realpath(__file__))
-    packages = [package for package in find_packages(folder_of_current_file) if not package.endswith(".Tests")]
+    folder_of_current_file = os.path.dirname(__file__)
+    packages = [package for package in find_packages() if not package.endswith("Tests")]
 
-    with open(os.path.join(folder_of_current_file, "ReadMe.md"), "r", encoding='utf-8') as file:
+    with open(os.path.join(Path(folder_of_current_file).parent.absolute(), "ReadMe.md"), "r", encoding='utf-8') as file:
         long_description = file.read()
 
     setup(
@@ -59,15 +60,6 @@ def create_wheel_file():
                 f"SCCreateHashOfAllFiles = {executables_namespace}:CreateHashOfAllFiles",
                 f"SCCreateISOFileWithObfuscatedFiles = {executables_namespace}:CreateISOFileWithObfuscatedFiles",
                 f"SCCreateRelease = {executables_namespace}:CreateRelease",
-                f"SCDebCreateInstallerRelease = {executables_namespace}:DebCreateInstallerRelease",
-                f"SCDotNetBuild = {executables_namespace}:DotNetBuild",
-                f"SCDotNetCreateExecutableRelease = {executables_namespace}:DotNetCreateExecutableRelease",
-                f"SCDotNetCreateNugetRelease = {executables_namespace}:DotNetCreateNugetRelease",
-                f"SCDotNetReference = {executables_namespace}:DotNetReference",
-                f"SCDotNetReleaseNuget = {executables_namespace}:DotNetReleaseNuget",
-                f"SCDotNetRunTests = {executables_namespace}:DotNetRunTests",
-                f"SCDotNetsign = {executables_namespace}:DotNetsign",
-                f"SCFileIsAvailable = {executables_namespace}:FileIsAvailable",
                 f"SCFilenameObfuscator = {executables_namespace}:FilenameObfuscator",
                 f"SCGenerateSnkFiles = {executables_namespace}:GenerateSnkFiles",
                 f"SCGenerateThumbnail = {executables_namespace}:GenerateThumbnail",
@@ -77,11 +69,6 @@ def create_wheel_file():
                 f"SCMergePDFs = {executables_namespace}:MergePDFs",
                 f"SCObfuscateFilesFolder = {executables_namespace}:ObfuscateFilesFolder",
                 f"SCOrganizeLinesInFile = {executables_namespace}:OrganizeLinesInFile",
-                f"SCPythonBuild = {executables_namespace}:PythonBuild",
-                f"SCPythonBuildWheelAndRunTests = {executables_namespace}:PythonBuildWheelAndRunTests",
-                f"SCPythonCreateWheelRelease = {executables_namespace}:PythonCreateWheelRelease",
-                f"SCPythonReleaseWheel = {executables_namespace}:PythonReleaseWheel",
-                f"SCPythonRunTests = {executables_namespace}:PythonRunTests",
                 f"SCReplaceSubstringsInFilenames = {executables_namespace}:ReplaceSubstringsInFilenames",
                 f"SCSearchInFiles = {executables_namespace}:SearchInFiles",
                 f"SCCreateSimpleMergeWithoutRelease = {executables_namespace}:CreateSimpleMergeWithoutRelease",

@@ -5,8 +5,8 @@ from pathlib import Path
 import tempfile
 import re
 import uuid
-from ..GeneralUtilities import GeneralUtilities
-from ..ScriptCollectionCore import ScriptCollectionCore
+from ..ScriptCollection.GeneralUtilities import GeneralUtilities
+from ..ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
 
 
 class ScriptCollectionCoreTests(unittest.TestCase):
