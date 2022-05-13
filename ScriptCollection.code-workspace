@@ -8,6 +8,12 @@
 		"version": "2.0.0",
 		"tasks": [
 			{
+				"label": "ScriptCollection: Common tasks",
+				"command": "python",
+				"args": ["${workspaceFolder}/ScriptCollection/Other/CommonTasks.py"],
+				"type": "shell",
+			},
+			{
 				"label": "ScriptCollection: Run testcases",
 				"command": "python",
 				"args": ["${workspaceFolder}/ScriptCollection/Other/QualityCheck/RunTestcases.py"],
