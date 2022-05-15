@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.0.0"
+version = "3.0.1"
 __version__ = version
 
 
@@ -976,7 +976,26 @@ class ScriptCollectionCore:
                                  configparser, "python", "publishdirectoryforwhlfile", current_release_information),
                              verbosity)
 
-    @GeneralUtilities.check_arguments
+
+    def find_file_by_extension(self, folder: str, extension: str):
+        result = [file for file in GeneralUtilities.get_direct_files_of_folder(folder) if file.endswith(f".{extension}")]
+        result_length = len(result)
+        if result_length == 0:
+            raise FileNotFoundError(f"No file available in folder '{folder}' with extension '{extension}'.")
+        if result_length == 1:
+            return result[0]
+        else:
+            raise ValueError(f"Multiple values available in folder '{folder}' with extension '{extension}'.")
+
+
+    def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
+        return os.path.join(repository_folder, codeunit_name, "Other", "Build", "BuildArtifact")
+
+
+    def get_wheel_file_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
+        return self.find_file_by_extension(self.get_build_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "whl")
+
+
     def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository="pypi", gpg_identity: str = None, verbosity: int = 1) -> None:
         folder = os.path.dirname(wheel_file)
         filename = os.path.basename(wheel_file)
@@ -987,12 +1006,20 @@ class ScriptCollectionCore:
             gpg_identity_argument = f" --sign --identity {gpg_identity}"
 
         if verbosity > 2:
-            verbose_argument = "--verbose"
+            verbose_argument = " --verbose"
         else:
             verbose_argument = ""
 
-        twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
+        twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar"
+        twine_argument=f"{twine_argument} --username __token__ --password {api_key}{verbose_argument}"
         self.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
+
+    def push_build_artifact_of_repository_in_common_file_structure(self,push_build_artifacts_file,product_name,codeunitname,apikey,gpg_identity:str=None):
+        folder_of_this_file = os.path.dirname(push_build_artifacts_file)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
+        wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
+        self.standardized_tasks_push_wheel_file_to_registry(wheel_file,apikey, gpg_identity=gpg_identity)
+
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
