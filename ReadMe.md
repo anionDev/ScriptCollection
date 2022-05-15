@@ -84,8 +84,8 @@ When doing this multiple times you should also clean temporary files created by 
 To do this and install the local created package the steps are:
 
 ```bash
+python ScriptCollection/Other/Build/Build.py
 pip3 uninstall -y ScriptCollection
-python ScriptCollection/Other/InternalScripts/Build/Build.py
 pip3 install ScriptCollection-x.x.x-py3-none-any.whl
 ```
 
