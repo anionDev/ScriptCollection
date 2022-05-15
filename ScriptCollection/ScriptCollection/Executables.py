@@ -19,93 +19,6 @@ Requires the requirements of: TODO
     return ScriptCollectionCore().create_release(args.configurationfile)
 
 
-def DotNetCreateExecutableRelease() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetCreateExecutableRelease_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    sc = ScriptCollectionCore()
-    sc.dotnet_create_executable_release_premerge(args.configurationfile, {})
-    sc.dotnet_create_executable_release_postmerge(args.configurationfile, {})
-    return 0
-
-
-def DotNetCreateNugetRelease() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetCreateNugetRelease_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    sc = ScriptCollectionCore()
-    sc.dotnet_create_nuget_release_premerge(args.configurationfile, {})
-    sc.dotnet_create_nuget_release_postmerge(args.configurationfile, {})
-    return 0
-
-
-def DotNetReleaseNuget() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetReleaseNuget_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_release_nuget(args.configurationfile, {})
-
-
-def DotNetReference() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetReference_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_reference(args.configurationfile, {})
-
-
-def DotNetBuild() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetRunTests_cli:
-Description: Builds a DotNet-project by a given .csproj-file.
-Required commandline-commands: dotnet
-Required configuration-items: TODO
-Requires the requirements of: TODO""")
-    parser.add_argument("folderOfCsprojFile")
-    parser.add_argument("csprojFilename")
-    parser.add_argument("outputDirectory")
-    parser.add_argument("buildConfiguration")
-    parser.add_argument("runtimeId")
-    parser.add_argument("dotnetframework")
-    parser.add_argument("clearOutputDirectoryBeforeBuild", type=GeneralUtilities.string_to_boolean, nargs='?', const=True, default=False)
-    parser.add_argument("verbosity")
-    parser.add_argument("outputFilenameToSign")
-    parser.add_argument("keyToSignForOutputfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_build(args.folderOfCsprojFile, args.csprojFilename, args.outputDirectory, args.buildConfiguration, args.runtimeId, args.dotnetframework,
-                                               args.clearOutputDirectoryBeforeBuild, args.verbosity, args.outputFilenameToSign, args.keyToSignForOutputfile, {})
-
-
-def DotNetRunTests() -> int:
-    parser = argparse.ArgumentParser(description="""SCDotNetRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_run_tests(args.configurationfile, {}, 1)
-
-
 def DotNetsign() -> int:
     parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
     parser.add_argument("dllOrExefile")
@@ -113,78 +26,6 @@ def DotNetsign() -> int:
     parser.add_argument("verbose", action='store_true')
     args = parser.parse_args()
     return ScriptCollectionCore().dotnet_sign(args.dllOrExefile, args.snkfile, args.verbose, {})
-
-
-def DebCreateInstallerRelease() -> int:
-    parser = argparse.ArgumentParser(description="""SCDebCreateInstallerRelease_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().deb_create_installer_release_postmerge(args.configurationfile, {})
-
-
-def PythonCreateWheelRelease() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonCreateWheelRelease_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_create_wheel_release_postmerge(args.configurationfile, {})
-
-
-def PythonBuild() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonBuild_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_build(args.configurationfile, {})
-
-
-def PythonRunTests() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonRunTests_cli:
-Description: Executes python-unit-tests.
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_run_tests(args.configurationfile, {})
-
-
-def PythonReleaseWheel() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonReleaseWheel_cli:
-Description: Uploads a .whl-file using twine.
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_release_wheel(args.configurationfile, {})
-
-
-def PythonBuildWheelAndRunTests() -> int:
-    parser = argparse.ArgumentParser(description="""SCPythonBuildWheelAndRunTests_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().python_build_wheel_and_run_tests(args.configurationfile, {})
 
 
 def FilenameObfuscator() -> int:
@@ -240,33 +81,6 @@ def CalculateBitcoinBlockHash() -> int:
     GeneralUtilities.write_message_to_stdout(ScriptCollectionCore().SCCalculateBitcoinBlockHash(args.version, args.previousblockhash,
                                                                                                 args.transactionsmerkleroot, args.timestamp, args.target, args.nonce))
     return 0
-
-
-def FileIsAvailableOnFileHost() -> int:
-
-    parser = argparse.ArgumentParser(description="Determines whether a file on a filesharing-service supported by the UploadFile-function is still available.")
-    parser.add_argument('link')
-    args = parser.parse_args()
-    return ScriptCollectionCore().SCFileIsAvailableOnFileHost(args.link)
-
-
-def UploadFileToFileHost() -> int:
-
-    parser = argparse.ArgumentParser(description="""Uploads a file to a filesharing-service.
-Caution:
-You are responsible, accountable and liable for this upload. This trivial script only automates a process which you would otherwise do manually.
-Be aware of the issues regarding
-- copyright/licenses
-- legal issues
-of the file content. Furthermore consider the terms of use of the filehoster.
-Currently the following filesharing-services will be supported:
-- anonfiles.com
-- bayfiles.com
-""")
-    parser.add_argument('file', required=True)
-    parser.add_argument('host', required=False)
-    args = parser.parse_args()
-    return ScriptCollectionCore().SCUploadFileToFileHost(args.file, args.host)
 
 
 def UpdateNugetpackagesInCsharpProject() -> int:

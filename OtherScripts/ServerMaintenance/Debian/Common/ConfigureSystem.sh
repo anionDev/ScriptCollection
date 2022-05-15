@@ -7,17 +7,18 @@ scriptCollectionFolder="$2"
 hardeningApplicationstokeep="$3" # Semicolon-separated list
 hardeningAdditionalFolderToRemove="$4" # Semicolon-separated list
 
-echo "Configure system as environment $environmentStage"
+echo "Configure system for environment $environmentStage"
 
 if [ "$environmentStage" == "Development" ] ; then
     "$scriptCollectionFolder/Other/ServerMaintenance/Debian/Common/InstallSystemUtilities.sh"
     # TODO make system more verbose by default
-fi
-
-if [ "$environmentStage" == "QualityCheck" ] ; then
+    exit 0
+elif [ "$environmentStage" == "QualityCheck" ] ; then
     "$scriptCollectionFolder/Other/ServerMaintenance/Debian/Common/InstallSystemUtilities.sh"
-fi
-
-if [ "$environmentStage" == "Productive" ] ; then
+    exit 0
+elif [ "$environmentStage" == "Productive" ] ; then
     "$scriptCollectionFolder/Other/ServerMaintenance/Debian/Common/Hardening.sh" "$hardeningApplicationstokeep" "$hardeningAdditionalFolderToRemove"
+    exit 0
+else
+    exit 1
 fi

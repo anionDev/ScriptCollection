@@ -5,8 +5,8 @@ from pathlib import Path
 import tempfile
 import re
 import uuid
-from ..GeneralUtilities import GeneralUtilities
-from ..ScriptCollectionCore import ScriptCollectionCore
+from ..ScriptCollection.GeneralUtilities import GeneralUtilities
+from ..ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
 
 
 class ScriptCollectionCoreTests(unittest.TestCase):
@@ -230,21 +230,21 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         sc.register_mock_program_call("p", "a2", "/tmp", 0, "out 2", "err 2", 44)
 
         # act
-        result1 = sc.start_program_synchronously("p", "a1", "/tmp")
-        result2 = sc.start_program_synchronously("p", "a2", "/tmp")
+        result1 = sc.run_program("p", "a1", "/tmp")
+        result2 = sc.run_program("p", "a2", "/tmp")
 
         # assert
         assert result1 == (0, "out 1", "err 1", 40)
         assert result2 == (0, "out 2", "err 2", 44)
         sc.verify_no_pending_mock_program_calls()
 
-    def test_simple_program_call_prevent(self) -> None:
+    def test_simple_program_call(self) -> None:
         # arrange
         sc = ScriptCollectionCore()
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
-        (exit_code, _, _2, _3) = sc.start_program_synchronously("git", "status", dir_path, throw_exception_if_exitcode_is_not_zero=False, verbosity=3, prevent_using_epew=True)
+        (exit_code, _, _2, _3) = sc.run_program("git", "status", dir_path)
 
         # assert    def test_file_is_git_ignored_1(self) -> None:
 
@@ -264,7 +264,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
         GeneralUtilities.ensure_directory_exists(tests_folder)
         sc = ScriptCollectionCore()
-        sc.start_program_synchronously("git", "init", tests_folder)
+        sc.run_program("git", "init", tests_folder)
 
         ignored_logfolder_name = "logfolder"
         ignored_logfolder = tests_folder+os.path.sep+ignored_logfolder_name
@@ -286,34 +286,16 @@ class ScriptCollectionCoreTests(unittest.TestCase):
 
         GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
 
-    def test_simple_program_call_prevent_argsasarray(self) -> None:
+    def test_simple_program_call_argsasarray(self) -> None:
         # arrange
         sc = ScriptCollectionCore()
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
-        (exit_code, _, _2, _3) = sc.start_program_synchronously_argsasarray("git", ["status"],
-                                                                            dir_path, throw_exception_if_exitcode_is_not_zero=False, verbosity=3, prevent_using_epew=True)
+        (exit_code, _, _2, _3) = sc.run_program_argsasarray("git", ["status"], dir_path)
 
         # assert
         assert exit_code == 0
-
-    def test_simple_program_call_prevent_argsasarray_with_folder(self) -> None:
-        try:
-            # arrange
-            sc = ScriptCollectionCore()
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
-            GeneralUtilities.ensure_directory_exists(tests_folder)
-
-            # act
-            (exit_code, _, _2, _3) = sc.start_program_synchronously("ls", f"-ld {tests_folder}",
-                                                                    dir_path, throw_exception_if_exitcode_is_not_zero=False, verbosity=3, prevent_using_epew=True)
-
-            # assert
-            assert exit_code == 0
-        finally:
-            GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
 
     def test_export_filemetadata(self) -> None:
         # arrange
