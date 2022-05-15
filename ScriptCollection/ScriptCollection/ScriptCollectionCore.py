@@ -976,7 +976,6 @@ class ScriptCollectionCore:
                                  configparser, "python", "publishdirectoryforwhlfile", current_release_information),
                              verbosity)
 
-
     def find_file_by_extension(self, folder: str, extension: str):
         result = [file for file in GeneralUtilities.get_direct_files_of_folder(folder) if file.endswith(f".{extension}")]
         result_length = len(result)
@@ -987,14 +986,11 @@ class ScriptCollectionCore:
         else:
             raise ValueError(f"Multiple values available in folder '{folder}' with extension '{extension}'.")
 
-
     def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
         return os.path.join(repository_folder, codeunit_name, "Other", "Build", "BuildArtifact")
 
-
     def get_wheel_file_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
         return self.find_file_by_extension(self.get_build_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "whl")
-
 
     def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository="pypi", gpg_identity: str = None, verbosity: int = 1) -> None:
         folder = os.path.dirname(wheel_file)
@@ -1011,15 +1007,14 @@ class ScriptCollectionCore:
             verbose_argument = ""
 
         twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar"
-        twine_argument=f"{twine_argument} --username __token__ --password {api_key}{verbose_argument}"
+        twine_argument = f"{twine_argument} --username __token__ --password {api_key}{verbose_argument}"
         self.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
-    def push_build_artifact_of_repository_in_common_file_structure(self,push_build_artifacts_file,product_name,codeunitname,apikey,gpg_identity:str=None):
+    def push_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None):
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
-        self.standardized_tasks_push_wheel_file_to_registry(wheel_file,apikey, gpg_identity=gpg_identity)
-
+        self.standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, gpg_identity=gpg_identity)
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
@@ -2374,26 +2369,25 @@ This script expectes that a test-coverage-badges should be added to '<repository
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
 
+    def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
+                                                                             project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_scripts: dict[str, str]):
 
-def create_release_for_project_in_standardized_release_repository_format(self: ScriptCollectionCore, projectname: str, create_release_file: str,
-                                                                         project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_scripts: dict[str, str]):
+        folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
+        build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
 
-    folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
-    build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
-    repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
+        mergeToStableBranchInformation = ScriptCollectionCore.MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
+        mergeToStableBranchInformation.project_has_source_code = project_has_source_code
+        mergeToStableBranchInformation.push_source_branch = True
+        mergeToStableBranchInformation.push_source_branch_remote_name = remotename
+        mergeToStableBranchInformation.push_target_branch = True
+        mergeToStableBranchInformation.push_target_branch_remote_name = remotename
+        mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
+        self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
-    mergeToStableBranchInformation = ScriptCollectionCore.MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
-    mergeToStableBranchInformation.project_has_source_code = project_has_source_code
-    mergeToStableBranchInformation.push_source_branch = True
-    mergeToStableBranchInformation.push_source_branch_remote_name = remotename
-    mergeToStableBranchInformation.push_target_branch = True
-    mergeToStableBranchInformation.push_target_branch_remote_name = remotename
-    mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
-    self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
+        if project_has_source_code:
+            createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,projectname)
+            createReleaseInformation.push_artifact_to_registry_scripts = push_scripts
+            self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
 
-    if project_has_source_code:
-        createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder)
-        createReleaseInformation.push_artifact_to_registry_scripts = push_scripts
-        self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
-
-    self.git_commit(repository_folder, f"Created release v{self.get_semver_version_from_gitversion(repository_folder)}")
+        self.git_commit(repository_folder, f"Created release v{self.get_semver_version_from_gitversion(repository_folder)}")
