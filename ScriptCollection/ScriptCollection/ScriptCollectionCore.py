@@ -19,6 +19,7 @@ from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
+
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
@@ -26,6 +27,7 @@ from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 version = "3.0.0"
 __version__ = version
+
 
 class ScriptCollectionCore:
 
@@ -263,7 +265,7 @@ class ScriptCollectionCore:
             self.repository = repository
             self.build_artifacts_target_folder = build_artifacts_target_folder
 
-    def __get_code_units(self, repository_folder:str) -> list[str]:
+    def __get_code_units(self, repository_folder: str) -> list[str]:
         result = []
         for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
             subfolder_name = os.path.basename(direct_subfolder)
@@ -274,7 +276,7 @@ class ScriptCollectionCore:
 
     def __get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return float(str(root.xpath('//codeunit:codeunit/codeunit:version/text()')))
+        return float(str(root.xpath('//codeunit:minimalcodecoverageinpercent/text()',namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0]))
 
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, threshold_in_percent: float):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
@@ -284,7 +286,8 @@ class ScriptCollectionCore:
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> None:
-        self.git_checkout(information.repository,information.sourcebranch)
+        self.git_checkout(information.repository, information.sourcebranch)
+        self.run_program("git", "clean -dfx", information.repository, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.get_semver_version_from_gitversion(information.repository)
         self.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
         success = False
@@ -300,7 +303,8 @@ class ScriptCollectionCore:
 
                 if information.project_has_source_code:
                     GeneralUtilities.write_message_to_stdout("Run testcases.")
-                    self.run_program("python", "RunTestcases.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
+                    qualityfolder = os.path.join(information.repository, codeunitname, "Other", "QualityCheck")
+                    self.run_program("python", "RunTestcases.py", qualityfolder, verbosity=information.verbosity)
                     self.check_testcoverage(os.path.join(information.repository, codeunitname, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
                                             self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit")))
 
@@ -312,7 +316,7 @@ class ScriptCollectionCore:
 
                     if information.run_build_py:
                         # only as test to ensure building works before the merge will be committed
-                        GeneralUtilities.write_message_to_stdout("Run buildscript...")
+                        GeneralUtilities.write_message_to_stdout("Run buildscript.")
                         self.run_program("python", "Build.py "+information.build_py_arguments, os.path.join(information.repository, codeunitname, "Other", "Build"),
                                          verbosity=information.verbosity)
             commit_id = self.git_commit(information.repository, f"Merge branch {information.sourcebranch} into {information.targetbranch}")
@@ -320,7 +324,7 @@ class ScriptCollectionCore:
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
             self.git_merge_abort(information.repository)
-            self.git_checkout(information.repository,information.sourcebranch)
+            self.git_checkout(information.repository, information.sourcebranch)
 
         if not success:
             raise Exception("Release was not successful.")
@@ -368,29 +372,29 @@ class ScriptCollectionCore:
                 file = os.path.basename(push_artifact_to_registry_script)
                 self.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
-    def getversion_from_arguments_or_gitversion(self, common_tasks_file: str,commandline_arguments:list[str]) -> None:
-        current_version:str=None
+    def getversion_from_arguments_or_gitversion(self, common_tasks_file: str, commandline_arguments: list[str]) -> None:
+        version: str = None
         for commandline_argument in commandline_arguments:
             if commandline_argument.startswith("--version="):
-                current_version=commandline_argument.split("=")[1]
-        if current_version is None:
-            current_version=self.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_file)))
-        return current_version
+                version = commandline_argument.split("=")[1]
+        if version is None:
+            version = self.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_file)))
+        return version
 
-    def update_version_of_codeunit_to_project_version(self, common_tasks_file: str,current_version:str) -> None:
+    def update_version_of_codeunit_to_project_version(self, common_tasks_file: str, version: str) -> None:
         codeunit_name: str = os.path.basename(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)))
         codeunit_file: str = os.path.join(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)), f"{codeunit_name}.codeunit")
-        self.write_version_to_codeunit_file(codeunit_file, current_version)
+        self.write_version_to_codeunit_file(codeunit_file, version)
 
-    def write_version_to_codeunit_file(self, codeunit_file: str, current_version: str) -> None:
+    def write_version_to_codeunit_file(self, codeunit_file: str, version: str) -> None:
         versionregex = "\\d+\\.\\d+\\.\\d+"
         versiononlyregex = f"^{versionregex}$"
         pattern = re.compile(versiononlyregex)
-        if pattern.match(current_version):
+        if pattern.match(version):
             GeneralUtilities.write_text_to_file(codeunit_file, re.sub(f"<codeunit:version>{versionregex}<\\/codeunit:version>",
-                                                                      f"<codeunit:version>{current_version}</codeunit:version>", GeneralUtilities.read_text_from_file(codeunit_file)))
+                                                                      f"<codeunit:version>{version}</codeunit:version>", GeneralUtilities.read_text_from_file(codeunit_file)))
         else:
-            raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
+            raise ValueError(f"Version '{version}' does not match version-regex '{versiononlyregex}'")
 
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
@@ -1069,13 +1073,13 @@ class ScriptCollectionCore:
         self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = False, verbosity=1) -> None:
+    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity:int=0) -> None:
         argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
         if (pushalltags):
             argument.append("--tags")
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=verbosity)
         return result[1].replace('\r', '').replace('\n', '')
 
     @GeneralUtilities.check_arguments
@@ -1109,7 +1113,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_stage_all_changes(self, directory: str) -> None:
-        self.run_program_argsasarray(["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_unstage_all_changes(self, directory: str) -> None:
