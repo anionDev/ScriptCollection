@@ -27,7 +27,6 @@ from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 version = "3.0.0"
 __version__ = version
 
-
 class ScriptCollectionCore:
 
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
@@ -233,7 +232,7 @@ class ScriptCollectionCore:
         return (False, errors)
 
     class MergeToStableBranchInformationForProjectInCommonProjectFormat:
-        project_has_source_code:bool=True
+        project_has_source_code: bool = True
         repository: str
         sourcebranch: str = "main"
         targetbranch: str = "stable"
@@ -258,7 +257,7 @@ class ScriptCollectionCore:
         build_artifacts_target_folder: str
         build_py_arguments: str = ""
         verbosity: int = 1
-        push_artifact_to_registry_scripts: dict[str, str] = dict[str, str]()#key: codeunit, value: scriptfile for pushing codeunit's artifact to one or more registries
+        push_artifact_to_registry_scripts: dict[str, str] = dict[str, str]()  # key: codeunit, value: scriptfile for pushing codeunit's artifact to one or more registries
 
         def __init__(self, repository: str, build_artifacts_target_folder: str):
             self.repository = repository
@@ -285,18 +284,25 @@ class ScriptCollectionCore:
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> None:
+        self.git_checkout(information.repository,information.sourcebranch)
+        project_version = self.get_semver_version_from_gitversion(information.repository)
         self.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
         success = False
         try:
-            project_version = self.get_semver_version_from_gitversion(information.repository)
             for codeunitname in self.__get_code_units(information.repository):
                 GeneralUtilities.write_message_to_stdout(f"Do common checks for codeunit {codeunitname}...")
+
+                common_tasks_file: str = "CommonTasks.py"
+                common_tasks_folder: str = os.path.join(information.repository, codeunitname, "Other")
+                if os.path.isfile(os.path.join(common_tasks_folder, common_tasks_file)):
+                    GeneralUtilities.write_message_to_stdout("Do common tasks.")
+                    self.run_program("python", f"{common_tasks_file} --projectversion={project_version}", common_tasks_folder, verbosity=information.verbosity)
 
                 if information.project_has_source_code:
                     GeneralUtilities.write_message_to_stdout("Run testcases.")
                     self.run_program("python", "RunTestcases.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
                     self.check_testcoverage(os.path.join(information.repository, codeunitname, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
-                                        self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit")))
+                                            self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit")))
 
                     GeneralUtilities.write_message_to_stdout("Run linting.")
                     self.run_program("python", "Linting.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
@@ -308,7 +314,7 @@ class ScriptCollectionCore:
                         # only as test to ensure building works before the merge will be committed
                         GeneralUtilities.write_message_to_stdout("Run buildscript...")
                         self.run_program("python", "Build.py "+information.build_py_arguments, os.path.join(information.repository, codeunitname, "Other", "Build"),
-                                        verbosity=information.verbosity)
+                                         verbosity=information.verbosity)
             commit_id = self.git_commit(information.repository, f"Merge branch {information.sourcebranch} into {information.targetbranch}")
             success = True
         except Exception as exception:
@@ -358,6 +364,30 @@ class ScriptCollectionCore:
                 folder = os.path.dirname(push_artifact_to_registry_script)
                 file = os.path.basename(push_artifact_to_registry_script)
                 self.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
+
+    def getversion_from_arguments_or_gitversion(self, common_tasks_file: str,commandline_arguments:list[str]) -> None:
+        version:str=None
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("--version="):
+                version=commandline_argument.split("=")[1]
+        if version is None:
+            version=self.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_file)))
+        return version
+
+    def update_version_of_codeunit_to_project_version(self, common_tasks_file: str,version:str) -> None:
+        codeunit_name: str = os.path.basename(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)))
+        codeunit_file: str = os.path.join(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)), f"{codeunit_name}.codeunit")
+        self.write_version_to_codeunit_file(codeunit_file, version)
+
+    def write_version_to_codeunit_file(self, codeunit_file: str, version: str) -> None:
+        versionregex = "\\d+\\.\\d+\\.\\d+"
+        versiononlyregex = f"^{versionregex}$"
+        pattern = re.compile(versiononlyregex)
+        if pattern.match(version):
+            GeneralUtilities.write_text_to_file(codeunit_file, re.sub(f"<codeunit:version>{versionregex}<\\/codeunit:version>",
+                                                                      f"<codeunit:version>{version}</codeunit:version>", GeneralUtilities.read_text_from_file(codeunit_file)))
+        else:
+            raise ValueError(f"Version '{version}' does not match version-regex '{versiononlyregex}'")
 
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
@@ -926,14 +956,14 @@ class ScriptCollectionCore:
                              verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_push_wheel_file_to_registry(self, wheel_file:str,api_key:str,repository="pypi",gpg_identity:str=None,verbosity:int=1) -> None:
-        folder=os.path.dirname(wheel_file)
-        filename=os.path.basename(wheel_file)
+    def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository="pypi", gpg_identity: str = None, verbosity: int = 1) -> None:
+        folder = os.path.dirname(wheel_file)
+        filename = os.path.basename(wheel_file)
 
         if gpg_identity is None:
-            gpg_identity_argument=""
+            gpg_identity_argument = ""
         else:
-            gpg_identity_argument=f" --sign --identity {gpg_identity}"
+            gpg_identity_argument = f" --sign --identity {gpg_identity}"
 
         if verbosity > 2:
             verbose_argument = "--verbose"
@@ -941,7 +971,7 @@ class ScriptCollectionCore:
             verbose_argument = ""
 
         twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar --username __token__ --password {api_key} {verbose_argument}"
-        self.run_program("twine", twine_argument,folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
@@ -2295,3 +2325,25 @@ This script expectes that a test-coverage-badges should be added to '<repository
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
+
+
+def create_release_for_project_in_standardized_release_repository_format(self: ScriptCollectionCore, projectname: str, create_release_file: str,
+                                                                         project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_scripts: dict[str, str]):
+
+    folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
+    build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
+    repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
+
+    mergeToStableBranchInformation = ScriptCollectionCore.MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
+    mergeToStableBranchInformation.project_has_source_code = project_has_source_code
+    mergeToStableBranchInformation.push_source_branch = True
+    mergeToStableBranchInformation.push_source_branch_remote_name = remotename
+    mergeToStableBranchInformation.push_target_branch = True
+    mergeToStableBranchInformation.push_target_branch_remote_name = remotename
+    mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
+    self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
+
+    if project_has_source_code:
+        createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder)
+        createReleaseInformation.push_artifact_to_registry_scripts = push_scripts
+        self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
