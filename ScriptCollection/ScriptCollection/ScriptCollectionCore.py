@@ -263,9 +263,9 @@ class ScriptCollectionCore:
             self.repository = repository
             self.build_artifacts_target_folder = build_artifacts_target_folder
 
-    def __get_code_units(self, release_information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> list[str]:
+    def __get_code_units(self, repository_folder:str) -> list[str]:
         result = []
-        for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(release_information.repository):
+        for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
             subfolder_name = os.path.basename(direct_subfolder)
             if os.path.isfile(os.path.join(direct_subfolder, subfolder_name+".codeunit")):
                 # TODO validate .codeunit file against appropriate xsd-file
@@ -290,7 +290,7 @@ class ScriptCollectionCore:
         success = False
         try:
             for codeunitname in self.__get_code_units(information.repository):
-                GeneralUtilities.write_message_to_stdout(f"Do common checks for codeunit {codeunitname}...")
+                GeneralUtilities.write_message_to_stdout(f"Do common checks for codeunit {codeunitname}.")
 
                 common_tasks_file: str = "CommonTasks.py"
                 common_tasks_folder: str = os.path.join(information.repository, codeunitname, "Other")
@@ -320,8 +320,11 @@ class ScriptCollectionCore:
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
             self.git_merge_abort(information.repository)
+            self.git_checkout(information.repository,information.sourcebranch)
+
         if not success:
             raise Exception("Release was not successful.")
+
         self.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
 
         if information.push_source_branch:
