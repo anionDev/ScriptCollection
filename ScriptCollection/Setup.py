@@ -12,7 +12,7 @@ def create_wheel_file():
 
     executables_namespace = f"{productname}.Executables"
 
-    folder_of_current_file = os.path.dirname(__file__)
+    folder_of_current_file = os.path.dirname(Path(__file__).absolute())
     packages = [package for package in find_packages() if not package.endswith("Tests")]
 
     with open(os.path.join(Path(folder_of_current_file).parent.absolute(), "ReadMe.md"), "r", encoding='utf-8') as file:
