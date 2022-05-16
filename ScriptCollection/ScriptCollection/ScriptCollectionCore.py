@@ -26,7 +26,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.0.11"
+version = "3.0.12"
 __version__ = version
 
 
@@ -412,7 +412,7 @@ class ScriptCollectionCore:
         reference_versions = [os.path.basename(folder) for folder in GeneralUtilities.get_direct_files_of_folder(reference_repository_target_base)]
         reference_versions_links = [
             f'<li><a href="./{information.projectname}/{reference_version}/index.html">{reference_version}</a></li>' for reference_version in reference_versions]
-        reference_versions_links_file_content = "    \n".join(reference_versions_links)+"\\n"
+        reference_versions_links_file_content = "    \n".join(reference_versions_links)
         reference_index_file = os.path.join(reference_repository_target_base, "index.html")
         reference_index_file_content = f"""<html lang="en">
 
@@ -2499,9 +2499,9 @@ This script expectes that a test-coverage-badges should be added to '<repository
             createReleaseInformation.push_artifact_to_registry_scripts = push_to_registry_scripts
             self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
 
-            self.git_commit(createReleaseInformation.reference_repository, f"Added reference for v{new_project_version}")
+            self.git_commit(createReleaseInformation.reference_repository,f"Added reference of {projectname} v{new_project_version}")
             if reference_repository_remote_name is not None:
                 self.git_push(createReleaseInformation.reference_repository, reference_repository_remote_name, reference_repository_branch_name,
                               reference_repository_branch_name,  verbosity=verbosity)
-        self.git_commit(build_repository_folder, f"Added release v{new_project_version}")
+        self.git_commit(build_repository_folder, f"Added {projectname} release v{new_project_version}")
         return new_project_version
