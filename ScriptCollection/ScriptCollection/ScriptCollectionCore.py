@@ -411,10 +411,10 @@ class ScriptCollectionCore:
 
     def replace_version_in_python_file(self, file: str, new_version_value: str):
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
-            GeneralUtilities.read_text_from_file(file)))
+                                                         GeneralUtilities.read_text_from_file(file)))
 
     def __export_reference_content_to_reference_repository(self, subfoldername: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-        codeunits: list[str], repository: str) -> None:
+                                                           codeunits: list[str], repository: str) -> None:
 
         target_folder = os.path.join(target_folder_for_reference_repository, subfoldername)
         if os.path.isdir(target_folder) and not replace_existing_content:
@@ -430,7 +430,7 @@ class ScriptCollectionCore:
             target_generatedreference = os.path.join(target_folder, "GeneratedReference")
             shutil.copytree(source_generatedreference, target_generatedreference)
 
-            source_testcoveragereport = os.path.join(other_folder_in_repository, "TestCoverage", "TestCoverageReport")
+            source_testcoveragereport = os.path.join(other_folder_in_repository, "TestCoverage", "QualityCheck","TestCoverageReport")
             target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
             shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
@@ -2453,7 +2453,6 @@ This script expectes that a test-coverage-badges should be added to '<repository
             createReleaseInformation.push_artifact_to_registry_scripts = push_to_registry_scripts
             self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
 
-        if project_has_source_code:
             self.git_commit(createReleaseInformation.reference_repository, f"Added reference for v{new_project_version}")
             if reference_repository_remote_name is not None:
                 self.git_push(createReleaseInformation.reference_repository, reference_repository_branch_name,
