@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.0.2"
+version = "3.0.1"
 __version__ = version
 
 
@@ -374,8 +374,6 @@ class ScriptCollectionCore:
             raise ValueError(f"The folder '{target_folder_base}' already exists.")
 
         reference_repository_target_base = os.path.join(information.reference_repository, "ReferenceContent", information.projectname)
-        if os.path.isdir(reference_repository_target_base):
-            raise ValueError(f"The folder '{reference_repository_target_base}' already exists.")
 
         GeneralUtilities.ensure_directory_exists(target_folder_base)
         commitid = self.git_get_current_commit_id(information.repository)
