@@ -452,11 +452,12 @@ class ScriptCollectionCore:
 
   <head>
     <meta charset="UTF-8">
-    <title>Reference for codeunit {codeunit} of project {projectname} ({version_label})</title>
+    <title>Reference for codeunit {codeunitname} of project {projectname} ({version_label})</title>
   </head>
 
   <body>
-    Available reference-content for {codeunitname} ({version_label}):<br>
+    Reference for codeunit {codeunitname} of project {projectname} ({version_label})<br>
+    Available reference-content {codeunitname} ({version_label}):<br>
     <!-- TODO add link to sourcecode-repository-->
     <a href="./GeneratedReference/index.html">Refrerence</a><br>
     <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
