@@ -48,7 +48,7 @@ class ScriptCollectionCore:
         return __version__
 
     @GeneralUtilities.check_arguments
-    def create_release(self, configurationfile: str) -> int:#obsolete
+    def create_release(self, configurationfile: str) -> int:  # obsolete
         # TODO remove this function and all its child-functions which are unused then
         error_occurred = False
         try:
@@ -332,8 +332,8 @@ class ScriptCollectionCore:
                         GeneralUtilities.write_message_to_stdout("Run buildscript")
                         codeunit_folder = os.path.join(information.repository, codeunitname)
                         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-                        commitid=self.git_get_current_commit_id(information.repository)
-                        self.__run_build_py(commitid,codeunit_version,information.build_py_arguments,information.repository,codeunitname,information.verbosity)
+                        commitid = self.git_get_current_commit_id(information.repository)
+                        self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
 
             commit_id = self.git_commit(information.repository,  f"Created release v{project_version}")
             success = True
@@ -360,9 +360,9 @@ class ScriptCollectionCore:
                               information.sourcebranch, pushalltags=False, verbosity=information.verbosity)
         return project_version
 
-    def __run_build_py(self,commitid,codeunit_version,build_py_arguments,repository,codeunitname,verbosity):
+    def __run_build_py(self, commitid, codeunit_version, build_py_arguments, repository, codeunitname, verbosity):
         self.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}", os.path.join(repository, codeunitname, "Other", "Build"),
-                            verbosity=verbosity)
+                         verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_release_buildartifact_for_project_in_common_project_format(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
@@ -384,7 +384,7 @@ class ScriptCollectionCore:
         for codeunitname in codeunits:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-            self.__run_build_py(commitid,codeunit_version,information.build_py_arguments,information.repository,codeunitname,information.verbosity)
+            self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
 
         for codeunitname in codeunits:
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
@@ -409,10 +409,12 @@ class ScriptCollectionCore:
         self.__export_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_base, codeunits, information.repository)
         self.__export_reference_content_to_reference_repository("Latest", True, reference_repository_target_base, codeunits, information.repository)
 
-    def replace_version_in_python_file(self,file:str, new_version_value:str):
-        GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"",f"version = \"{new_version_value}\"", GeneralUtilities.read_text_from_file(file)))
+    def replace_version_in_python_file(self, file: str, new_version_value: str):
+        GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
+            GeneralUtilities.read_text_from_file(file)))
 
-    def __export_reference_content_to_reference_repository(self, subfoldername: str, replace_existing_content: bool, target_folder_for_reference_repository: str, codeunits: list[str], repository: str) -> None:
+    def __export_reference_content_to_reference_repository(self, subfoldername: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
+        codeunits: list[str], repository: str) -> None:
 
         target_folder = os.path.join(target_folder_for_reference_repository, subfoldername)
         if os.path.isdir(target_folder) and not replace_existing_content:
@@ -1066,7 +1068,7 @@ class ScriptCollectionCore:
         self.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def push_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None)->None:
+    def push_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None) -> None:
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
@@ -2427,24 +2429,26 @@ This script expectes that a test-coverage-badges should be added to '<repository
 
     @GeneralUtilities.check_arguments
     def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
-                                                                             project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts: dict[str, str],verbosity:int=1, reference_repository_remote_name:str=None, reference_repository_branch_name:str="main"):
+                                                                             project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts:
+                                                                             dict[str, str], verbosity: int = 1, reference_repository_remote_name: str = None,
+                                                                             reference_repository_branch_name: str = "main"):
 
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
         build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
 
         mergeToStableBranchInformation = ScriptCollectionCore.MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
-        mergeToStableBranchInformation.verbosity=verbosity
+        mergeToStableBranchInformation.verbosity = verbosity
         mergeToStableBranchInformation.project_has_source_code = project_has_source_code
         mergeToStableBranchInformation.push_source_branch = True
         mergeToStableBranchInformation.push_source_branch_remote_name = remotename
         mergeToStableBranchInformation.push_target_branch = True
         mergeToStableBranchInformation.push_target_branch_remote_name = remotename
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
-        new_project_version=self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
+        new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
-        createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,projectname)
-        createReleaseInformation.verbosity=verbosity
+        createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder, projectname)
+        createReleaseInformation.verbosity = verbosity
         if project_has_source_code:
             createReleaseInformation.push_artifact_to_registry_scripts = push_to_registry_scripts
             self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
@@ -2452,6 +2456,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
         if project_has_source_code:
             self.git_commit(createReleaseInformation.reference_repository, f"Added reference for v{new_project_version}")
             if reference_repository_remote_name is not None:
-                self.git_push(createReleaseInformation.reference_repository,reference_repository_branch_name,reference_repository_branch_name,reference_repository_remote_name,verbosity=verbosity)
+                self.git_push(createReleaseInformation.reference_repository, reference_repository_branch_name,
+                              reference_repository_branch_name, reference_repository_remote_name, verbosity=verbosity)
         self.git_commit(build_repository_folder, f"Added release v{new_project_version}")
         return new_project_version
