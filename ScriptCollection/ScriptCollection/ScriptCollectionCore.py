@@ -26,7 +26,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.0.4"
+version = "3.0.5"
 __version__ = version
 
 
@@ -2454,7 +2454,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
 
             self.git_commit(createReleaseInformation.reference_repository, f"Added reference for v{new_project_version}")
             if reference_repository_remote_name is not None:
-                self.git_push(createReleaseInformation.reference_repository, reference_repository_branch_name,
-                              reference_repository_branch_name, reference_repository_remote_name, verbosity=verbosity)
+                self.git_push(createReleaseInformation.reference_repository, reference_repository_remote_name, reference_repository_branch_name,
+                              reference_repository_branch_name,  verbosity=verbosity)
         self.git_commit(build_repository_folder, f"Added release v{new_project_version}")
         return new_project_version
