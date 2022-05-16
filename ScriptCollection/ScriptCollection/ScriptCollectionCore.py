@@ -12,7 +12,6 @@ from random import randrange
 from subprocess import Popen
 import re
 import shutil
-from tabnanny import verbose
 import traceback
 import uuid
 import ntplib
@@ -28,6 +27,7 @@ from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 version = "3.0.1"
 __version__ = version
+
 
 class ScriptCollectionCore:
 
@@ -48,7 +48,8 @@ class ScriptCollectionCore:
         return __version__
 
     @GeneralUtilities.check_arguments
-    def create_release(self, configurationfile: str) -> int:
+    def create_release(self, configurationfile: str) -> int:#obsolete
+        # TODO remove this function and all its child-functions which are unused then
         error_occurred = False
         try:
             current_release_information: dict[str, str] = {}
@@ -2453,3 +2454,4 @@ This script expectes that a test-coverage-badges should be added to '<repository
             if reference_repository_remote_name is not None:
                 self.git_push(createReleaseInformation.reference_repository,reference_repository_branch_name,reference_repository_branch_name,reference_repository_remote_name,verbosity=verbosity)
         self.git_commit(build_repository_folder, f"Added release v{new_project_version}")
+        return new_project_version
