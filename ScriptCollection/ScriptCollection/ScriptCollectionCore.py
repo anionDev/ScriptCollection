@@ -436,7 +436,7 @@ class ScriptCollectionCore:
     def getversion_from_arguments_or_gitversion(self, common_tasks_file: str, commandline_arguments: list[str]) -> None:
         current_version: str = None
         for commandline_argument in commandline_arguments:
-            if commandline_argument.startswith("--version="):
+            if commandline_argument.startswith("--projectversion="):
                 current_version = commandline_argument.split("=")[1]
         if current_version is None:
             current_version = self.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_file)))
