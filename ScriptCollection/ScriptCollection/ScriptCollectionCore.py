@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.0.0"
+version = "3.0.1"
 __version__ = version
 
 
@@ -368,7 +368,8 @@ class ScriptCollectionCore:
     def standardized_tasks_release_buildartifact_for_project_in_common_project_format(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
         # This function is intended to be called directly after standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format
 
-        target_folder_base = os.path.join(information.build_artifacts_target_folder, information.projectname)
+        project_version = self.get_semver_version_from_gitversion(information.repository)
+        target_folder_base = os.path.join(information.build_artifacts_target_folder, information.projectname, project_version)
         if os.path.isdir(target_folder_base):
             raise ValueError(f"The folder '{target_folder_base}' already exists.")
 
@@ -378,7 +379,6 @@ class ScriptCollectionCore:
 
         GeneralUtilities.ensure_directory_exists(target_folder_base)
         commitid = self.git_get_current_commit_id(information.repository)
-        project_version = self.get_semver_version_from_gitversion(information.repository)
         codeunits = self.get_code_units_of_repository_in_common_project_format(information.repository)
 
         for codeunitname in codeunits:
@@ -387,9 +387,9 @@ class ScriptCollectionCore:
             self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
 
         for codeunitname in codeunits:
-            codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-            target_folder_for_codeunit = os.path.join(target_folder_base, codeunitname, f"v{codeunit_version}")
+            target_folder_for_codeunit = os.path.join(target_folder_base, codeunitname)
             GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
+            shutil.copyfile(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit"), os.path.join(target_folder_for_codeunit, f"{codeunitname}.codeunit"))
 
             target_folder_for_codeunit_buildartifact = os.path.join(target_folder_for_codeunit, "BuildArtifact")
             shutil.copytree(os.path.join(codeunit_folder, "Other", "Build", "BuildArtifact"), target_folder_for_codeunit_buildartifact)
