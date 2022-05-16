@@ -405,22 +405,65 @@ class ScriptCollectionCore:
                 file = os.path.basename(push_artifact_to_registry_script)
                 self.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
-        self.__export_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_base, codeunits, information.repository)
-        self.__export_reference_content_to_reference_repository("Latest", True, reference_repository_target_base, codeunits, information.repository)
+        self.__export_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_base,
+                                                                codeunits, information.repository, information.projectname)
+        self.__export_reference_content_to_reference_repository("Latest", True, reference_repository_target_base, codeunits, information.repository, information.projectname)
+
+        reference_versions = [os.path.basename(folder) for folder in GeneralUtilities.get_direct_files_of_folder(reference_repository_target_base)]
+        reference_versions_links = [
+            f'<li><a href="./{information.projectname}/{reference_version}/index.html">{reference_version}</a></li>' for reference_version in reference_versions]
+        reference_versions_links_file_content = "    \n".join(reference_versions_links)+"\\n"
+        reference_index_file = os.path.join(reference_repository_target_base, "index.html")
+        reference_index_file_content = f"""<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>{information.projectname}-reference</title>
+  </head>
+
+  <body>
+    {information.projectname}-versions:<br>
+    <ul>
+    {reference_versions_links_file_content}
+    </ul>
+  </body>
+
+</html>
+"""
+        GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
     def replace_version_in_python_file(self, file: str, new_version_value: str):
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
-    def __export_reference_content_to_reference_repository(self, subfoldername: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-                                                           codeunits: list[str], repository: str) -> None:
+    def __export_reference_content_to_reference_repository(self, version_label: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
+                                                           codeunits: list[str], repository: str, project_name) -> None:
 
-        target_folder = os.path.join(target_folder_for_reference_repository, subfoldername)
+        target_folder = os.path.join(target_folder_for_reference_repository, version_label)
         if os.path.isdir(target_folder) and not replace_existing_content:
             raise ValueError(f"Folder '{target_folder}' already exists.")
 
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
+        index_file_for_reference = os.path.join(target_folder, "index.html")
+        index_file_content = f"""<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>{project_name}-reference ({version_label})</title>
+  </head>
+
+  <body>
+    Available reference-content for {project_name} ({version_label}):<br>
+    <!-- TODO add link to sourcecode-repository-->
+    <a href="./GeneratedReference/index.html">Refrerence</a><br>
+    <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
+  </body>
+
+</html>
+"""
+        GeneralUtilities.ensure_file_exists(index_file_for_reference)
+        GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
 
         for codeunit in codeunits:
             other_folder_in_repository = os.path.join(repository, codeunit, "Other")

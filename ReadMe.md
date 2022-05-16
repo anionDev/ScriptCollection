@@ -12,7 +12,7 @@ The ScriptCollection is the place for reusable scripts.
 
 ## Reference
 
-The reference can be found [here]("https://aniondev.github.io/ScriptCollectionReference/index.html").
+The reference can be found [here](https://aniondev.github.io/ScriptCollectionReference/index.html).
 
 ## Hints
 
