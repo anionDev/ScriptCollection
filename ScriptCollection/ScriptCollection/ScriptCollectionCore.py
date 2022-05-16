@@ -442,7 +442,7 @@ class ScriptCollectionCore:
                 codeunit_folder = os.path.join(information.repository, codeunitname)
                 codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
                 reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">'
-                                                     f'{os.path.basename(codeunit_reference_folder)} v{codeunit_version}</a></li>')
+                                                     f'{os.path.basename(codeunit_reference_folder)} v{version_identifier_of_project}</a></li>')
             reference_versions_html_lines.append("</ul>")
 
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
