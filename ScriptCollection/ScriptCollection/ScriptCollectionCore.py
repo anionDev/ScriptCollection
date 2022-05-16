@@ -25,7 +25,8 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.0.3"
+
+version = "3.0.1"
 __version__ = version
 
 
@@ -329,7 +330,7 @@ class ScriptCollectionCore:
 
                     if information.run_build_py:
                         # only as test to ensure building works before the merge will be committed
-                        GeneralUtilities.write_message_to_stdout("Run buildscript")
+                        GeneralUtilities.write_message_to_stdout("Building")
                         codeunit_folder = os.path.join(information.repository, codeunitname)
                         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
                         commitid = self.git_get_current_commit_id(information.repository)
@@ -348,14 +349,14 @@ class ScriptCollectionCore:
         self.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
 
         if information.push_target_branch:
-            GeneralUtilities.write_message_to_stdout("Push target-branch.")
+            GeneralUtilities.write_message_to_stdout("Push target-branch")
             self.git_push(information.repository, information.push_target_branch_remote_name,
                           information.targetbranch, information.targetbranch, pushalltags=True, verbosity=False)
 
         if information.merge_target_as_fast_forward_into_source_after_merge:
             self.git_merge(information.repository, information.targetbranch, information.sourcebranch, True, True)
             if information.push_source_branch:
-                GeneralUtilities.write_message_to_stdout("Push source-branch.")
+                GeneralUtilities.write_message_to_stdout("Push source-branch")
                 self.git_push(information.repository, information.push_source_branch_remote_name, information.sourcebranch,
                               information.sourcebranch, pushalltags=False, verbosity=information.verbosity)
         return project_version
@@ -428,7 +429,7 @@ class ScriptCollectionCore:
             target_generatedreference = os.path.join(target_folder, "GeneratedReference")
             shutil.copytree(source_generatedreference, target_generatedreference)
 
-            source_testcoveragereport = os.path.join(other_folder_in_repository, "TestCoverage", "QualityCheck","TestCoverageReport")
+            source_testcoveragereport = os.path.join(other_folder_in_repository, "QualityCheck", "TestCoverage", "TestCoverageReport")
             target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
             shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
@@ -1259,7 +1260,7 @@ class ScriptCollectionCore:
                 raise RuntimeError(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will not be done.")
 
         if do_commit:
-            GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'...")
+            GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'")
             self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
         return self.git_get_current_commit_id(directory)
