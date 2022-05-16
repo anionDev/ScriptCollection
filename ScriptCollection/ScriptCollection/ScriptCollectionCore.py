@@ -412,7 +412,7 @@ class ScriptCollectionCore:
         reference_versions = [os.path.basename(folder) for folder in GeneralUtilities.get_direct_files_of_folder(reference_repository_target_base)]
         reference_versions_links = [
             f'<li><a href="./{information.projectname}/{reference_version}/index.html">{reference_version}</a></li>' for reference_version in reference_versions]
-        reference_versions_links_file_content = "    \n".join(reference_versions_links)+"\\n"
+        reference_versions_links_file_content = "    \n".join(reference_versions_links)
         reference_index_file = os.path.join(reference_repository_target_base, "index.html")
         reference_index_file_content = f"""<html lang="en">
 
