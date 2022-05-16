@@ -10,6 +10,10 @@
 
 The ScriptCollection is the place for reusable scripts.
 
+## Reference
+
+The reference can be found [here]("https://aniondev.github.io/ScriptCollectionReference/").
+
 ## Hints
 
 Most of the scripts are written in [python](https://www.python.org) 3.
