@@ -59,7 +59,11 @@ Or you can simply run `pip3 freeze` folder to get information about (all) curren
 
 ### Branching-system
 
-This repository applies the [GitFlowSimplified](https://projects.aniondev.de/Common/Templates/ProjectTemplates/-/blob/main/Templates/Conventions/BranchingSystem/GitFlowSimplified.md)-branching-system.
+This repository applies the [GitFlowSimplified](https://github.com/anionDev/ProjectTemplates/blob/main/Templates/Conventions/BranchingSystem/GitFlowSimplified.md)-branching-system.
+
+### Repository-structure
+
+This repository applies the [CommonProjectStructure](https://github.com/anionDev/ProjectTemplates/blob/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/CommonProjectStructure.md)-branching-system.
 
 ### Install dependencies
 
@@ -82,21 +86,22 @@ The recommended addons for developing ScriptCollection with Visual Studio Code a
 
 ### Build
 
-To Create an installable whl-package simply execute `python Setup.py bdist_wheel --dist-dir .`.
-
-When doing this multiple times you should also clean temporary files created by python before creating the whl-package.
-To do this and install the local created package the steps are:
+To create and install an ScriptCollection locally simply do the following commands:
 
 ```bash
-python ScriptCollection/Other/Build/Build.py
+python ./ScriptCollection/Other/Build/Build.py
 pip3 uninstall -y ScriptCollection
-pip3 install ScriptCollection-x.x.x-py3-none-any.whl
+pip3 install --force-reinstall ./ScriptCollection/Other/Build/BuildArtifact/ScriptCollection-x.x.x-py3-none-any.whl
 ```
+
+(Note: `x.x.x` in `ScriptCollection-x.x.x-py3-none-any.whl` must be replaced by the appropriate version-number.)
 
 ### Coding style
 
 In this repository [pylint](https://pylint.org/) will be used to report linting-issues.
 If you change code in this repository please ensure pylint does not find any issues before creating a pull-request.
+
+If linting-issues exist in the current code-base can be checked by running `python ./ScriptCollection/Other/QualityCheck/Linting.py`.
 
 ## Runtime-Dependencies
 

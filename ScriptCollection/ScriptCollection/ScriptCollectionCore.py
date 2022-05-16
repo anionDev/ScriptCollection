@@ -26,7 +26,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.0.10"
+version = "3.0.11"
 __version__ = version
 
 
@@ -1175,7 +1175,7 @@ class ScriptCollectionCore:
         return self.__git_changes_helper(repositoryFolder, ["diff", "--cached"])
 
     @GeneralUtilities.check_arguments
-    def git_repository_has_uncommitted_changes(self, repositoryFolder: str):
+    def git_repository_has_uncommitted_changes(self, repositoryFolder: str)->bool:
         if (self.git_repository_has_unstaged_changes(repositoryFolder)):
             return True
         if (self.git_repository_has_staged_changes(repositoryFolder)):
@@ -1349,7 +1349,7 @@ class ScriptCollectionCore:
             self.git_undo_all_changes(repository)
 
     @GeneralUtilities.check_arguments
-    def __repository_has_changes(self, repository: str) -> None:
+    def __repository_has_changes(self, repository: str) -> bool:
         if(self.git_repository_has_uncommitted_changes(repository)):
             GeneralUtilities.write_message_to_stderr(f"'{repository}' contains uncommitted changes")
             return True
@@ -2473,12 +2473,16 @@ This script expectes that a test-coverage-badges should be added to '<repository
     def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
                                                                              project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts:
                                                                              dict[str, str], verbosity: int = 1, reference_repository_remote_name: str = None,
-                                                                             reference_repository_branch_name: str = "main"):
+                                                                             reference_repository_branch_name: str = "main",build_repository_branch="main"):
 
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
-        build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
-        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
 
+        build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
+        if self.git_repository_has_uncommitted_changes(build_repository_folder):
+            raise ValueError(f"Repository '{build_repository_folder}' has uncommitted changes.")
+        self.git_checkout(build_repository_folder,build_repository_branch)
+
+        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
         mergeToStableBranchInformation = ScriptCollectionCore.MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
         mergeToStableBranchInformation.verbosity = verbosity
         mergeToStableBranchInformation.project_has_source_code = project_has_source_code
