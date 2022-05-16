@@ -409,7 +409,7 @@ class ScriptCollectionCore:
                                                                 codeunits, information.repository, information.projectname)
         self.__export_reference_content_to_reference_repository("Latest", True, reference_repository_target_base, codeunits, information.repository, information.projectname)
 
-        reference_versions = [os.path.basename(folder) for folder in GeneralUtilities.get_direct_files_of_folder(reference_repository_target_base)]
+        reference_versions = [os.path.basename(folder) for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_base)]
         reference_versions_links = [
             f'<li><a href="./{information.projectname}/{reference_version}/index.html">{reference_version}</a></li>' for reference_version in reference_versions]
         reference_versions_links_file_content = "    \n".join(reference_versions_links)
