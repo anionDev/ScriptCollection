@@ -373,9 +373,6 @@ class ScriptCollectionCore:
         target_folder_base = os.path.join(information.build_artifacts_target_folder, information.projectname, project_version)
         if os.path.isdir(target_folder_base):
             raise ValueError(f"The folder '{target_folder_base}' already exists.")
-
-        reference_repository_target_base = os.path.join(information.reference_repository, "ReferenceContent", information.projectname)
-
         GeneralUtilities.ensure_directory_exists(target_folder_base)
         commitid = self.git_get_current_commit_id(information.repository)
         codeunits = self.get_code_units_of_repository_in_common_project_format(information.repository)
@@ -405,41 +402,46 @@ class ScriptCollectionCore:
                 file = os.path.basename(push_artifact_to_registry_script)
                 self.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
-        self.__export_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_base,
-                                                                codeunits, information.repository, information.projectname)
-        self.__export_reference_content_to_reference_repository("Latest", True, reference_repository_target_base, codeunits, information.repository, information.projectname)
+        reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent", information.projectname)
+        for codeunitname in codeunits:
+            reference_repository_target_for_version=os.path.join(reference_repository_target_for_project,project_version)
 
-        reference_versions = [os.path.basename(folder) for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_base)]
-        reference_versions_links = [
-            f'<li><a href="./{information.projectname}/{reference_version}/index.html">{reference_version}</a></li>' for reference_version in reference_versions]
-        reference_versions_links_file_content = "    \n".join(reference_versions_links)
-        reference_index_file = os.path.join(reference_repository_target_base, "index.html")
-        reference_index_file_content = f"""<html lang="en">
+            self.__export_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_for_version,
+                                                                    codeunits, information.repository, information.projectname,information.projectname)
+            self.__export_reference_content_to_reference_repository("Latest", True, reference_repository_target_for_version, codeunits, information.repository,
+                information.projectname,information.projectname)
 
-  <head>
-    <meta charset="UTF-8">
-    <title>{information.projectname}-reference</title>
-  </head>
+            reference_versions = [os.path.basename(folder) for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project)]
+            reference_versions_links = [
+                f'<li><a href="./{information.projectname}/{reference_version}//index.html">{reference_version}</a></li>' for reference_version in reference_versions]
+            reference_versions_links_file_content = "    \n".join(reference_versions_links)
+            reference_index_file = os.path.join(reference_repository_target_for_project, "index.html")
+            reference_index_file_content = f"""<html lang="en">
 
-  <body>
-    {information.projectname}-versions:<br>
-    <ul>
-    {reference_versions_links_file_content}
-    </ul>
-  </body>
+    <head>
+        <meta charset="UTF-8">
+        <title>{information.projectname}-reference</title>
+    </head>
 
-</html>
-"""
-        GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
+    <body>
+        {information.projectname}-versions:<br>
+        <ul>
+        {reference_versions_links_file_content}
+        </ul>
+    </body>
+
+    </html>
+    """
+            GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
     def replace_version_in_python_file(self, file: str, new_version_value: str):
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
     def __export_reference_content_to_reference_repository(self, version_label: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-                                                           codeunits: list[str], repository: str, project_name) -> None:
+                                                           codeunits: list[str], repository: str, codeunitname, projectname:str) -> None:
 
-        target_folder = os.path.join(target_folder_for_reference_repository, version_label)
+        target_folder = os.path.join(target_folder_for_reference_repository, version_label, codeunitname)
         if os.path.isdir(target_folder) and not replace_existing_content:
             raise ValueError(f"Folder '{target_folder}' already exists.")
 
@@ -450,11 +452,11 @@ class ScriptCollectionCore:
 
   <head>
     <meta charset="UTF-8">
-    <title>{project_name}-reference ({version_label})</title>
+    <title>Reference for codeunit {codeunit} of project {projectname} ({version_label})</title>
   </head>
 
   <body>
-    Available reference-content for {project_name} ({version_label}):<br>
+    Available reference-content for {codeunitname} ({version_label}):<br>
     <!-- TODO add link to sourcecode-repository-->
     <a href="./GeneratedReference/index.html">Refrerence</a><br>
     <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
