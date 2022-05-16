@@ -265,13 +265,13 @@ class ScriptCollectionCore:
         verbosity: int = 1
         push_artifact_to_registry_scripts: dict[str, str] = dict[str, str]()  # key: codeunit, value: scriptfile for pushing codeunit's artifact to one or more registries
         reference_repository: str = None
-        public_repository_url:str=None
-        target_branch_name:str=None
+        public_repository_url: str = None
+        target_branch_name: str = None
 
-        def __init__(self, repository: str, build_artifacts_target_folder: str, projectname: str,public_repository_url:str,target_branch_name:str):
+        def __init__(self, repository: str, build_artifacts_target_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
             self.repository = repository
-            self.public_repository_url=public_repository_url
-            self.target_branch_name=target_branch_name
+            self.public_repository_url = public_repository_url
+            self.target_branch_name = target_branch_name
             self.build_artifacts_target_folder = build_artifacts_target_folder
             if projectname is None:
                 projectname = os.path.basename(self.repository)
@@ -305,7 +305,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
 
-        src_branch_commit_id=self.git_get_current_commit_id(information.repository,  information.sourcebranch)
+        src_branch_commit_id = self.git_get_current_commit_id(information.repository,  information.sourcebranch)
         if(src_branch_commit_id == self.git_get_current_commit_id(information.repository,  information.targetbranch)):
             GeneralUtilities.write_message_to_stderr(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
@@ -419,29 +419,30 @@ class ScriptCollectionCore:
 
             # Copy reference of codeunit to reference-repository
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_for_project, information.repository,
-                                                                                 codeunitname, information.projectname, codeunit_version,information.public_repository_url,
-                                                                                 information.target_branch_name)
+                                                                             codeunitname, information.projectname, codeunit_version, information.public_repository_url,
+                                                                             information.target_branch_name)
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_repository_target_for_project, information.repository,
-                                                                                codeunitname, information.projectname,  codeunit_version,information.public_repository_url,
-                                                                                 information.target_branch_name)
+                                                                             codeunitname, information.projectname,  codeunit_version, information.public_repository_url,
+                                                                             information.target_branch_name)
 
-        all_available_version_identifier_folders_of_reference = [folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project)]
-        all_available_version_identifier_folders_of_reference.reverse()#move newer versions above
-        all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())#move latest version to the top
+        all_available_version_identifier_folders_of_reference = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project))
+        all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
+        all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
         reference_versions_html_lines = []
         for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
-            version_identifier_of_project=os.path.basename(all_available_version_identifier_folder_of_reference)
-            if version_identifier_of_project=="Latest":
-                latest_version_hint=f" (v {project_version})"
+            version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
+            if version_identifier_of_project == "Latest":
+                latest_version_hint = f" (v {project_version})"
             else:
-                latest_version_hint=""
+                latest_version_hint = ""
             reference_versions_html_lines.append(f"<h2>{version_identifier_of_project}{latest_version_hint}</h2>")
             reference_versions_html_lines.append("Contained codeunits:<br>")
             reference_versions_html_lines.append("<ul>")
-            for codeunit_reference_folder in [folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)]:
+            for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
                 codeunit_folder = os.path.join(information.repository, codeunitname)
                 codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-                reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">{os.path.basename(codeunit_reference_folder)} v{codeunit_version}</a></li>')
+                reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">'
+                                                     f'{os.path.basename(codeunit_reference_folder)} v{codeunit_version}</a></li>')
             reference_versions_html_lines.append("</ul>")
 
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
@@ -469,9 +470,9 @@ class ScriptCollectionCore:
                                                          GeneralUtilities.read_text_from_file(file)))
 
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-                                                                    repository: str, codeunitname, projectname: str, codeunit_version: str,public_repository_url:str, branch:str) -> None:
+                                                                    repository: str, codeunitname, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
 
-        target_folder =os.path.join( target_folder_for_reference_repository,project_version_identifier, codeunitname)
+        target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
         if os.path.isdir(target_folder) and not replace_existing_content:
             raise ValueError(f"Folder '{target_folder}' already exists.")
 
@@ -480,9 +481,9 @@ class ScriptCollectionCore:
         title = f"{codeunitname}-reference (codeunit v{codeunit_version}, conained in project {projectname} ({project_version_identifier}))"
 
         if public_repository_url is None:
-            repo_url_html=""
+            repo_url_html = ""
         else:
-            repo_url_html=f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a><br>'
+            repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a><br>'
 
         index_file_for_reference = os.path.join(target_folder, "index.html")
         index_file_content = f"""<!DOCTYPE html>
@@ -574,6 +575,8 @@ class ScriptCollectionCore:
                         GeneralUtilities.write_message_to_stderr(error)
         if errors_found:
             raise Exception("Linting-issues occurred")
+        else:
+            GeneralUtilities.write_message_to_stdout("No linting-issues found.")
 
     def standardized_tasks_run_testcases_for_python_project(self, repository_folder: str, codeunitname: str):
         codeunit_folder = os.path.join(repository_folder, codeunitname)
@@ -2513,7 +2516,7 @@ This script expectes that a test-coverage-badges should be added to '<repository
     def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
                                                                              project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts:
                                                                              dict[str, str], verbosity: int = 1, reference_repository_remote_name: str = None,
-                                                                             reference_repository_branch_name: str = "main", build_repository_branch="main",public_repository_url:str=None):
+                                                                             reference_repository_branch_name: str = "main", build_repository_branch="main", public_repository_url: str = None):
 
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
@@ -2534,7 +2537,9 @@ This script expectes that a test-coverage-badges should be added to '<repository
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
         new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
-        createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder, projectname,public_repository_url,mergeToStableBranchInformation.targetbranch)
+        createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,
+                                                                                                                projectname, public_repository_url,
+                                                                                                                mergeToStableBranchInformation.targetbranch)
         createReleaseInformation.verbosity = verbosity
         if project_has_source_code:
             createReleaseInformation.push_artifact_to_registry_scripts = push_to_registry_scripts
