@@ -302,6 +302,12 @@ class ScriptCollectionCore:
         if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
+
+    @GeneralUtilities.check_arguments
+    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile=None, verbosity: int = 1):
+        folder_of_this_file = os.path.dirname(create_release_file)
+        self.run_program("python.py", "CreateRelease.py", folder_of_this_file, verbosity, log_file=logfile)
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
 
