@@ -1159,7 +1159,7 @@ class ScriptCollectionCore:
         self.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def push_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None) -> None:
+    def push_wheel_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None) -> None:
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
