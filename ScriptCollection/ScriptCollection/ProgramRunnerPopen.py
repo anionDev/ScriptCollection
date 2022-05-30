@@ -9,7 +9,7 @@ class ProgramRunnerPopen(ProgramRunnerBase):
     def run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None,custom_argument:object=None) -> Popen:
         arguments_for_process = [program]
         arguments_for_process.extend(arguments_as_array)
-        return Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=working_directory, shell=False)
+        return Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, cwd=working_directory, shell=True)
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
