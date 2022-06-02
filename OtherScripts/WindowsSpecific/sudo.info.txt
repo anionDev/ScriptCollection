@@ -1,0 +1,1 @@
+Copy this file simply to C:\Windows\System32 and use it like sudo on linux.
