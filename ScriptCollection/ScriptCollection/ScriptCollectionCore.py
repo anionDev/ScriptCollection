@@ -302,7 +302,6 @@ class ScriptCollectionCore:
         if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
-
     @GeneralUtilities.check_arguments
     def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile=None, verbosity: int = 1):
         folder_of_this_file = os.path.dirname(create_release_file)
@@ -552,8 +551,8 @@ class ScriptCollectionCore:
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
-    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self,linting_script_file:str, args:list[str]):
-        pass# TODO
+    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, args: list[str]):
+        pass  # TODO
 
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
@@ -1167,6 +1166,79 @@ class ScriptCollectionCore:
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
         self.standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, gpg_identity=gpg_identity)
+
+    @GeneralUtilities.check_arguments
+    def dotnet_sign_file(self, file: str, keyfile: str):
+        directory = os.path.dirname(file)
+        filename = os.path.basename(file)
+        if filename.lower().endswith(".dll"):
+            filename = filename[:-4]
+            extension = "dll"
+        elif filename.lower().endswith(".exe"):
+            filename = filename[:-4]
+            extension = "exe"
+        else:
+            raise Exception("Only .dll-files and .exe-files can be signed")
+        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory)
+        self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory)
+        os.remove(directory+os.path.sep+filename+".il")
+        os.remove(directory+os.path.sep+filename+".res")
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict):
+        # TODO update version in csproj-file
+        csproj_file_folder = os.path.dirname(csproj_file)
+        csproj_file_name = os.path.basename(csproj_file)
+        self.run_program("dotnet", "clean", csproj_file_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+        GeneralUtilities.ensure_directory_exists(outputfolder)
+        self.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder}", csproj_file_folder)
+        for file, keyfile in files_to_sign.items():
+            self.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, repository_folder: str, codeunitname: str,
+                                                                                buildconfiguration: str, build_test_project_too: bool, output_folder: str, commandline_arguments: list[str]):
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
+        csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
+        commandline_arguments = commandline_arguments[1:]
+        files_to_sign: dict() = dict()
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-sign:"):
+                commandline_argument_splitted: list[str] = commandline_argument.split(":")
+                files_to_sign[commandline_argument_splitted[1]] = commandline_argument[len("-sign:"+commandline_argument_splitted[1])+1:]
+        self.run_program("dotnet", "restore", codeunit_folder)
+        self.standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration, os.path.join(output_folder, codeunitname), files_to_sign)
+        if build_test_project_too:
+            self.standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration, os.path.join(output_folder, codeunitname+"Tests"), files_to_sign)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+        repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
+        codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-buildconfiguration:"):
+                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
+        outputfolder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
+        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+        GeneralUtilities.ensure_directory_exists(outputfolder)
+        self.standardized_tasks_build_for_dotnet_project_in_common_project_structure(
+            repository_folder, codeunitname, buildconfiguration, True, outputfolder, commandline_arguments)
+        self.standardized_tasks_build_for_dotnet_create_package(repository_folder, codeunitname, outputfolder)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_create_package(self, repository: str, codeunitname: str, outputfolder: str):
+        build_folder = os.path.join(repository, codeunitname, "Other", "Build")
+        root: etree._ElementTree = etree.parse(os.path.join(build_folder, f"{codeunitname}.nuspec"))
+        current_version = root.xpath("//*[name() = 'package']/*[name() = 'metadata']/*[name() = 'version']/text()")[0]
+        nupkg_filename = f"{codeunitname}.{current_version}.nupkg"
+        nupkg_file = f"{build_folder}/{nupkg_filename}"
+        GeneralUtilities.ensure_file_does_not_exist(nupkg_file)
+        self.run_program("nuget", f"pack {codeunitname}.nuspec", build_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+        GeneralUtilities.ensure_directory_exists(outputfolder)
+        os.rename(nupkg_file, f"{build_folder}/BuildArtifact/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
