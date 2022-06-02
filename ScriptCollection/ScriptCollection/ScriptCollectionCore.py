@@ -594,17 +594,52 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
 
-    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, generate_badges: bool = True):
-        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml' exists.
-    This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
-    This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>other//QualityCheck/TestCoverage/Badges'."""
+    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity:int=1, generate_badges:bool=True, args:list[str]=[]):
+        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml'
+        which contains a test-coverage-report in the cobertura-format exists.
+        This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
+        This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/Badges'."""
+        if verbosity == 0:
+            verbose_argument_for_reportgenerator = "Off"
+        if verbosity == 1:
+            verbose_argument_for_reportgenerator = "Error"
+        if verbosity == 2:
+            verbose_argument_for_reportgenerator = "Info"
+        if verbosity == 3:
+            verbose_argument_for_reportgenerator = "Verbose"
+
+        # Generating report
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
-        self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport",
-                         os.path.join(repository_folder, codeunitname))
+        self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport " +
+                        f"-verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
+
         if generate_badges:
-            self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges " +
-                             "-reporttypes:Badges", os.path.join(repository_folder, codeunitname))
+            # Generating badges
+            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname,"Other/QualityCheck/TestCoverage/Badges"))
+            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname,"Other/QualityCheck/TestCoverage/Badges"))
+            self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges -reporttypes:Badges " +
+                            f"-verbosity:{verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
+
+
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str,buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+        repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
+        codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-buildconfiguration:"):
+                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
+        testprojectname = codeunit_name+"Tests"
+        coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
+        coveragefiletarget = os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
+        self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
+                        f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
+                        f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
+        GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
+        os.rename(coveragefilesource, coveragefiletarget)
+        self.standardized_tasks_generate_coverage_report(ScriptCollectionCore(), repository_folder, codeunit_name, 1)
 
     def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
@@ -2208,31 +2243,6 @@ class ScriptCollectionCore:
         coveragefile = os.path.join(repository_folder, "Other/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, "coverage.xml"), coveragefile)
-
-    def generate_coverage_report(self, repository_folder: str, verbosity: int):
-        """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' which contains a test-coverage-report in the cobertura-format exists.
-This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
-This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/Badges/TestCoverage'."""
-        if verbosity == 0:
-            verbose_argument_for_reportgenerator = "Off"
-        if verbosity == 1:
-            verbose_argument_for_reportgenerator = "Error"
-        if verbosity == 2:
-            verbose_argument_for_reportgenerator = "Info"
-        if verbosity == 3:
-            verbose_argument_for_reportgenerator = "Verbose"
-
-        # Generating report
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Report"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Report"))
-        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report " +
-                         f"-verbosity:{verbose_argument_for_reportgenerator}", repository_folder)
-
-        # Generating badges
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
-        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges " +
-                         f"-verbosity:{verbose_argument_for_reportgenerator}", repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
