@@ -623,6 +623,13 @@ class ScriptCollectionCore:
 
 
 
+
+    def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file:str, commandline_arguments: list[str] = []):
+        reference_folder=os.path.dirname(generate_reference_file)
+        reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
+        GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
+        self.run_program("docfx", "docfx.json", reference_folder)
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str,buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
@@ -640,6 +647,38 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         os.rename(coveragefilesource, coveragefiletarget)
         self.standardized_tasks_generate_coverage_report(ScriptCollectionCore(), repository_folder, codeunit_name, 1)
+
+
+
+    def replace_version_in_nuspec_file(self, nuspec_file: str, current_version: str):
+        versionregex = "\\d+\\.\\d+\\.\\d+"
+        versiononlyregex = f"^{versionregex}$"
+        pattern = re.compile(versiononlyregex)
+        if pattern.match(current_version):
+            GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"<version>{versionregex}<\\/version>",
+                                                                    f"<version>{current_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
+        else:
+            raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
+
+
+    def replace_version_in_csproj_file(self, csproj_file: str, current_version: str):
+        versionregex = "\\d+\\.\\d+\\.\\d+"
+        versiononlyregex = f"^{versionregex}$"
+        pattern = re.compile(versiononlyregex)
+        if pattern.match(current_version):
+            GeneralUtilities.write_text_to_file(csproj_file, re.sub(f"<Version>{versionregex}<\\/Version>",
+                                                                    f"<Version>{current_version}</Version>", GeneralUtilities.read_text_from_file(csproj_file)))
+        else:
+            raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
+
+
+
+    @GeneralUtilities.check_arguments
+    def push_nuget_build_artifact_of_repository_in_common_file_structure(self, nupkg_file: str, registry_address: str, api_key: str, verbosity: int = 1):
+        nupkg_file_name = os.path.basename(nupkg_file)
+        nupkg_file_folder = os.path.dirname(nupkg_file)
+        self.run_program("dotnet", f"nuget push {nupkg_file_name} --force-english-output --source {registry_address} --api-key {api_key}",
+                        nupkg_file_folder, verbosity)
 
     def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
