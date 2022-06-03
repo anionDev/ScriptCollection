@@ -267,7 +267,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def _ends_with_newline_character(content:bytes) -> bool:
+    def _ends_with_newline_character(content: bytes) -> bool:
         return content.endswith(b'\x0a')
 
     @staticmethod
