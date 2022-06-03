@@ -26,7 +26,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.1.0"
+version = "3.1.1"
 __version__ = version
 
 
@@ -303,6 +303,11 @@ class ScriptCollectionCore:
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
+    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile=None, verbosity: int = 1):
+        folder_of_this_file = os.path.dirname(create_release_file)
+        self.run_program("python.py", "CreateRelease.py", folder_of_this_file, verbosity, log_file=logfile)
+
+    @GeneralUtilities.check_arguments
     def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
 
         src_branch_commit_id = self.git_get_current_commit_id(information.repository,  information.sourcebranch)
@@ -546,6 +551,9 @@ class ScriptCollectionCore:
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
+    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, args: list[str]):
+        pass  # TODO
+
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
         generated_reference_folder = os.path.join(folder_of_current_file, "GeneratedReference")
@@ -586,17 +594,91 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
 
-    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, generate_badges: bool = True):
-        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml' exists.
-    This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
-    This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>other//QualityCheck/TestCoverage/Badges'."""
+    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity:int=1, generate_badges:bool=True, args:list[str]=[]):
+        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml'
+        which contains a test-coverage-report in the cobertura-format exists.
+        This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
+        This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/Badges'."""
+        if verbosity == 0:
+            verbose_argument_for_reportgenerator = "Off"
+        if verbosity == 1:
+            verbose_argument_for_reportgenerator = "Error"
+        if verbosity == 2:
+            verbose_argument_for_reportgenerator = "Info"
+        if verbosity == 3:
+            verbose_argument_for_reportgenerator = "Verbose"
+
+        # Generating report
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
-        self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport",
-                         os.path.join(repository_folder, codeunitname))
+        self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport " +
+                        f"-verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
+
         if generate_badges:
-            self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges " +
-                             "-reporttypes:Badges", os.path.join(repository_folder, codeunitname))
+            # Generating badges
+            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname,"Other/QualityCheck/TestCoverage/Badges"))
+            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname,"Other/QualityCheck/TestCoverage/Badges"))
+            self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges -reporttypes:Badges " +
+                            f"-verbosity:{verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
+
+
+
+
+    def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file:str, commandline_arguments: list[str] = []):
+        reference_folder=os.path.dirname(generate_reference_file)
+        reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
+        GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
+        self.run_program("docfx", "docfx.json", reference_folder)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str,buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+        repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
+        codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-buildconfiguration:"):
+                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
+        testprojectname = codeunit_name+"Tests"
+        coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
+        coveragefiletarget = os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
+        self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
+                        f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
+                        f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
+        GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
+        os.rename(coveragefilesource, coveragefiletarget)
+        self.standardized_tasks_generate_coverage_report(ScriptCollectionCore(), repository_folder, codeunit_name, 1)
+
+
+
+    def replace_version_in_nuspec_file(self, nuspec_file: str, current_version: str):
+        versionregex = "\\d+\\.\\d+\\.\\d+"
+        versiononlyregex = f"^{versionregex}$"
+        pattern = re.compile(versiononlyregex)
+        if pattern.match(current_version):
+            GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"<version>{versionregex}<\\/version>",
+                                                                    f"<version>{current_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
+        else:
+            raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
+
+
+    def replace_version_in_csproj_file(self, csproj_file: str, current_version: str):
+        versionregex = "\\d+\\.\\d+\\.\\d+"
+        versiononlyregex = f"^{versionregex}$"
+        pattern = re.compile(versiononlyregex)
+        if pattern.match(current_version):
+            GeneralUtilities.write_text_to_file(csproj_file, re.sub(f"<Version>{versionregex}<\\/Version>",
+                                                                    f"<Version>{current_version}</Version>", GeneralUtilities.read_text_from_file(csproj_file)))
+        else:
+            raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
+
+
+
+    @GeneralUtilities.check_arguments
+    def push_nuget_build_artifact_of_repository_in_common_file_structure(self, nupkg_file: str, registry_address: str, api_key: str, verbosity: int = 1):
+        nupkg_file_name = os.path.basename(nupkg_file)
+        nupkg_file_folder = os.path.dirname(nupkg_file)
+        self.run_program("dotnet", f"nuget push {nupkg_file_name} --force-english-output --source {registry_address} --api-key {api_key}",
+                        nupkg_file_folder, verbosity)
 
     def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
@@ -1153,11 +1235,84 @@ class ScriptCollectionCore:
         self.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def push_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None) -> None:
+    def push_wheel_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None) -> None:
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
         self.standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, gpg_identity=gpg_identity)
+
+    @GeneralUtilities.check_arguments
+    def dotnet_sign_file(self, file: str, keyfile: str):
+        directory = os.path.dirname(file)
+        filename = os.path.basename(file)
+        if filename.lower().endswith(".dll"):
+            filename = filename[:-4]
+            extension = "dll"
+        elif filename.lower().endswith(".exe"):
+            filename = filename[:-4]
+            extension = "exe"
+        else:
+            raise Exception("Only .dll-files and .exe-files can be signed")
+        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory)
+        self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory)
+        os.remove(directory+os.path.sep+filename+".il")
+        os.remove(directory+os.path.sep+filename+".res")
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict):
+        # TODO update version in csproj-file
+        csproj_file_folder = os.path.dirname(csproj_file)
+        csproj_file_name = os.path.basename(csproj_file)
+        self.run_program("dotnet", "clean", csproj_file_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+        GeneralUtilities.ensure_directory_exists(outputfolder)
+        self.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder}", csproj_file_folder)
+        for file, keyfile in files_to_sign.items():
+            self.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, repository_folder: str, codeunitname: str,
+                                                                                buildconfiguration: str, build_test_project_too: bool, output_folder: str, commandline_arguments: list[str]):
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
+        csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
+        commandline_arguments = commandline_arguments[1:]
+        files_to_sign: dict() = dict()
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-sign:"):
+                commandline_argument_splitted: list[str] = commandline_argument.split(":")
+                files_to_sign[commandline_argument_splitted[1]] = commandline_argument[len("-sign:"+commandline_argument_splitted[1])+1:]
+        self.run_program("dotnet", "restore", codeunit_folder)
+        self.standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration, os.path.join(output_folder, codeunitname), files_to_sign)
+        if build_test_project_too:
+            self.standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration, os.path.join(output_folder, codeunitname+"Tests"), files_to_sign)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+        repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
+        codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-buildconfiguration:"):
+                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
+        outputfolder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
+        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+        GeneralUtilities.ensure_directory_exists(outputfolder)
+        self.standardized_tasks_build_for_dotnet_project_in_common_project_structure(
+            repository_folder, codeunitname, buildconfiguration, True, outputfolder, commandline_arguments)
+        self.standardized_tasks_build_for_dotnet_create_package(repository_folder, codeunitname, outputfolder)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dotnet_create_package(self, repository: str, codeunitname: str, outputfolder: str):
+        build_folder = os.path.join(repository, codeunitname, "Other", "Build")
+        root: etree._ElementTree = etree.parse(os.path.join(build_folder, f"{codeunitname}.nuspec"))
+        current_version = root.xpath("//*[name() = 'package']/*[name() = 'metadata']/*[name() = 'version']/text()")[0]
+        nupkg_filename = f"{codeunitname}.{current_version}.nupkg"
+        nupkg_file = f"{build_folder}/{nupkg_filename}"
+        GeneralUtilities.ensure_file_does_not_exist(nupkg_file)
+        self.run_program("nuget", f"pack {codeunitname}.nuspec", build_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+        GeneralUtilities.ensure_directory_exists(outputfolder)
+        os.rename(nupkg_file, f"{build_folder}/BuildArtifact/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
@@ -2127,31 +2282,6 @@ class ScriptCollectionCore:
         coveragefile = os.path.join(repository_folder, "Other/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, "coverage.xml"), coveragefile)
-
-    def generate_coverage_report(self, repository_folder: str, verbosity: int):
-        """This script expects that the file '<repositorybasefolder>/Other/TestCoverage/TestCoverage.xml' which contains a test-coverage-report in the cobertura-format exists.
-This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/Other/TestCoverage/Report'.
-This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/Badges/TestCoverage'."""
-        if verbosity == 0:
-            verbose_argument_for_reportgenerator = "Off"
-        if verbosity == 1:
-            verbose_argument_for_reportgenerator = "Error"
-        if verbosity == 2:
-            verbose_argument_for_reportgenerator = "Info"
-        if verbosity == 3:
-            verbose_argument_for_reportgenerator = "Verbose"
-
-        # Generating report
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Report"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Report"))
-        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Report " +
-                         f"-verbosity:{verbose_argument_for_reportgenerator}", repository_folder)
-
-        # Generating badges
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage/Badges"))
-        self.run_program("reportgenerator", "-reports:Other/TestCoverage/TestCoverage.xml -targetdir:Other/TestCoverage/Badges -reporttypes:Badges " +
-                         f"-verbosity:{verbose_argument_for_reportgenerator}", repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
