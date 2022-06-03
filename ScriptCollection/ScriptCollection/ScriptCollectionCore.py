@@ -646,7 +646,7 @@ class ScriptCollectionCore:
                         f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         os.rename(coveragefilesource, coveragefiletarget)
-        self.standardized_tasks_generate_coverage_report(ScriptCollectionCore(), repository_folder, codeunit_name, 1)
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
 
 
 
@@ -2642,11 +2642,18 @@ class ScriptCollectionCore:
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
 
+
+    def push_nuget_build_artifact_for_project_in_standardized_project_structure(self:ScriptCollectionCore,push_script_file:str,codeunitname:str,
+    registry_address:str="nuget.org",api_key:str=None):
+        build_artifact_folder=GeneralUtilities.resolve_relative_path(f"../../Submodules/{codeunitname}/{codeunitname}/Other/Build/BuildArtifact",os.path.dirname( push_script_file))
+        self.push_nuget_build_artifact_of_repository_in_common_file_structure(self.find_file_by_extension(build_artifact_folder ,"nupkg"),
+            registry_address, api_key)
+
     @GeneralUtilities.check_arguments
     def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
                                                                              project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts:
                                                                              dict[str, str], verbosity: int = 1, reference_repository_remote_name: str = None,
-                                                                             reference_repository_branch_name: str = "main", build_repository_branch="main", public_repository_url: str = None):
+                                                                             reference_repository_branch_name: str = "main", build_repository_branch="main", public_repository_url: str = None, build_py_arguments:str=""):
 
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
@@ -2665,12 +2672,14 @@ class ScriptCollectionCore:
         mergeToStableBranchInformation.push_target_branch = True
         mergeToStableBranchInformation.push_target_branch_remote_name = remotename
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
+        mergeToStableBranchInformation.build_py_arguments=build_py_arguments
         new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
         createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,
                                                                                                                 projectname, public_repository_url,
                                                                                                                 mergeToStableBranchInformation.targetbranch)
         createReleaseInformation.verbosity = verbosity
+        createReleaseInformation.build_py_arguments=build_py_arguments
         if project_has_source_code:
             createReleaseInformation.push_artifact_to_registry_scripts = push_to_registry_scripts
             self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
