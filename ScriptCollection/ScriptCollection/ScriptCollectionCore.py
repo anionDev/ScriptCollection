@@ -322,7 +322,7 @@ class ScriptCollectionCore:
         success = False
         try:
             for codeunitname in self.get_code_units_of_repository_in_common_project_format(information.repository):
-                GeneralUtilities.write_message_to_stdout(f"Process codeunit {codeunitname}")
+                GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunitname}")
 
                 common_tasks_file: str = "CommonTasks.py"
                 common_tasks_folder: str = os.path.join(information.repository, codeunitname, "Other")
@@ -344,12 +344,12 @@ class ScriptCollectionCore:
                     self.run_program("python", "GenerateReference.py", os.path.join(information.repository, codeunitname, "Other", "Reference"), verbosity=information.verbosity)
 
                     if information.run_build_py:
-                        # only as test to ensure building works before the merge will be committed
-                        GeneralUtilities.write_message_to_stdout("Building")
                         codeunit_folder = os.path.join(information.repository, codeunitname)
                         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+                        GeneralUtilities.write_message_to_stdout("Test if codeunit is buildable")
                         commitid = self.git_get_current_commit_id(information.repository)
                         self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
+                GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunitname}")
 
             commit_id = self.git_commit(information.repository,  f"Created release v{project_version}")
             success = True
@@ -395,6 +395,7 @@ class ScriptCollectionCore:
         for codeunitname in codeunits:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+            GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunitname}")
             self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
@@ -420,6 +421,7 @@ class ScriptCollectionCore:
                 push_artifact_to_registry_script = information.push_artifact_to_registry_scripts[codeunitname]
                 folder = os.path.dirname(push_artifact_to_registry_script)
                 file = os.path.basename(push_artifact_to_registry_script)
+                GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}")
                 self.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
             # Copy reference of codeunit to reference-repository
@@ -430,6 +432,7 @@ class ScriptCollectionCore:
                                                                              codeunitname, information.projectname,  codeunit_version, information.public_repository_url,
                                                                              information.target_branch_name)
 
+        GeneralUtilities.write_message_to_stdout("Create entire reference")
         all_available_version_identifier_folders_of_reference = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project))
         all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
         all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
@@ -2648,6 +2651,7 @@ class ScriptCollectionCore:
                                                                              reference_repository_branch_name: str = "main", build_repository_branch="main",
                                                                              public_repository_url: str = None, build_py_arguments: str = ""):
 
+        GeneralUtilities.write_message_to_stdout(f"Create release for project {projectname}")
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
         build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
@@ -2682,4 +2686,5 @@ class ScriptCollectionCore:
                 self.git_push(createReleaseInformation.reference_repository, reference_repository_remote_name, reference_repository_branch_name,
                               reference_repository_branch_name,  verbosity=verbosity)
         self.git_commit(build_repository_folder, f"Added {projectname} release v{new_project_version}")
+        GeneralUtilities.write_message_to_stdout(f"Finished release for project {projectname} successfully")
         return new_project_version
