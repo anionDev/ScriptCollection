@@ -13,4 +13,5 @@ def common_tasks():
     sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path("../Setup.py",folder_of_current_file),version)
     sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path("../ScriptCollection/ScriptCollectionCore.py",folder_of_current_file),version)
 
-common_tasks()
+if __name__ == "__main__":
+    common_tasks()
