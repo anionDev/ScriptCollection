@@ -26,7 +26,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.1.1"
+version = "3.1.2"
 __version__ = version
 
 
@@ -594,7 +594,7 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
 
-    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity:int=1, generate_badges:bool=True, args:list[str]=[]):
+    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int = 1, generate_badges: bool = True, args: list[str] = []):
         """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
@@ -612,26 +612,23 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
         self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport " +
-                        f"-verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
+                         f"-verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
 
         if generate_badges:
             # Generating badges
-            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname,"Other/QualityCheck/TestCoverage/Badges"))
-            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname,"Other/QualityCheck/TestCoverage/Badges"))
+            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
+            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
             self.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges -reporttypes:Badges " +
-                            f"-verbosity:{verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
+                             f"-verbosity:{verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
 
-
-
-
-    def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file:str, commandline_arguments: list[str] = []):
-        reference_folder=os.path.dirname(generate_reference_file)
+    def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str] = []):
+        reference_folder = os.path.dirname(generate_reference_file)
         reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
         GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
         self.run_program("docfx", "docfx.json", reference_folder)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str,buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str, buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         for commandline_argument in commandline_arguments:
@@ -642,13 +639,11 @@ class ScriptCollectionCore:
         coveragefiletarget = os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
         self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
-                        f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
-                        f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
+                         f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
+                         f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         os.rename(coveragefilesource, coveragefiletarget)
-        self.standardized_tasks_generate_coverage_report(ScriptCollectionCore(), repository_folder, codeunit_name, 1)
-
-
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
 
     def replace_version_in_nuspec_file(self, nuspec_file: str, current_version: str):
         versionregex = "\\d+\\.\\d+\\.\\d+"
@@ -660,7 +655,6 @@ class ScriptCollectionCore:
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
-
     def replace_version_in_csproj_file(self, csproj_file: str, current_version: str):
         versionregex = "\\d+\\.\\d+\\.\\d+"
         versiononlyregex = f"^{versionregex}$"
@@ -671,14 +665,12 @@ class ScriptCollectionCore:
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
-
-
     @GeneralUtilities.check_arguments
     def push_nuget_build_artifact_of_repository_in_common_file_structure(self, nupkg_file: str, registry_address: str, api_key: str, verbosity: int = 1):
         nupkg_file_name = os.path.basename(nupkg_file)
         nupkg_file_folder = os.path.dirname(nupkg_file)
         self.run_program("dotnet", f"nuget push {nupkg_file_name} --force-english-output --source {registry_address} --api-key {api_key}",
-                        nupkg_file_folder, verbosity)
+                         nupkg_file_folder, verbosity)
 
     def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
@@ -2642,11 +2634,19 @@ class ScriptCollectionCore:
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
 
+    def push_nuget_build_artifact_for_project_in_standardized_project_structure(self, push_script_file: str, codeunitname: str,
+                                                                                registry_address: str = "nuget.org", api_key: str = None):
+        build_artifact_folder = GeneralUtilities.resolve_relative_path(
+            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Build/BuildArtifact", os.path.dirname(push_script_file))
+        self.push_nuget_build_artifact_of_repository_in_common_file_structure(self.find_file_by_extension(build_artifact_folder, "nupkg"),
+                                                                              registry_address, api_key)
+
     @GeneralUtilities.check_arguments
     def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
                                                                              project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts:
                                                                              dict[str, str], verbosity: int = 1, reference_repository_remote_name: str = None,
-                                                                             reference_repository_branch_name: str = "main", build_repository_branch="main", public_repository_url: str = None):
+                                                                             reference_repository_branch_name: str = "main", build_repository_branch="main",
+                                                                             public_repository_url: str = None, build_py_arguments: str = ""):
 
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
@@ -2665,12 +2665,14 @@ class ScriptCollectionCore:
         mergeToStableBranchInformation.push_target_branch = True
         mergeToStableBranchInformation.push_target_branch_remote_name = remotename
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
+        mergeToStableBranchInformation.build_py_arguments = build_py_arguments
         new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
         createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,
                                                                                                                 projectname, public_repository_url,
                                                                                                                 mergeToStableBranchInformation.targetbranch)
         createReleaseInformation.verbosity = verbosity
+        createReleaseInformation.build_py_arguments = build_py_arguments
         if project_has_source_code:
             createReleaseInformation.push_artifact_to_registry_scripts = push_to_registry_scripts
             self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
