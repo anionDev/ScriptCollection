@@ -636,12 +636,14 @@ class ScriptCollectionCore:
                 buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
         testprojectname = codeunit_name+"Tests"
         coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
-        coveragefiletarget = os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
+        coverage_file_folder=os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage")
+        coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
         self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
                          f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
                          f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
+        GeneralUtilities.ensure_directory_exists(coverage_file_folder)
         os.rename(coveragefilesource, coveragefiletarget)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
 
