@@ -322,7 +322,7 @@ class ScriptCollectionCore:
         success = False
         try:
             for codeunitname in self.get_code_units_of_repository_in_common_project_format(information.repository):
-                GeneralUtilities.write_message_to_stdout(f"Process codeunit {codeunitname}")
+                GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunitname}")
 
                 common_tasks_file: str = "CommonTasks.py"
                 common_tasks_folder: str = os.path.join(information.repository, codeunitname, "Other")
@@ -344,12 +344,12 @@ class ScriptCollectionCore:
                     self.run_program("python", "GenerateReference.py", os.path.join(information.repository, codeunitname, "Other", "Reference"), verbosity=information.verbosity)
 
                     if information.run_build_py:
-                        # only as test to ensure building works before the merge will be committed
-                        GeneralUtilities.write_message_to_stdout("Building")
                         codeunit_folder = os.path.join(information.repository, codeunitname)
                         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+                        GeneralUtilities.write_message_to_stdout("Test if codeunit is buildable")
                         commitid = self.git_get_current_commit_id(information.repository)
                         self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
+                GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunitname}")
 
             commit_id = self.git_commit(information.repository,  f"Created release v{project_version}")
             success = True
@@ -395,6 +395,7 @@ class ScriptCollectionCore:
         for codeunitname in codeunits:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+            GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunitname}")
             self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
@@ -420,6 +421,7 @@ class ScriptCollectionCore:
                 push_artifact_to_registry_script = information.push_artifact_to_registry_scripts[codeunitname]
                 folder = os.path.dirname(push_artifact_to_registry_script)
                 file = os.path.basename(push_artifact_to_registry_script)
+                GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}")
                 self.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
             # Copy reference of codeunit to reference-repository
@@ -430,6 +432,7 @@ class ScriptCollectionCore:
                                                                              codeunitname, information.projectname,  codeunit_version, information.public_repository_url,
                                                                              information.target_branch_name)
 
+        GeneralUtilities.write_message_to_stdout("Create entire reference")
         all_available_version_identifier_folders_of_reference = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project))
         all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
         all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
@@ -636,12 +639,14 @@ class ScriptCollectionCore:
                 buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
         testprojectname = codeunit_name+"Tests"
         coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
-        coveragefiletarget = os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
+        coverage_file_folder=os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage")
+        coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
         self.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
                          f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
                          f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
+        GeneralUtilities.ensure_directory_exists(coverage_file_folder)
         os.rename(coveragefilesource, coveragefiletarget)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
 
@@ -1263,14 +1268,19 @@ class ScriptCollectionCore:
             self.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, repository_folder: str, codeunitname: str,
-                                                                                buildconfiguration: str, build_test_project_too: bool, output_folder: str, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, repository_folder: str, codeunitname: str,buildscript_file:str,
+                                                                                buildconfiguration: str, build_test_project_too: bool=True,commandline_arguments: list[str]=[]):
+        output_folder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
+        GeneralUtilities.ensure_directory_does_not_exist(output_folder)
+        GeneralUtilities.ensure_directory_exists(output_folder)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
         csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
         commandline_arguments = commandline_arguments[1:]
         files_to_sign: dict() = dict()
         for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-buildconfiguration:"):
+                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
             if commandline_argument.startswith("-sign:"):
                 commandline_argument_splitted: list[str] = commandline_argument.split(":")
                 files_to_sign[commandline_argument_splitted[1]] = commandline_argument[len("-sign:"+commandline_argument_splitted[1])+1:]
@@ -1290,7 +1300,7 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
         GeneralUtilities.ensure_directory_exists(outputfolder)
         self.standardized_tasks_build_for_dotnet_project_in_common_project_structure(
-            repository_folder, codeunitname, buildconfiguration, True, outputfolder, commandline_arguments)
+            repository_folder, codeunitname, buildconfiguration, buildscript_file, True, commandline_arguments)
         self.standardized_tasks_build_for_dotnet_create_package(repository_folder, codeunitname, outputfolder)
 
     @GeneralUtilities.check_arguments
@@ -2648,6 +2658,7 @@ class ScriptCollectionCore:
                                                                              reference_repository_branch_name: str = "main", build_repository_branch="main",
                                                                              public_repository_url: str = None, build_py_arguments: str = ""):
 
+        GeneralUtilities.write_message_to_stdout(f"Create release for project {projectname}")
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
         build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
@@ -2682,4 +2693,5 @@ class ScriptCollectionCore:
                 self.git_push(createReleaseInformation.reference_repository, reference_repository_remote_name, reference_repository_branch_name,
                               reference_repository_branch_name,  verbosity=verbosity)
         self.git_commit(build_repository_folder, f"Added {projectname} release v{new_project_version}")
+        GeneralUtilities.write_message_to_stdout(f"Finished release for project {projectname} successfully")
         return new_project_version
