@@ -1257,7 +1257,6 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict):
-        # TODO update version in csproj-file
         csproj_file_folder = os.path.dirname(csproj_file)
         csproj_file_name = os.path.basename(csproj_file)
         self.run_program("dotnet", "clean", csproj_file_folder)
@@ -1268,7 +1267,15 @@ class ScriptCollectionCore:
             self.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, repository_folder: str, codeunitname: str,buildscript_file:str,
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file:str, buildconfiguration: str, commandline_arguments: list[str]=[]):
+        # this function builds an exe or dll
+        repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
+        codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
+        self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(repository_folder, codeunitname, buildscript_file, buildconfiguration, True, commandline_arguments)
+
+
+    @GeneralUtilities.check_arguments
+    def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, repository_folder: str, codeunitname: str,buildscript_file:str,
                                                                                 buildconfiguration: str, build_test_project_too: bool=True,commandline_arguments: list[str]=[]):
         output_folder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
         GeneralUtilities.ensure_directory_does_not_exist(output_folder)
@@ -1291,6 +1298,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+        # this function builds an exe or dll but converts it immediately to an nupkg-file
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         for commandline_argument in commandline_arguments:
@@ -1299,12 +1307,12 @@ class ScriptCollectionCore:
         outputfolder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
         GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
         GeneralUtilities.ensure_directory_exists(outputfolder)
-        self.standardized_tasks_build_for_dotnet_project_in_common_project_structure(
+        self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(
             repository_folder, codeunitname, buildconfiguration, buildscript_file, True, commandline_arguments)
-        self.standardized_tasks_build_for_dotnet_create_package(repository_folder, codeunitname, outputfolder)
+        self.__standardized_tasks_build_nupkg_for_dotnet_create_package(repository_folder, codeunitname, outputfolder)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_create_package(self, repository: str, codeunitname: str, outputfolder: str):
+    def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, repository: str, codeunitname: str, outputfolder: str):
         build_folder = os.path.join(repository, codeunitname, "Other", "Build")
         root: etree._ElementTree = etree.parse(os.path.join(build_folder, f"{codeunitname}.nuspec"))
         current_version = root.xpath("//*[name() = 'package']/*[name() = 'metadata']/*[name() = 'version']/text()")[0]
