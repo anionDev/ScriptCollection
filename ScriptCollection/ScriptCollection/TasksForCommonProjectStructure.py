@@ -155,7 +155,7 @@ class TasksForCommonProjectStructure:
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_refefrence_for_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str] = []):
+    def standardized_tasks_generate_refefrence_for_codeunit_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str] = []):
         reference_folder = os.path.dirname(generate_reference_file)
         reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
         GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
@@ -553,6 +553,18 @@ class TasksForCommonProjectStructure:
         self.__sc.git_commit(build_repository_folder, f"Added {projectname} release v{new_project_version}")
         GeneralUtilities.write_message_to_stdout(f"Finished release for project {projectname} successfully")
         return new_project_version
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_docker_codeunit(self, buildscript_file:str, commandline_arguments:list[str])->None:
+        pass # TODO
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_run_testcases_for_docker_codeunit_in_common_project_structure(self,run_testcases_file:str, commandline_arguments:list[str]):
+        pass# TODO
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_linting_for_docker_codeunit_in_common_project_structure(self,linting_file:str, commandline_arguments:list[str]):
+        pass# TODO
 
     @GeneralUtilities.check_arguments
     def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile=None, verbosity: int = 1):
