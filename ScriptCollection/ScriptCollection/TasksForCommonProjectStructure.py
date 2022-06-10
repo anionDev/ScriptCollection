@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
 import shutil
-from lxml import etree
 import re
+from lxml import etree
 from .GeneralUtilities import GeneralUtilities
-from .ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
+from .ScriptCollectionCore import ScriptCollectionCore
 
 
 class CreateReleaseInformationForProjectInCommonProjectFormat:
@@ -57,8 +57,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __run_build_py(self, commitid, codeunit_version, build_py_arguments, repository, codeunitname, verbosity):
-        self.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}", os.path.join(repository, codeunitname, "Other", "Build"),
-                         verbosity=verbosity)
+        self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}", os.path.join(repository, codeunitname, "Other", "Build"),
+                              verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
@@ -66,7 +66,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_wheel_file_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
-        return self.find_file_by_extension(self.get_build_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "whl")
+        return self.__sc.find_file_by_extension(self.get_build_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "whl")
 
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
@@ -123,16 +123,6 @@ class TasksForCommonProjectStructure:
         return float(str(root.xpath('//codeunit:minimalcodecoverageinpercent/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0]))
 
     @GeneralUtilities.check_arguments
-    def get_code_units_of_repository_in_common_project_format(self, repository_folder: str) -> list[str]:
-        result = []
-        for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
-            subfolder_name = os.path.basename(direct_subfolder)
-            if os.path.isfile(os.path.join(direct_subfolder, subfolder_name+".codeunit")):
-                # TODO validate .codeunit file against appropriate xsd-file
-                result.append(subfolder_name)
-        return result
-
-    @GeneralUtilities.check_arguments
     def __get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
         root: etree._ElementTree = etree.parse(codeunit_file)
         return float(str(root.xpath('//codeunit:minimalcodecoverageinpercent/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0]))
@@ -156,79 +146,13 @@ class TasksForCommonProjectStructure:
                                                          GeneralUtilities.read_text_from_file(file)))
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, args: list[str]):
-        pass  # TODO
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
-        folder_of_current_file = os.path.dirname(generate_reference_script_file)
-        generated_reference_folder = os.path.join(folder_of_current_file, "GeneratedReference")
-        GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
-        GeneralUtilities.ensure_directory_exists(generated_reference_folder)
-        obj_folder = os.path.join(folder_of_current_file, "obj")
-        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
-        GeneralUtilities.ensure_directory_exists(obj_folder)
-        self.__sc.run_program("docfx", "docfx.json", folder_of_current_file)
-        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_python_project_in_common_project_structure(self, linting_script_file):
-        repository_folder: str = str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
-        codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
-        errors_found = False
-        GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}")
-        src_folder = os.path.join(repository_folder, codeunitname, codeunitname)
-        tests_folder = src_folder+"Tests"
-        for file in GeneralUtilities.get_all_files_of_folder(src_folder)+GeneralUtilities.get_all_files_of_folder(tests_folder):
-            relative_file_path_in_repository = os.path.relpath(file, repository_folder)
-            if file.endswith(".py") and os.path.getsize(file) > 0 and not self.__sc.file_is_git_ignored(relative_file_path_in_repository, repository_folder):
-                GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in {os.path.relpath(file,os.path.join(repository_folder,codeunitname))}")
-                linting_result = self.__sc.python_file_has_errors(file, repository_folder)
-                if (linting_result[0]):
-                    errors_found = True
-                    for error in linting_result[1]:
-                        GeneralUtilities.write_message_to_stderr(error)
-        if errors_found:
-            raise Exception("Linting-issues occurred")
-        else:
-            GeneralUtilities.write_message_to_stdout("No linting-issues found.")
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_python_project(self, repository_folder: str, codeunitname: str):
+    def __standardized_tasks_run_testcases_for_python_codeunit(self, repository_folder: str, codeunitname: str):
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         self.__sc.run_program("coverage", "run -m pytest", codeunit_folder)
         self.__sc.run_program("coverage", "xml", codeunit_folder)
         coveragefile = os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int = 1, generate_badges: bool = True, args: list[str] = []):
-        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml'
-        which contains a test-coverage-report in the cobertura-format exists.
-        This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
-        This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/Badges'."""
-        if verbosity == 0:
-            verbose_argument_for_reportgenerator = "Off"
-        if verbosity == 1:
-            verbose_argument_for_reportgenerator = "Error"
-        if verbosity == 2:
-            verbose_argument_for_reportgenerator = "Info"
-        if verbosity == 3:
-            verbose_argument_for_reportgenerator = "Verbose"
-
-        # Generating report
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
-        self.__sc.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport " +
-                              f"-verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
-
-        if generate_badges:
-            # Generating badges
-            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
-            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
-            self.__sc.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges -reporttypes:Badges " +
-                                  f"-verbosity:{verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_refefrence_for_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str] = []):
@@ -238,31 +162,11 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docfx", "docfx.json", reference_folder)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str, buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
-        repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
-        codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
-        for commandline_argument in commandline_arguments:
-            if commandline_argument.startswith("-buildconfiguration:"):
-                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
-        testprojectname = codeunit_name+"Tests"
-        coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
-        coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage")
-        coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
-        GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
-        self.__sc.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
-                              f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
-                              f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name))
-        GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
-        GeneralUtilities.ensure_directory_exists(coverage_file_folder)
-        os.rename(coveragefilesource, coveragefiletarget)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_python_project_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
+    def standardized_tasks_run_testcases_for_python_codeunit_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(run_testcases_file)).parent.parent.name
-        self.standardized_tasks_run_testcases_for_python_project(repository_folder, codeunitname)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, generate_badges)
+        self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname)
+        self.__standardized_tasks_generate_coverage_report(repository_folder, codeunitname, generate_badges)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_project_in_common_project_structure(self, build_file: str):
@@ -403,7 +307,7 @@ class TasksForCommonProjectStructure:
         os.rename(nupkg_file, f"{build_folder}/BuildArtifact/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_python_project_in_common_project_structure(self, linting_script_file):
+    def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file):
         repository_folder: str = str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
         errors_found = False
@@ -425,16 +329,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout("No linting-issues found.")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_python_project(self, repository_folder: str, codeunitname: str):
-        codeunit_folder = os.path.join(repository_folder, codeunitname)
-        self.__sc.run_program("coverage", "run -m pytest", codeunit_folder)
-        self.__sc.run_program("coverage", "xml", codeunit_folder)
-        coveragefile = os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
-        GeneralUtilities.ensure_file_does_not_exist(coveragefile)
-        os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int = 1, generate_badges: bool = True, args: list[str] = []):
+    def __standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int = 1, generate_badges: bool = True, args: list[str] = []):
         """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
@@ -486,7 +381,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         GeneralUtilities.ensure_directory_exists(coverage_file_folder)
         os.rename(coveragefilesource, coveragefiletarget)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
+        self.__standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
 
     @GeneralUtilities.check_arguments
     def get_code_units_of_repository_in_common_project_format(self, repository_folder: str) -> list[str]:
@@ -611,7 +506,7 @@ class TasksForCommonProjectStructure:
                                                                                 registry_address: str = "nuget.org", api_key: str = None):
         build_artifact_folder = GeneralUtilities.resolve_relative_path(
             f"../../Submodules/{codeunitname}/{codeunitname}/Other/Build/BuildArtifact", os.path.dirname(push_script_file))
-        self.__sc.push_nuget_build_artifact_of_repository_in_common_file_structure(self.find_file_by_extension(build_artifact_folder, "nupkg"),
+        self.__sc.push_nuget_build_artifact_of_repository_in_common_file_structure(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"),
                                                                                    registry_address, api_key)
 
     @GeneralUtilities.check_arguments
@@ -631,7 +526,7 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(build_repository_folder, build_repository_branch)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
-        mergeToStableBranchInformation = ScriptCollectionCore.MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
+        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
         mergeToStableBranchInformation.verbosity = verbosity
         mergeToStableBranchInformation.project_has_source_code = project_has_source_code
         mergeToStableBranchInformation.push_source_branch = True
@@ -642,9 +537,9 @@ class TasksForCommonProjectStructure:
         mergeToStableBranchInformation.build_py_arguments = build_py_arguments
         new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
-        createReleaseInformation = ScriptCollectionCore.CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,
-                                                                                                                projectname, public_repository_url,
-                                                                                                                mergeToStableBranchInformation.targetbranch)
+        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,
+                                                                                           projectname, public_repository_url,
+                                                                                           mergeToStableBranchInformation.targetbranch)
         createReleaseInformation.verbosity = verbosity
         createReleaseInformation.build_py_arguments = build_py_arguments
         if project_has_source_code:

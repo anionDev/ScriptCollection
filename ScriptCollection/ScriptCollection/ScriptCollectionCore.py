@@ -25,7 +25,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.1.4"
+version = "3.1.5"
 __version__ = version
 
 
@@ -396,19 +396,6 @@ class ScriptCollectionCore:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
         self.git_unstage_all_changes(directory)
         self.git_discard_all_unstaged_changes(directory)
-
-    @GeneralUtilities.check_arguments
-    def __undo_changes(self, repository: str) -> None:
-        if(self.git_repository_has_uncommitted_changes(repository)):
-            self.git_undo_all_changes(repository)
-
-    @GeneralUtilities.check_arguments
-    def __repository_has_changes(self, repository: str) -> bool:
-        if(self.git_repository_has_uncommitted_changes(repository)):
-            GeneralUtilities.write_message_to_stderr(f"'{repository}' contains uncommitted changes")
-            return True
-        else:
-            return False
 
     @GeneralUtilities.check_arguments
     def git_fetch_or_clone_all_in_directory(self, source_directory: str, target_directory: str) -> None:
