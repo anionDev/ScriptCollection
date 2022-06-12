@@ -1,9 +1,10 @@
+import sys
 from pathlib import Path
-from ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
+from ScriptCollection.TasksForCommonProjectStructure import TasksForCommonProjectStructure
 
 
 def generate_reference():
-    ScriptCollectionCore().standardized_tasks_generate_reference_by_docfx(Path(__file__).absolute())
+    TasksForCommonProjectStructure().standardized_tasks_generate_reference_by_docfx(str(Path(__file__).absolute()), sys.argv)
 
 
 if __name__ == "__main__":
