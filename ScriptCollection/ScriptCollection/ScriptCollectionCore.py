@@ -398,11 +398,6 @@ class ScriptCollectionCore:
         self.git_discard_all_unstaged_changes(directory)
 
     @GeneralUtilities.check_arguments
-    def replace_version_in_dockerfile(self, dockerfile:str, new_version:str)->None:
-        pass # TODO
-
-
-    @GeneralUtilities.check_arguments
     def git_fetch_or_clone_all_in_directory(self, source_directory: str, target_directory: str) -> None:
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(source_directory):
             foldername = os.path.basename(subfolder)

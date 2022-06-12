@@ -57,7 +57,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __run_build_py(self, commitid, codeunit_version, build_py_arguments, repository, codeunitname, verbosity):
-        self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}", os.path.join(repository, codeunitname, "Other", "Build"),
+        self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}",
+                              os.path.join(repository, codeunitname, "Other", "Build"),
                               verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
@@ -146,30 +147,37 @@ class TasksForCommonProjectStructure:
                                                          GeneralUtilities.read_text_from_file(file)))
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_run_testcases_for_python_codeunit(self, repository_folder: str, codeunitname: str):
+    def __standardized_tasks_run_testcases_for_python_codeunit(self, repository_folder: str, codeunitname: str, verbosity: int):
         codeunit_folder = os.path.join(repository_folder, codeunitname)
-        self.__sc.run_program("coverage", "run -m pytest", codeunit_folder)
+        if verbosity == 1:
+            verbosity_for_pytest = 2
+        else:
+            verbosity_for_pytest = verbosity
+        self.__sc.run_program("coverage", "run -m pytest", codeunit_folder, verbosity_for_pytest)
         self.__sc.run_program("coverage", "xml", codeunit_folder)
         coveragefile = os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_refefrence_for_codeunit_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str] = []):
+    def standardized_tasks_generate_refefrence_for_codeunit_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str]):
         reference_folder = os.path.dirname(generate_reference_file)
         reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
         GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
         self.__sc.run_program("docfx", "docfx.json", reference_folder)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_python_codeunit_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool = True):
+    def standardized_tasks_run_testcases_for_python_codeunit_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool,
+                                                                                         commandline_arguments: list[str]):
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(run_testcases_file)).parent.parent.name
-        self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname)
-        self.__standardized_tasks_generate_coverage_report(repository_folder, codeunitname, generate_badges)
+        self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname, verbosity)
+        self.__standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_python_project_in_common_project_structure(self, build_file: str):
+    def standardized_tasks_build_for_python_codeunit_in_common_project_structure(self, build_file: str, commandline_arguments: list[str]):
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
         setuppy_file_folder = str(Path(os.path.dirname(build_file)).parent.parent.absolute())
         setuppy_file_filename = "Setup.py"
         repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
@@ -178,10 +186,12 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
         self.__sc.run_program("git", f"clean -dfx --exclude={codeunitname}/Other {codeunitname}", repository_folder)
         GeneralUtilities.ensure_directory_exists(target_directory)
-        self.__sc.run_program("python", f"{setuppy_file_filename} bdist_wheel --dist-dir {target_directory}", setuppy_file_folder)
+        self.__sc.run_program("python", f"{setuppy_file_filename} bdist_wheel --dist-dir {target_directory}", setuppy_file_folder, verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository="pypi", gpg_identity: str = None, verbosity: int = 1) -> None:
+    def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository: str, gpg_identity: str, verbosity: int) -> None:
+        # repository-value when PyPi should be used: "pypi"
+        # gpg_identity-value when wheel-file should not be signed: None
         folder = os.path.dirname(wheel_file)
         filename = os.path.basename(wheel_file)
 
@@ -200,11 +210,49 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def push_wheel_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, apikey, gpg_identity: str = None) -> None:
+    def push_wheel_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, repository: str, apikey: str,
+                                                                         gpg_identity: str, verbosity: int) -> None:
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
-        self.standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, gpg_identity=gpg_identity)
+        self.standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, repository, gpg_identity, verbosity)
+
+    @GeneralUtilities.check_arguments
+    def get_version_of_codeunit(self, codeunit_file: str) -> None:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        result = str(root.xpath('//codeunit:version/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0])
+        return result
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str]) -> None:
+        verbosity = None
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("-verbosity:"):
+                verbosity = int(commandline_argument[len("-verbosity:"):])
+        if verbosity is None:
+            return 0
+        else:
+            return verbosity
+
+    @GeneralUtilities.check_arguments
+    def update_version_of_codeunit_to_project_version(self, common_tasks_file: str, current_version: str) -> None:
+        codeunit_name: str = os.path.basename(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)))
+        codeunit_file: str = os.path.join(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)), f"{codeunit_name}.codeunit")
+        self.write_version_to_codeunit_file(codeunit_file, current_version)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, commandline_arguments: list[str]) -> None:
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
+        folder_of_current_file = os.path.dirname(generate_reference_script_file)
+        generated_reference_folder = os.path.join(folder_of_current_file, "GeneratedReference")
+        GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
+        GeneralUtilities.ensure_directory_exists(generated_reference_folder)
+        obj_folder = os.path.join(folder_of_current_file, "obj")
+        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
+        GeneralUtilities.ensure_directory_exists(obj_folder)
+        self.__sc.run_program("docfx", "docfx.json", folder_of_current_file, verbosity)
+        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict):
@@ -218,54 +266,19 @@ class TasksForCommonProjectStructure:
             self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
 
     @GeneralUtilities.check_arguments
-    def get_version_of_codeunit(self, codeunit_file: str) -> None:
-        root: etree._ElementTree = etree.parse(codeunit_file)
-        result = str(root.xpath('//codeunit:version/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0])
-        return result
-
-    @GeneralUtilities.check_arguments
-    def update_version_of_codeunit_to_project_version(self, common_tasks_file: str, current_version: str) -> None:
-        codeunit_name: str = os.path.basename(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)))
-        codeunit_file: str = os.path.join(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)), f"{codeunit_name}.codeunit")
-        self.write_version_to_codeunit_file(codeunit_file, current_version)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str) -> None:
-        folder_of_current_file = os.path.dirname(generate_reference_script_file)
-        generated_reference_folder = os.path.join(folder_of_current_file, "GeneratedReference")
-        GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
-        GeneralUtilities.ensure_directory_exists(generated_reference_folder)
-        obj_folder = os.path.join(folder_of_current_file, "obj")
-        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
-        GeneralUtilities.ensure_directory_exists(obj_folder)
-        self.__sc.run_program("docfx", "docfx.json", folder_of_current_file)
-        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict):
-        csproj_file_folder = os.path.dirname(csproj_file)
-        csproj_file_name = os.path.basename(csproj_file)
-        self.__sc.run_program("dotnet", "clean", csproj_file_folder)
-        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
-        GeneralUtilities.ensure_directory_exists(outputfolder)
-        self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder}", csproj_file_folder)
-        for file, keyfile in files_to_sign.items():
-            self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str, commandline_arguments: list[str] = []):
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str, commandline_arguments: list[str]):
         # this function builds an exe or dll
         self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(buildscript_file, buildconfiguration, True, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str, commandline_arguments: list[str]):
         # this function builds an exe or dll and converts it immediately to an nupkg-file
         self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(buildscript_file, buildconfiguration, True, commandline_arguments)
         self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str,
-                                                                                  build_test_project_too: bool = True, commandline_arguments: list[str] = []):
+                                                                                  build_test_project_too: bool, commandline_arguments: list[str]):
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         outputfolder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
@@ -307,7 +320,7 @@ class TasksForCommonProjectStructure:
         os.rename(nupkg_file, f"{build_folder}/BuildArtifact/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file):
+    def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file: str, commandline_arguments: list[str]):
         repository_folder: str = str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
         errors_found = False
@@ -329,7 +342,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout("No linting-issues found.")
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int = 1, generate_badges: bool = True, args: list[str] = []):
+    def __standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int, generate_badges: bool, commandline_arguments: list[str]):
         """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
@@ -357,14 +370,16 @@ class TasksForCommonProjectStructure:
                                   f"-verbosity:{verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str] = []):
+    def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str]):
         reference_folder = os.path.dirname(generate_reference_file)
         reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
         GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
         self.__sc.run_program("docfx", "docfx.json", reference_folder)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str, buildconfiguration: str = "Release", commandline_arguments: list[str] = []):
+    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str, buildconfiguration: str,
+                                                                                        commandline_arguments: list[str], generate_badges: bool):
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         for commandline_argument in commandline_arguments:
@@ -381,7 +396,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         GeneralUtilities.ensure_directory_exists(coverage_file_folder)
         os.rename(coveragefilesource, coveragefiletarget)
-        self.__standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, 1)
+        self.__standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def get_code_units_of_repository_in_common_project_format(self, repository_folder: str) -> list[str]:
@@ -405,7 +420,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, args: list[str]):
+    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, commandline_arguments: list[str]):
         pass  # TODO
 
     @GeneralUtilities.check_arguments
@@ -503,7 +518,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def push_nuget_build_artifact_for_project_in_standardized_project_structure(self, push_script_file: str, codeunitname: str,
-                                                                                registry_address: str = "nuget.org", api_key: str = None):
+                                                                                registry_address: str, api_key: str):
+        # when pusing to "default public" nuget-server then use registry_address: "nuget.org"
         build_artifact_folder = GeneralUtilities.resolve_relative_path(
             f"../../Submodules/{codeunitname}/{codeunitname}/Other/Build/BuildArtifact", os.path.dirname(push_script_file))
         self.__sc.push_nuget_build_artifact_of_repository_in_common_file_structure(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"),
@@ -512,9 +528,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
                                                                              project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts:
-                                                                             dict[str, str], verbosity: int = 1, reference_repository_remote_name: str = None,
-                                                                             reference_repository_branch_name: str = "main", build_repository_branch="main",
-                                                                             public_repository_url: str = None, build_py_arguments: str = ""):
+                                                                             dict[str, str], verbosity: int, reference_repository_remote_name: str,
+                                                                             reference_repository_branch_name: str, build_repository_branch,
+                                                                             public_repository_url: str, build_py_arguments: str):
 
         GeneralUtilities.write_message_to_stdout(f"Create release for project {projectname}")
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
@@ -555,19 +571,19 @@ class TasksForCommonProjectStructure:
         return new_project_version
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_docker_codeunit(self, buildscript_file:str, commandline_arguments:list[str])->None:
-        pass # TODO
+    def standardized_tasks_build_for_docker_codeunit(self, buildscript_file: str, commandline_arguments: list[str]) -> None:
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_docker_codeunit_in_common_project_structure(self,run_testcases_file:str, commandline_arguments:list[str]):
-        pass# TODO
+    def standardized_tasks_run_testcases_for_docker_codeunit_in_common_project_structure(self, run_testcases_file: str, commandline_arguments: list[str]):
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_docker_codeunit_in_common_project_structure(self,linting_file:str, commandline_arguments:list[str]):
-        pass# TODO
+    def standardized_tasks_linting_for_docker_codeunit_in_common_project_structure(self, linting_file: str, commandline_arguments: list[str]):
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile=None, verbosity: int = 1):
+    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile, verbosity: int):
         folder_of_this_file = os.path.dirname(create_release_file)
         self.__sc.run_program("python.py", "CreateRelease.py", folder_of_this_file, verbosity, log_file=logfile)
 
@@ -594,6 +610,8 @@ class TasksForCommonProjectStructure:
                     GeneralUtilities.write_message_to_stdout("Do common tasks")
                     self.__sc.run_program("python", f"{common_tasks_file} --projectversion={project_version}", common_tasks_folder, verbosity=information.verbosity)
 
+                verbosity_argument = f"-verbosity={str(information.verbosity)}"
+
                 if information.project_has_source_code:
                     GeneralUtilities.write_message_to_stdout("Run testcases")
                     qualityfolder = os.path.join(information.repository, codeunitname, "Other", "QualityCheck")
@@ -602,10 +620,11 @@ class TasksForCommonProjectStructure:
                                             self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit")))
 
                     GeneralUtilities.write_message_to_stdout("Check linting")
-                    self.__sc.run_program("python", "Linting.py", os.path.join(information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
+                    self.__sc.run_program("python", f"Linting.py {verbosity_argument}", os.path.join(
+                        information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
 
                     GeneralUtilities.write_message_to_stdout("Generate reference")
-                    self.__sc.run_program("python", "GenerateReference.py", os.path.join(information.repository,
+                    self.__sc.run_program("python", "GenerateReference.py {verbosity_argument}", os.path.join(information.repository,
                                           codeunitname, "Other", "Reference"), verbosity=information.verbosity)
 
                     if information.run_build_py:
