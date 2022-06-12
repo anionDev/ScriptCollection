@@ -65,8 +65,9 @@ class ScriptCollectionCore:
                 errors.append(line)
             return (True, errors)
 
-        return (False, errors)    @ GeneralUtilities.check_arguments
+        return (False, errors)    
 
+    @ GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, threshold_in_percent: float):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
