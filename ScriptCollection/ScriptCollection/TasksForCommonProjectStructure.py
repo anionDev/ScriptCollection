@@ -544,13 +544,14 @@ class TasksForCommonProjectStructure:
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
         mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
         mergeToStableBranchInformation.verbosity = verbosity
-        mergeToStableBranchInformation.project_has_source_code = project_has_source_code
+        mergeToStableBranchInformation.project_has_source_code = project_has_source_code# TODO codeunit dependent arguments like this must be passed in a dictionary
         mergeToStableBranchInformation.push_source_branch = True
         mergeToStableBranchInformation.push_source_branch_remote_name = remotename
         mergeToStableBranchInformation.push_target_branch = True
         mergeToStableBranchInformation.push_target_branch_remote_name = remotename
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
-        mergeToStableBranchInformation.build_py_arguments = build_py_arguments
+        mergeToStableBranchInformation.build_py_arguments = build_py_arguments# TODO codeunit dependent arguments like this must be passed in a dictionary
+        # TODO add arguments also for linting-, generate-reference-, common-task and run-testcases-script
         new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
         createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,
