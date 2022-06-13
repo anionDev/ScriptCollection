@@ -6,19 +6,6 @@ from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .Hardening import HardeningScript
 
-
-def CreateRelease() -> int:
-    parser = argparse.ArgumentParser(description="""SCCreateRelease_cli:
-Description: TODO
-Required commandline-commands: TODO
-Required configuration-items: TODO
-Requires the requirements of: TODO
-""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("configurationfile")
-    args = parser.parse_args()
-    return ScriptCollectionCore().create_release(args.configurationfile)
-
-
 def DotNetsign() -> int:
     parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
     parser.add_argument("dllOrExefile")
