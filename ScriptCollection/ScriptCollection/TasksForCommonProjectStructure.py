@@ -101,7 +101,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __run_build_py(self, commitid, codeunit_version: str, build_py_arguments: str, repository: str, codeunitname: str, verbosity: int):
-        self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}",
+        self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} --verbosity={str(verbosity)} {build_py_arguments}",
                               os.path.join(repository, codeunitname, "Other", "Build"), verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
@@ -268,12 +268,23 @@ class TasksForCommonProjectStructure:
     def get_verbosity_from_commandline_arguments(commandline_arguments: list[str], default_value: int = 0) -> None:
         verbosity = None
         for commandline_argument in commandline_arguments:
-            if commandline_argument.startswith("-verbosity:"):
-                verbosity = int(commandline_argument[len("-verbosity:"):])
+            if commandline_argument.startswith("--verbosity="):
+                verbosity = int(commandline_argument[len("--verbosity="):])
         if verbosity is None:
             return default_value
         else:
             return verbosity
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_dotnet_buildconfiguration_from_commandline_arguments(commandline_arguments: list[str], default_value: str = 0) -> None:
+        build_configuration = None
+        for commandline_argument in commandline_arguments:
+            if commandline_argument.startswith("--buildconfiguration="):
+                build_configuration = int(commandline_argument[len("--buildconfiguration="):])
+        if build_configuration is None:
+            return default_value
+        else:
+            return build_configuration
 
     @GeneralUtilities.check_arguments
     def update_version_of_codeunit_to_project_version(self, common_tasks_file: str, current_version: str) -> None:
@@ -331,11 +342,12 @@ class TasksForCommonProjectStructure:
         commandline_arguments = commandline_arguments[1:]
         files_to_sign: dict() = dict()
         for commandline_argument in commandline_arguments:
-            if commandline_argument.startswith("-buildconfiguration:"):
-                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
-            if commandline_argument.startswith("-sign:"):
+            if commandline_argument.startswith("-buildconfiguration="):
+                buildconfiguration = commandline_argument[len("-buildconfiguration="):]
+            if commandline_argument.startswith("-sign="):
+                commandline_argument=commandline_argument[len("-sign="):]
                 commandline_argument_splitted: list[str] = commandline_argument.split(":")
-                files_to_sign[commandline_argument_splitted[1]] = commandline_argument[len("-sign:"+commandline_argument_splitted[1])+1:]
+                files_to_sign[commandline_argument_splitted[0]] = commandline_argument[len(commandline_argument_splitted[0])+1:]
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder)
         self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration, os.path.join(outputfolder, codeunitname), files_to_sign)
@@ -400,14 +412,14 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
         self.__sc.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport " +
-                              f"-verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
+                              f"--verbosity={verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
 
         if generate_badges:
             # Generating badges
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
             GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
-            self.__sc.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges -reporttypes:Badges " +
-                                  f"-verbosity:{verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
+            self.__sc.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges "+
+                f"-reporttypes:Badges --verbosity={verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str]):
@@ -423,8 +435,8 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         for commandline_argument in commandline_arguments:
-            if commandline_argument.startswith("-buildconfiguration:"):
-                buildconfiguration = commandline_argument[len("-buildconfiguration:"):]
+            if commandline_argument.startswith("-buildconfiguration="):
+                buildconfiguration = commandline_argument[len("-buildconfiguration="):]
         testprojectname = codeunit_name+"Tests"
         coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/QualityCheck/TestCoverage")
@@ -619,7 +631,7 @@ class TasksForCommonProjectStructure:
     def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile, commandline_arguments: list[str]):
         folder_of_this_file = os.path.dirname(create_release_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
-        self.__sc.run_program("python.py", f"CreateRelease.py -verbosity={str(verbosity)}", folder_of_this_file, verbosity, log_file=logfile)
+        self.__sc.run_program("python.py", f"CreateRelease.py --verbosity={str(verbosity)}", folder_of_this_file, verbosity, log_file=logfile)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
@@ -644,7 +656,7 @@ class TasksForCommonProjectStructure:
                     GeneralUtilities.write_message_to_stdout("Do common tasks")
                     self.__sc.run_program("python", f"{common_tasks_file} --projectversion={project_version}", common_tasks_folder, verbosity=information.verbosity)
 
-                verbosity_argument = f"-verbosity={str(information.verbosity)}"
+                verbosity_argument = f"--verbosity={str(information.verbosity)}"
 
                 GeneralUtilities.write_message_to_stdout("Run testcases")
                 qualityfolder = os.path.join(information.repository, codeunit.name, "Other", "QualityCheck")
