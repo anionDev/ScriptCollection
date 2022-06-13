@@ -636,7 +636,7 @@ class TasksForCommonProjectStructure:
         success = False
         try:
             for _, codeunit in information.codeunits.items():
-                GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit}")
+                GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit.name}")
 
                 common_tasks_file: str = "CommonTasks.py"
                 common_tasks_folder: str = os.path.join(information.repository, codeunit.name, "Other")
