@@ -46,7 +46,7 @@ class CreateReleaseConfiguration():
         self.build_artifacts_target_folder = build_artifacts_target_folder
         self.codeunits = codeunits
         self.verbosity = verbosity
-        self.projectname = reference_repository_remote_name
+        self.reference_repository_remote_name = reference_repository_remote_name
         self.reference_repository_branch_name = reference_repository_branch_name
         self.build_repository_branch = build_repository_branch
         self.public_repository_url = public_repository_url
@@ -136,10 +136,11 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
 
   <body>
-    <h1>{title}</h1>
+    <h1 class="display-1">{title}</h1>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}
     <a href="./GeneratedReference/index.html">Refrerence</a><br>
@@ -524,14 +525,14 @@ class TasksForCommonProjectStructure:
                     latest_version_hint = f" (v {project_version})"
                 else:
                     latest_version_hint = ""
-                reference_versions_html_lines.append(f"<h2>{version_identifier_of_project}{latest_version_hint}</h2>")
+                reference_versions_html_lines.append(f'<h2 class="display-2">{version_identifier_of_project}{latest_version_hint}</h2>')
                 reference_versions_html_lines.append("Contained codeunits:<br>")
                 reference_versions_html_lines.append("<ul>")
                 for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
                     codeunit_folder = os.path.join(information.repository, codeunitname)
                     codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-                    reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">'
-                                                         f'{os.path.basename(codeunit_reference_folder)} v{version_identifier_of_project}</a></li>')
+                    reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">' +
+                                                         f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
                 reference_versions_html_lines.append("</ul>")
 
             reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
@@ -540,15 +541,16 @@ class TasksForCommonProjectStructure:
             reference_index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
 
-<head>
+  <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-</head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  </head>
 
-<body>
-    <h1>{title}</h1>
+  <body>
+    <h1 class="display-1">{title}</h1>
     {reference_versions_links_file_content}
-</body>
+  </body>
 
 </html>
 """
@@ -637,7 +639,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit}")
 
                 common_tasks_file: str = "CommonTasks.py"
-                common_tasks_folder: str = os.path.join(information.repository, codeunit, "Other")
+                common_tasks_folder: str = os.path.join(information.repository, codeunit.name, "Other")
                 if os.path.isfile(os.path.join(common_tasks_folder, common_tasks_file)):
                     GeneralUtilities.write_message_to_stdout("Do common tasks")
                     self.__sc.run_program("python", f"{common_tasks_file} --projectversion={project_version}", common_tasks_folder, verbosity=information.verbosity)
@@ -645,26 +647,26 @@ class TasksForCommonProjectStructure:
                 verbosity_argument = f"-verbosity={str(information.verbosity)}"
 
                 GeneralUtilities.write_message_to_stdout("Run testcases")
-                qualityfolder = os.path.join(information.repository, codeunit, "Other", "QualityCheck")
+                qualityfolder = os.path.join(information.repository, codeunit.name, "Other", "QualityCheck")
                 self.__sc.run_program("python", f"RunTestcases.py {verbosity_argument} {codeunit.run_testcases_script_arguments}", qualityfolder, verbosity=information.verbosity)
-                self.check_testcoverage(os.path.join(information.repository, codeunit, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
-                                        self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunit, f"{codeunit}.codeunit")))
+                self.check_testcoverage(os.path.join(information.repository, codeunit.name, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
+                                        self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunit.name, f"{codeunit.name}.codeunit")))
 
                 GeneralUtilities.write_message_to_stdout("Check linting")
                 self.__sc.run_program("python", f"Linting.py {verbosity_argument} {codeunit.linting_script_arguments}", os.path.join(
-                    information.repository, codeunit, "Other", "QualityCheck"), verbosity=information.verbosity)
+                    information.repository, codeunit.name, "Other", "QualityCheck"), verbosity=information.verbosity)
 
                 GeneralUtilities.write_message_to_stdout("Generate reference")
                 self.__sc.run_program("python", f"GenerateReference.py {verbosity_argument} {codeunit.generate_reference_script_arguments}",
-                                      os.path.join(information.repository, codeunit, "Other", "Reference"), verbosity=information.verbosity)
+                                      os.path.join(information.repository, codeunit.name, "Other", "Reference"), verbosity=information.verbosity)
 
                 if information.run_build_script:
-                    codeunit_folder = os.path.join(information.repository, codeunit)
-                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit}.codeunit"))
+                    codeunit_folder = os.path.join(information.repository, codeunit.name)
+                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit.name}.codeunit"))
                     GeneralUtilities.write_message_to_stdout("Test if codeunit is buildable")
                     commitid = self.__sc.git_get_current_commit_id(information.repository)
                     self.__run_build_py(commitid, codeunit_version, codeunit.build_script_arguments, information.repository, codeunit.name, information.verbosity)
-                GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit}")
+                GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}")
 
             commit_id = self.__sc.git_commit(information.repository,  f"Created release v{project_version}")
             success = True
@@ -715,10 +717,11 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
 
   <body>
-    <h1>{title}</h1>
+    <h1 class="display-1">{title}</h1>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}
     <a href="./GeneratedReference/index.html">Refrerence</a><br>
