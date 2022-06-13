@@ -65,7 +65,7 @@ class ScriptCollectionCore:
                 errors.append(line)
             return (True, errors)
 
-        return (False, errors)    
+        return (False, errors)
 
     @ GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, threshold_in_percent: float):
