@@ -7,16 +7,61 @@ from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 
 
+class CodeUnitConfiguration():
+    name: str
+    push_to_registry_script: str
+    build_script_arguments: str
+    generate_reference_script_arguments: str
+    linting_script_arguments: str
+    run_testcases_script_arguments: str
+
+    def __init__(self, name: str, push_to_registry_script: str, build_script_arguments: str, generate_reference_script_arguments: str,
+                 linting_script_arguments: str, run_testcases_script_arguments: str):
+
+        self.name = name
+        self.push_to_registry_script = push_to_registry_script
+        self.build_script_arguments = build_script_arguments
+        self.generate_reference_script_arguments = generate_reference_script_arguments
+        self.linting_script_arguments = linting_script_arguments
+        self.run_testcases_script_arguments = run_testcases_script_arguments
+
+
+class CreateReleaseConfiguration():
+    projectname: str
+    remotename: str
+    build_artifacts_target_folder: str
+    codeunits: dict[str, CodeUnitConfiguration]
+    verbosity: int
+    reference_repository_remote_name: str
+    reference_repository_branch_name: str
+    build_repository_branch: str
+    public_repository_url: str
+
+    def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, codeunits: dict[str, CodeUnitConfiguration],
+                 verbosity: int, reference_repository_remote_name: str, reference_repository_branch_name: str, build_repository_branch: str,
+                 public_repository_url: str):
+
+        self.projectname = projectname
+        self.remotename = remotename
+        self.build_artifacts_target_folder = build_artifacts_target_folder
+        self.codeunits = codeunits
+        self.verbosity = verbosity
+        self.projectname = reference_repository_remote_name
+        self.reference_repository_branch_name = reference_repository_branch_name
+        self.build_repository_branch = build_repository_branch
+        self.public_repository_url = public_repository_url
+
+
 class CreateReleaseInformationForProjectInCommonProjectFormat:
     projectname: str
     repository: str
     build_artifacts_target_folder: str
     build_py_arguments: str = ""
     verbosity: int = 1
-    push_artifact_to_registry_scripts: dict[str, str] = dict[str, str]()  # key: codeunit, value: scriptfile for pushing codeunit's artifact to one or more registries
     reference_repository: str = None
     public_repository_url: str = None
     target_branch_name: str = None
+    codeunits: dict[str, CodeUnitConfiguration]
 
     def __init__(self, repository: str, build_artifacts_target_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
         self.repository = repository
@@ -31,13 +76,12 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
 
 
 class MergeToStableBranchInformationForProjectInCommonProjectFormat:
-    project_has_source_code: bool = True
     repository: str
     sourcebranch: str = "main"
     targetbranch: str = "stable"
-    run_build_py: bool = True
-    build_py_arguments: str = ""
+    run_build_script: bool = True
     sign_git_tags: bool = True
+    codeunits: dict[str, CodeUnitConfiguration]
 
     push_source_branch: bool = False
     push_source_branch_remote_name: str = None  # This value will be ignored if push_source_branch = False
@@ -56,10 +100,9 @@ class TasksForCommonProjectStructure:
     __sc: ScriptCollectionCore = ScriptCollectionCore()
 
     @GeneralUtilities.check_arguments
-    def __run_build_py(self, commitid, codeunit_version, build_py_arguments, repository, codeunitname, verbosity):
+    def __run_build_py(self, commitid, codeunit_version: str, build_py_arguments: str, repository: str, codeunitname: str, verbosity: int):
         self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}",
-                              os.path.join(repository, codeunitname, "Other", "Build"),
-                              verbosity=verbosity)
+                              os.path.join(repository, codeunitname, "Other", "Build"), verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
@@ -137,11 +180,6 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
-    def __run_build_py(self, commitid, codeunit_version, build_py_arguments, repository, codeunitname, verbosity):
-        self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} {build_py_arguments}", os.path.join(repository, codeunitname, "Other", "Build"),
-                              verbosity=verbosity)
-
-    @GeneralUtilities.check_arguments
     def replace_version_in_python_file(self, file: str, new_version_value: str):
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
@@ -210,8 +248,9 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("twine", twine_argument, folder, verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def push_wheel_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, repository: str, apikey: str,
-                                                                         gpg_identity: str, verbosity: int) -> None:
+    def push_wheel_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, repository: str,
+                                                                         apikey: str, gpg_identity: str, commandline_arguments: list[str]) -> None:
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
@@ -225,13 +264,13 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str]) -> None:
+    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str], default_value: int = 0) -> None:
         verbosity = None
         for commandline_argument in commandline_arguments:
             if commandline_argument.startswith("-verbosity:"):
                 verbosity = int(commandline_argument[len("-verbosity:"):])
         if verbosity is None:
-            return 0
+            return default_value
         else:
             return verbosity
 
@@ -421,21 +460,19 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, commandline_arguments: list[str]):
-        pass  # TODO
+        pass  # TODO implement function
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_release_buildartifact_for_project_in_common_project_format(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
         # This function is intended to be called directly after standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format
-
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.build_artifacts_target_folder, information.projectname, project_version)
         if os.path.isdir(target_folder_base):
             raise ValueError(f"The folder '{target_folder_base}' already exists.")
         GeneralUtilities.ensure_directory_exists(target_folder_base)
         commitid = self.__sc.git_get_current_commit_id(information.repository)
-        codeunits = self.get_code_units_of_repository_in_common_project_format(information.repository)
 
-        for codeunitname in codeunits:
+        for codeunitname in information.codeunits:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
             GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunitname}")
@@ -443,7 +480,7 @@ class TasksForCommonProjectStructure:
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
 
-        for codeunitname in codeunits:
+        for codeunitname in information.codeunits:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
 
@@ -460,46 +497,47 @@ class TasksForCommonProjectStructure:
             target_folder_for_codeunit_generatedreference = os.path.join(target_folder_for_codeunit, "GeneratedReference")
             shutil.copytree(os.path.join(codeunit_folder, "Other", "Reference", "GeneratedReference"), target_folder_for_codeunit_generatedreference)
 
-            if codeunitname in information.push_artifact_to_registry_scripts:
-                push_artifact_to_registry_script = information.push_artifact_to_registry_scripts[codeunitname]
-                folder = os.path.dirname(push_artifact_to_registry_script)
-                file = os.path.basename(push_artifact_to_registry_script)
-                GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}")
-                self.__sc.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
+        for _, codeunit in information.codeunits.items():
+            push_artifact_to_registry_script = codeunit.push_to_registry_script
+            folder = os.path.dirname(push_artifact_to_registry_script)
+            file = os.path.basename(push_artifact_to_registry_script)
+            GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}")
+            self.__sc.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
             # Copy reference of codeunit to reference-repository
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_for_project, information.repository,
                                                                              codeunitname, information.projectname, codeunit_version, information.public_repository_url,
                                                                              information.target_branch_name)
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_repository_target_for_project, information.repository,
-                                                                             codeunitname, information.projectname,  codeunit_version, information.public_repository_url,
+                                                                             codeunitname, information.projectname, codeunit_version, information.public_repository_url,
                                                                              information.target_branch_name)
 
-        GeneralUtilities.write_message_to_stdout("Create entire reference")
-        all_available_version_identifier_folders_of_reference = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project))
-        all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
-        all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
-        reference_versions_html_lines = []
-        for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
-            version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
-            if version_identifier_of_project == "Latest":
-                latest_version_hint = f" (v {project_version})"
-            else:
-                latest_version_hint = ""
-            reference_versions_html_lines.append(f"<h2>{version_identifier_of_project}{latest_version_hint}</h2>")
-            reference_versions_html_lines.append("Contained codeunits:<br>")
-            reference_versions_html_lines.append("<ul>")
-            for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
-                codeunit_folder = os.path.join(information.repository, codeunitname)
-                codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-                reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">'
-                                                     f'{os.path.basename(codeunit_reference_folder)} v{version_identifier_of_project}</a></li>')
-            reference_versions_html_lines.append("</ul>")
+            GeneralUtilities.write_message_to_stdout("Create entire reference")
+            all_available_version_identifier_folders_of_reference = list(
+                folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project))
+            all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
+            all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
+            reference_versions_html_lines = []
+            for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
+                version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
+                if version_identifier_of_project == "Latest":
+                    latest_version_hint = f" (v {project_version})"
+                else:
+                    latest_version_hint = ""
+                reference_versions_html_lines.append(f"<h2>{version_identifier_of_project}{latest_version_hint}</h2>")
+                reference_versions_html_lines.append("Contained codeunits:<br>")
+                reference_versions_html_lines.append("<ul>")
+                for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
+                    codeunit_folder = os.path.join(information.repository, codeunitname)
+                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+                    reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">'
+                                                         f'{os.path.basename(codeunit_reference_folder)} v{version_identifier_of_project}</a></li>')
+                reference_versions_html_lines.append("</ul>")
 
-        reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
-        title = f"{information.projectname}-reference"
-        reference_index_file = os.path.join(reference_repository_target_for_project, "index.html")
-        reference_index_file_content = f"""<!DOCTYPE html>
+            reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
+            title = f"{information.projectname}-reference"
+            reference_index_file = os.path.join(reference_repository_target_for_project, "index.html")
+            reference_index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -514,7 +552,7 @@ class TasksForCommonProjectStructure:
 
 </html>
 """
-        GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
+            GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
     @GeneralUtilities.check_arguments
     def push_nuget_build_artifact_for_project_in_standardized_project_structure(self, push_script_file: str, codeunitname: str,
@@ -526,66 +564,60 @@ class TasksForCommonProjectStructure:
                                                                                    registry_address, api_key)
 
     @GeneralUtilities.check_arguments
-    def create_release_for_project_in_standardized_release_repository_format(self, projectname: str, create_release_file: str,
-                                                                             project_has_source_code: bool, remotename: str, build_artifacts_target_folder: str, push_to_registry_scripts:
-                                                                             dict[str, str], verbosity: int, reference_repository_remote_name: str,
-                                                                             reference_repository_branch_name: str, build_repository_branch,
-                                                                             public_repository_url: str, build_py_arguments: str):
+    def create_release_for_project_in_standardized_release_repository_format(self, create_release_file: str, createReleaseConfiguration: CreateReleaseConfiguration):
 
-        GeneralUtilities.write_message_to_stdout(f"Create release for project {projectname}")
+        GeneralUtilities.write_message_to_stdout(f"Create release for project {createReleaseConfiguration.projectname}")
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
         build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
         if self.__sc.git_repository_has_uncommitted_changes(build_repository_folder):
             raise ValueError(f"Repository '{build_repository_folder}' has uncommitted changes.")
 
-        self.__sc.git_checkout(build_repository_folder, build_repository_branch)
+        self.__sc.git_checkout(build_repository_folder, createReleaseConfiguration.build_repository_branch)
 
-        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{projectname}", build_repository_folder)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
         mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
-        mergeToStableBranchInformation.verbosity = verbosity
-        mergeToStableBranchInformation.project_has_source_code = project_has_source_code
+        mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
         mergeToStableBranchInformation.push_source_branch = True
-        mergeToStableBranchInformation.push_source_branch_remote_name = remotename
+        mergeToStableBranchInformation.push_source_branch_remote_name = createReleaseConfiguration.remotename
         mergeToStableBranchInformation.push_target_branch = True
-        mergeToStableBranchInformation.push_target_branch_remote_name = remotename
+        mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
-        mergeToStableBranchInformation.build_py_arguments = build_py_arguments
+        mergeToStableBranchInformation.codeunits = createReleaseConfiguration.codeunits
         new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
-        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, build_artifacts_target_folder,
-                                                                                           projectname, public_repository_url,
+        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.build_artifacts_target_folder,
+                                                                                           createReleaseConfiguration.projectname, createReleaseConfiguration.public_repository_url,
                                                                                            mergeToStableBranchInformation.targetbranch)
-        createReleaseInformation.verbosity = verbosity
-        createReleaseInformation.build_py_arguments = build_py_arguments
-        if project_has_source_code:
-            createReleaseInformation.push_artifact_to_registry_scripts = push_to_registry_scripts
-            self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
+        createReleaseInformation.verbosity = createReleaseConfiguration.verbosity
+        createReleaseInformation.codeunits = createReleaseConfiguration.codeunits
+        self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
 
-            self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {projectname} v{new_project_version}")
-            if reference_repository_remote_name is not None:
-                self.__sc.git_push(createReleaseInformation.reference_repository, reference_repository_remote_name, reference_repository_branch_name,
-                                   reference_repository_branch_name,  verbosity=verbosity)
-        self.__sc.git_commit(build_repository_folder, f"Added {projectname} release v{new_project_version}")
-        GeneralUtilities.write_message_to_stdout(f"Finished release for project {projectname} successfully")
+        self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createReleaseConfiguration.projectname} v{new_project_version}")
+        if createReleaseConfiguration.reference_repository_remote_name is not None:
+            self.__sc.git_push(createReleaseInformation.reference_repository, createReleaseConfiguration.reference_repository_remote_name, createReleaseConfiguration.reference_repository_branch_name,
+                               createReleaseConfiguration.reference_repository_branch_name,  verbosity=createReleaseConfiguration.verbosity)
+        self.__sc.git_commit(build_repository_folder, f"Added {createReleaseConfiguration.projectname} release v{new_project_version}")
+        GeneralUtilities.write_message_to_stdout(f"Finished release for project {createReleaseConfiguration.projectname} successfully")
         return new_project_version
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_codeunit(self, buildscript_file: str, commandline_arguments: list[str]) -> None:
-        pass  # TODO
+        pass  # TODO implement function
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_docker_codeunit_in_common_project_structure(self, run_testcases_file: str, commandline_arguments: list[str]):
-        pass  # TODO
+        pass  # TODO implement function
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_docker_codeunit_in_common_project_structure(self, linting_file: str, commandline_arguments: list[str]):
-        pass  # TODO
+        pass  # TODO implement function
 
     @GeneralUtilities.check_arguments
-    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile, verbosity: int):
+    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile, commandline_arguments: list[str]):
         folder_of_this_file = os.path.dirname(create_release_file)
-        self.__sc.run_program("python.py", "CreateRelease.py", folder_of_this_file, verbosity, log_file=logfile)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
+        self.__sc.run_program("python.py", f"CreateRelease.py -verbosity={str(verbosity)}", folder_of_this_file, verbosity, log_file=logfile)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
@@ -601,39 +633,38 @@ class TasksForCommonProjectStructure:
         self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
         success = False
         try:
-            for codeunitname in self.get_code_units_of_repository_in_common_project_format(information.repository):
-                GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunitname}")
+            for _, codeunit in information.codeunits.items():
+                GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit}")
 
                 common_tasks_file: str = "CommonTasks.py"
-                common_tasks_folder: str = os.path.join(information.repository, codeunitname, "Other")
+                common_tasks_folder: str = os.path.join(information.repository, codeunit, "Other")
                 if os.path.isfile(os.path.join(common_tasks_folder, common_tasks_file)):
                     GeneralUtilities.write_message_to_stdout("Do common tasks")
                     self.__sc.run_program("python", f"{common_tasks_file} --projectversion={project_version}", common_tasks_folder, verbosity=information.verbosity)
 
                 verbosity_argument = f"-verbosity={str(information.verbosity)}"
 
-                if information.project_has_source_code:
-                    GeneralUtilities.write_message_to_stdout("Run testcases")
-                    qualityfolder = os.path.join(information.repository, codeunitname, "Other", "QualityCheck")
-                    self.__sc.run_program("python", "RunTestcases.py", qualityfolder, verbosity=information.verbosity)
-                    self.check_testcoverage(os.path.join(information.repository, codeunitname, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
-                                            self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit")))
+                GeneralUtilities.write_message_to_stdout("Run testcases")
+                qualityfolder = os.path.join(information.repository, codeunit, "Other", "QualityCheck")
+                self.__sc.run_program("python", f"RunTestcases.py {verbosity_argument} {codeunit.run_testcases_script_arguments}", qualityfolder, verbosity=information.verbosity)
+                self.check_testcoverage(os.path.join(information.repository, codeunit, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
+                                        self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunit, f"{codeunit}.codeunit")))
 
-                    GeneralUtilities.write_message_to_stdout("Check linting")
-                    self.__sc.run_program("python", f"Linting.py {verbosity_argument}", os.path.join(
-                        information.repository, codeunitname, "Other", "QualityCheck"), verbosity=information.verbosity)
+                GeneralUtilities.write_message_to_stdout("Check linting")
+                self.__sc.run_program("python", f"Linting.py {verbosity_argument} {codeunit.linting_script_arguments}", os.path.join(
+                    information.repository, codeunit, "Other", "QualityCheck"), verbosity=information.verbosity)
 
-                    GeneralUtilities.write_message_to_stdout("Generate reference")
-                    self.__sc.run_program("python", "GenerateReference.py {verbosity_argument}", os.path.join(information.repository,
-                                          codeunitname, "Other", "Reference"), verbosity=information.verbosity)
+                GeneralUtilities.write_message_to_stdout("Generate reference")
+                self.__sc.run_program("python", f"GenerateReference.py {verbosity_argument} {codeunit.generate_reference_script_arguments}",
+                                      os.path.join(information.repository, codeunit, "Other", "Reference"), verbosity=information.verbosity)
 
-                    if information.run_build_py:
-                        codeunit_folder = os.path.join(information.repository, codeunitname)
-                        codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-                        GeneralUtilities.write_message_to_stdout("Test if codeunit is buildable")
-                        commitid = self.__sc.git_get_current_commit_id(information.repository)
-                        self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
-                GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunitname}")
+                if information.run_build_script:
+                    codeunit_folder = os.path.join(information.repository, codeunit)
+                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit}.codeunit"))
+                    GeneralUtilities.write_message_to_stdout("Test if codeunit is buildable")
+                    commitid = self.__sc.git_get_current_commit_id(information.repository)
+                    self.__run_build_py(commitid, codeunit_version, codeunit.build_script_arguments, information.repository, codeunit.name, information.verbosity)
+                GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit}")
 
             commit_id = self.__sc.git_commit(information.repository,  f"Created release v{project_version}")
             success = True

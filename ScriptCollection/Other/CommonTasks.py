@@ -7,7 +7,7 @@ from ScriptCollection.TasksForCommonProjectStructure import TasksForCommonProjec
 
 
 def common_tasks():
-    file = Path(__file__).absolute()
+    file = str(Path(__file__).absolute())
     folder_of_current_file = os.path.dirname(file)
     sc = ScriptCollectionCore()
     version = sc.getversion_from_arguments_or_gitversion(file, sys.argv)
