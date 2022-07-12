@@ -498,7 +498,7 @@ class TasksForCommonProjectStructure:
         for codeunitname in information.codeunits:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-            GeneralUtilities.write_message_to_stdout(f"Build codeunit")
+            GeneralUtilities.write_message_to_stdout("Build codeunit")
             self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
@@ -650,7 +650,7 @@ class TasksForCommonProjectStructure:
                 if information.run_build_script:
                     codeunit_folder = os.path.join(information.repository, codeunit.name)
                     codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit.name}.codeunit"))
-                    GeneralUtilities.write_message_to_stdout(f"Build codeunit")
+                    GeneralUtilities.write_message_to_stdout("Build codeunit")
                     commitid = self.__sc.git_get_current_commit_id(information.repository)
                     self.__run_build_py(commitid, codeunit_version, codeunit.build_script_arguments, information.repository, codeunit.name, information.verbosity)
 
