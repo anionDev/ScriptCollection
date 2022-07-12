@@ -739,7 +739,7 @@ class TasksForCommonProjectStructure:
 
         other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
 
-        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "Reference")
+        source_generatedreference = os.path.join(other_folder_in_repository, "Artifacts", "Reference")
         target_generatedreference = os.path.join(target_folder, "Reference")
         shutil.copytree(source_generatedreference, target_generatedreference)
 
