@@ -101,8 +101,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __run_build_py(self, commitid, codeunit_version: str, build_py_arguments: str, repository: str, codeunitname: str, verbosity: int):
+        target_folder=self.get_build_folder_in_repository_in_common_repository_format(repository,codeunitname)
+        GeneralUtilities.ensure_directory_exists(target_folder)
         self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} --verbosity={str(verbosity)} {build_py_arguments}",
-                              os.path.join(repository, codeunitname, "Other", "Build"), verbosity=verbosity)
+                               target_folder,verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
@@ -221,7 +223,7 @@ class TasksForCommonProjectStructure:
         setuppy_file_filename = "Setup.py"
         repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
-        target_directory = os.path.join(repository_folder, codeunitname, "Other", "Build", "BuildArtifact")
+        target_directory = os.path.join(self.get_build_folder_in_repository_in_common_repository_format(repository_folder,codeunitname),"Wheel")
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
         self.__sc.run_program("git", f"clean -dfx --exclude={codeunitname}/Other {codeunitname}", repository_folder)
         GeneralUtilities.ensure_directory_exists(target_directory)
@@ -274,6 +276,7 @@ class TasksForCommonProjectStructure:
             return default_value
         else:
             return verbosity
+
     @staticmethod
     @GeneralUtilities.check_arguments
     def get_dotnet_buildconfiguration_from_commandline_arguments(commandline_arguments: list[str], default_value: str = 0) -> None:
@@ -333,8 +336,6 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         outputfolder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
-        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
-        GeneralUtilities.ensure_directory_exists(outputfolder)
 
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
@@ -350,17 +351,17 @@ class TasksForCommonProjectStructure:
                 files_to_sign[commandline_argument_splitted[0]] = commandline_argument[len(commandline_argument_splitted[0])+1:]
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder)
-        self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration, os.path.join(outputfolder, codeunitname), files_to_sign)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration, os.path.join(outputfolder, "BuildResult"), files_to_sign)
         if build_test_project_too:
-            self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration, os.path.join(outputfolder, codeunitname+"Tests"), files_to_sign)
+            self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration, os.path.join(outputfolder, "BuildResultTests"), files_to_sign)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str):
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
-        outputfolder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
-
         build_folder = os.path.join(repository_folder, codeunitname, "Other", "Build")
+        outputfolder = os.path.join(build_folder, "BuildArtifact","Nuget")
+
         root: etree._ElementTree = etree.parse(os.path.join(build_folder, f"{codeunitname}.nuspec"))
         current_version = root.xpath("//*[name() = 'package']/*[name() = 'metadata']/*[name() = 'version']/text()")[0]
         nupkg_filename = f"{codeunitname}.{current_version}.nupkg"
@@ -369,7 +370,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("nuget", f"pack {codeunitname}.nuspec", build_folder)
         GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
         GeneralUtilities.ensure_directory_exists(outputfolder)
-        os.rename(nupkg_file, f"{build_folder}/BuildArtifact/{nupkg_filename}")
+        os.rename(nupkg_file, f"{outputfolder}/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file: str, commandline_arguments: list[str]):
@@ -754,3 +755,15 @@ class TasksForCommonProjectStructure:
         source_testcoveragereport = os.path.join(other_folder_in_repository, "QualityCheck", "TestCoverage", "TestCoverageReport")
         target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
         shutil.copytree(source_testcoveragereport, target_testcoveragereport)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_container_application_in_common_project_structure(self, buildscript_file: str, build_configuration: str,
+        commandline_arguments: list[str]):
+        sc = ScriptCollectionCore()
+        codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
+        codeunitname_lower = codeunitname.lower()
+        buildscript_folder = os.path.dirname(buildscript_file)
+        sc.run_program("docker", f"build --build-arg EnvironmentStage={build_configuration} --tag {codeunitname_lower}:latest .", buildscript_folder)
+        targetfolder = os.path.join(buildscript_folder, "BuildArtifact", "ApplicationImage")
+        GeneralUtilities.ensure_directory_exists(targetfolder)
+        sc.run_program("docker", f"save -o {targetfolder}/{codeunitname}.latest.tar {codeunitname_lower}:latest", buildscript_folder)
