@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = "3.1.8"
+version = "3.1.9"
 
 
 def create_wheel_file():
@@ -48,7 +48,9 @@ def create_wheel_file():
             "lxml>=4.8.0",
             "ntplib>=0.3.4",
             "pycdlib>=1.10.0",
+            "pylint>=2.14.4",  # Required implicitly for TasksForCommonProjectStructure
             "PyPDF2>=1.26.0",
+            "pytest>=7.1.2",  # Required implicitly for TasksForCommonProjectStructure
             "qrcode>=6.1",
             "send2trash>=1.5.0",
         ],
@@ -59,7 +61,6 @@ def create_wheel_file():
                 f"SCCreateEmptyFileWithSpecificSize = {executables_namespace}:CreateEmptyFileWithSpecificSize",
                 f"SCCreateHashOfAllFiles = {executables_namespace}:CreateHashOfAllFiles",
                 f"SCCreateISOFileWithObfuscatedFiles = {executables_namespace}:CreateISOFileWithObfuscatedFiles",
-                f"SCCreateRelease = {executables_namespace}:CreateRelease",
                 f"SCFilenameObfuscator = {executables_namespace}:FilenameObfuscator",
                 f"SCGenerateSnkFiles = {executables_namespace}:GenerateSnkFiles",
                 f"SCGenerateThumbnail = {executables_namespace}:GenerateThumbnail",

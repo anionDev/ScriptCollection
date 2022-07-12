@@ -15,7 +15,7 @@
           "**.yml"
         ],
         "src":"./ReferenceContent/api",
-        "dest":"GeneratedReference/api"
+        "dest":"../Artifacts/Reference/api"
       }
     ],
     "resource": [
@@ -34,7 +34,7 @@
         ]
       }
     ],
-    "dest": "./GeneratedReference",
+    "dest": "../Artifacts/Reference",
     "globalMetadataFiles": [],
     "fileMetadataFiles": [],
     "template": [

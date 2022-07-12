@@ -1,8 +1,9 @@
 # ScriptCollection
 
 ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/ScriptCollection.svg)](https://pypi.org/project/ScriptCollection/)
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
-![Coverage](./ScriptCollection/Other/QualityCheck/TestCoverage/Badges/badge_shieldsio_linecoverage_blue.svg)
+![Coverage](./ScriptCollection/Other/Resources/TestcoverageBadges/badge_shieldsio_linecoverage_blue.svg)
 ![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection/month)](https://pepy.tech/project/scriptcollection)
@@ -25,8 +26,6 @@ Some functions are not entirely available on windows or require common third-par
 When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
 
 ## Get ScriptCollection
-
-ScriptCollection requires [Python](https://www.python.org) 3.10.
 
 ### Installation via pip
 
@@ -67,6 +66,8 @@ This repository applies the [CommonProjectStructure](https://github.com/anionDev
 
 ### Install dependencies
 
+ScriptCollection requires [Python](https://www.python.org) 3.10.
+
 To develop ScriptCollection it is obviously required that the following commandline-commands are available on your system:
 
 - `python` (on some systems `python3`)
@@ -90,11 +91,10 @@ To create and install an ScriptCollection locally simply do the following comman
 
 ```bash
 python ./ScriptCollection/Other/Build/Build.py
-pip3 uninstall -y ScriptCollection
-pip3 install --force-reinstall ./ScriptCollection/Other/Build/BuildArtifact/ScriptCollection-x.x.x-py3-none-any.whl
+pip3 install --force-reinstall ./ScriptCollection/Other/Artifacts/Wheel/ScriptCollection-x.x.x-py3-none-any.whl
 ```
 
-(Note: `x.x.x` in `ScriptCollection-x.x.x-py3-none-any.whl` must be replaced by the appropriate version-number.)
+(Note: `x.x.x` must be replaced by the appropriate version-number.)
 
 ### Coding style
 
@@ -104,6 +104,8 @@ If you change code in this repository please ensure pylint does not find any iss
 If linting-issues exist in the current code-base can be checked by running `python ./ScriptCollection/Other/QualityCheck/Linting.py`.
 
 ## Runtime-Dependencies
+
+ScriptCollection requires [Python](https://www.python.org) 3.10.
 
 The usual Python-dependencies will be installed automagically by `pip`.
 
