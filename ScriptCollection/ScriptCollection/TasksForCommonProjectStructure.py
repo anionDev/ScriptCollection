@@ -279,7 +279,7 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_dotnet_buildconfiguration_from_commandline_arguments(commandline_arguments: list[str], default_value: str = 0) -> None:
+    def get_buildconfiguration_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> None:
         build_configuration = None
         for commandline_argument in commandline_arguments:
             if commandline_argument.startswith("--buildconfiguration="):
@@ -756,10 +756,12 @@ class TasksForCommonProjectStructure:
         target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
         shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
+    # hint: build_configuration can be overwritten by commandline_arguments
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_container_application_in_common_project_structure(self, buildscript_file: str, build_configuration: str,
         commandline_arguments: list[str]):
         sc = ScriptCollectionCore()
+        build_configuration = TasksForCommonProjectStructure.get_buildconfiguration_from_commandline_arguments(commandline_arguments, build_configuration)
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         codeunitname_lower = codeunitname.lower()
         buildscript_folder = os.path.dirname(buildscript_file)
