@@ -507,7 +507,7 @@ class TasksForCommonProjectStructure:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
 
-            target_folder_for_codeunit = os.path.join(target_folder_base, information.projectname, codeunitname, codeunit_version)
+            target_folder_for_codeunit = os.path.join(target_folder_base, codeunitname)
             GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
             shutil.copyfile(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit"), os.path.join(target_folder_for_codeunit, f"{codeunitname}.codeunit"))
             shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), target_folder_for_codeunit)
