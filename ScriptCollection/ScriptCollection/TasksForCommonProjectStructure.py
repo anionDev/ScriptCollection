@@ -530,7 +530,7 @@ class TasksForCommonProjectStructure:
                     latest_version_hint = f" (v {project_version})"
                 else:
                     latest_version_hint = ""
-                reference_versions_html_lines.append(f'<hr>')
+                reference_versions_html_lines.append('<hr>')
                 reference_versions_html_lines.append(f'<h2 class="display-2">{version_identifier_of_project}{latest_version_hint}</h2>')
                 reference_versions_html_lines.append("Contained codeunits:<br>")
                 reference_versions_html_lines.append("<ul>")
