@@ -61,7 +61,6 @@ def create_wheel_file():
                 f"SCCreateEmptyFileWithSpecificSize = {executables_namespace}:CreateEmptyFileWithSpecificSize",
                 f"SCCreateHashOfAllFiles = {executables_namespace}:CreateHashOfAllFiles",
                 f"SCCreateISOFileWithObfuscatedFiles = {executables_namespace}:CreateISOFileWithObfuscatedFiles",
-                f"SCCreateRelease = {executables_namespace}:CreateRelease",
                 f"SCFilenameObfuscator = {executables_namespace}:FilenameObfuscator",
                 f"SCGenerateSnkFiles = {executables_namespace}:GenerateSnkFiles",
                 f"SCGenerateThumbnail = {executables_namespace}:GenerateThumbnail",
