@@ -29,7 +29,7 @@ class CodeUnitConfiguration():
 class CreateReleaseConfiguration():
     projectname: str
     remotename: str
-    build_artifacts_target_folder: str
+    artifacts_folder: str
     codeunits: dict[str, CodeUnitConfiguration]
     verbosity: int
     reference_repository_remote_name: str
@@ -43,7 +43,7 @@ class CreateReleaseConfiguration():
 
         self.projectname = projectname
         self.remotename = remotename
-        self.build_artifacts_target_folder = build_artifacts_target_folder
+        self.artifacts_folder = build_artifacts_target_folder
         self.codeunits = codeunits
         self.verbosity = verbosity
         self.reference_repository_remote_name = reference_repository_remote_name
@@ -55,7 +55,7 @@ class CreateReleaseConfiguration():
 class CreateReleaseInformationForProjectInCommonProjectFormat:
     projectname: str
     repository: str
-    build_artifacts_target_folder: str
+    artifacts_folder: str
     build_py_arguments: str = ""
     verbosity: int = 1
     reference_repository: str = None
@@ -63,11 +63,11 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     target_branch_name: str = None
     codeunits: dict[str, CodeUnitConfiguration]
 
-    def __init__(self, repository: str, build_artifacts_target_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
+    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
         self.repository = repository
         self.public_repository_url = public_repository_url
         self.target_branch_name = target_branch_name
-        self.build_artifacts_target_folder = build_artifacts_target_folder
+        self.artifacts_folder = artifacts_folder
         if projectname is None:
             projectname = os.path.basename(self.repository)
         else:
@@ -108,11 +108,15 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
+        return os.path.join(repository_folder, codeunit_name, "Other", "Build")
+
+    @GeneralUtilities.check_arguments
+    def get_artifacts_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
         return os.path.join(repository_folder, codeunit_name, "Other", "Artifacts")
 
     @GeneralUtilities.check_arguments
     def get_wheel_file_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
-        return self.__sc.find_file_by_extension(self.get_build_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "whl")
+        return self.__sc.find_file_by_extension(os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "Wheel"), "whl")
 
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
@@ -145,7 +149,7 @@ class TasksForCommonProjectStructure:
     <h1 class="display-1">{title}</h1>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}
-    <a href="./GeneratedReference/index.html">Refrerence</a><br>
+    <a href="./Reference/index.html">Refrerence</a><br>
     <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
   </body>
 
@@ -156,8 +160,8 @@ class TasksForCommonProjectStructure:
 
         other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
 
-        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "GeneratedReference")
-        target_generatedreference = os.path.join(target_folder, "GeneratedReference")
+        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "Reference")
+        target_generatedreference = os.path.join(target_folder, "Reference")
         shutil.copytree(source_generatedreference, target_generatedreference)
 
         source_testcoveragereport = os.path.join(other_folder_in_repository, "QualityCheck", "TestCoverage", "TestCoverageReport")
@@ -205,7 +209,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_refefrence_for_codeunit_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str]):
         reference_folder = os.path.dirname(generate_reference_file)
-        reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
+        reference_result_folder = os.path.join(reference_folder, "Reference")
         GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
         self.__sc.run_program("docfx", "docfx.json", reference_folder)
 
@@ -226,7 +230,7 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
         target_directory = GeneralUtilities.resolve_relative_path(
-            "../Artifacts/Wheel", os.path.join(self.get_build_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
+            "../Artifacts/Wheel", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
         self.__sc.run_program("git", f"clean -dfx --exclude={codeunitname}/Other {codeunitname}", repository_folder)
         GeneralUtilities.ensure_directory_exists(target_directory)
@@ -430,7 +434,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str]):
         reference_folder = os.path.dirname(generate_reference_file)
-        reference_result_folder = os.path.join(reference_folder, "GeneratedReference")
+        reference_result_folder = os.path.join(reference_folder, "Reference")
         GeneralUtilities.ensure_directory_does_not_exist(reference_result_folder)
         self.__sc.run_program("docfx", "docfx.json", reference_folder)
 
@@ -482,10 +486,10 @@ class TasksForCommonProjectStructure:
         pass  # TODO implement function
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_release_buildartifact_for_project_in_common_project_format(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
+    def __standardized_tasks_release_buildartifact_for_project_in_common_project_format(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
         # This function is intended to be called directly after standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
-        target_folder_base = os.path.join(information.build_artifacts_target_folder, information.projectname, project_version)
+        target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         if os.path.isdir(target_folder_base):
             raise ValueError(f"The folder '{target_folder_base}' already exists.")
         GeneralUtilities.ensure_directory_exists(target_folder_base)
@@ -503,18 +507,10 @@ class TasksForCommonProjectStructure:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
 
-            target_folder_for_codeunit = os.path.join(target_folder_base, codeunitname)
+            target_folder_for_codeunit = os.path.join(target_folder_base, information.projectname, codeunitname, codeunit_version)
             GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
             shutil.copyfile(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit"), os.path.join(target_folder_for_codeunit, f"{codeunitname}.codeunit"))
-
-            target_folder_for_codeunit_buildartifact = os.path.join(target_folder_for_codeunit, "Artifacts")
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), target_folder_for_codeunit_buildartifact)
-
-            target_folder_for_codeunit_testcoveragereport = os.path.join(target_folder_for_codeunit, "TestCoverageReport")
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverageReport"), target_folder_for_codeunit_testcoveragereport)
-
-            target_folder_for_codeunit_generatedreference = os.path.join(target_folder_for_codeunit, "GeneratedReference")
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts", "GeneratedReference"), target_folder_for_codeunit_generatedreference)
+            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), target_folder_for_codeunit)
 
         for _, codeunit in information.codeunits.items():
             push_artifact_to_registry_script = codeunit.push_to_registry_script
@@ -604,14 +600,14 @@ class TasksForCommonProjectStructure:
         mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
         mergeToStableBranchInformation.codeunits = createReleaseConfiguration.codeunits
-        new_project_version = self.standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
+        new_project_version = self.__standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
-        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.build_artifacts_target_folder,
+        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.artifacts_folder,
                                                                                            createReleaseConfiguration.projectname, createReleaseConfiguration.public_repository_url,
                                                                                            mergeToStableBranchInformation.targetbranch)
         createReleaseInformation.verbosity = createReleaseConfiguration.verbosity
         createReleaseInformation.codeunits = createReleaseConfiguration.codeunits
-        self.standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
+        self.__standardized_tasks_release_buildartifact_for_project_in_common_project_format(createReleaseInformation)
 
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createReleaseConfiguration.projectname} v{new_project_version}")
         if createReleaseConfiguration.reference_repository_remote_name is not None:
@@ -628,7 +624,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("python.py", f"CreateRelease.py --verbosity={str(verbosity)}", folder_of_this_file, verbosity, log_file=logfile)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
+    def __standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
 
         src_branch_commit_id = self.__sc.git_get_current_commit_id(information.repository,  information.sourcebranch)
         if(src_branch_commit_id == self.__sc.git_get_current_commit_id(information.repository,  information.targetbranch)):
@@ -650,12 +646,19 @@ class TasksForCommonProjectStructure:
                     GeneralUtilities.write_message_to_stdout("Do common tasks")
                     self.__sc.run_program("python", f"{common_tasks_file} --projectversion={project_version}", common_tasks_folder, verbosity=information.verbosity)
 
+                if information.run_build_script:
+                    codeunit_folder = os.path.join(information.repository, codeunit.name)
+                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit.name}.codeunit"))
+                    GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit.name}")
+                    commitid = self.__sc.git_get_current_commit_id(information.repository)
+                    self.__run_build_py(commitid, codeunit_version, codeunit.build_script_arguments, information.repository, codeunit.name, information.verbosity)
+
                 verbosity_argument = f"--verbosity={str(information.verbosity)}"
 
                 GeneralUtilities.write_message_to_stdout("Run testcases")
                 qualityfolder = os.path.join(information.repository, codeunit.name, "Other", "QualityCheck")
                 self.__sc.run_program("python", f"RunTestcases.py {verbosity_argument} {codeunit.run_testcases_script_arguments}", qualityfolder, verbosity=information.verbosity)
-                self.check_testcoverage(os.path.join(information.repository, codeunit.name, "Other", "QualityCheck", "TestCoverage", "TestCoverage.xml"),
+                self.check_testcoverage(os.path.join(information.repository, codeunit.name, "Other", "Artifacts", "TestCoverage", "TestCoverage.xml"),
                                         self.__get_testcoverage_threshold_from_codeunit_file(os.path.join(information.repository, codeunit.name, f"{codeunit.name}.codeunit")))
 
                 GeneralUtilities.write_message_to_stdout("Check linting")
@@ -666,12 +669,6 @@ class TasksForCommonProjectStructure:
                 self.__sc.run_program("python", f"GenerateReference.py {verbosity_argument} {codeunit.generate_reference_script_arguments}",
                                       os.path.join(information.repository, codeunit.name, "Other", "Reference"), verbosity=information.verbosity)
 
-                if information.run_build_script:
-                    codeunit_folder = os.path.join(information.repository, codeunit.name)
-                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit.name}.codeunit"))
-                    GeneralUtilities.write_message_to_stdout("Test if codeunit is buildable")
-                    commitid = self.__sc.git_get_current_commit_id(information.repository)
-                    self.__run_build_py(commitid, codeunit_version, codeunit.build_script_arguments, information.repository, codeunit.name, information.verbosity)
                 GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}")
 
             commit_id = self.__sc.git_commit(information.repository,  f"Created release v{project_version}")
@@ -730,7 +727,7 @@ class TasksForCommonProjectStructure:
     <h1 class="display-1">{title}</h1>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}
-    <a href="./GeneratedReference/index.html">Refrerence</a><br>
+    <a href="./Reference/index.html">Refrerence</a><br>
     <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
   </body>
 
@@ -741,8 +738,8 @@ class TasksForCommonProjectStructure:
 
         other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
 
-        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "GeneratedReference")
-        target_generatedreference = os.path.join(target_folder, "GeneratedReference")
+        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "Reference")
+        target_generatedreference = os.path.join(target_folder, "Reference")
         shutil.copytree(source_generatedreference, target_generatedreference)
 
         source_testcoveragereport = os.path.join(other_folder_in_repository, "QualityCheck", "TestCoverage", "TestCoverageReport")
