@@ -91,7 +91,7 @@ class GeneralUtilities:
             for sub_folder in GeneralUtilities.get_direct_folders_of_folder(srcDirFull):
                 foldername = os.path.basename(sub_folder)
                 sub_target = os.path.join(dstDirFull, foldername)
-                GeneralUtilities.move_content_of_folder(sub_folder, sub_target)
+                GeneralUtilities.move_content_of_folder(sub_folder, sub_target, overwrite_existing_files)
                 GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
         else:
             raise ValueError(f"Folder '{srcDir}' does not exist")
@@ -324,6 +324,19 @@ class GeneralUtilities:
                 for name in dirs:
                     GeneralUtilities.rmtree(os.path.join(root, name))
             GeneralUtilities.rmtree(path)
+
+    @staticmethod
+    @check_arguments
+    def ensure_folder_exists_and_is_empty(path: str) -> None:
+        GeneralUtilities.ensure_directory_exists(path)
+        for filename in os.listdir(path):
+            file_path = os.path.join(path, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            if os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
 
     @staticmethod
     @check_arguments
