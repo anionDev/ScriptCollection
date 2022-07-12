@@ -142,7 +142,7 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
 
   <body>
@@ -154,7 +154,7 @@ class TasksForCommonProjectStructure:
   </body>
 
 </html>
-"""
+"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
         GeneralUtilities.ensure_file_exists(index_file_for_reference)
         GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
 
@@ -558,7 +558,7 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
 
   <body>
@@ -567,7 +567,7 @@ class TasksForCommonProjectStructure:
   </body>
 
 </html>
-"""
+"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
             GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
     @GeneralUtilities.check_arguments
@@ -720,7 +720,7 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
 
   <body>
@@ -732,7 +732,7 @@ class TasksForCommonProjectStructure:
   </body>
 
 </html>
-"""
+"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
         GeneralUtilities.ensure_file_exists(index_file_for_reference)
         GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
 
