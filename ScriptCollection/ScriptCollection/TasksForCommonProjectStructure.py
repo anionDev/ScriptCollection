@@ -101,14 +101,14 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __run_build_py(self, commitid, codeunit_version: str, build_py_arguments: str, repository: str, codeunitname: str, verbosity: int):
-        target_folder=self.get_build_folder_in_repository_in_common_repository_format(repository,codeunitname)
+        target_folder = self.get_build_folder_in_repository_in_common_repository_format(repository, codeunitname)
         GeneralUtilities.ensure_directory_exists(target_folder)
         self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} --verbosity={str(verbosity)} {build_py_arguments}",
-                               target_folder,verbosity=verbosity)
+                              target_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
-        return os.path.join(repository_folder, codeunit_name, "Other", "Build", "BuildArtifact")
+        return os.path.join(repository_folder, codeunit_name, "Other", "Artifacts")
 
     @GeneralUtilities.check_arguments
     def get_wheel_file_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
@@ -196,7 +196,9 @@ class TasksForCommonProjectStructure:
             verbosity_for_pytest = verbosity
         self.__sc.run_program("coverage", "run -m pytest", codeunit_folder, verbosity_for_pytest)
         self.__sc.run_program("coverage", "xml", codeunit_folder)
-        coveragefile = os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverage.xml")
+        coveragefolder = os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverage")
+        GeneralUtilities.ensure_directory_exists(coveragefolder)
+        coveragefile = os.path.join(coveragefolder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
 
@@ -223,7 +225,8 @@ class TasksForCommonProjectStructure:
         setuppy_file_filename = "Setup.py"
         repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
-        target_directory = os.path.join(self.get_build_folder_in_repository_in_common_repository_format(repository_folder,codeunitname),"Wheel")
+        target_directory = GeneralUtilities.resolve_relative_path(
+            "../Artifacts/Wheel", os.path.join(self.get_build_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
         self.__sc.run_program("git", f"clean -dfx --exclude={codeunitname}/Other {codeunitname}", repository_folder)
         GeneralUtilities.ensure_directory_exists(target_directory)
@@ -299,7 +302,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
-        generated_reference_folder = os.path.join(folder_of_current_file, "GeneratedReference")
+        generated_reference_folder = GeneralUtilities.resolve_relative_path("../Artifacts/Reference", folder_of_current_file)
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
         GeneralUtilities.ensure_directory_exists(generated_reference_folder)
         obj_folder = os.path.join(folder_of_current_file, "obj")
@@ -335,7 +338,7 @@ class TasksForCommonProjectStructure:
                                                                                   build_test_project_too: bool, commandline_arguments: list[str]):
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
-        outputfolder = os.path.join(os.path.dirname(buildscript_file), "BuildArtifact")
+        outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts", os.path.dirname(buildscript_file))
 
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
@@ -346,7 +349,7 @@ class TasksForCommonProjectStructure:
             if commandline_argument.startswith("-buildconfiguration="):
                 buildconfiguration = commandline_argument[len("-buildconfiguration="):]
             if commandline_argument.startswith("-sign="):
-                commandline_argument=commandline_argument[len("-sign="):]
+                commandline_argument = commandline_argument[len("-sign="):]
                 commandline_argument_splitted: list[str] = commandline_argument.split(":")
                 files_to_sign[commandline_argument_splitted[0]] = commandline_argument[len(commandline_argument_splitted[0])+1:]
 
@@ -360,7 +363,7 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         build_folder = os.path.join(repository_folder, codeunitname, "Other", "Build")
-        outputfolder = os.path.join(build_folder, "BuildArtifact","Nuget")
+        outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts/Nuget", os.path.dirname(buildscript_file))
 
         root: etree._ElementTree = etree.parse(os.path.join(build_folder, f"{codeunitname}.nuspec"))
         current_version = root.xpath("//*[name() = 'package']/*[name() = 'metadata']/*[name() = 'version']/text()")[0]
@@ -399,7 +402,7 @@ class TasksForCommonProjectStructure:
         """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/TestCoverageReport'.
-        This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/QualityCheck/TestCoverage/Badges'."""
+        This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
         if verbosity == 0:
             verbose_argument_for_reportgenerator = "Off"
         if verbosity == 1:
@@ -410,17 +413,19 @@ class TasksForCommonProjectStructure:
             verbose_argument_for_reportgenerator = "Verbose"
 
         # Generating report
-        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/TestCoverageReport"))
-        self.__sc.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/TestCoverageReport " +
-                              f"--verbosity={verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
+        GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverageReport"))
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverageReport"))
+        self.__sc.run_program("reportgenerator", "-reports:Other/Artifacts/TestCoverage/TestCoverage.xml " +
+                              f"-targetdir:Other/Artifacts/TestCoverageReport --verbosity={verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname))
 
         if generate_badges:
             # Generating badges
-            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
-            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/QualityCheck/TestCoverage/Badges"))
-            self.__sc.run_program("reportgenerator", "-reports:Other/QualityCheck/TestCoverage/TestCoverage.xml -targetdir:Other/QualityCheck/TestCoverage/Badges "+
-                f"-reporttypes:Badges --verbosity={verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
+            testcoverageubfolger = "Other/Resources/TestCoverageBadges"
+            fulltestcoverageubfolger = os.path.join(repository_folder, codeunitname, testcoverageubfolger)
+            GeneralUtilities.ensure_directory_does_not_exist(fulltestcoverageubfolger)
+            GeneralUtilities.ensure_directory_exists(fulltestcoverageubfolger)
+            self.__sc.run_program("reportgenerator", f"-reports:Other/Artifacts/TestCoverage/TestCoverage.xml -targetdir:{testcoverageubfolger} " +
+                                  f"-reporttypes:Badges --verbosity={verbose_argument_for_reportgenerator}",  os.path.join(repository_folder, codeunitname))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_refefrence_for_dotnet_project_in_common_project_structure(self, generate_reference_file: str, commandline_arguments: list[str]):
@@ -502,14 +507,14 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
             shutil.copyfile(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit"), os.path.join(target_folder_for_codeunit, f"{codeunitname}.codeunit"))
 
-            target_folder_for_codeunit_buildartifact = os.path.join(target_folder_for_codeunit, "BuildArtifact")
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "Build", "BuildArtifact"), target_folder_for_codeunit_buildartifact)
+            target_folder_for_codeunit_buildartifact = os.path.join(target_folder_for_codeunit, "Artifacts")
+            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), target_folder_for_codeunit_buildartifact)
 
             target_folder_for_codeunit_testcoveragereport = os.path.join(target_folder_for_codeunit, "TestCoverageReport")
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "QualityCheck", "TestCoverage", "TestCoverageReport"), target_folder_for_codeunit_testcoveragereport)
+            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverageReport"), target_folder_for_codeunit_testcoveragereport)
 
             target_folder_for_codeunit_generatedreference = os.path.join(target_folder_for_codeunit, "GeneratedReference")
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "Reference", "GeneratedReference"), target_folder_for_codeunit_generatedreference)
+            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts", "GeneratedReference"), target_folder_for_codeunit_generatedreference)
 
         for _, codeunit in information.codeunits.items():
             push_artifact_to_registry_script = codeunit.push_to_registry_script
@@ -574,7 +579,7 @@ class TasksForCommonProjectStructure:
                                                                                 registry_address: str, api_key: str):
         # when pusing to "default public" nuget-server then use registry_address: "nuget.org"
         build_artifact_folder = GeneralUtilities.resolve_relative_path(
-            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Build/BuildArtifact", os.path.dirname(push_script_file))
+            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Artifacts", os.path.dirname(push_script_file))
         self.__sc.push_nuget_build_artifact_of_repository_in_common_file_structure(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"),
                                                                                    registry_address, api_key)
 
@@ -615,18 +620,6 @@ class TasksForCommonProjectStructure:
         self.__sc.git_commit(build_repository_folder, f"Added {createReleaseConfiguration.projectname} release v{new_project_version}")
         GeneralUtilities.write_message_to_stdout(f"Finished release for project {createReleaseConfiguration.projectname} successfully")
         return new_project_version
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_docker_codeunit(self, buildscript_file: str, commandline_arguments: list[str]) -> None:
-        pass  # TODO implement function
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_docker_codeunit_in_common_project_structure(self, run_testcases_file: str, commandline_arguments: list[str]):
-        pass  # TODO implement function
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_docker_codeunit_in_common_project_structure(self, linting_file: str, commandline_arguments: list[str]):
-        pass  # TODO implement function
 
     @GeneralUtilities.check_arguments
     def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile, commandline_arguments: list[str]):
@@ -759,13 +752,13 @@ class TasksForCommonProjectStructure:
     # hint: build_configuration can be overwritten by commandline_arguments
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_container_application_in_common_project_structure(self, buildscript_file: str, build_configuration: str,
-        commandline_arguments: list[str]):
+                                                                                       commandline_arguments: list[str]):
         sc = ScriptCollectionCore()
         build_configuration = TasksForCommonProjectStructure.get_buildconfiguration_from_commandline_arguments(commandline_arguments, build_configuration)
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         codeunitname_lower = codeunitname.lower()
         buildscript_folder = os.path.dirname(buildscript_file)
         sc.run_program("docker", f"build --build-arg EnvironmentStage={build_configuration} --tag {codeunitname_lower}:latest .", buildscript_folder)
-        targetfolder = os.path.join(buildscript_folder, "BuildArtifact", "ApplicationImage")
+        targetfolder = GeneralUtilities.resolve_relative_path("../Artifacts/ApplicationImage", buildscript_folder)
         GeneralUtilities.ensure_directory_exists(targetfolder)
         sc.run_program("docker", f"save -o {targetfolder}/{codeunitname}.latest.tar {codeunitname_lower}:latest", buildscript_folder)

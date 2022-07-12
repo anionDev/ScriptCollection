@@ -1,0 +1,9 @@
+MyDomain.private/MyDomain.private.crt
+MyDomain.private/MyDomain.private.csr
+MyDomain.private/MyDomain.private.key
+MyDomain.private/MyDomain.private.pfx
+MyDomain.private/MyDomain.private.unsigned.crt
+MyDomain.private/MyDomain.private.unsigned.pfx
+MyRootCA/MyRootCA.crt
+MyRootCA/MyRootCA.key
+MyRootCA/MyRootCA.srl
