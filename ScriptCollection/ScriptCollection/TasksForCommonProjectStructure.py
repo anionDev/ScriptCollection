@@ -617,10 +617,11 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Finished release for project {createReleaseConfiguration.projectname} successfully")
         return new_project_version
 
+    # hint: arguments can be overwritten by commandline_arguments
     @GeneralUtilities.check_arguments
-    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile, commandline_arguments: list[str]):
+    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile: str, verbosity: int, commandline_arguments: list[str]):
         folder_of_this_file = os.path.dirname(create_release_file)
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         self.__sc.run_program("python.py", f"CreateRelease.py --verbosity={str(verbosity)}", folder_of_this_file, verbosity, log_file=logfile)
 
     @GeneralUtilities.check_arguments
@@ -746,7 +747,7 @@ class TasksForCommonProjectStructure:
         target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
         shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
-    # hint: build_configuration can be overwritten by commandline_arguments
+    # hint: arguments can be overwritten by commandline_arguments
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_container_application_in_common_project_structure(self, buildscript_file: str, build_configuration: str,
                                                                                        commandline_arguments: list[str]):
