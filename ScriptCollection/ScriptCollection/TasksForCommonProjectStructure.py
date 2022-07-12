@@ -510,7 +510,7 @@ class TasksForCommonProjectStructure:
             target_folder_for_codeunit = os.path.join(target_folder_base, codeunitname)
             GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
             shutil.copyfile(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit"), os.path.join(target_folder_for_codeunit, f"{codeunitname}.codeunit"))
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), target_folder_for_codeunit)
+            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), os.path.join(target_folder_for_codeunit, "Artifacts"))
 
         for _, codeunit in information.codeunits.items():
             push_artifact_to_registry_script = codeunit.push_to_registry_script
