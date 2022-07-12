@@ -469,10 +469,10 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_exists(index_file_for_reference)
         GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
         other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
-        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "Reference")
+        source_generatedreference = os.path.join(other_folder_in_repository, "Artifacts", "Reference")
         target_generatedreference = os.path.join(target_folder, "Reference")
         shutil.copytree(source_generatedreference, target_generatedreference)
-        source_testcoveragereport = os.path.join(other_folder_in_repository, "QualityCheck", "TestCoverage", "TestCoverageReport")
+        source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
         target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
         shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
