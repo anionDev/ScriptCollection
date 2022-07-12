@@ -119,56 +119,6 @@ class TasksForCommonProjectStructure:
         return self.__sc.find_file_by_extension(os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "Wheel"), "whl")
 
     @GeneralUtilities.check_arguments
-    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-                                                                    repository: str, codeunitname, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
-
-        target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
-        if os.path.isdir(target_folder) and not replace_existing_content:
-            raise ValueError(f"Folder '{target_folder}' already exists.")
-
-        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
-        GeneralUtilities.ensure_directory_exists(target_folder)
-        title = f"{codeunitname}-reference (codeunit v{codeunit_version}, conained in project {projectname} ({project_version_identifier}))"
-
-        if public_repository_url is None:
-            repo_url_html = ""
-        else:
-            repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a><br>'
-
-        index_file_for_reference = os.path.join(target_folder, "index.html")
-        index_file_content = f"""<!DOCTYPE html>
-<html lang="en">
-
-  <head>
-    <meta charset="UTF-8">
-    <title>{title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-  </head>
-
-  <body>
-    <h1 class="display-1">{title}</h1>
-    Available reference-content for {codeunitname}:<br>
-    {repo_url_html}
-    <a href="./Reference/index.html">Refrerence</a><br>
-    <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
-  </body>
-
-</html>
-"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
-        GeneralUtilities.ensure_file_exists(index_file_for_reference)
-        GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
-
-        other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
-
-        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "Reference")
-        target_generatedreference = os.path.join(target_folder, "Reference")
-        shutil.copytree(source_generatedreference, target_generatedreference)
-
-        source_testcoveragereport = os.path.join(other_folder_in_repository, "QualityCheck", "TestCoverage", "TestCoverageReport")
-        target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
-        shutil.copytree(source_testcoveragereport, target_testcoveragereport)
-
-    @GeneralUtilities.check_arguments
     def __get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
         root: etree._ElementTree = etree.parse(codeunit_file)
         return float(str(root.xpath('//codeunit:minimalcodecoverageinpercent/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0]))
@@ -486,6 +436,47 @@ class TasksForCommonProjectStructure:
         pass  # TODO implement function
 
     @GeneralUtilities.check_arguments
+    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
+                                                                    repository: str, codeunitname, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
+        target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
+        if os.path.isdir(target_folder) and not replace_existing_content:
+            raise ValueError(f"Folder '{target_folder}' already exists.")
+        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        title = f"{codeunitname}-reference (codeunit v{codeunit_version}, conained in project {projectname} ({project_version_identifier}))"
+        if public_repository_url is None:
+            repo_url_html = ""
+        else:
+            repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a><br>'
+        index_file_for_reference = os.path.join(target_folder, "index.html")
+        index_file_content = f"""<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>{title}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  </head>
+  <body>
+    <h1 class="display-1">{title}</h1>
+    <hr/>
+    Available reference-content for {codeunitname}:<br>
+    {repo_url_html}
+    <a href="./Reference/index.html">Refrerence</a><br>
+    <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
+  </body>
+</html>
+"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
+        GeneralUtilities.ensure_file_exists(index_file_for_reference)
+        GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
+        other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
+        source_generatedreference = os.path.join(other_folder_in_repository, "Reference", "Reference")
+        target_generatedreference = os.path.join(target_folder, "Reference")
+        shutil.copytree(source_generatedreference, target_generatedreference)
+        source_testcoveragereport = os.path.join(other_folder_in_repository, "QualityCheck", "TestCoverage", "TestCoverageReport")
+        target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
+        shutil.copytree(source_testcoveragereport, target_testcoveragereport)
+
+    @GeneralUtilities.check_arguments
     def __standardized_tasks_release_buildartifact_for_project_in_common_project_format(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
         # This function is intended to be called directly after standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
@@ -522,7 +513,7 @@ class TasksForCommonProjectStructure:
             # Copy reference of codeunit to reference-repository
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_for_project, information.repository,
                                                                              codeunitname, information.projectname, codeunit_version, information.public_repository_url,
-                                                                             information.target_branch_name)
+                                                                             f"v{project_version}")
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_repository_target_for_project, information.repository,
                                                                              codeunitname, information.projectname, codeunit_version, information.public_repository_url,
                                                                              information.target_branch_name)
@@ -539,6 +530,7 @@ class TasksForCommonProjectStructure:
                     latest_version_hint = f" (v {project_version})"
                 else:
                     latest_version_hint = ""
+                reference_versions_html_lines.append(f'<hr>')
                 reference_versions_html_lines.append(f'<h2 class="display-2">{version_identifier_of_project}{latest_version_hint}</h2>')
                 reference_versions_html_lines.append("Contained codeunits:<br>")
                 reference_versions_html_lines.append("<ul>")
@@ -563,6 +555,7 @@ class TasksForCommonProjectStructure:
 
   <body>
     <h1 class="display-1">{title}</h1>
+    <hr/>
     {reference_versions_links_file_content}
   </body>
 
@@ -696,58 +689,8 @@ class TasksForCommonProjectStructure:
                 self.__sc.git_push(information.repository, information.push_source_branch_remote_name, information.sourcebranch,
                                    information.sourcebranch, pushalltags=False, verbosity=information.verbosity)
         return project_version
-
-    @GeneralUtilities.check_arguments
-    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-                                                                    repository: str, codeunitname, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
-
-        target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
-        if os.path.isdir(target_folder) and not replace_existing_content:
-            raise ValueError(f"Folder '{target_folder}' already exists.")
-
-        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
-        GeneralUtilities.ensure_directory_exists(target_folder)
-        title = f"{codeunitname}-reference (codeunit v{codeunit_version}, conained in project {projectname} ({project_version_identifier}))"
-
-        if public_repository_url is None:
-            repo_url_html = ""
-        else:
-            repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a><br>'
-
-        index_file_for_reference = os.path.join(target_folder, "index.html")
-        index_file_content = f"""<!DOCTYPE html>
-<html lang="en">
-
-  <head>
-    <meta charset="UTF-8">
-    <title>{title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-  </head>
-
-  <body>
-    <h1 class="display-1">{title}</h1>
-    Available reference-content for {codeunitname}:<br>
-    {repo_url_html}
-    <a href="./Reference/index.html">Refrerence</a><br>
-    <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
-  </body>
-
-</html>
-"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
-        GeneralUtilities.ensure_file_exists(index_file_for_reference)
-        GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
-
-        other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
-
-        source_generatedreference = os.path.join(other_folder_in_repository, "Artifacts", "Reference")
-        target_generatedreference = os.path.join(target_folder, "Reference")
-        shutil.copytree(source_generatedreference, target_generatedreference)
-
-        source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
-        target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
-        shutil.copytree(source_testcoveragereport, target_testcoveragereport)
-
     # hint: arguments can be overwritten by commandline_arguments
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_container_application_in_common_project_structure(self, buildscript_file: str, build_configuration: str,
                                                                                        commandline_arguments: list[str]):
