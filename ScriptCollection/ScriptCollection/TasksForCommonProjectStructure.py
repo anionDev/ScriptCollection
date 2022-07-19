@@ -570,7 +570,7 @@ class TasksForCommonProjectStructure:
                                                                                 registry_address: str, api_key: str):
         # when pusing to "default public" nuget-server then use registry_address: "nuget.org"
         build_artifact_folder = GeneralUtilities.resolve_relative_path(
-            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Artifacts", os.path.dirname(push_script_file))
+            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Artifacts/Nuget", os.path.dirname(push_script_file))
         self.__sc.push_nuget_build_artifact_of_repository_in_common_file_structure(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"),
                                                                                    registry_address, api_key)
 
