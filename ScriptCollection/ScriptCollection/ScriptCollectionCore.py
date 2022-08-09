@@ -337,7 +337,7 @@ class ScriptCollectionCore:
         # no_changes_behavior=2 => Exception
         author_name = GeneralUtilities.str_none_safe(author_name).strip()
         author_email = GeneralUtilities.str_none_safe(author_email).strip()
-        argument = ['commit', '--message', message]
+        argument = ['commit', '--quiet', '--message', message]
         if(GeneralUtilities.string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
