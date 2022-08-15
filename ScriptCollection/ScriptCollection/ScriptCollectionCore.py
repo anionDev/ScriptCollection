@@ -337,7 +337,7 @@ class ScriptCollectionCore:
         # no_changes_behavior=2 => Exception
         author_name = GeneralUtilities.str_none_safe(author_name).strip()
         author_email = GeneralUtilities.str_none_safe(author_email).strip()
-        argument = ['commit', '--message', message]
+        argument = ['commit', '--quiet', '--message', message]
         if(GeneralUtilities.string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
@@ -1072,10 +1072,19 @@ class ScriptCollectionCore:
         process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
                                                               timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log)
         pid = process.pid
+        live_output = isinstance(self.program_runner, ProgramRunnerEpew)
+        if live_output:
+            live_output = False  # disabled yet to output at the end of the execution instead as long as the live-output is not implemented
+            # TODO do live output with something like:
+            # for line in iter(process.stdout.readline, b''):
+            #    sys.stdout.buffer.write(line)
+            # for line in iter(process.stderr.readline, b''):
+            #    sys.stderr.buffer.write(line)
+
         stdout, stderr = process.communicate()
+        exit_code = process.wait()
         stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
         stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
-        exit_code = process.wait()
         end_datetime = datetime.utcnow()
 
         if arguments_for_log is None:
@@ -1094,17 +1103,15 @@ class ScriptCollectionCore:
         if verbosity == 3:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
-        if isinstance(self.program_runner, ProgramRunnerEpew):
-            pass
-        else:
+        if not live_output:
             if verbosity == 1 and exit_code != 0:
-                self.__write_output(print_errors_as_information, stderr)
+                self.__write_error_output(print_errors_as_information, stderr)
             if verbosity == 2:
                 GeneralUtilities.write_message_to_stdout(stdout)
-                self.__write_output(print_errors_as_information, stderr)
+                self.__write_error_output(print_errors_as_information, stderr)
             if verbosity == 3:
                 GeneralUtilities.write_message_to_stdout(stdout)
-                self.__write_output(print_errors_as_information, stderr)
+                self.__write_error_output(print_errors_as_information, stderr)
                 formatted = self.__format_program_execution_information(title=info_for_log, program=program, argument=arguments_for_log, workingdirectory=working_directory)
                 GeneralUtilities.write_message_to_stdout(f"Finished '{info_for_log}'. Details: '{formatted}")
 
@@ -1163,7 +1170,7 @@ class ScriptCollectionCore:
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
     @GeneralUtilities.check_arguments
-    def __write_output(self, print_errors_as_information, stderr):
+    def __write_error_output(self, print_errors_as_information, stderr):
         if print_errors_as_information:
             GeneralUtilities.write_message_to_stdout(stderr)
         else:

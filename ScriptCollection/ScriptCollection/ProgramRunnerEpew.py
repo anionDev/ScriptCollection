@@ -3,8 +3,11 @@ import base64
 import tempfile
 from subprocess import Popen
 from uuid import uuid4
+
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
+from .ProgramRunnerPopen import ProgramRunnerPopen
+
 
 class CustomEpewArgument:
 
@@ -14,7 +17,7 @@ class CustomEpewArgument:
     addLogOverhead: bool
     title: str
     log_namespace: str
-    verbosity: str
+    verbosity: int
     arguments_for_log:  list[str]
     tempdir = os.path.join(tempfile.gettempdir(), str(uuid4()))
     stdoutfile = tempdir + ".epew.stdout.txt"
@@ -22,28 +25,26 @@ class CustomEpewArgument:
     exitcodefile = tempdir + ".epew.exitcode.txt"
     pidfile = tempdir + ".epew.pid.txt"
 
-    def __init__(self, print_errors_as_information: bool, log_file: str, timeoutInSeconds: int, addLogOverhead: bool, title: str, log_namespace: str, verbosity: str,  arguments_for_log:  list[str]):
-        self.print_errors_as_information=print_errors_as_information
-        self.log_file=log_file
-        self.timeoutInSeconds=timeoutInSeconds
-        self.addLogOverhead=addLogOverhead
-        self.title=title
-        self.log_namespace=log_namespace
-        self.print_errors_as_information=verbosity
-        self.arguments_for_log=arguments_for_log
+    def __init__(self, print_errors_as_information: bool, log_file: str, timeoutInSeconds: int, addLogOverhead: bool, title: str, log_namespace: str, verbosity: int,  arguments_for_log:  list[str]):
+        self.print_errors_as_information = print_errors_as_information
+        self.log_file = log_file
+        self.timeoutInSeconds = timeoutInSeconds
+        self.addLogOverhead = addLogOverhead
+        self.title = title
+        self.log_namespace = log_namespace
+        self.verbosity = verbosity
+        self.arguments_for_log = arguments_for_log
 
 
 class ProgramRunnerEpew(ProgramRunnerBase):
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async_helper(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None,custom_argument:object=None) -> Popen:
+    def run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> Popen:
         if GeneralUtilities.epew_is_available():
-            custom_argument:CustomEpewArgument=custom_argument
-            arguments_for_process = ["epew"]
-            args=[]
+            custom_argument: CustomEpewArgument = custom_argument
+            args = []
 
             base64argument = base64.b64encode(' '.join(arguments_as_array).encode('utf-8')).decode('utf-8')
-            args = ["epew"]
             args.append(f'-p "{program}"')
             args.append(f'-a {base64argument}')
             args.append('-b')
@@ -65,18 +66,18 @@ class ProgramRunnerEpew(ProgramRunnerBase):
                 args.append("-i")
             if custom_argument.addLogOverhead:
                 args.append("-h")
-            args.append("-v "+str(custom_argument.verbosity))
-
-            arguments_for_process.extend(args)
-            return Popen(arguments_for_process, cwd=working_directory, shell=False)
+            #args.append("-v "+str(custom_argument.verbosity))
+            args.append("-v 2")
+            args = ["-p python", "-a test.py"]
+            return ProgramRunnerPopen().run_program_argsasarray_async_helper("epew", args, working_directory)
         else:
             raise ValueError("Epew is not available.")
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def wait(self, process:Popen ,custom_argument:object=None) -> tuple[int, str, str, int]:
+    def wait(self, process: Popen, custom_argument: object = None) -> tuple[int, str, str, int]:
         process.wait()
-        custom_argument:CustomEpewArgument=custom_argument
+        custom_argument: CustomEpewArgument = custom_argument
         stdout = self.__load_text(custom_argument.output_file_for_stdout)
         stderr = self.__load_text(custom_argument.output_file_for_stderr)
         exit_code = self.__get_number_from_filecontent(self.__load_text(custom_argument.output_file_for_exit_code))
@@ -86,21 +87,21 @@ class ProgramRunnerEpew(ProgramRunnerBase):
         return result
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None,custom_argument:object=None) -> tuple[int, str, str, int]:
-        process:Popen=self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,custom_argument)
+    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> tuple[int, str, str, int]:
+        process: Popen = self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument)
         return self.wait(process, custom_argument)
 
     @GeneralUtilities.check_arguments
-    def run_program(self, program:str,arguments: str="", working_directory: str=None,custom_argument:object=None) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray(program,GeneralUtilities.arguments_to_array(arguments),working_directory,custom_argument)
+    def run_program(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None) -> tuple[int, str, str, int]:
+        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument)
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self,program:str, arguments_as_array: list[str]=[], working_directory: str=None,custom_argument:object=None) -> int:
-        return self.run_program_argsasarray_async_helper(program,arguments_as_array,working_directory,custom_argument).pid
+    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> int:
+        return self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument).pid
 
     @GeneralUtilities.check_arguments
-    def run_program_async(self, program:str,arguments: str="", working_directory: str=None,custom_argument:object=None) -> int:
-        return self.run_program_argsasarray_async(program,GeneralUtilities.arguments_to_array(arguments),working_directory,custom_argument)
+    def run_program_async(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None) -> int:
+        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument)
 
     @GeneralUtilities.check_arguments
     def __get_number_from_filecontent(self, filecontent: str) -> int:
