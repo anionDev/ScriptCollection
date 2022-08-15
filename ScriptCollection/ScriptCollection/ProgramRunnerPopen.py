@@ -16,7 +16,7 @@ class ProgramRunnerPopen(ProgramRunnerBase):
         cwd = os.getcwd()
         try:
             os.chdir(working_directory)
-            result = Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, shell=False)
+            result = Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, shell=False)  # pylint: disable=consider-using-with
         finally:
             os.chdir(cwd)
         return result

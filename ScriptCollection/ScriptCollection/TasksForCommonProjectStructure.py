@@ -177,9 +177,10 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
-        codeunit_folder=os.path.join(repository_folder,codeunitname)
-        target_directory = GeneralUtilities.resolve_relative_path(
-            "../Artifacts/npm", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        # target_directory = GeneralUtilities.resolve_relative_path(
+        #    "../Artifacts/npm", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
+        # TODO use this variable and move file accordingly
         self.__sc.run_program("npm", "run build", codeunit_folder)
 
     @GeneralUtilities.check_arguments
