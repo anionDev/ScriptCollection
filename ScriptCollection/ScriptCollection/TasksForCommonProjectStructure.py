@@ -81,6 +81,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     targetbranch: str = "stable"
     run_build_script: bool = True
     sign_git_tags: bool = True
+    merge_main_fastforward_into_stable: bool = True
     codeunits: dict[str, CodeUnitConfiguration]
 
     push_source_branch: bool = False
@@ -641,7 +642,7 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(information.repository, information.sourcebranch)
         self.__sc.run_program("git", "clean -dfx", information.repository, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
-        self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
+        self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, information.merge_main_fastforward_into_stable, False)
         success = False
         try:
             for _, codeunit in information.codeunits.items():
