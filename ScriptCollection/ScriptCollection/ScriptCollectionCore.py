@@ -103,8 +103,9 @@ class ScriptCollectionCore:
         versiononlyregex = f"^{versionregex}$"
         pattern = re.compile(versiononlyregex)
         if pattern.match(current_version):
-            GeneralUtilities.write_text_to_file(csproj_file, re.sub(f"<Version>{versionregex}<\\/Version>",
-                                                                    f"<Version>{current_version}</Version>", GeneralUtilities.read_text_from_file(csproj_file)))
+            for tag in ["Version", "AssemblyVersion", "FileVersion"]:
+                GeneralUtilities.write_text_to_file(csproj_file, re.sub(f"<{tag}>{versionregex}<\\/{tag}>",
+                                                                        f"<{tag}>{current_version}</{tag}>", GeneralUtilities.read_text_from_file(csproj_file)))
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
