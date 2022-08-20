@@ -283,6 +283,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("dotnet", "clean", csproj_file_folder)
         GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
         GeneralUtilities.ensure_directory_exists(outputfolder)
+        GeneralUtilities.write_message_to_stdout(f"Build {csproj_file} with configuration={buildconfiguration} and outputfolder={outputfolder}")
         self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder}", csproj_file_folder)
         for file, keyfile in files_to_sign.items():
             self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
