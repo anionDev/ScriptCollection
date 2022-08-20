@@ -93,9 +93,8 @@ class ScriptCollectionCore:
         versiononlyregex = f"^{versionregex}$"
         pattern = re.compile(versiononlyregex)
         if pattern.match(current_version):
-            for tag in ["Version", "AssemblyVersion", "FileVersion"]:
-                GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"<{tag}>{versionregex}<\\/{tag}>",
-                                                                        f"<{tag}>{current_version}</{tag}>", GeneralUtilities.read_text_from_file(nuspec_file)))
+            GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"<version>{versionregex}<\\/version>",
+                                                                    f"<version>{current_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
