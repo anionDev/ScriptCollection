@@ -315,8 +315,8 @@ class TasksForCommonProjectStructure:
         commandline_arguments2 = commandline_arguments[1:]
         files_to_sign: dict() = dict()
         for commandline_argument in commandline_arguments2:
-            if commandline_argument.startswith("-sign="):
-                commandline_argument = commandline_argument[len("-sign="):]
+            if commandline_argument.startswith("--sign="):
+                commandline_argument = commandline_argument[len("--sign="):]
                 commandline_argument_splitted: list[str] = commandline_argument.split(":")
                 files_to_sign[commandline_argument_splitted[0]] = commandline_argument[len(commandline_argument_splitted[0])+1:]
 
