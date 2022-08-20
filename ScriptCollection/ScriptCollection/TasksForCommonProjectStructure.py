@@ -235,8 +235,8 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str], default_value: int) -> None:
-        verbosity = None
+    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str], default_value: int) -> int:
+        verbosity: int = None
         for commandline_argument in commandline_arguments[1:]:
             if commandline_argument.startswith("--verbosity="):
                 verbosity = int(commandline_argument[len("--verbosity="):])
@@ -247,11 +247,11 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_buildconfiguration_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> None:
-        build_configuration = None
+    def get_buildconfiguration_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> str:
+        build_configuration: str = None
         for commandline_argument in commandline_arguments[1:]:
             if commandline_argument.startswith("--buildconfiguration="):
-                build_configuration = int(commandline_argument[len("--buildconfiguration="):])
+                build_configuration = commandline_argument[len("--buildconfiguration="):]
         if build_configuration is None:
             return default_value
         else:
