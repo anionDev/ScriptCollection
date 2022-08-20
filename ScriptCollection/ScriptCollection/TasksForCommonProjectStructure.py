@@ -56,7 +56,6 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     projectname: str
     repository: str
     artifacts_folder: str
-    build_py_arguments: str = ""
     verbosity: int = 1
     reference_repository: str = None
     public_repository_url: str = None
@@ -102,7 +101,6 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __run_build_py(self, commitid, codeunit_version: str, build_py_arguments: str, repository: str, codeunitname: str, verbosity: int):
         target_folder = self.get_build_folder_in_repository_in_common_repository_format(repository, codeunitname)
-        GeneralUtilities.ensure_directory_exists(target_folder)
         self.__sc.run_program("python", f"Build.py --commitid={commitid} --codeunitversion={codeunit_version} --verbosity={str(verbosity)} {build_py_arguments}",
                               target_folder, verbosity=verbosity)
 
@@ -283,6 +281,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("dotnet", "clean", csproj_file_folder)
         GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
         GeneralUtilities.ensure_directory_exists(outputfolder)
+        GeneralUtilities.write_message_to_stdout(f"Build {csproj_file} with configuration={buildconfiguration} and outputfolder={outputfolder}")
         self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder}", csproj_file_folder)
         for file, keyfile in files_to_sign.items():
             self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile)
@@ -499,15 +498,15 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_folder_base)
         commitid = self.__sc.git_get_current_commit_id(information.repository)
 
-        for codeunitname in information.codeunits:
+        for codeunitname, codeunit_configuration in information.codeunits.items():
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
             GeneralUtilities.write_message_to_stdout("Build codeunit")
-            self.__run_build_py(commitid, codeunit_version, information.build_py_arguments, information.repository, codeunitname, information.verbosity)
+            self.__run_build_py(commitid, codeunit_version, codeunit_configuration.build_script_arguments, information.repository, codeunitname, information.verbosity)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
 
-        for codeunitname in information.codeunits:
+        for codeunitname, codeunit_configuration in information.codeunits.items():
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
 
@@ -516,8 +515,8 @@ class TasksForCommonProjectStructure:
             shutil.copyfile(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit"), os.path.join(target_folder_for_codeunit, f"{codeunitname}.codeunit"))
             shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), os.path.join(target_folder_for_codeunit, "Artifacts"))
 
-        for _, codeunit in information.codeunits.items():
-            push_artifact_to_registry_script = codeunit.push_to_registry_script
+        for codeunitname, codeunit_configuration in information.codeunits.items():
+            push_artifact_to_registry_script = codeunit_configuration.push_to_registry_script
             folder = os.path.dirname(push_artifact_to_registry_script)
             file = os.path.basename(push_artifact_to_registry_script)
             GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}")
