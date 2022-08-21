@@ -25,7 +25,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.1.33"
+version = "3.1.34"
 __version__ = version
 
 
@@ -1029,7 +1029,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,
                                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                               title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> Popen:
+                                               title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> Popen:
         # Verbosity:
         # 0=Quiet (No output will be printed.)
         # 1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
@@ -1053,8 +1053,6 @@ class ScriptCollectionCore:
 
         if isinstance(self.program_runner, ProgramRunnerEpew):
             custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, verbosity, arguments_for_log)
-        else:
-            custom_argument = None
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument)
         return popen
 
@@ -1063,7 +1061,8 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,
                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
+                                title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,
+                                throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None) -> tuple[int, str, str, int]:
 
         mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
@@ -1071,7 +1070,7 @@ class ScriptCollectionCore:
 
         start_datetime = datetime.utcnow()
         process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
-                                                              timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log)
+                                                              timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         pid = process.pid
         live_output = isinstance(self.program_runner, ProgramRunnerEpew)
         if live_output:
@@ -1127,31 +1126,32 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def run_program(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1,
                     print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                    title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True) -> tuple[int, str, str, int]:
+                    title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True,
+                    custom_argument: object = None) -> tuple[int, str, str, int]:
         return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information,
-                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero)
+                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument)
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
     def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,
                                       print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> int:
+                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> int:
 
         mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
 
         process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity,
-                                                                     print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log)
+                                                                     print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         return process.pid
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
     def run_program_async(self, program: str, arguments: str = "",  working_directory: str = None, verbosity: int = 1,
                           print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
-                          title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None) -> int:
+                          title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> int:
         return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity,
-                                                  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log)
+                                                  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
 
     @GeneralUtilities.check_arguments
     def __try_load_mock(self, program: str, arguments: str, working_directory: str) -> tuple[bool, tuple[int, str, str, int]]:
