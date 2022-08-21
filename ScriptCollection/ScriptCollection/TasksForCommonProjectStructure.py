@@ -599,9 +599,9 @@ class TasksForCommonProjectStructure:
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
         mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
         mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
-        mergeToStableBranchInformation.push_source_branch = True
+        mergeToStableBranchInformation.push_source_branch = createReleaseConfiguration.remotename is not None
         mergeToStableBranchInformation.push_source_branch_remote_name = createReleaseConfiguration.remotename
-        mergeToStableBranchInformation.push_target_branch = True
+        mergeToStableBranchInformation.push_target_branch = createReleaseConfiguration.remotename is not None
         mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
         mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
         mergeToStableBranchInformation.codeunits = createReleaseConfiguration.codeunits
