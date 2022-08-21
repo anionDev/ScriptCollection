@@ -66,9 +66,7 @@ class ProgramRunnerEpew(ProgramRunnerBase):
                 args.append("-i")
             if custom_argument.addLogOverhead:
                 args.append("-h")
-            #args.append("-v "+str(custom_argument.verbosity))
-            args.append("-v 2")
-            args = ["-p python", "-a test.py"]
+            args.append("-v "+str(custom_argument.verbosity))
             return ProgramRunnerPopen().run_program_argsasarray_async_helper("epew", args, working_directory)
         else:
             raise ValueError("Epew is not available.")
