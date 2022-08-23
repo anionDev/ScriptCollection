@@ -266,7 +266,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
-        argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
+        argument = ["push", "--recurse-submodules=on-demand", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
         if (pushalltags):
