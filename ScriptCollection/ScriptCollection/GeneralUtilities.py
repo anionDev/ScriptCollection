@@ -38,7 +38,7 @@ class GeneralUtilities:
                         if not GeneralUtilities.is_generic(function.__annotations__[parameters[index]]):
                             if not isinstance(argument, function.__annotations__[parameters[index]]):
                                 raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
-                                                f"{ function.__annotations__[parameters[index]]}")
+                                                f"{ function.__annotations__[parameters[index]]} but has type "+str(type(argument)))
             for index, named_argument in enumerate(named_args):
                 if named_args[named_argument] is not None:
                     if parameters[index] in function.__annotations__:
