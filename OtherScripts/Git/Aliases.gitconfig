@@ -3,7 +3,7 @@
     getdateoflastcommit = log -1 --format=%cd
     getidoflastcommit = log --format="%H" -n 1
     listfiles = ls-tree --full-tree -r --name-only HEAD
-    listauthors = !git log --pretty=\"'%an', '%ae'\" | sort | uniq; Shows author-name, author-email.
+    listauthors = !git log --pretty=\"%an <%ae>\" | sort | uniq; Shows author-name <author-email>.
     listcommitcounts = shortlog -s -n
     rep = repack -a -d -n --max-pack-size=10m
     removelastcommitpreservechanges = reset HEAD~ --soft; Preserves changes as unstaged changes.
@@ -17,7 +17,7 @@
     showcommitfull = show --format=fuller
     showdanglingobjects = fsck --lost-found
     showfirstcommits = rev-list --max-parents=0 HEAD
-    showglobalconfig = config --list --show-origin
+    showconfig = config --list --show-origin
     showtrackedignored = ls-files -i --exclude-standard
     tree = log --graph --decorate --pretty=oneline --abbrev-commit
     tidyup = !git reflog expire --expire-unreachable=now --all && git gc --prune=now && :
