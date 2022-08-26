@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = "3.1.34"
+version = "3.1.36"
 
 
 def create_wheel_file():

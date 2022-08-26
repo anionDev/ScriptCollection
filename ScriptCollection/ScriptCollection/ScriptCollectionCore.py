@@ -25,7 +25,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.1.34"
+version = "3.1.36"
 __version__ = version
 
 
@@ -104,7 +104,7 @@ class ScriptCollectionCore:
         pattern = re.compile(versiononlyregex)
         if pattern.match(current_version):
             for tag in ["Version", "AssemblyVersion", "FileVersion"]:
-                GeneralUtilities.write_text_to_file(csproj_file, re.sub(f"<{tag}>{versionregex}<\\/{tag}>",
+                GeneralUtilities.write_text_to_file(csproj_file, re.sub(f"<{tag}>{versionregex}(.\\d+)?<\\/{tag}>",
                                                                         f"<{tag}>{current_version}</{tag}>", GeneralUtilities.read_text_from_file(csproj_file)))
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
@@ -266,7 +266,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
-        argument = ["push", remotename, f"{localbranchname}:{remotebranchname}"]
+        argument = ["push", "--recurse-submodules=on-demand", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
         if (pushalltags):
@@ -370,7 +370,7 @@ class ScriptCollectionCore:
         if sign:
             if message is None:
                 message = f"Created {target_for_tag}"
-            argument.extend(["-s", f'-m "{message}"'])
+            argument.extend(["-s", '-m', message])
         self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
@@ -1063,7 +1063,6 @@ class ScriptCollectionCore:
                                 print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                 title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,
                                 throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None) -> tuple[int, str, str, int]:
-
         mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
@@ -1136,7 +1135,6 @@ class ScriptCollectionCore:
     def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,
                                       print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,
                                       title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> int:
-
         mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
