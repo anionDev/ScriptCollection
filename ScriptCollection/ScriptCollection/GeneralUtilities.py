@@ -52,6 +52,17 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def args_array_surround_with_quotes_if_required(arguments: list[str]) -> list[str]:
+        result = []
+        for argument in arguments:
+            if " " in argument and not (argument.startswith('"') and argument.endswith('"')):
+                result.append(f'"{argument}"')
+            else:
+                result.append(argument)
+        return result
+
+    @staticmethod
+    @check_arguments
     def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list[str]:
         result = list()
         if(string is not None):
