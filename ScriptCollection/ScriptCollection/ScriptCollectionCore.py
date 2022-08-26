@@ -370,7 +370,7 @@ class ScriptCollectionCore:
         if sign:
             if message is None:
                 message = f"Created {target_for_tag}"
-            argument.extend(["-s", f'-m "{message}"'])
+            argument.extend(["-s", '-m', message])
         self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
