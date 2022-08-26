@@ -485,7 +485,7 @@ class ScriptCollectionCore:
         return float(result[1].replace('\n', ''))
 
     @GeneralUtilities.check_arguments
-    def __create_thumbnails(self, filename: str, fps: float, folder: str, tempname_for_thumbnails: str) -> None:
+    def __create_thumbnails(self, filename: str, fps: str, folder: str, tempname_for_thumbnails: str) -> None:
         argument = ['-i', filename, '-r', str(fps), '-vf', 'scale=-1:120', '-vcodec', 'png', f'{tempname_for_thumbnails}-%002d.png']
         self.run_program_argsasarray("ffmpeg", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
 
@@ -520,12 +520,12 @@ class ScriptCollectionCore:
             length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
             if(frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
-                frames_per_secondx = self.roundup(float(frames_per_second[:-3]), 2)
+                frames_per_secondx = str(self.roundup(float(frames_per_second[:-3]), 2))
                 amounf_of_previewframes = int(math.floor(length_in_seconds*frames_per_second))
             else:
                 # concrete amount of frame, examples: frames_per_second="16" => 16 frames for entire video
                 amounf_of_previewframes = int(float(frames_per_second))
-                frames_per_secondx = self.roundup((amounf_of_previewframes-2)/length_in_seconds, 2)
+                frames_per_secondx = f"{amounf_of_previewframes-2}/{length_in_seconds}"  # self.roundup((amounf_of_previewframes-2)/length_in_seconds, 2)
             self.__create_thumbnails(filename, frames_per_secondx, folder, tempname_for_thumbnails)
             self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
         finally:
