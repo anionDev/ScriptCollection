@@ -480,21 +480,31 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
-        argument = f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'
-        return float(self.run_program("ffprobe", argument, folder)[1])
+        argument = ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', filename]
+        result = self.run_program_argsasarray("ffprobe", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+        return float(result[1].replace('\n', ''))
 
     @GeneralUtilities.check_arguments
-    def __create_thumbnails(self, filename: str, fps: float, folder: str, tempname_for_thumbnails: str) -> None:
-        argument = f'-i "{filename}" -r {str(fps)} -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'
-        self.run_program("ffmpeg", argument, folder)
+    def __create_thumbnails(self, filename: str, fps: str, folder: str, tempname_for_thumbnails: str) -> None:
+        argument = ['-i', filename, '-r', str(fps), '-vf', 'scale=-1:120', '-vcodec', 'png', f'{tempname_for_thumbnails}-%002d.png']
+        self.run_program_argsasarray("ffmpeg", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def __create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails: str, amount_of_images: int) -> None:
         duration = timedelta(seconds=length_in_seconds)
         info = GeneralUtilities.timedelta_to_simple_string(duration)
         next_square_number = str(int(math.sqrt(GeneralUtilities.get_next_square_number(amount_of_images))))
-        argument = f'-title "{outputfilename} ({info})" -geometry +{next_square_number}+{next_square_number} {tempname_for_thumbnails}*.png "{outputfilename}.png"'
-        self.run_program("montage", argument, folder)
+        argument = ['-title', f'"{outputfilename} ({info})"', '-tile', f'{next_square_number}x{next_square_number}',
+                    f'{tempname_for_thumbnails}*.png', f'{outputfilename}.png']
+        self.run_program_argsasarray("montage", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+
+    @GeneralUtilities.check_arguments
+    def roundup(self, x, places):
+        d = 10 ** places
+        if x < 0:
+            return math.floor(x * d) / d
+        else:
+            return math.ceil(x * d) / d
 
     @GeneralUtilities.check_arguments
     def generate_thumbnail(self, file: str, frames_per_second: str, tempname_for_thumbnails: str = None) -> None:
@@ -510,13 +520,13 @@ class ScriptCollectionCore:
             length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
             if(frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
-                frames_per_second = round(float(frames_per_second[:-3]), 2)
+                frames_per_secondx = str(self.roundup(float(frames_per_second[:-3]), 2))
                 amounf_of_previewframes = int(math.floor(length_in_seconds*frames_per_second))
             else:
                 # concrete amount of frame, examples: frames_per_second="16" => 16 frames for entire video
                 amounf_of_previewframes = int(float(frames_per_second))
-                frames_per_second = round(amounf_of_previewframes/length_in_seconds, 2)
-            self.__create_thumbnails(filename, frames_per_second, folder, tempname_for_thumbnails)
+                frames_per_secondx = f"{amounf_of_previewframes-2}/{length_in_seconds}"  # self.roundup((amounf_of_previewframes-2)/length_in_seconds, 2)
+            self.__create_thumbnails(filename, frames_per_secondx, folder, tempname_for_thumbnails)
             self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
         finally:
             for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
