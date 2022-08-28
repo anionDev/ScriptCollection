@@ -459,9 +459,19 @@ class ScriptCollectionCore:
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
+    def __sort_fmd(self,line:str):
+        splitted: list = line.split(";")
+        filetype: str = splitted[1]
+        if filetype =="d":
+            return -1
+        if filetype=="f":
+            return 1
+
     @GeneralUtilities.check_arguments
     def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8",create_folder_is_not_exist:bool=True) -> None:
-        for line in GeneralUtilities.read_lines_from_file(source_file, encoding):
+        x=GeneralUtilities.read_lines_from_file(source_file, encoding)
+        x.sort(key=self.__sort_fmd)
+        for line in x:
             splitted: list = line.split(";")
             full_path_of_file_or_folder: str = os.path.join(folder, splitted[0])
             filetype: str = splitted[1]
