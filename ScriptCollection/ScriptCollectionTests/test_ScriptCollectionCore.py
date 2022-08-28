@@ -26,16 +26,16 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             info = "00:00:42"
             tempname_for_thumbnails = "t_helperfile"
             sc.register_mock_program_call("ffprobe",
-                                          re.escape(f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'),
+                                          re.escape(f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {filename}'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock calculating length of video file which should
             # be video_length_as_string seconds in this case and exits without errors (exitcode 0)
 
             sc.register_mock_program_call("ffmpeg",
-                                          re.escape(f'-i "{filename}" -r 0.38 -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
+                                          re.escape(f'-i {filename} -r 14/{video_length_as_string} -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock generating single the thumbnail-files
 
             sc.register_mock_program_call("montage",
-                                          re.escape(f'-title "{filename} ({info})" -geometry +4+4 {tempname_for_thumbnails}*.png "{filename}.png"'),
+                                          re.escape(f'-title "{filename} ({info})" -tile 4x4 {tempname_for_thumbnails}*.png {filename}.png'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock generating the entire result-thumbnail-file
 
             # act
@@ -59,16 +59,16 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             info = "00:01:10"
             tempname_for_thumbnails = "t_helperfile"
             sc.register_mock_program_call("ffprobe",
-                                          re.escape(f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{filename}"'),
+                                          re.escape(f'-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {filename}'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock calculating length of video file which should
             # be video_length_as_string seconds in this case and exits without errors (exitcode 0)
 
             sc.register_mock_program_call("ffmpeg",
-                                          re.escape(f'-i "{filename}" -r 0.33 -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
+                                          re.escape(f'-i {filename} -r 0.34 -vf scale=-1:120 -vcodec png {tempname_for_thumbnails}-%002d.png'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock generating single the thumbnail-files
 
             sc.register_mock_program_call("montage",
-                                          re.escape(f'-title "{filename} ({info})" -geometry +5+5 {tempname_for_thumbnails}*.png "{filename}.png"'),
+                                          re.escape(f'-title "{filename} ({info})" -tile 5x5 {tempname_for_thumbnails}*.png {filename}.png'),
                                           re.escape(folder), 0, video_length_as_string, "", 40)  # Mock generating the entire result-thumbnail-file
 
             # act

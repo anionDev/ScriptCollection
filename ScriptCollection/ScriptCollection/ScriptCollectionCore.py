@@ -499,7 +499,7 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("montage", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def roundup(self, x, places):
+    def roundup(self, x: float, places: int) -> int:
         d = 10 ** places
         if x < 0:
             return math.floor(x * d) / d
@@ -520,8 +520,9 @@ class ScriptCollectionCore:
             length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
             if(frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
-                frames_per_secondx = str(self.roundup(float(frames_per_second[:-3]), 2))
-                amounf_of_previewframes = int(math.floor(length_in_seconds*frames_per_second))
+                x = self.roundup(float(frames_per_second[:-3]), 2)
+                frames_per_secondx = str(x)
+                amounf_of_previewframes = int(math.floor(length_in_seconds*x))
             else:
                 # concrete amount of frame, examples: frames_per_second="16" => 16 frames for entire video
                 amounf_of_previewframes = int(float(frames_per_second))
