@@ -444,10 +444,10 @@ class ScriptCollectionCore:
         lines = list()
         path_prefix = len(folder)+1
         items = dict()
-        for item in GeneralUtilities.get_all_files_of_folder(folder):
-            items[item] = "f"
         for item in GeneralUtilities.get_all_folders_of_folder(folder):
             items[item] = "d"
+        for item in GeneralUtilities.get_all_files_of_folder(folder):
+            items[item] = "f"
         for file_or_folder, item_type in items.items():
             truncated_file = file_or_folder[path_prefix:]
             if(filter_function is None or filter_function(folder, truncated_file)):
@@ -460,13 +460,15 @@ class ScriptCollectionCore:
             file_object.write("\n".join(lines))
 
     @GeneralUtilities.check_arguments
-    def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8") -> None:
+    def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8",create_folder_is_not_exist:bool=True) -> None:
         for line in GeneralUtilities.read_lines_from_file(source_file, encoding):
             splitted: list = line.split(";")
             full_path_of_file_or_folder: str = os.path.join(folder, splitted[0])
             filetype: str = splitted[1]
             user: str = splitted[2]
             permissions: str = splitted[3]
+            if filetype == "d" and create_folder_is_not_exist and not os.path.isdir(full_path_of_file_or_folder):
+                GeneralUtilities.ensure_directory_exists(full_path_of_file_or_folder)
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
                 self.set_owner(full_path_of_file_or_folder, user, os.name != 'nt')
                 self.set_permission(full_path_of_file_or_folder, permissions)
