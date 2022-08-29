@@ -194,14 +194,14 @@ class GeneralUtilities:
     @check_arguments
     def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback=None, extra_message: str = None):
         GeneralUtilities.write_message_to_stderr("Exception(")
-        GeneralUtilities.write_message_to_stderr("Type: "+str(type(exception)))
-        GeneralUtilities.write_message_to_stderr("Message: "+str(exception))
+        GeneralUtilities.write_message_to_stderr("Type: " + str(type(exception)))
+        GeneralUtilities.write_message_to_stderr("Message: " + str(exception))
         if str is not None:
-            GeneralUtilities.write_message_to_stderr("Extra-message: "+str(extra_message))
+            GeneralUtilities.write_message_to_stderr("Extra-message: " + str(extra_message))
         if isinstance(exception, OSError):
             GeneralUtilities.write_message_to_stderr(GeneralUtilities.get_advanced_errormessage_for_os_error(exception))
         if current_traceback is not None:
-            GeneralUtilities.write_message_to_stderr("Traceback: "+current_traceback.format_exc())
+            GeneralUtilities.write_message_to_stderr("Traceback: " + current_traceback.format_exc())
         GeneralUtilities.write_message_to_stderr(")")
 
     @staticmethod
@@ -395,7 +395,7 @@ class GeneralUtilities:
         result = []
         for fileA in GeneralUtilities.absolute_file_paths(folderA):
             file = fileA[folderA_length:]
-            fileB = folderB+file
+            fileB = folderB + file
             if not os.path.isfile(fileB):
                 result.append(fileB)
         return result
