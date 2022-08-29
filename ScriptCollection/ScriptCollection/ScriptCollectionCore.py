@@ -1,7 +1,6 @@
 from datetime import timedelta, datetime
 import binascii
 import filecmp
-from genericpath import isdir
 import hashlib
 from io import BytesIO
 import itertools
@@ -460,20 +459,17 @@ class ScriptCollectionCore:
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
-
-
     def escape_git_repositories_in_folder(self, folder: str):
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
             if file.endswith(".git"):
                 new_name = file+"x"
                 os.rename(file, new_name)
-                i = 3
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
             if subfolder.endswith(".git"):
                 subfolder2 = subfolder+"x"
                 os.rename(subfolder, subfolder2)
             else:
-                subfolder2=subfolder
+                subfolder2 = subfolder
             self.escape_git_repositories_in_folder(subfolder2)
 
     def deescape_git_repositories_in_folder(self, folder: str):
@@ -481,7 +477,6 @@ class ScriptCollectionCore:
             if file.endswith(".gitx"):
                 new_name = file[:-1]
                 os.rename(file, new_name)
-                i = 3
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
             if subfolder.endswith(".gitx"):
                 subfolder2 = subfolder[:-1]
