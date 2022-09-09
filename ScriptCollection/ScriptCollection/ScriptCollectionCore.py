@@ -25,7 +25,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.1.40"
+version = "3.1.41"
 __version__ = version
 
 
@@ -739,11 +739,11 @@ class ScriptCollectionCore:
             self.__check_file(file, searchstring)
 
     @GeneralUtilities.check_arguments
-    def __print_qr_code_by_csv_line(self, displayname, website, emailaddress, key, period) -> None:
+    def __print_qr_code_by_csv_line(self, displayname: str, website: str, emailaddress: str, key: str, period: str) -> None:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
-        self.run_program("qr", [qrcode_content])
+        self.run_program("qr", qrcode_content)
 
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
