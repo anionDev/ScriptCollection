@@ -14,6 +14,70 @@ class ScriptCollectionCoreTests(unittest.TestCase):
     encoding = "utf-8"
     testfileprefix = "testfile_"
 
+    def test_rename_git_repositories(self) -> None:
+        # arrange
+        folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        try:
+            GeneralUtilities.ensure_directory_exists(folder)
+            sc = ScriptCollectionCore()
+
+            folder_a = os.path.join(folder, "a")  # item 1
+            folder_a_b1 = os.path.join(folder_a, "b1")  # item 2
+            file_a_b1_git = os.path.join(folder_a_b1, ".git")  # item 3
+            folder_a_b2 = os.path.join(folder_a, "b2")  # item 4
+            folder_a_b2_git = os.path.join(folder_a_b2, ".git")  # item 5
+            file_a_b2_git_head = os.path.join(folder_a_b2_git, "head")  # item 6
+            folder_git = os.path.join(folder, ".git")  # item 7
+            file_git_head = os.path.join(folder_git, "head")  # item 8
+
+            GeneralUtilities.ensure_directory_exists(folder_a)  # item 1
+            GeneralUtilities.ensure_directory_exists(folder_a_b1)  # item 2
+            GeneralUtilities.ensure_file_exists(file_a_b1_git)  # item 3
+            GeneralUtilities.ensure_directory_exists(folder_a_b2)  # item 4
+            GeneralUtilities.ensure_directory_exists(folder_a_b2_git)  # item 5
+            GeneralUtilities.ensure_file_exists(file_a_b2_git_head)  # item 6
+            GeneralUtilities.ensure_directory_exists(folder_git)  # item 7
+            GeneralUtilities.ensure_file_exists(file_git_head)  # item 8
+
+            # act
+            sc.escape_git_repositories_in_folder(folder)
+
+            # assert
+            assert os.path.isdir(folder_a)  # item 1
+            assert os.path.isdir(folder_a_b1)  # item 2
+            assert not os.path.isfile(file_a_b1_git)  # item 3
+            assert os.path.isfile(file_a_b1_git+"x")  # item 3
+            assert os.path.isdir(folder_a_b2)  # item 4
+            assert not os.path.isdir(folder_a_b2_git)  # item 5
+            assert os.path.isdir(folder_a_b2_git+"x")  # item 5
+            assert not os.path.isfile(file_a_b2_git_head)  # item 6
+            assert os.path.isfile(os.path.join(folder_a_b2_git+"x", "head"))  # item 6
+            assert not os.path.isdir(folder_git)  # item 7
+            assert os.path.isdir(folder_git+"x")  # item 7
+            assert not os.path.isfile(file_git_head)  # item 8
+            assert os.path.isfile(os.path.join(folder_git+"x", "head"))  # item 8
+
+            # act
+            sc.deescape_git_repositories_in_folder(folder)
+
+            # assert
+            assert os.path.isdir(folder_a)  # item 1
+            assert os.path.isdir(folder_a_b1)  # item 2
+            assert os.path.isfile(file_a_b1_git)  # item 3
+            assert not os.path.isfile(file_a_b1_git+"x")  # item 3
+            assert os.path.isdir(folder_a_b2)  # item 4
+            assert os.path.isdir(folder_a_b2_git)  # item 5
+            assert not os.path.isdir(folder_a_b2_git+"x")  # item 5
+            assert os.path.isfile(file_a_b2_git_head)  # item 6
+            assert not os.path.isfile(os.path.join(folder_a_b2_git+"x", "head"))  # item 6
+            assert os.path.isdir(folder_git)  # item 7
+            assert not os.path.isdir(folder_git+"x")  # item 7
+            assert os.path.isfile(file_git_head)  # item 8
+            assert not os.path.isfile(os.path.join(folder_git+"x", "head"))  # item 8
+
+        finally:
+            GeneralUtilities.ensure_directory_exists(folder)
+
     def test_generate_thumbnail(self) -> None:
         # arrange
         fd, temporary_file = tempfile.mkstemp()
