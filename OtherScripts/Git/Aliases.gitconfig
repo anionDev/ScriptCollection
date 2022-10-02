@@ -3,7 +3,7 @@
     getdateoflastcommit = log -1 --format=%cd
     getidoflastcommit = log --format="%H" -n 1
     listfiles = ls-tree --full-tree -r --name-only HEAD
-    listauthors = !git log --pretty=\"%an <%ae>\" | sort | uniq; Shows author-name <author-email>.
+    listauthors = shortlog --summary --email
     listcommitcounts = shortlog -s -n
     rep = repack -a -d -n --max-pack-size=10m
     removelastcommitpreservechanges = reset HEAD~ --soft; Preserves changes as unstaged changes.
