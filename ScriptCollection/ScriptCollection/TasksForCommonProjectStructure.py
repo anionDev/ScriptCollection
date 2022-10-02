@@ -171,23 +171,25 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_file: str, verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_node_project_in_common_project_structure(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
-        codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
+        repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
+        codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
         codeunit_folder = os.path.join(repository_folder, codeunitname)
+        self.build_dependent_code_units(buildscript_file)
         # target_directory = GeneralUtilities.resolve_relative_path(
         #    "../Artifacts/npm", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
         # TODO use this variable and move file accordingly
         self.__sc.run_program("npm", "run build", codeunit_folder)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_python_codeunit_in_common_project_structure(self, build_file: str, verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_python_codeunit_in_common_project_structure(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        setuppy_file_folder = str(Path(os.path.dirname(build_file)).parent.parent.absolute())
+        setuppy_file_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute())
         setuppy_file_filename = "Setup.py"
-        repository_folder: str = str(Path(os.path.dirname(build_file)).parent.parent.parent.absolute())
-        codeunitname: str = Path(os.path.dirname(build_file)).parent.parent.name
+        repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
+        codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
+        self.build_dependent_code_units(buildscript_file)
         target_directory = GeneralUtilities.resolve_relative_path(
             "../Artifacts/Wheel", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
@@ -307,8 +309,8 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts/BuildResult", os.path.dirname(buildscript_file))
-
         codeunit_folder = os.path.join(repository_folder, codeunitname)
+        self.build_dependent_code_units(buildscript_file)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
         csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
         commandline_arguments2 = commandline_arguments[1:]
@@ -710,8 +712,28 @@ class TasksForCommonProjectStructure:
         build_configuration = TasksForCommonProjectStructure.get_buildconfiguration_from_commandline_arguments(commandline_arguments, build_configuration)
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         codeunitname_lower = codeunitname.lower()
+        self.build_dependent_code_units(buildscript_file)
         buildscript_folder = os.path.dirname(buildscript_file)
         sc.run_program("docker", f"build --build-arg EnvironmentStage={build_configuration} --tag {codeunitname_lower}:latest .", buildscript_folder)
         targetfolder = GeneralUtilities.resolve_relative_path("../Artifacts/ApplicationImage", buildscript_folder)
         GeneralUtilities.ensure_directory_exists(targetfolder)
         sc.run_program("docker", f"save -o {targetfolder}/{codeunitname}.latest.tar {codeunitname_lower}:latest", buildscript_folder)
+
+    @GeneralUtilities.check_arguments
+    def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return root.xpath('//codeunit:dependentcodeunit/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})
+
+    @GeneralUtilities.check_arguments
+    def build_dependent_code_units(self, buildscriptfile: str):
+        repo_folder = GeneralUtilities.resolve_relative_path("../../..", os.path.dirname(buildscriptfile))
+        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../", os.path.dirname(buildscriptfile)))
+        codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name+".codeunit")
+        codeunits = self.get_dependent_code_units(codeunit_file)
+        sc = ScriptCollectionCore()
+        for dependent_codeunit in codeunits:
+            build_folder = os.path.join(repo_folder, dependent_codeunit, "Other", "Build")
+            artifacts_folder = os.path.join(repo_folder, dependent_codeunit, "Other", "Artifacts")
+            sc.run_program("python", "Build.py", build_folder)  # TODO also run other scripts and pass appropriate commandline arguments
+            target_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits", dependent_codeunit)
+            shutil.copytree(artifacts_folder, target_folder)
