@@ -25,7 +25,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.1.41"
+version = "3.1.42"
 __version__ = version
 
 
@@ -459,7 +459,6 @@ class ScriptCollectionCore:
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
-
     def escape_git_repositories_in_folder(self, folder: str):
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
             filename = os.path.basename(file)
@@ -491,17 +490,18 @@ class ScriptCollectionCore:
                 subfolder2 = subfolder
             self.deescape_git_repositories_in_folder(subfolder2)
 
-    def __sort_fmd(self,line:str):
+    def __sort_fmd(self, line: str):
         splitted: list = line.split(";")
         filetype: str = splitted[1]
-        if filetype =="d":
+        if filetype == "d":
             return -1
-        if filetype=="f":
+        if filetype == "f":
             return 1
+        return 0
 
     @GeneralUtilities.check_arguments
-    def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8",create_folder_is_not_exist:bool=True) -> None:
-        lines=GeneralUtilities.read_lines_from_file(source_file, encoding)
+    def restore_filemetadata(self, folder: str, source_file: str, strict=False, encoding: str = "utf-8", create_folder_is_not_exist: bool = True) -> None:
+        lines = GeneralUtilities.read_lines_from_file(source_file, encoding)
         lines.sort(key=self.__sort_fmd)
         for line in lines:
             splitted: list = line.split(";")
