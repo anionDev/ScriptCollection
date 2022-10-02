@@ -1,13 +1,12 @@
 # ScriptCollection
 
-![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/ScriptCollection.svg)](https://pypi.org/project/ScriptCollection/)
+![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
+![Dependencies](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
+
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
-![Coverage](./ScriptCollection/Other/Resources/TestCoverageBadges/badge_shieldsio_linecoverage_blue.svg)
-![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
-[![Downloads](https://pepy.tech/badge/scriptcollection/month)](https://pepy.tech/project/scriptcollection)
-![GitHub repo size](https://img.shields.io/github/repo-size/anionDev/ScriptCollection)
+![Coverage](./ScriptCollection/Other/Resources/TestCoverageBadges/badge_shieldsio_linecoverage_blue.svg)
 
 The ScriptCollection is the place for reusable scripts.
 
