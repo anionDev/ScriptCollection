@@ -475,7 +475,7 @@ class TasksForCommonProjectStructure:
     <hr/>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}
-    <a href="./Reference/index.html">Refrerence</a><br>
+    <a href="./Reference/index.html">Reference</a><br>
     <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
   </body>
 </html>
