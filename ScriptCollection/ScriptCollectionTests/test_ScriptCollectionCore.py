@@ -21,6 +21,19 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             GeneralUtilities.ensure_directory_exists(folder)
             sc = ScriptCollectionCore()
 
+            # folder
+            # +-- a (folder)
+            # |  +-- b1 (folder)
+            # |  |   +-- .git (file)
+            # |  +-- b2 (folder)
+            # |      +-- .git (folder)
+            # |          +-- head  (file)
+            # +-- .git (folder)
+            # |   +-- head (file)
+            # +-- c
+            #     +-- d1.gitd2.gitd3 (folder)
+            # |       +-- head (file)
+
             folder_a = os.path.join(folder, "a")  # item 1
             folder_a_b1 = os.path.join(folder_a, "b1")  # item 2
             file_a_b1_git = os.path.join(folder_a_b1, ".git")  # item 3
@@ -29,6 +42,9 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             file_a_b2_git_head = os.path.join(folder_a_b2_git, "head")  # item 6
             folder_git = os.path.join(folder, ".git")  # item 7
             file_git_head = os.path.join(folder_git, "head")  # item 8
+            folder_c = os.path.join(folder, "c")  # item 9
+            folder_d = os.path.join(folder_c, "d.gitd.gitd")  # item 10
+            file_c_d_head = os.path.join(folder_d, "head")  # item 11
 
             GeneralUtilities.ensure_directory_exists(folder_a)  # item 1
             GeneralUtilities.ensure_directory_exists(folder_a_b1)  # item 2
@@ -38,6 +54,9 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             GeneralUtilities.ensure_file_exists(file_a_b2_git_head)  # item 6
             GeneralUtilities.ensure_directory_exists(folder_git)  # item 7
             GeneralUtilities.ensure_file_exists(file_git_head)  # item 8
+            GeneralUtilities.ensure_directory_exists(folder_c)  # item 9
+            GeneralUtilities.ensure_directory_exists(folder_d)  # item 10
+            GeneralUtilities.ensure_file_exists(file_c_d_head)  # item 11
 
             # act
             sc.escape_git_repositories_in_folder(folder)
@@ -56,6 +75,11 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             assert os.path.isdir(folder_git+"x")  # item 7
             assert not os.path.isfile(file_git_head)  # item 8
             assert os.path.isfile(os.path.join(folder_git+"x", "head"))  # item 8
+            assert os.path.isdir(folder_c)  # item 9
+            assert not os.path.isdir(folder_d)  # item 10
+            assert os.path.isdir(os.path.join(folder_c, "d.gitxd.gitxd"))  # item 10
+            assert not os.path.isfile(file_c_d_head)  # item 11
+            assert os.path.isfile(os.path.join(folder_c, "d.gitxd.gitxd", "head"))  # item 11
 
             # act
             sc.deescape_git_repositories_in_folder(folder)
@@ -74,6 +98,11 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             assert not os.path.isdir(folder_git+"x")  # item 7
             assert os.path.isfile(file_git_head)  # item 8
             assert not os.path.isfile(os.path.join(folder_git+"x", "head"))  # item 8
+            assert os.path.isdir(folder_c)  # item 9
+            assert os.path.isdir(folder_d)  # item 10
+            assert not os.path.isdir(os.path.join(folder_c, "d.gitxd.gitxd"))  # item 10
+            assert os.path.isfile(file_c_d_head)  # item 11
+            assert not os.path.isfile(os.path.join(folder_c, "d.gitxd.gitxd", "head"))  # item 11
 
         finally:
             GeneralUtilities.ensure_directory_exists(folder)
