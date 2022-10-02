@@ -8,6 +8,10 @@
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
 ![Coverage](./ScriptCollection/Other/Resources/TestCoverageBadges/badge_shieldsio_linecoverage_blue.svg)
 
+![License](https://img.shields.io/badge/license-MIT-blue)
+![GitHub last commit](https://img.shields.io/github/last-commit/anionDev/ScriptCollection)
+![GitHub issues](https://img.shields.io/github/issues-raw/anionDev/ScriptCollection)
+
 The ScriptCollection is the place for reusable scripts.
 
 ## Reference
