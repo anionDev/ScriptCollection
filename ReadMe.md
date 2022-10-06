@@ -24,7 +24,7 @@ Most of the scripts are written in [python](https://www.python.org) 3.
 
 Caution: Before executing **any** script of this repository read the sourcecode of the script (and the sourcecode of all functions called by this function directly or transitively) carefully and verify that the script does exactly what you want to do and nothing else.
 
-Some functions are not entirely available on windows or require common third-party tools. See the [Runtime-Dependencies](#Runtime-Dependencies)-section for more information.
+Some functions are not entirely available on windows or require common third-party tools. See the [Runtime dependencies](#Runtime-dependencies)-section for more information.
 
 When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
 
@@ -106,7 +106,7 @@ If you change code in this repository please ensure pylint does not find any iss
 
 If linting-issues exist in the current code-base can be checked by running `python ./ScriptCollection/Other/QualityCheck/Linting.py`.
 
-## Runtime-Dependencies
+## Runtime dependencies
 
 ScriptCollection requires [Python](https://www.python.org) 3.10.
 
