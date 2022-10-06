@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import unittest
 from ..ScriptCollection.GeneralUtilities import GeneralUtilities
 
@@ -13,6 +14,48 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
         # act
         actual = GeneralUtilities.string_to_lines(test_string)
+
+        # assert
+        assert actual == expected
+
+    def test_datetime_to_string_to_datetime(self) -> None:
+        # arrange
+        expected = datetime(2022, 10, 6, 19, 26, 1)
+
+        # act
+        actual = GeneralUtilities.string_to_datetime(GeneralUtilities.datetime_to_string(expected))
+
+        # assert
+        assert actual == expected
+
+    def test_string_to_datetime_to_string(self) -> None:
+        # arrange
+        expected = "2022-10-06T19:26:01"
+
+        # act
+        actual = GeneralUtilities.datetime_to_string(GeneralUtilities.string_to_datetime(expected))
+
+        # assert
+        assert actual == expected
+
+    def test_datetime_to_string(self) -> None:
+        # arrange
+        expected = "2022-10-06T19:26:01"
+        test_input = datetime(2022, 10, 6, 19, 26, 1)
+
+        # act
+        actual = GeneralUtilities.datetime_to_string(test_input)
+
+        # assert
+        assert actual == expected
+
+    def test_string_to_datetime(self) -> None:
+        # arrange
+        expected = datetime(2022, 10, 6, 19, 26, 1)
+        test_input = "2022-10-06T19:26:01"
+
+        # act
+        actual = GeneralUtilities.string_to_datetime(test_input)
 
         # assert
         assert actual == expected
@@ -69,12 +112,12 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
     def test_internal_ends_with_newline_character_empty_string(self) -> None:
         # pylint: disable=W0212
-        assert GeneralUtilities._ends_with_newline_character("".encode())is False
+        assert GeneralUtilities._ends_with_newline_character("".encode()) is False
 
     def test_internal_ends_with_newline_character_nonempty_string_true(self) -> None:
         # pylint: disable=W0212
-        assert GeneralUtilities._ends_with_newline_character("a\n".encode())is True
+        assert GeneralUtilities._ends_with_newline_character("a\n".encode()) is True
 
     def test_internal_ends_with_newline_character_nonempty_string_false(self) -> None:
         # pylint: disable=W0212
-        assert GeneralUtilities._ends_with_newline_character("ab".encode())is False
+        assert GeneralUtilities._ends_with_newline_character("ab".encode()) is False

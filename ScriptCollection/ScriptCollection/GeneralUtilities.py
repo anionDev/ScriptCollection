@@ -19,6 +19,8 @@ from defusedxml.minidom import parse
 
 class GeneralUtilities:
 
+    __date_format: str = "%Y-%m-%dT%H:%M:%S"
+
     @staticmethod
     def is_generic(t: typing.Type):
         return hasattr(t, "__origin__")
@@ -82,6 +84,16 @@ class GeneralUtilities:
             else:
                 result.append(line)
         return result
+
+    @staticmethod
+    @check_arguments
+    def datetime_to_string(value: datetime) -> str:
+        return value.strftime(GeneralUtilities.__date_format)  # returns "2022-10-06T19:26:01" for example
+
+    @staticmethod
+    @check_arguments
+    def string_to_datetime(value: str) -> datetime:
+        return datetime.strptime(value, GeneralUtilities.__date_format)  # value ="2022-10-06T19:26:01" for example
 
     @staticmethod
     @check_arguments
@@ -658,7 +670,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def read_csv_file(file: str, ignore_first_line: bool = False, treat_number_sign_at_begin_of_line_as_comment: bool = True, trim_values: bool = True,
-                      encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list:
+                      encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list[str]:
         lines = GeneralUtilities.read_lines_from_file(file, encoding)
 
         if ignore_first_line:
