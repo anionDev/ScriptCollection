@@ -1123,13 +1123,21 @@ class ScriptCollectionCore:
             return mock_loader_result[1]
 
         start_datetime = datetime.utcnow()
+
+        cmd = f'{working_directory}>{program} {arguments_for_log}'
+        if GeneralUtilities.string_is_none_or_whitespace(title):
+            info_for_log = cmd
+        else:
+            info_for_log = title
+        if verbosity == 3:
+            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
+
         process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
                                                               timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         pid = process.pid
-        live_output = isinstance(self.program_runner, ProgramRunnerEpew)
-        if live_output:
-            live_output = False  # disabled yet to output at the end of the execution instead as long as the live-output is not implemented
-            # TODO do live output with something like:
+        live_output_of_stdout_and_stderr = isinstance(self.program_runner, ProgramRunnerEpew) and 1 < verbosity
+        if live_output_of_stdout_and_stderr:
+            pass  # TODO do live output with something like:
             # for line in iter(process.stdout.readline, b''):
             #    sys.stdout.buffer.write(line)
             # for line in iter(process.stderr.readline, b''):
@@ -1147,19 +1155,20 @@ class ScriptCollectionCore:
             arguments_for_log = ' '.join(arguments_for_log)
 
         duration: timedelta = end_datetime-start_datetime
-        cmd = f'{working_directory}>{program} {arguments_for_log}'
 
         if GeneralUtilities.string_is_none_or_whitespace(title):
             info_for_log = cmd
         else:
             info_for_log = title
 
-        if verbosity == 3:
-            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
+        if verbosity == 1 and exit_code != 0:
+            self.__write_error_output(print_errors_as_information, stderr)
 
-        if not live_output:
-            if verbosity == 1 and exit_code != 0:
-                self.__write_error_output(print_errors_as_information, stderr)
+        if live_output_of_stdout_and_stderr:  # HINT this is only a workaround as long as epew-live-output is not implemented
+            GeneralUtilities.write_message_to_stdout(stdout)
+            GeneralUtilities.write_message_to_stderr(stderr)
+
+        if not live_output_of_stdout_and_stderr:
             if verbosity == 2:
                 GeneralUtilities.write_message_to_stdout(stdout)
                 self.__write_error_output(print_errors_as_information, stderr)
