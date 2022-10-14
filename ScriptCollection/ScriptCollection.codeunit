@@ -3,4 +3,5 @@
     <codeunit:name>ScriptCollection</codeunit:name>
     <codeunit:version>3.1.43</codeunit:version>
     <codeunit:minimalcodecoverageinpercent>30</codeunit:minimalcodecoverageinpercent>
+    <codeunit:dependentcodeunits></codeunit:dependentcodeunits>
 </codeunit:codeunit>
