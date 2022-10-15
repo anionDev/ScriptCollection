@@ -10,7 +10,7 @@ def common_tasks():
     file = str(Path(__file__).absolute())
     folder_of_current_file = os.path.dirname(file)
     tfcps = TasksForCommonProjectStructure()
-    tfcps.standardized_tasks_do_common_tasks(file, 1, dict(), sys.argv)
+    tfcps.standardized_tasks_do_common_tasks(file, 1, "QualityCheck", sys.argv)
     sc = ScriptCollectionCore()
     version = sc.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(file)))
     sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path("../Setup.py", folder_of_current_file), version)
