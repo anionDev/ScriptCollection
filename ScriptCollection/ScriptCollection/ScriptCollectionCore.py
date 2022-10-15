@@ -79,15 +79,6 @@ class ScriptCollectionCore:
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
-    def getversion_from_arguments_or_gitversion(self, common_tasks_file: str, commandline_arguments: list[str]) -> None:
-        current_version: str = None
-        for commandline_argument in commandline_arguments:
-            if commandline_argument.startswith("--projectversion="):
-                current_version = commandline_argument.split("=")[1]
-        if current_version is None:
-            current_version = self.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_file)))
-        return current_version
-
     def replace_version_in_nuspec_file(self, nuspec_file: str, current_version: str):
         versionregex = "\\d+\\.\\d+\\.\\d+"
         versiononlyregex = f"^{versionregex}$"
@@ -156,7 +147,7 @@ class ScriptCollectionCore:
             raise ValueError(f"Multiple values available in folder '{folder}' with extension '{extension}'.")
 
     @GeneralUtilities.check_arguments
-    def dotnet_sign_file(self, file: str, keyfile: str):
+    def dotnet_sign_file(self, file: str, keyfile: str,verbosity:int):
         directory = os.path.dirname(file)
         filename = os.path.basename(file)
         if filename.lower().endswith(".dll"):
@@ -167,8 +158,8 @@ class ScriptCollectionCore:
             extension = "exe"
         else:
             raise Exception("Only .dll-files and .exe-files can be signed")
-        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory)
-        self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory)
+        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory,verbosity=verbosity)
+        self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory, verbosity=verbosity)
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 

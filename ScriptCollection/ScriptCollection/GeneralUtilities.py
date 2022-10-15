@@ -719,19 +719,19 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def absolute_file_paths(directory: str) -> list:
+    def absolute_file_paths(directory: str) -> list[str]:
         for dirpath, _, filenames in os.walk(directory):
             for filename in filenames:
                 yield os.path.abspath(os.path.join(dirpath, filename))
 
     @staticmethod
     @check_arguments
-    def os_is_linux():
+    def os_is_linux() -> bool:
         return sys.platform in ('linux', 'linux2')
 
     @staticmethod
     @check_arguments
-    def to_list(list_as_string: str, separator: str = ",") -> list:
+    def to_list(list_as_string: str, separator: str = ",") -> list[str]:
         result = list()
         if list_as_string is not None:
             list_as_string = list_as_string.strip()
@@ -746,7 +746,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def get_next_square_number(number: int):
+    def get_next_square_number(number: int) -> int:
         GeneralUtilities.assert_condition(number >= 0, "get_next_square_number is only applicable for nonnegative numbers")
         if number == 0:
             return 1
@@ -759,6 +759,6 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def assert_condition(condition: bool, information: str):
+    def assert_condition(condition: bool, information: str) -> None:
         if(not condition):
             raise ValueError("Condition failed. "+information)
