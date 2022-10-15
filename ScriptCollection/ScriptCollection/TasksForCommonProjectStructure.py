@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import re
+import configparser
 import xmlschema
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
@@ -12,22 +13,13 @@ from .ScriptCollectionCore import ScriptCollectionCore
 class CodeUnitConfiguration():
     name: str
     push_to_registry_script: str
-    additional_arguments_for_commontasks: list[str]
-    additional_arguments_for_build: list[str]
-    additional_arguments_for_runtestcases: list[str]
-    additional_arguments_for_linting: list[str]
-    additional_arguments_for_generatereference: list[str]
+    additional_arguments_file: str
 
-    def __init__(self, name: str, push_to_registry_script: str, additional_arguments_for_commontasks: list[str], additional_arguments_for_build: list[str],
-                 additional_arguments_for_runtestcases: list[str], additional_arguments_for_linting: list[str], additional_arguments_for_generatereference: list[str]):
+    def __init__(self, name: str, push_to_registry_script: str, additional_arguments_file: str):
 
         self.name = name
         self.push_to_registry_script = push_to_registry_script
-        self.additional_arguments_for_commontasks = additional_arguments_for_commontasks
-        self.additional_arguments_for_build = additional_arguments_for_build
-        self.additional_arguments_for_runtestcases = additional_arguments_for_runtestcases
-        self.additional_arguments_for_linting = additional_arguments_for_linting
-        self.additional_arguments_for_generatereference = additional_arguments_for_generatereference
+        self.additional_arguments_file = additional_arguments_file
 
 
 class CreateReleaseConfiguration():
@@ -65,6 +57,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     public_repository_url: str = None
     target_branch_name: str = None
     codeunits: dict[str, CodeUnitConfiguration]
+    build_environment_for_qualitycheck: str = "Production"
 
     def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
         self.repository = repository
@@ -84,6 +77,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     targetbranch: str = "stable"
     sign_git_tags: bool = True
     codeunits: dict[str, CodeUnitConfiguration]
+    build_environment_for_qualitycheck: str = "QualityCheck"
 
     push_source_branch: bool = False
     push_source_branch_remote_name: str = None  # This value will be ignored if push_source_branch = False
@@ -313,20 +307,28 @@ class TasksForCommonProjectStructure:
             self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str, verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str, verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll
-        self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(buildscript_file, buildconfiguration, verbosity, commandline_arguments)
+        self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(buildscript_file, buildenvironment, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str, verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str, verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll and converts it to a nupkg-file
-        self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(buildscript_file, buildconfiguration, verbosity, commandline_arguments)
+        self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(buildscript_file, buildenvironment, verbosity, commandline_arguments)
         self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildconfiguration: str,
+    def __get_dotnet_buildconfiguration_by_build_environment(self, buildenvironment: str, codeunitname: str, commandline_arguments: list[str]):
+        if buildenvironment == "QualityCheck":
+            return self.get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments, codeunitname, "Debug")
+        if buildenvironment == "Productive":
+            return self.get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments, codeunitname, "Release")
+        raise ValueError(f"Unknown build-environment: {buildenvironment}")
+
+    @GeneralUtilities.check_arguments
+    def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str,
                                                                                   verbosity: int, commandline_arguments: list[str]):
 
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
@@ -338,6 +340,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
         csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
+        buildconfiguration = self.__get_dotnet_buildconfiguration_by_build_environment(buildenvironment, codeunitname, commandline_arguments)
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder)
         self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration, os.path.join(outputfolder, codeunitname), files_to_sign, commitid, verbosity)
@@ -511,10 +514,8 @@ class TasksForCommonProjectStructure:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
             GeneralUtilities.write_message_to_stdout("Build codeunit")
-            self.build_codeunit(information.repository, codeunitname, information.verbosity,
-                                (codeunit_configuration.additional_arguments_for_commontasks, codeunit_configuration.additional_arguments_for_build,
-                                 codeunit_configuration.additional_arguments_for_runtestcases, codeunit_configuration.additional_arguments_for_linting,
-                                 codeunit_configuration.additional_arguments_for_generatereference))
+            self.build_codeunit(information.repository, codeunitname, information.verbosity, information.build_environment_for_qualitycheck,
+                                codeunit_configuration.additional_arguments_file)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -656,10 +657,9 @@ class TasksForCommonProjectStructure:
         success = False
         try:
             for _, codeunit in information.codeunits.items():
-                # f"--overwrite_buildconfigurationqualitycheck=", f"--overwrite_buildconfigurationproductive="
                 GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit.name}")
                 self.build_codeunit(information.repository, codeunit.name, information.verbosity,
-                                    ([], [f"--overwrite_buildconfigurationqualitycheck={codeunit.buildconfiguration_qualitycheck}"], [], [], []))
+                                    information.build_environment_for_qualitycheck, codeunit.additional_arguments_file)
                 GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}")
 
             commit_id = self.__sc.git_commit(information.repository,  f"Created release v{project_version}")
@@ -744,13 +744,10 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  additional_arguments_for_directly_dependent_codeunits:
-                                           dict[str, tuple[list[str], list[str], list[str], list[str], list[str]]], actual_commandline_arguments: list[str]) -> None:
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  actual_commandline_arguments: list[str]) -> None:
         sc = ScriptCollectionCore()
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
-        verbosity = self.get_verbosity_from_commandline_arguments(actual_commandline_arguments, codeunitname, verbosity)
-        # TODO additional_arguments_for_directly_dependent_codeunits must be overwritable by actual_commandline_arguments
 
         # Check codeunit-conformity
         codeunitfile = os.path.join(repository_folder, f"{codeunitname}.codeunit")
@@ -768,34 +765,52 @@ class TasksForCommonProjectStructure:
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
 
         # Build dependent code units
-        self.build_dependent_code_units(repository_folder, codeunitname, verbosity, additional_arguments_for_directly_dependent_codeunits)
+        additional_arguments_file = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "additionalargumentsfile", codeunitname, None)
+        build_environment = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "buildenvironment", codeunitname, None)
+        self.build_dependent_code_units(repository_folder, codeunitname, verbosity, build_environment, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
-    def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int,
-                                   additional_arguments_for_directly_dependent_codeunits: dict[str, tuple[list[str], list[str], list[str], list[str], list[str]]]) -> None:
+    def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit")
-        codeunits = self.get_dependent_code_units(codeunit_file)
-        dependent_code_units_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
-        GeneralUtilities.ensure_directory_does_not_exist(dependent_code_units_folder)
-        for dependent_codeunit in codeunits:
+        dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+        dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
+        GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
+        for dependent_codeunit in dependent_codeunits:
             other_folder = os.path.join(repo_folder, codeunit_name, "Other")
             artifacts_folder = os.path.join(other_folder, "Artifacts")
-            self.build_codeunit(repo_folder, dependent_codeunit, verbosity, additional_arguments_for_directly_dependent_codeunits[dependent_codeunit])
-            target_folder = os.path.join(dependent_code_units_folder, dependent_codeunit)
+            self.build_codeunit(repo_folder, dependent_codeunit, verbosity, build_environment, additional_arguments_file)
+            target_folder = os.path.join(dependent_codeunits_folder, dependent_codeunit)
             GeneralUtilities.ensure_directory_does_not_exist(target_folder)
             shutil.copytree(artifacts_folder, target_folder)
 
     @GeneralUtilities.check_arguments  # TODO add cli function for that
-    def build_codeunit(self, repo_folder: str, codeunit_name: str, verbosity: int, additional_arguments: tuple[list[str], list[str], list[str], list[str], list[str]]) -> None:
+    def build_codeunit(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
         other_folder = os.path.join(repo_folder, codeunit_name, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
         reference_folder = os.path.join(other_folder, "Reference")
         sc = ScriptCollectionCore()
-        verbosity_argument = f"--overwrite_verbosity={str(verbosity)}"
+        additional_arguments_c = []
+        additional_arguments_b = []
+        additional_arguments_r = []
+        additional_arguments_l = []
+        additional_arguments_g = []
+        if additional_arguments_file is not None:
+            config = configparser.ConfigParser()
+            if config.has_option(codeunit_name, "ArgumentsForCommonTasks"):
+                additional_arguments_c = config.get(codeunit_name, "ArgumentsForCommonTasks")
+            if config.has_option(codeunit_name, "ArgumentsForBuild"):
+                additional_arguments_c = config.get(codeunit_name, "ArgumentsForBuild")
+            if config.has_option(codeunit_name, "ArgumentsForRunTestcases"):
+                additional_arguments_c = config.get(codeunit_name, "ArgumentsForRunTestcases")
+            if config.has_option(codeunit_name, "ArgumentsForLinting"):
+                additional_arguments_c = config.get(codeunit_name, "ArgumentsForLinting")
+            if config.has_option(codeunit_name, "ArgumentsForGenerateReference"):
+                additional_arguments_c = config.get(codeunit_name, "ArgumentsForGenerateReference")
+        general_argument = f"--overwrite_verbosity[{codeunit_name}]={str(verbosity)} --overwrite_buildenvironment[{codeunit_name}]={build_environment}"
 
-        sc.run_program_argsasarray("python", ["CommonTasks.py", verbosity_argument]+additional_arguments[0], other_folder, verbosity=verbosity)
-        sc.run_program_argsasarray("python", ["Build.py", verbosity_argument] + additional_arguments[1],  build_folder, verbosity=verbosity)
-        sc.run_program_argsasarray("python", ["RunTestcases.py", verbosity_argument]+additional_arguments[2], quality_folder, verbosity=verbosity)
-        sc.run_program_argsasarray("python", ["Linting.py", verbosity_argument]+additional_arguments[3], quality_folder, verbosity=verbosity)
-        sc.run_program_argsasarray("python", ["GenerateReference.py", verbosity_argument] + additional_arguments[4], reference_folder, verbosity=verbosity)
+        sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument}", other_folder, verbosity=verbosity)
+        sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
+        sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
+        sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
+        sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
