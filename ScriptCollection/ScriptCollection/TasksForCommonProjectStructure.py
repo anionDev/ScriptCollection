@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import re
+import xmlschema
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
@@ -11,13 +12,22 @@ from .ScriptCollectionCore import ScriptCollectionCore
 class CodeUnitConfiguration():
     name: str
     push_to_registry_script: str
-    buildconfiguration: str
+    additional_arguments_for_commontasks: list[str]
+    additional_arguments_for_build: list[str]
+    additional_arguments_for_runtestcases: list[str]
+    additional_arguments_for_linting: list[str]
+    additional_arguments_for_generatereference: list[str]
 
-    def __init__(self, name: str, push_to_registry_script: str, buildconfiguration: str):
+    def __init__(self, name: str, push_to_registry_script: str, additional_arguments_for_commontasks: list[str], additional_arguments_for_build: list[str],
+                 additional_arguments_for_runtestcases: list[str], additional_arguments_for_linting: list[str], additional_arguments_for_generatereference: list[str]):
 
         self.name = name
         self.push_to_registry_script = push_to_registry_script
-        self.buildconfiguration = buildconfiguration
+        self.additional_arguments_for_commontasks = additional_arguments_for_commontasks
+        self.additional_arguments_for_build = additional_arguments_for_build
+        self.additional_arguments_for_runtestcases = additional_arguments_for_runtestcases
+        self.additional_arguments_for_linting = additional_arguments_for_linting
+        self.additional_arguments_for_generatereference = additional_arguments_for_generatereference
 
 
 class CreateReleaseConfiguration():
@@ -176,7 +186,6 @@ class TasksForCommonProjectStructure:
         target_directory = GeneralUtilities.resolve_relative_path(
             "../Artifacts/Wheel", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
         GeneralUtilities.ensure_directory_does_not_exist(target_directory)
-        self.__sc.run_program("git", f"clean -dfx --exclude={codeunitname}/Other {codeunitname}", repository_folder)
         GeneralUtilities.ensure_directory_exists(target_directory)
         self.__sc.run_program("python", f"{setuppy_file_filename} bdist_wheel --dist-dir {target_directory}", setuppy_file_folder, verbosity)
 
@@ -218,8 +227,18 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_buildconfiguration_from_commandline_arguments(commandline_arguments: list[str], codeunitname: str, default_value: str) -> str:
-        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "buildconfiguration", codeunitname)
+    def get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments: list[str], codeunitname: str, default_value: str) -> str:
+        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationqualitycheck", codeunitname, default_value)
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments: list[str], codeunitname: str, default_value: str) -> str:
+        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationproductive", codeunitname, default_value)
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_string_value_from_commandline_arguments(commandline_arguments: list[str], property_name: str, codeunitname: str, default_value: str) -> str:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, property_name, codeunitname)
         if result is None:
             return default_value
         else:
@@ -312,7 +331,6 @@ class TasksForCommonProjectStructure:
 
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
-        buildconfiguration = TasksForCommonProjectStructure.get_buildconfiguration_from_commandline_arguments(commandline_arguments, codeunitname, buildconfiguration)
         files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments, codeunitname, dict())
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         commitid = self.__sc.git_get_current_commit_id(repository_folder)
@@ -407,7 +425,6 @@ class TasksForCommonProjectStructure:
                                                                                         commandline_arguments: list[str]):
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunit_name, verbosity)
-        buildconfiguration = TasksForCommonProjectStructure.get_buildconfiguration_from_commandline_arguments(commandline_arguments, codeunit_name, buildconfiguration)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         testprojectname = codeunit_name+"Tests"
         coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
@@ -494,8 +511,10 @@ class TasksForCommonProjectStructure:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
             GeneralUtilities.write_message_to_stdout("Build codeunit")
-            # TODO run build_codeunit with production-configuration
-            self.build_codeunit(information.repository, codeunitname, information.verbosity, codeunit_configuration.buildconfiguration)
+            self.build_codeunit(information.repository, codeunitname, information.verbosity,
+                                (codeunit_configuration.additional_arguments_for_commontasks, codeunit_configuration.additional_arguments_for_build,
+                                 codeunit_configuration.additional_arguments_for_runtestcases, codeunit_configuration.additional_arguments_for_linting,
+                                 codeunit_configuration.additional_arguments_for_generatereference))
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -637,9 +656,10 @@ class TasksForCommonProjectStructure:
         success = False
         try:
             for _, codeunit in information.codeunits.items():
+                # f"--overwrite_buildconfigurationqualitycheck=", f"--overwrite_buildconfigurationproductive="
                 GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit.name}")
-                # TODO run build_codeunit to check if build works without any issues, use qualitycheck-configuration
-                self.build_codeunit(information.repository, codeunit.name, information.verbosity, codeunit.buildconfiguration)
+                self.build_codeunit(information.repository, codeunit.name, information.verbosity,
+                                    ([], [f"--overwrite_buildconfigurationqualitycheck={codeunit.buildconfiguration_qualitycheck}"], [], [], []))
                 GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}")
 
             commit_id = self.__sc.git_commit(information.repository,  f"Created release v{project_version}")
@@ -671,7 +691,6 @@ class TasksForCommonProjectStructure:
                                                                                         verbosity: int, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
-        build_configuration = self.get_buildconfiguration_from_commandline_arguments(commandline_arguments, codeunitname, build_configuration)
         use_cache: bool = False
         sc: ScriptCollectionCore = ScriptCollectionCore()
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
@@ -725,20 +744,24 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,   additional_arguments_for_directly_dependent_codeunits:
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  additional_arguments_for_directly_dependent_codeunits:
                                            dict[str, tuple[list[str], list[str], list[str], list[str], list[str]]], actual_commandline_arguments: list[str]) -> None:
         sc = ScriptCollectionCore()
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
-
         verbosity = self.get_verbosity_from_commandline_arguments(actual_commandline_arguments, codeunitname, verbosity)
-
-        # Check for uncommitted changes
-        if sc.git_repository_has_uncommitted_changes(repository_folder):
-            raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
+        # TODO additional_arguments_for_directly_dependent_codeunits must be overwritable by actual_commandline_arguments
 
         # Check codeunit-conformity
-        # TODO validate .codeunit file against appropriate xsd-file
+        codeunitfile = os.path.join(repository_folder, f"{codeunitname}.codeunit")
+        namespaces = {'codeunit': 'https://github.com/anionDev/ProjectTemplates', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        root: etree._ElementTree = etree.parse(codeunitfile)
+        codeunit_file_version = root.xpath('//codeunit:codeunit/@codeunit:codeunitspecificationversion',  namespaces=namespaces)[0]
+        supported_codeunitspecificationversion = "1.1.0"
+        if codeunit_file_version != supported_codeunitspecificationversion:
+            raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
+        schemaLocation = root.xpath('//codeunit:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
+        xmlschema.validate(codeunitfile, schemaLocation)
 
         # Update version
         version = sc.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_scripts_file)))
@@ -769,10 +792,10 @@ class TasksForCommonProjectStructure:
         quality_folder = os.path.join(other_folder, "QualityCheck")
         reference_folder = os.path.join(other_folder, "Reference")
         sc = ScriptCollectionCore()
-        verbosity_argument = f"--verbosity={str(verbosity)}"
+        verbosity_argument = f"--overwrite_verbosity={str(verbosity)}"
 
         sc.run_program_argsasarray("python", ["CommonTasks.py", verbosity_argument]+additional_arguments[0], other_folder, verbosity=verbosity)
-        sc.run_program_argsasarray("python", ["Build.py", verbosity_argument]+additional_arguments[1], build_folder, verbosity=verbosity)
+        sc.run_program_argsasarray("python", ["Build.py", verbosity_argument] + additional_arguments[1],  build_folder, verbosity=verbosity)
         sc.run_program_argsasarray("python", ["RunTestcases.py", verbosity_argument]+additional_arguments[2], quality_folder, verbosity=verbosity)
         sc.run_program_argsasarray("python", ["Linting.py", verbosity_argument]+additional_arguments[3], quality_folder, verbosity=verbosity)
         sc.run_program_argsasarray("python", ["GenerateReference.py", verbosity_argument] + additional_arguments[4], reference_folder, verbosity=verbosity)

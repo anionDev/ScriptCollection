@@ -53,6 +53,7 @@ def create_wheel_file():
             "pytest>=7.1.3",  # Required implicitly for TasksForCommonProjectStructure
             "qrcode>=6.1",
             "send2trash>=1.5.0",
+            "xmlschema>=2.1.1",
         ],
         entry_points={
             'console_scripts': [

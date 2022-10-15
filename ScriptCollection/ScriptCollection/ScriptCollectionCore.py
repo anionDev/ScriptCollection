@@ -147,7 +147,7 @@ class ScriptCollectionCore:
             raise ValueError(f"Multiple values available in folder '{folder}' with extension '{extension}'.")
 
     @GeneralUtilities.check_arguments
-    def dotnet_sign_file(self, file: str, keyfile: str,verbosity:int):
+    def dotnet_sign_file(self, file: str, keyfile: str, verbosity: int):
         directory = os.path.dirname(file)
         filename = os.path.basename(file)
         if filename.lower().endswith(".dll"):
@@ -158,7 +158,7 @@ class ScriptCollectionCore:
             extension = "exe"
         else:
             raise Exception("Only .dll-files and .exe-files can be signed")
-        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory,verbosity=verbosity)
+        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory, verbosity=verbosity)
         self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory, verbosity=verbosity)
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
