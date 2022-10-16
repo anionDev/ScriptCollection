@@ -305,7 +305,8 @@ class TasksForCommonProjectStructure:
             self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str, default_build_configuration: str, verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str, default_build_configuration: str,
+                                                                                verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll
         self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(
