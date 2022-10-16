@@ -28,7 +28,7 @@ class CreateReleaseConfiguration():
     artifacts_folder: str
     codeunits: dict[str, CodeUnitConfiguration]
     verbosity: int
-    reference_repository_remote_name: str = "main"
+    reference_repository_remote_name: str = None
     reference_repository_branch_name: str = "main"
     build_repository_branch: str = "main"
     public_repository_url: str
@@ -42,6 +42,7 @@ class CreateReleaseConfiguration():
         self.codeunits = codeunits
         self.verbosity = verbosity
         self.public_repository_url = public_repository_url
+        self.reference_repository_remote_name = self.remotename
 
 
 class CreateReleaseInformationForProjectInCommonProjectFormat:
