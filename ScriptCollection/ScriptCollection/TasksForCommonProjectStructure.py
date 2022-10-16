@@ -136,6 +136,20 @@ class TasksForCommonProjectStructure:
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.check_testcoverage_for_project_in_common_project_structure(coveragefile, repository_folder, codeunitname)
 
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def __adjust_source_in_testcoverage_file(testcoverage_file: str, codeunitname: str) -> None:
+        GeneralUtilities.write_text_to_file(testcoverage_file, re.sub("<source>.+<\\/source>", f"<source>{codeunitname}</source>",
+                                                                      GeneralUtilities.read_text_from_file(testcoverage_file)))
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def update_path_of_source(repository_folder: str, codeunitname: str) -> None:
+        folder = f"{repository_folder}/{codeunitname}/Other/Artifacts/TestCoverage"
+        filename = "TestCoverage.xml"
+        full_file = os.path.join(folder, filename)
+        TasksForCommonProjectStructure.__adjust_source_in_testcoverage_file(full_file, codeunitname)
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_python_codeunit_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool, verbosity: int, buildenvironment: str,
                                                                                          commandline_arguments: list[str]):
@@ -143,6 +157,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname, verbosity)
+        self.update_path_of_source(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, buildenvironment, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -418,6 +433,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         GeneralUtilities.ensure_directory_exists(coverage_file_folder)
         os.rename(coveragefilesource, coveragefiletarget)
+        self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, buildenvironment, commandline_arguments)
         self.check_testcoverage_for_project_in_common_project_structure(coveragefiletarget, repository_folder, codeunit_name)
 
@@ -735,6 +751,7 @@ class TasksForCommonProjectStructure:
         testcoverage_file = os.path.join(testcoverage_artifacts_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_exists(testcoverage_file)
         GeneralUtilities.write_text_to_file(testcoverage_file, dummy_test_coverage_file)
+        self.update_path_of_source(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, True, buildenvironment, commandline_arguments)
 
     def standardized_tasks_linting_for_docker_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]) -> None:
