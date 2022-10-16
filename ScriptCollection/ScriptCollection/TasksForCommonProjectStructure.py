@@ -807,8 +807,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         codeunit_name: str = os.path.basename(codeunit_folder)
-        if verbosity > 1:
-            GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}...")
+        GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}...")
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
@@ -834,18 +833,13 @@ class TasksForCommonProjectStructure:
                 additional_arguments_g = config.get(codeunit_name, "ArgumentsForGenerateReference")
         general_argument = f"--overwrite_verbosity={str(verbosity)} --overwrite_buildenvironment={build_environment}"
 
-        if verbosity > 1:
-            GeneralUtilities.write_message_to_stdout("Start CommonTasks.py.")
+        GeneralUtilities.write_message_to_stdout("Start CommonTasks.py.")
         sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument}", other_folder, verbosity=verbosity)
-        if verbosity > 1:
-            GeneralUtilities.write_message_to_stdout("Start Build.py.")
+        GeneralUtilities.write_message_to_stdout("Start Build.py.")
         sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
-        if verbosity > 1:
-            GeneralUtilities.write_message_to_stdout("RunTestcases.py.")
+        GeneralUtilities.write_message_to_stdout("RunTestcases.py.")
         sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
-        if verbosity > 1:
-            GeneralUtilities.write_message_to_stdout("Linting.py.")
+        GeneralUtilities.write_message_to_stdout("Linting.py.")
         sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
-        if verbosity > 1:
-            GeneralUtilities.write_message_to_stdout("GenerateReference.py.")
+        GeneralUtilities.write_message_to_stdout("GenerateReference.py.")
         sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
