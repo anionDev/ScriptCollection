@@ -19,10 +19,9 @@ from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
-
 from .GeneralUtilities import GeneralUtilities
-from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
+from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
