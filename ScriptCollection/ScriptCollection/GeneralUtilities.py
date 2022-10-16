@@ -286,11 +286,11 @@ class GeneralUtilities:
     @check_arguments
     def file_ends_with_newline(file: str) -> bool:
         with open(file, "rb") as file_object:
-            return GeneralUtilities.__ends_with_newline_character(file_object.read())
+            return GeneralUtilities.ends_with_newline_character(file_object.read())
 
     @staticmethod
     @check_arguments
-    def __ends_with_newline_character(content: bytes) -> bool:
+    def ends_with_newline_character(content: bytes) -> bool:
         return content.endswith(b'\x0a')
 
     @staticmethod
@@ -300,7 +300,7 @@ class GeneralUtilities:
         if len(content) == 0:
             return ""
         else:
-            if GeneralUtilities.__ends_with_newline_character(content):
+            if GeneralUtilities.ends_with_newline_character(content):
                 return ""
             else:
                 return "\n"
