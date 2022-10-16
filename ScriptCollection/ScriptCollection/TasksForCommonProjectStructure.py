@@ -90,7 +90,12 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 
 
 class TasksForCommonProjectStructure:
-    __sc: ScriptCollectionCore = ScriptCollectionCore()
+    __sc: ScriptCollectionCore = None
+
+    def __init__(self, sc: ScriptCollectionCore = None):
+        if sc is None:
+            sc = ScriptCollectionCore()
+        self.__sc = sc
 
     @GeneralUtilities.check_arguments
     def get_build_folder_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
