@@ -661,7 +661,7 @@ class TasksForCommonProjectStructure:
         # hint: arguments can be overwritten by commandline_arguments
         folder_of_this_file = os.path.dirname(create_release_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        self.__sc.run_program("python", f"CreateRelease.py --verbosity={str(verbosity)}", folder_of_this_file,  verbosity=verbosity, log_file=logfile)
+        self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity={str(verbosity)}", folder_of_this_file,  verbosity=verbosity, log_file=logfile)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
