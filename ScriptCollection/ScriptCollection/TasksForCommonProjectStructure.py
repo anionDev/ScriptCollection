@@ -577,14 +577,18 @@ class TasksForCommonProjectStructure:
                                                                                    registry_address, api_key)
 
     @GeneralUtilities.check_arguments
+    def assert_no_uncommitted_changes(self, build_repository_folder: str):
+        if self.__sc.git_repository_has_uncommitted_changes(build_repository_folder):
+            raise ValueError(f"Repository '{build_repository_folder}' has uncommitted changes.")
+
+    @GeneralUtilities.check_arguments
     def create_release_for_project_in_standardized_release_repository_format(self, create_release_file: str, createReleaseConfiguration: CreateReleaseConfiguration):
 
         GeneralUtilities.write_message_to_stdout(f"Create release for project {createReleaseConfiguration.projectname}")
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
         build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
-        if self.__sc.git_repository_has_uncommitted_changes(build_repository_folder):
-            raise ValueError(f"Repository '{build_repository_folder}' has uncommitted changes.")
+        self.assert_no_uncommitted_changes(build_repository_folder)
 
         self.__sc.git_checkout(build_repository_folder, createReleaseConfiguration.build_repository_branch)
 
@@ -651,17 +655,17 @@ class TasksForCommonProjectStructure:
         if not success:
             raise Exception("Release was not successful.")
 
+        self.__sc.git_merge(information.repository, information.targetbranch, information.sourcebranch, True, True)
         self.__sc.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
 
         if information.push_target_branch:
-            GeneralUtilities.write_message_to_stdout("Push target-branch")
+            GeneralUtilities.write_message_to_stdout("Push target-branch...")
             self.__sc.git_push(information.repository, information.push_target_branch_remote_name,
                                information.targetbranch, information.targetbranch, pushalltags=True, verbosity=information.verbosity)
 
         if information.merge_target_as_fast_forward_into_source_after_merge:
-            self.__sc.git_merge(information.repository, information.targetbranch, information.sourcebranch, True, True)
             if information.push_source_branch:
-                GeneralUtilities.write_message_to_stdout("Push source-branch")
+                GeneralUtilities.write_message_to_stdout("Push source-branch...")
                 self.__sc.git_push(information.repository, information.push_source_branch_remote_name, information.sourcebranch,
                                    information.sourcebranch, pushalltags=False, verbosity=information.verbosity)
         return project_version
