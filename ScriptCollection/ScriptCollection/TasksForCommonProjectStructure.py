@@ -575,9 +575,9 @@ class TasksForCommonProjectStructure:
                                                                                    registry_address, api_key)
 
     @GeneralUtilities.check_arguments
-    def assert_no_uncommitted_changes(self, build_repository_folder: str):
-        if self.__sc.git_repository_has_uncommitted_changes(build_repository_folder):
-            raise ValueError(f"Repository '{build_repository_folder}' has uncommitted changes.")
+    def assert_no_uncommitted_changes(self, repository_folder: str):
+        if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+            raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
     def create_release_for_project_in_standardized_release_repository_format(self, create_release_file: str, createReleaseConfiguration: CreateReleaseConfiguration):
@@ -628,10 +628,10 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stderr(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
+        self.assert_no_uncommitted_changes(information.repository)
         self.__sc.git_checkout(information.repository, information.sourcebranch)
         self.__sc.run_program("git", "clean -dfx", information.repository,  verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
-        self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
         success = False
         try:
             for _, codeunit in information.codeunits.items():
@@ -640,17 +640,15 @@ class TasksForCommonProjectStructure:
                                     information.build_environment_for_qualitycheck, codeunit.additional_arguments_file)
                 GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}")
 
-            commit_id = self.__sc.git_commit(information.repository,  f"Created release v{project_version}")
+            self.__sc.git_commit(information.repository,  "Updated changes due to building code-units.")
             success = True
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
-            self.__sc.git_merge_abort(information.repository)
-            self.__sc.git_checkout(information.repository, information.sourcebranch)
 
         if not success:
             raise Exception("Release was not successful.")
 
-        self.__sc.git_merge(information.repository, information.targetbranch, information.sourcebranch, True, True)
+        commit_id = self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, True, f"Created v{project_version}")
         self.__sc.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
 
         if information.push_target_branch:
