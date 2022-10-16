@@ -1161,6 +1161,9 @@ class ScriptCollectionCore:
         if live_output_of_stdout_and_stderr:  # HINT this is only a workaround as long as epew-live-output is not implemented
             GeneralUtilities.write_message_to_stdout(stdout)
             GeneralUtilities.write_message_to_stderr(stderr)
+            if log_file is not None:
+                GeneralUtilities.append_line_to_file(log_file, stdout)
+                GeneralUtilities.append_line_to_file(log_file, stderr)
 
         if not live_output_of_stdout_and_stderr:
             if verbosity == 2:
