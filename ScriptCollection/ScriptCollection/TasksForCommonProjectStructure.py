@@ -143,7 +143,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_run_testcases_for_python_codeunit_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool, verbosity: int, buildenvironment: str,
                                                                                          commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(run_testcases_file)).parent.parent.name
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname, verbosity)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, buildenvironment, commandline_arguments)
@@ -151,7 +151,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, buildscript_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         # target_directory = GeneralUtilities.resolve_relative_path(
@@ -162,7 +162,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit_in_common_project_structure(self, buildscript_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         setuppy_file_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute())
         setuppy_file_filename = "Setup.py"
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
@@ -196,7 +196,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def push_wheel_build_artifact_of_repository_in_common_file_structure(self, push_build_artifacts_file, product_name, codeunitname, repository: str,
                                                                          apikey: str, gpg_identity: str, verbosity: int, commandline_arguments: list[str]) -> None:
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file_in_repository_in_common_repository_format(repository_folder, codeunitname)
@@ -210,18 +210,18 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments: list[str], codeunitname: str, default_value: str) -> str:
-        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationqualitycheck", codeunitname, default_value)
+    def get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> str:
+        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationqualitycheck",  default_value)
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments: list[str], codeunitname: str, default_value: str) -> str:
-        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationproductive", codeunitname, default_value)
+    def get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments: list[str],  default_value: str) -> str:
+        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationproductive",  default_value)
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_string_value_from_commandline_arguments(commandline_arguments: list[str], property_name: str, codeunitname: str, default_value: str) -> str:
-        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, property_name, codeunitname)
+    def get_string_value_from_commandline_arguments(commandline_arguments: list[str], property_name: str, default_value: str) -> str:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, property_name)
         if result is None:
             return default_value
         else:
@@ -229,8 +229,8 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str],  codeunitname: str, default_value: int) -> int:
-        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "verbosity", codeunitname)
+    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str],  default_value: int) -> int:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "verbosity")
         if result is None:
             return default_value
         else:
@@ -238,8 +238,8 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],  codeunitname: str, default_value: dict[str, str]) -> dict[str, str]():
-        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign", codeunitname)
+    def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],   default_value: dict[str, str]) -> dict[str, str]():
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
         if result is None:
             return default_value
         else:
@@ -252,7 +252,7 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_property_from_commandline_arguments(commandline_arguments: list[str], property_name: str, codeunitname: str) -> str:
+    def get_property_from_commandline_arguments(commandline_arguments: list[str], property_name: str) -> str:
         result: str = None
         for commandline_argument in commandline_arguments[1:]:
             prefix = f"--overwrite_{property_name}"
@@ -269,8 +269,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]) -> None:
-        codeunitname: str = os.path.basename(str(Path(os.path.dirname(generate_reference_script_file)).parent.parent.absolute()))
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
         generated_reference_folder = GeneralUtilities.resolve_relative_path("../Artifacts/Reference", folder_of_current_file)
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
@@ -309,9 +308,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __get_dotnet_buildconfiguration_by_build_environment(self, buildenvironment: str, codeunitname: str, commandline_arguments: list[str]):
         if buildenvironment == "QualityCheck":
-            return self.get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments, codeunitname, "Debug")
+            return self.get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments,  "Debug")
         if buildenvironment == "Productive":
-            return self.get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments, codeunitname, "Release")
+            return self.get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments,  "Release")
         raise ValueError(f"Unknown build-environment: {buildenvironment}")
 
     @GeneralUtilities.check_arguments
@@ -319,8 +318,8 @@ class TasksForCommonProjectStructure:
                                                                                   verbosity: int, commandline_arguments: list[str]):
 
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
-        files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments, codeunitname, dict())
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
+        files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments,  dict())
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         commitid = self.__sc.git_get_current_commit_id(repository_folder)
         outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts/BuildResult", os.path.dirname(buildscript_file))
@@ -337,7 +336,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]):
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         build_folder = os.path.join(repository_folder, codeunitname, "Other", "Build")
         outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts/Nuget", os.path.dirname(buildscript_file))
@@ -354,7 +353,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
         errors_found = False
         GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}")
@@ -408,7 +407,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str, buildenvironment: str, verbosity: int, generate_badges: bool,
                                                                                         commandline_arguments: list[str]):
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunit_name, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         testprojectname = codeunit_name+"Tests"
         coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
@@ -438,8 +437,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
-        codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO implement function
 
     @GeneralUtilities.check_arguments
@@ -620,7 +618,7 @@ class TasksForCommonProjectStructure:
     def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile: str, verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         folder_of_this_file = os.path.dirname(create_release_file)
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, "*", verbosity)
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         self.__sc.run_program("python", f"CreateRelease.py --verbosity={str(verbosity)}", folder_of_this_file,  verbosity=verbosity, log_file=logfile)
 
     @GeneralUtilities.check_arguments
@@ -671,7 +669,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_for_docker_library_project_in_common_project_structure(self, build_script_file: str,  buildenvironment: str,
                                                                                         verbosity: int, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
-        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         use_cache: bool = False
         sc: ScriptCollectionCore = ScriptCollectionCore()
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
@@ -720,8 +718,7 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, True, buildenvironment, commandline_arguments)
 
     def standardized_tasks_linting_for_docker_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]) -> None:
-        codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
-        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, codeunitname, verbosity)
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO
 
     @GeneralUtilities.check_arguments
@@ -748,8 +745,8 @@ class TasksForCommonProjectStructure:
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
 
         # Build dependent code units
-        additional_arguments_file = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "additionalargumentsfile", codeunitname, None)
-        build_environment = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "buildenvironment", codeunitname, None)
+        additional_arguments_file = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "additionalargumentsfile",  None)
+        build_environment = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "buildenvironment",  None)
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, build_environment, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
