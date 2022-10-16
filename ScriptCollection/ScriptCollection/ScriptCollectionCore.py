@@ -373,13 +373,16 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True) -> str:
+    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True,commit_message:str=None) -> str:
         self.git_checkout(directory, targetbranch)
         args = ["merge"]
         if not commit:
             args.append("--no-commit")
         if not fastforward:
             args.append("--no-ff")
+        if commit_message is not None:
+            args.append("-m")
+            args.append(commit_message)
         args.append(sourcebranch)
         self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return self.git_get_current_commit_id(directory)
