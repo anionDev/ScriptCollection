@@ -769,10 +769,13 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
         if verbosity > 1:
             GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}")
         other_folder = os.path.join(codeunit_folder, "Other")
+        if not os.path.isdir(other_folder):
+            raise Exception(f'Cannot build codeunit because folder "{other_folder}" is not available.')
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
         reference_folder = os.path.join(other_folder, "Reference")
