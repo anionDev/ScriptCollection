@@ -57,7 +57,8 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     public_repository_url: str = None
     target_branch_name: str = None
     codeunits: dict[str, CodeUnitConfiguration]
-    build_environment_for_qualitycheck: str = "Production"
+    build_environment_for_qualitycheck: str = "QualityCheck"
+    build_environment_for_productive: str = "Productive"
 
     def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
         self.repository = repository
