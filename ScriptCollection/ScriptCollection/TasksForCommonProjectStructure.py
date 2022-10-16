@@ -751,7 +751,9 @@ class TasksForCommonProjectStructure:
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
 
         # Check codeunit-conformity
-        codeunitfile = os.path.join(repository_folder, f"{codeunitname}.codeunit")
+        codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit")
+        if not os.path.isfile(codeunitfile):
+            raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
         namespaces = {'codeunit': 'https://github.com/anionDev/ProjectTemplates', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunitfile)
         codeunit_file_version = root.xpath('//codeunit:codeunit/@codeunit:codeunitspecificationversion',  namespaces=namespaces)[0]
@@ -785,7 +787,7 @@ class TasksForCommonProjectStructure:
             shutil.copytree(artifacts_folder, target_folder)
 
     @GeneralUtilities.check_arguments
-    def build_codeunit(self, codeunit_folder: str, verbosity: int=1, build_environment: str="QualityCheck", additional_arguments_file: str=None) -> None:
+    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         repo_folder: str = os.path.basename(codeunit_folder)
         codeunit_name: str = os.path.dirname(codeunit_folder)
         other_folder = os.path.join(repo_folder, codeunit_name, "Other")
