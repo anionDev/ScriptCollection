@@ -28,23 +28,19 @@ class CreateReleaseConfiguration():
     artifacts_folder: str
     codeunits: dict[str, CodeUnitConfiguration]
     verbosity: int
-    reference_repository_remote_name: str
-    reference_repository_branch_name: str
-    build_repository_branch: str
+    reference_repository_remote_name: str = "main"
+    reference_repository_branch_name: str = "main"
+    build_repository_branch: str = "main"
     public_repository_url: str
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, codeunits: dict[str, CodeUnitConfiguration],
-                 verbosity: int, reference_repository_remote_name: str, reference_repository_branch_name: str, build_repository_branch: str,
-                 public_repository_url: str):
+                 verbosity: int, public_repository_url: str):
 
         self.projectname = projectname
         self.remotename = remotename
         self.artifacts_folder = build_artifacts_target_folder
         self.codeunits = codeunits
         self.verbosity = verbosity
-        self.reference_repository_remote_name = reference_repository_remote_name
-        self.reference_repository_branch_name = reference_repository_branch_name
-        self.build_repository_branch = build_repository_branch
         self.public_repository_url = public_repository_url
 
 
@@ -74,13 +70,15 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
 
 class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     repository: str
-    sourcebranch: str = "other/next-release"
-    targetbranch: str = "main"
+    sourcebranch: str = "main"
+    targetbranch: str = "stable"
     sign_git_tags: bool = True
     codeunits: dict[str, CodeUnitConfiguration]
     build_environment_for_qualitycheck: str = "QualityCheck"
     build_environment_for_productive: str = "Productive"
 
+    push_source_branch: bool = False
+    push_source_branch_remote_name: str = None
     push_target_branch: bool = False
     push_target_branch_remote_name: str = None
 
@@ -580,6 +578,28 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
+    def get_codeunits(self, repository_folder: str) -> list[str]:
+        result: list[str] = []
+        for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
+            subfoldername = os.path.basename(direct_subfolder)
+            if os.path.isfile(os.path.join(direct_subfolder, f"{subfoldername}.codeunit")):
+                result.append(subfoldername)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str,
+                                                                      new_version_branch_name: str = "other/next-release", main_branch_name: str = "main", verbosity: int = 1) -> None:
+        self.assert_no_uncommitted_changes(repository_folder)
+        repository_name = os.path.basename(repository_folder)
+        self.__sc.git_checkout(repository_folder, new_version_branch_name)
+        for codeunit in self.get_codeunits(repository_folder):
+            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity)
+        self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
+        self.__sc.git_merge(repository_folder, new_version_branch_name, main_branch_name, False, True, f'Merge branch {new_version_branch_name} into {main_branch_name}')
+        self.__sc.git_checkout(repository_folder, main_branch_name)
+        self.__sc.git_commit(build_repository_folder, f"Updated submodule {repository_name}")
+
+    @GeneralUtilities.check_arguments
     def create_release_for_project_in_standardized_release_repository_format(self, create_release_file: str, createReleaseConfiguration: CreateReleaseConfiguration):
 
         GeneralUtilities.write_message_to_stdout(f"Create release for project {createReleaseConfiguration.projectname}")
@@ -595,6 +615,8 @@ class TasksForCommonProjectStructure:
         mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
         mergeToStableBranchInformation.push_target_branch = createReleaseConfiguration.remotename is not None
         mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
+        mergeToStableBranchInformation.push_source_branch = createReleaseConfiguration.remotename is not None
+        mergeToStableBranchInformation.push_source_branch_remote_name = createReleaseConfiguration.remotename
         mergeToStableBranchInformation.codeunits = createReleaseConfiguration.codeunits
         new_project_version = self.__standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
@@ -640,7 +662,7 @@ class TasksForCommonProjectStructure:
                                     information.build_environment_for_qualitycheck, codeunit.additional_arguments_file)
                 GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}")
 
-            self.__sc.git_commit(information.repository,  "Updated changes due to building code-units.")
+            self.assert_no_uncommitted_changes(information.repository)
             success = True
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
@@ -648,8 +670,13 @@ class TasksForCommonProjectStructure:
         if not success:
             raise Exception("Release was not successful.")
 
-        commit_id = self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, True, f"Created v{project_version}")
+        commit_id = self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, True)
         self.__sc.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
+
+        if information.push_source_branch:
+            GeneralUtilities.write_message_to_stdout("Push source-branch...")
+            self.__sc.git_push(information.repository, information.push_source_branch_remote_name,
+                               information.sourcebranch, information.sourcebranch, pushalltags=True, verbosity=information.verbosity)
 
         if information.push_target_branch:
             GeneralUtilities.write_message_to_stdout("Push target-branch...")
@@ -759,7 +786,7 @@ class TasksForCommonProjectStructure:
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         codeunit_name: str = os.path.basename(codeunit_folder)
         if verbosity > 1:
-            GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}")
+            GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}...")
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
