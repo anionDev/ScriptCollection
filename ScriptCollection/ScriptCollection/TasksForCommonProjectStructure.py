@@ -768,8 +768,7 @@ class TasksForCommonProjectStructure:
         codeunit_name: str = os.path.dirname(codeunit_folder)
         if verbosity > 1:
             GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}")
-        repo_folder: str = os.path.basename(codeunit_folder)
-        other_folder = os.path.join(repo_folder, codeunit_name, "Other")
+        other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
         reference_folder = os.path.join(other_folder, "Reference")
