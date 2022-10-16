@@ -1166,7 +1166,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stderr(stderr)
         # </Workaround>
 
-        if not program_manages_logging_itself:
+        if log_file is not None and not program_manages_logging_itself:
             GeneralUtilities.ensure_file_exists(log_file)
             GeneralUtilities.append_line_to_file(log_file, stdout)
             GeneralUtilities.append_line_to_file(log_file, stderr)
