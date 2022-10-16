@@ -79,15 +79,6 @@ class ScriptCollectionCore:
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
-    def getversion_from_arguments_or_gitversion(self, common_tasks_file: str, commandline_arguments: list[str]) -> None:
-        current_version: str = None
-        for commandline_argument in commandline_arguments:
-            if commandline_argument.startswith("--projectversion="):
-                current_version = commandline_argument.split("=")[1]
-        if current_version is None:
-            current_version = self.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_file)))
-        return current_version
-
     def replace_version_in_nuspec_file(self, nuspec_file: str, current_version: str):
         versionregex = "\\d+\\.\\d+\\.\\d+"
         versiononlyregex = f"^{versionregex}$"
@@ -156,7 +147,7 @@ class ScriptCollectionCore:
             raise ValueError(f"Multiple values available in folder '{folder}' with extension '{extension}'.")
 
     @GeneralUtilities.check_arguments
-    def dotnet_sign_file(self, file: str, keyfile: str):
+    def dotnet_sign_file(self, file: str, keyfile: str, verbosity: int):
         directory = os.path.dirname(file)
         filename = os.path.basename(file)
         if filename.lower().endswith(".dll"):
@@ -167,8 +158,8 @@ class ScriptCollectionCore:
             extension = "exe"
         else:
             raise Exception("Only .dll-files and .exe-files can be signed")
-        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory)
-        self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory)
+        self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory, verbosity=verbosity)
+        self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory, verbosity=verbosity)
         os.remove(directory+os.path.sep+filename+".il")
         os.remove(directory+os.path.sep+filename+".res")
 
@@ -1123,13 +1114,21 @@ class ScriptCollectionCore:
             return mock_loader_result[1]
 
         start_datetime = datetime.utcnow()
+
+        cmd = f'{working_directory}>{program} {arguments_for_log}'
+        if GeneralUtilities.string_is_none_or_whitespace(title):
+            info_for_log = cmd
+        else:
+            info_for_log = title
+        if verbosity == 3:
+            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
+
         process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
                                                               timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         pid = process.pid
-        live_output = isinstance(self.program_runner, ProgramRunnerEpew)
-        if live_output:
-            live_output = False  # disabled yet to output at the end of the execution instead as long as the live-output is not implemented
-            # TODO do live output with something like:
+        live_output_of_stdout_and_stderr = isinstance(self.program_runner, ProgramRunnerEpew) and 1 < verbosity
+        if live_output_of_stdout_and_stderr:
+            pass  # TODO do live output with something like:
             # for line in iter(process.stdout.readline, b''):
             #    sys.stdout.buffer.write(line)
             # for line in iter(process.stderr.readline, b''):
@@ -1147,19 +1146,20 @@ class ScriptCollectionCore:
             arguments_for_log = ' '.join(arguments_for_log)
 
         duration: timedelta = end_datetime-start_datetime
-        cmd = f'{working_directory}>{program} {arguments_for_log}'
 
         if GeneralUtilities.string_is_none_or_whitespace(title):
             info_for_log = cmd
         else:
             info_for_log = title
 
-        if verbosity == 3:
-            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
+        if verbosity == 1 and exit_code != 0:
+            self.__write_error_output(print_errors_as_information, stderr)
 
-        if not live_output:
-            if verbosity == 1 and exit_code != 0:
-                self.__write_error_output(print_errors_as_information, stderr)
+        if live_output_of_stdout_and_stderr:  # HINT this is only a workaround as long as epew-live-output is not implemented
+            GeneralUtilities.write_message_to_stdout(stdout)
+            GeneralUtilities.write_message_to_stderr(stderr)
+
+        if not live_output_of_stdout_and_stderr:
             if verbosity == 2:
                 GeneralUtilities.write_message_to_stdout(stdout)
                 self.__write_error_output(print_errors_as_information, stderr)
