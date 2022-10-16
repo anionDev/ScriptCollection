@@ -769,7 +769,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
-        codeunit_name: str = os.path.dirname(codeunit_folder)
+        codeunit_name: str = os.path.basename(codeunit_folder)
         if verbosity > 1:
             GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}")
         other_folder = os.path.join(codeunit_folder, "Other")
