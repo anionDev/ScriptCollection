@@ -1101,6 +1101,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
         if isinstance(self.program_runner, ProgramRunnerEpew):
+            GeneralUtilities.write_message_to_stdout("Using epew.")
             custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, verbosity, arguments_for_log)
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument)
         return popen
@@ -1126,8 +1127,10 @@ class ScriptCollectionCore:
         if verbosity == 3:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
-        live_output_of_stdout_and_stderr = isinstance(self.program_runner, ProgramRunnerEpew) and 1 < verbosity
-        if live_output_of_stdout_and_stderr:
+        epew_will_be_used = isinstance(self.program_runner, ProgramRunnerEpew)
+        program_manages_logging_itself = epew_will_be_used
+        program_manages_output_itself = epew_will_be_used and 1 < verbosity
+        if program_manages_output_itself:
             pass  # TODO do live output with something like:
             # for line in iter(process.stdout.readline, b''):
             #    sys.stdout.buffer.write(line)
@@ -1156,17 +1159,21 @@ class ScriptCollectionCore:
         else:
             info_for_log = title
 
-        if verbosity == 1 and exit_code != 0:
-            self.__write_error_output(print_errors_as_information, stderr)
-
-        if live_output_of_stdout_and_stderr:  # HINT this is only a workaround as long as epew-live-output is not implemented
+        # <Workaround>
+        # HINT This workaround handles epew-live-output as long as it is not implemented above
+        if program_manages_output_itself:
             GeneralUtilities.write_message_to_stdout(stdout)
             GeneralUtilities.write_message_to_stderr(stderr)
-        if log_file is not None:
+        # </Workaround>
+
+        if not program_manages_logging_itself:
+            GeneralUtilities.ensure_file_exists(log_file)
             GeneralUtilities.append_line_to_file(log_file, stdout)
             GeneralUtilities.append_line_to_file(log_file, stderr)
 
-        if not live_output_of_stdout_and_stderr:
+        if not program_manages_output_itself:
+            if verbosity == 1 and exit_code != 0:
+                self.__write_error_output(print_errors_as_information, stderr)
             if verbosity == 2:
                 GeneralUtilities.write_message_to_stdout(stdout)
                 self.__write_error_output(print_errors_as_information, stderr)
