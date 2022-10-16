@@ -286,23 +286,29 @@ class GeneralUtilities:
     @check_arguments
     def file_ends_with_newline(file: str) -> bool:
         with open(file, "rb") as file_object:
-            return GeneralUtilities._ends_with_newline_character(file_object.read())
+            return GeneralUtilities.ends_with_newline_character(file_object.read())
 
     @staticmethod
     @check_arguments
-    def _ends_with_newline_character(content: bytes) -> bool:
+    def ends_with_newline_character(content: bytes) -> bool:
         return content.endswith(b'\x0a')
 
     @staticmethod
     @check_arguments
-    def file_not_ends_with_newline(file: str) -> bool:
-        return not GeneralUtilities.file_ends_with_newline(file)
+    def __get_new_line_character_if_required(file: str) -> bool:
+        content = GeneralUtilities.read_binary_from_file(file)
+        if len(content) == 0:
+            return ""
+        else:
+            if GeneralUtilities.ends_with_newline_character(content):
+                return ""
+            else:
+                return "\n"
 
     @staticmethod
     @check_arguments
     def append_line_to_file(file: str, line: str, encoding: str = "utf-8") -> None:
-        if GeneralUtilities.file_ends_with_newline(file):
-            line = os.linesep+line
+        line = GeneralUtilities.__get_new_line_character_if_required(file)+line
         GeneralUtilities.append_to_file(file, line, encoding)
 
     @staticmethod

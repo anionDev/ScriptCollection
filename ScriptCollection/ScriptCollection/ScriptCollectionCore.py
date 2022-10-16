@@ -25,7 +25,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.2.13"
+version = "3.2.14"
 __version__ = version
 
 
@@ -1126,9 +1126,6 @@ class ScriptCollectionCore:
         if verbosity == 3:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
-        process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
-                                                              timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
-        pid = process.pid
         live_output_of_stdout_and_stderr = isinstance(self.program_runner, ProgramRunnerEpew) and 1 < verbosity
         if live_output_of_stdout_and_stderr:
             pass  # TODO do live output with something like:
@@ -1136,6 +1133,10 @@ class ScriptCollectionCore:
             #    sys.stdout.buffer.write(line)
             # for line in iter(process.stderr.readline, b''):
             #    sys.stderr.buffer.write(line)
+
+        process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
+                                                              timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
+        pid = process.pid
 
         stdout, stderr = process.communicate()
         exit_code = process.wait()
@@ -1161,6 +1162,9 @@ class ScriptCollectionCore:
         if live_output_of_stdout_and_stderr:  # HINT this is only a workaround as long as epew-live-output is not implemented
             GeneralUtilities.write_message_to_stdout(stdout)
             GeneralUtilities.write_message_to_stderr(stderr)
+        if log_file is not None:
+            GeneralUtilities.append_line_to_file(log_file, stdout)
+            GeneralUtilities.append_line_to_file(log_file, stderr)
 
         if not live_output_of_stdout_and_stderr:
             if verbosity == 2:
