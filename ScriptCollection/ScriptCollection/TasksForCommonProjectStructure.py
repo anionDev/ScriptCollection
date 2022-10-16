@@ -73,18 +73,15 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
 
 class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     repository: str
-    sourcebranch: str = "main"
-    targetbranch: str = "stable"
+    sourcebranch: str = "other/next-release"
+    targetbranch: str = "main"
     sign_git_tags: bool = True
     codeunits: dict[str, CodeUnitConfiguration]
     build_environment_for_qualitycheck: str = "QualityCheck"
+    build_environment_for_productive: str = "Productive"
 
-    push_source_branch: bool = False
-    push_source_branch_remote_name: str = None  # This value will be ignored if push_source_branch = False
-
-    merge_target_as_fast_forward_into_source_after_merge: bool = True
-    push_target_branch: bool = False  # This value will be ignored if merge_target_as_fast_forward_into_source_after_merge = False
-    push_target_branch_remote_name: str = None  # This value will be ignored if or merge_target_as_fast_forward_into_source_after_merge push_target_branch = False
+    push_target_branch: bool = False
+    push_target_branch_remote_name: str = None
 
     verbosity: int = 1
 
@@ -493,7 +490,7 @@ class TasksForCommonProjectStructure:
         for codeunitname, codeunit_configuration in information.codeunits.items():
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-            self.build_codeunit(os.path.join(information.repository, codeunitname), information.verbosity, information.build_environment_for_qualitycheck,
+            self.build_codeunit(os.path.join(information.repository, codeunitname), information.verbosity, information.build_environment_for_productive,
                                 codeunit_configuration.additional_arguments_file)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
@@ -595,11 +592,8 @@ class TasksForCommonProjectStructure:
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
         mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
         mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
-        mergeToStableBranchInformation.push_source_branch = createReleaseConfiguration.remotename is not None
-        mergeToStableBranchInformation.push_source_branch_remote_name = createReleaseConfiguration.remotename
         mergeToStableBranchInformation.push_target_branch = createReleaseConfiguration.remotename is not None
         mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
-        mergeToStableBranchInformation.merge_target_as_fast_forward_into_source_after_merge = True
         mergeToStableBranchInformation.codeunits = createReleaseConfiguration.codeunits
         new_project_version = self.__standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(mergeToStableBranchInformation)
 
@@ -663,11 +657,6 @@ class TasksForCommonProjectStructure:
             self.__sc.git_push(information.repository, information.push_target_branch_remote_name,
                                information.targetbranch, information.targetbranch, pushalltags=True, verbosity=information.verbosity)
 
-        if information.merge_target_as_fast_forward_into_source_after_merge:
-            if information.push_source_branch:
-                GeneralUtilities.write_message_to_stdout("Push source-branch...")
-                self.__sc.git_push(information.repository, information.push_source_branch_remote_name, information.sourcebranch,
-                                   information.sourcebranch, pushalltags=False, verbosity=information.verbosity)
         return project_version
 
     def standardized_tasks_build_for_docker_library_project_in_common_project_structure(self, build_script_file: str,  buildenvironment: str,
