@@ -515,7 +515,7 @@ class TasksForCommonProjectStructure:
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
             GeneralUtilities.write_message_to_stdout("Build codeunit")
-            self.build_codeunit(information.repository, codeunitname, information.verbosity, information.build_environment_for_qualitycheck,
+            self.build_codeunit(os.path.join(information.repository, codeunitname), information.verbosity, information.build_environment_for_qualitycheck,
                                 codeunit_configuration.additional_arguments_file)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
@@ -659,7 +659,7 @@ class TasksForCommonProjectStructure:
         try:
             for _, codeunit in information.codeunits.items():
                 GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit.name}")
-                self.build_codeunit(information.repository, codeunit.name, information.verbosity,
+                self.build_codeunit(os.path.join(information.repository, codeunit.name), information.verbosity,
                                     information.build_environment_for_qualitycheck, codeunit.additional_arguments_file)
                 GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}")
 
@@ -779,13 +779,15 @@ class TasksForCommonProjectStructure:
         for dependent_codeunit in dependent_codeunits:
             other_folder = os.path.join(repo_folder, codeunit_name, "Other")
             artifacts_folder = os.path.join(other_folder, "Artifacts")
-            self.build_codeunit(repo_folder, dependent_codeunit, verbosity, build_environment, additional_arguments_file)
+            self.build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, build_environment, additional_arguments_file)
             target_folder = os.path.join(dependent_codeunits_folder, dependent_codeunit)
             GeneralUtilities.ensure_directory_does_not_exist(target_folder)
             shutil.copytree(artifacts_folder, target_folder)
 
-    @GeneralUtilities.check_arguments  # TODO add cli function for that
-    def build_codeunit(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
+    @GeneralUtilities.check_arguments
+    def build_codeunit(self, codeunit_folder: str, verbosity: int=1, build_environment: str="QualityCheck", additional_arguments_file: str=None) -> None:
+        repo_folder: str = os.path.basename(codeunit_folder)
+        codeunit_name: str = os.path.dirname(codeunit_folder)
         other_folder = os.path.join(repo_folder, codeunit_name, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")

@@ -2,6 +2,8 @@ import argparse
 import time
 import traceback
 import keyboard
+
+from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .Hardening import HardeningScript
@@ -266,3 +268,14 @@ def HealthCheck() -> int:
     parser.add_argument('--file', required=True)
     args = parser.parse_args()
     return ScriptCollectionCore().SCHealthcheck(args.file)
+
+
+def BuildCodeUnit() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--codeunitfolder', required=False, default=".")
+    parser.add_argument('--verbosity', required=False, default=1)
+    parser.add_argument('--buildenvironment', required=False, default="QualityCheck")
+    parser.add_argument('--additionalargumentsfile', required=False, default=None)
+    args = parser.parse_args()
+    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, args.verbosity, args.buildenvironment, args.additionalargumentsfile)
+    return 0

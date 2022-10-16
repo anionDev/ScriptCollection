@@ -78,6 +78,7 @@ def create_wheel_file():
                 f"SCShowMissingFiles = {executables_namespace}:ShowMissingFiles",
                 f"SCUpdateNugetpackagesInCsharpProject = {executables_namespace}:UpdateNugetpackagesInCsharpProject",
                 f"SCUploadFile = {executables_namespace}:UploadFile",
+                f"SCBuildCodeUnit = {executables_namespace}:BuildCodeUnit",
             ],
         },
     )
