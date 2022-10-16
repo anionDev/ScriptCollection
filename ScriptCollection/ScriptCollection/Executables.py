@@ -277,5 +277,5 @@ def BuildCodeUnit() -> int:
     parser.add_argument('--buildenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, args.verbosity, args.buildenvironment, args.additionalargumentsfile)
+    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.buildenvironment, args.additionalargumentsfile)
     return 0

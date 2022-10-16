@@ -756,7 +756,7 @@ class TasksForCommonProjectStructure:
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
         namespaces = {'codeunit': 'https://github.com/anionDev/ProjectTemplates', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunitfile)
-        codeunit_file_version = root.xpath('//codeunit:codeunit/@codeunit:codeunitspecificationversion',  namespaces=namespaces)[0]
+        codeunit_file_version = root.xpath('//codeunit:codeunit/@codeunitspecificationversion',  namespaces=namespaces)[0]
         supported_codeunitspecificationversion = "1.1.0"
         if codeunit_file_version != supported_codeunitspecificationversion:
             raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
@@ -788,8 +788,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
-        repo_folder: str = os.path.basename(codeunit_folder)
         codeunit_name: str = os.path.dirname(codeunit_folder)
+        if verbosity > 1:
+            GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}")
+        repo_folder: str = os.path.basename(codeunit_folder)
         other_folder = os.path.join(repo_folder, codeunit_name, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
@@ -815,8 +817,18 @@ class TasksForCommonProjectStructure:
                 additional_arguments_g = config.get(codeunit_name, "ArgumentsForGenerateReference")
         general_argument = f"--overwrite_verbosity[{codeunit_name}]={str(verbosity)} --overwrite_buildenvironment[{codeunit_name}]={build_environment}"
 
+        if verbosity > 1:
+            GeneralUtilities.write_message_to_stdout("Start CommonTasks.py.")
         sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument}", other_folder, verbosity=verbosity)
+        if verbosity > 1:
+            GeneralUtilities.write_message_to_stdout("Start Build.py.")
         sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
+        if verbosity > 1:
+            GeneralUtilities.write_message_to_stdout("RunTestcases.py.")
         sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
+        if verbosity > 1:
+            GeneralUtilities.write_message_to_stdout("Linting.py.")
         sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
+        if verbosity > 1:
+            GeneralUtilities.write_message_to_stdout("GenerateReference.py.")
         sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
