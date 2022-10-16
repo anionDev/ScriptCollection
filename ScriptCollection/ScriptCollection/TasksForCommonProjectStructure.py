@@ -73,7 +73,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
 
 class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     repository: str
-    sourcebranch: str = "other/next-rlease"
+    sourcebranch: str = "other/next-release"
     targetbranch: str = "main"
     sign_git_tags: bool = True
     codeunits: dict[str, CodeUnitConfiguration]
