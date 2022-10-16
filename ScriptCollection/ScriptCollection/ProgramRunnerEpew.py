@@ -65,7 +65,7 @@ class ProgramRunnerEpew(ProgramRunnerBase):
             if custom_argument.print_errors_as_information:
                 args.append("-i")
             if custom_argument.addLogOverhead:
-                args.append("-h")
+                args.append("-g")
             args.append("-v "+str(custom_argument.verbosity))
             return ProgramRunnerPopen().run_program_argsasarray_async_helper("epew", args, working_directory)
         else:

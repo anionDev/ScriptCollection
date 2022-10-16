@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 import binascii
 import filecmp
+import sys
 import hashlib
 from io import BytesIO
 import itertools
@@ -18,14 +19,13 @@ from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
-
 from .GeneralUtilities import GeneralUtilities
-from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerBase import ProgramRunnerBase
+from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.2.15"
+version = "3.2.16"
 __version__ = version
 
 
@@ -1129,17 +1129,17 @@ class ScriptCollectionCore:
 
         epew_will_be_used = isinstance(self.program_runner, ProgramRunnerEpew)
         program_manages_logging_itself = epew_will_be_used
-        program_manages_output_itself = epew_will_be_used and 1 < verbosity
-        if program_manages_output_itself:
-            pass  # TODO do live output with something like:
-            # for line in iter(process.stdout.readline, b''):
-            #    sys.stdout.buffer.write(line)
-            # for line in iter(process.stderr.readline, b''):
-            #    sys.stderr.buffer.write(line)
+        program_manages_output_itself = epew_will_be_used
 
         process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
                                                               timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         pid = process.pid
+
+        if program_manages_output_itself:
+            for c in iter(lambda: process.stdout.read(1), b""):
+                sys.stdout.buffer.write(c)
+            for c in iter(lambda: process.stderr.read(1), b""):
+                sys.stderr.buffer.write(c)
 
         stdout, stderr = process.communicate()
         exit_code = process.wait()
@@ -1159,14 +1159,7 @@ class ScriptCollectionCore:
         else:
             info_for_log = title
 
-        # <Workaround>
-        # HINT This workaround handles epew-live-output as long as it is not implemented above
-        if program_manages_output_itself:
-            GeneralUtilities.write_message_to_stdout(stdout)
-            GeneralUtilities.write_message_to_stderr(stderr)
-        # </Workaround>
-
-        if log_file is not None and not program_manages_logging_itself:
+        if not program_manages_logging_itself and log_file is not None:
             GeneralUtilities.ensure_file_exists(log_file)
             GeneralUtilities.append_line_to_file(log_file, stdout)
             GeneralUtilities.append_line_to_file(log_file, stderr)
