@@ -162,8 +162,8 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname, verbosity)
-        self.update_path_of_source(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, buildenvironment, commandline_arguments)
+        self.update_path_of_source(repository_folder, codeunitname)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, buildscript_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
@@ -442,9 +442,9 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         GeneralUtilities.ensure_directory_exists(coverage_file_folder)
         os.rename(coveragefilesource, coveragefiletarget)
-        self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, buildenvironment, commandline_arguments)
         self.check_testcoverage_for_project_in_common_project_structure(coveragefiletarget, repository_folder, codeunit_name)
+        self.update_path_of_source(repository_folder, codeunit_name)
 
     @GeneralUtilities.check_arguments
     def write_version_to_codeunit_file(self, codeunit_file: str, current_version: str) -> None:
@@ -762,8 +762,8 @@ class TasksForCommonProjectStructure:
         testcoverage_file = os.path.join(testcoverage_artifacts_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_exists(testcoverage_file)
         GeneralUtilities.write_text_to_file(testcoverage_file, dummy_test_coverage_file)
-        self.update_path_of_source(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, True, buildenvironment, commandline_arguments)
+        self.update_path_of_source(repository_folder, codeunitname)
 
     def standardized_tasks_linting_for_docker_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]) -> None:
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
