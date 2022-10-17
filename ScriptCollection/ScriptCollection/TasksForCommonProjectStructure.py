@@ -185,6 +185,7 @@ class TasksForCommonProjectStructure:
         target_directory = GeneralUtilities.resolve_relative_path(
             "../Artifacts/Wheel", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
         GeneralUtilities.ensure_directory_exists(target_directory)
+        # Copy ReadMe-file to subfolder as workaround because it seems that pyproject.toml or setuptools can not handle paths to a ReadMe-file in the parent-folder
         shutil.copy(os.path.join(repository_folder, "ReadMe.md"), os.path.join(codeunit_folder, "ReadMe.md"))
         self.__sc.run_program("python", f"-m build --wheel --outdir {target_directory}", codeunit_folder, verbosity=verbosity)
 
