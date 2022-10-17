@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=65.5.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ScriptCollection"
+dynamic = ["readme"]
+version = "3.3.0"
+authors = [
+  { name="Marius Göcke", email="marius.goecke@gmail.com" },
+]
+description = "The ScriptCollection is the place for reusable scripts."
+requires-python = ">=3.10"
+classifiers = [
+            "Programming Language :: Python :: 3.10",
+            "License :: OSI Approved :: MIT License",
+            "Operating System :: POSIX :: Linux",
+            "Operating System :: Microsoft :: Windows :: Windows 10",
+            "Topic :: System :: Logging",
+            "Topic :: System :: Monitoring",
+            "Topic :: Terminals",
+]
+dependencies = [
+            "build>=0.8.0",
+            "defusedxml>=0.7.1",
+            "keyboard>=0.13.5",
+            "lxml>=4.9.1",
+            "ntplib>=0.4.0",
+            "pycdlib>=1.10.0",
+            "pylint>=2.15.2",
+            "PyPDF2>=2.10.5",
+            "pytest>=7.1.3",
+            "qrcode>=6.1",
+            "send2trash>=1.5.0",
+            "xmlschema>=2.1.1",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/anionDev/ScriptCollection"
+"Bug Tracker" = "https://github.com/anionDev/ScriptCollection/issues"
+
+[project.scripts]
+SCCalculateBitcoinBlockHash = "ScriptCollection.Executables:CalculateBitcoinBlockHash"
+SCChangeHashOfProgram = "ScriptCollection.Executables:ChangeHashOfProgram"
+SCCreateEmptyFileWithSpecificSize = "ScriptCollection.Executables:CreateEmptyFileWithSpecificSize"
+SCCreateHashOfAllFiles = "ScriptCollection.Executables:CreateHashOfAllFiles"
+SCCreateISOFileWithObfuscatedFiles = "ScriptCollection.Executables:CreateISOFileWithObfuscatedFiles"
+SCFilenameObfuscator = "ScriptCollection.Executables:FilenameObfuscator"
+SCGenerateSnkFiles = "ScriptCollection.Executables:GenerateSnkFiles"
+SCGenerateThumbnail = "ScriptCollection.Executables:GenerateThumbnail"
+SCHardening = "ScriptCollection.Executables:Hardening"
+SCHealthcheck = "ScriptCollection.Executables:Healthcheck"
+SCKeyboardDiagnosis = "ScriptCollection.Executables:KeyboardDiagnosis"
+SCMergePDFs = "ScriptCollection.Executables:MergePDFs"
+SCObfuscateFilesFolder = "ScriptCollection.Executables:ObfuscateFilesFolder"
+SCOrganizeLinesInFile = "ScriptCollection.Executables:OrganizeLinesInFile"
+SCReplaceSubstringsInFilenames = "ScriptCollection.Executables:ReplaceSubstringsInFilenames"
+SCSearchInFiles = "ScriptCollection.Executables:SearchInFiles"
+SCCreateSimpleMergeWithoutRelease = "ScriptCollection.Executables:CreateSimpleMergeWithoutRelease"
+SCShow2FAAsQRCode = "ScriptCollection.Executables:Show2FAAsQRCode"
+SCShowMissingFiles = "ScriptCollection.Executables:ShowMissingFiles"
+SCUpdateNugetpackagesInCsharpProject = "ScriptCollection.Executables:UpdateNugetpackagesInCsharpProject"
+SCUploadFile = "ScriptCollection.Executables:UploadFile"
+SCBuildCodeUnit = "ScriptCollection.Executables:BuildCodeUnit"
+
+[tool.setuptools.dynamic]
+readme = {file = ["ReadMe.md"]}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ScriptCollection"]
