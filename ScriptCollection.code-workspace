@@ -8,33 +8,52 @@
 		"version": "2.0.0",
 		"tasks": [
 			{
+				"label": "ScriptCollection: Build entire codeunit",
+				"command": "SCBuildCodeunit",
+				"args": [
+					"--codeunitfolder",
+					"${workspaceFolder}/ScriptCollection"
+				],
+				"type": "shell",
+			},
+			{
 				"label": "ScriptCollection: Common tasks",
 				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/CommonTasks.py"],
-				"type": "shell",
-			},
-			{
-				"label": "ScriptCollection: Run testcases",
-				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/QualityCheck/RunTestcases.py"],
-				"type": "shell",
-			},
-			{
-				"label": "ScriptCollection: Linting",
-				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/QualityCheck/Linting.py"],
-				"type": "shell",
-			},
-			{
-				"label": "ScriptCollection: Generate reference",
-				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/Reference/GenerateReference.py"],
+				"args": [
+					"${workspaceFolder}/ScriptCollection/Other/CommonTasks.py"
+				],
 				"type": "shell",
 			},
 			{
 				"label": "ScriptCollection: Build",
 				"command": "python",
-				"args": ["${workspaceFolder}/ScriptCollection/Other/Build/Build.py"],
+				"args": [
+					"${workspaceFolder}/ScriptCollection/Other/Build/Build.py"
+				],
+				"type": "shell",
+			},
+			{
+				"label": "ScriptCollection: Run testcases",
+				"command": "python",
+				"args": [
+					"${workspaceFolder}/ScriptCollection/Other/QualityCheck/RunTestcases.py"
+				],
+				"type": "shell",
+			},
+			{
+				"label": "ScriptCollection: Linting",
+				"command": "python",
+				"args": [
+					"${workspaceFolder}/ScriptCollection/Other/QualityCheck/Linting.py"
+				],
+				"type": "shell",
+			},
+			{
+				"label": "ScriptCollection: Generate reference",
+				"command": "python",
+				"args": [
+					"${workspaceFolder}/ScriptCollection/Other/Reference/GenerateReference.py"
+				],
 				"type": "shell",
 			}
 		]
@@ -54,7 +73,7 @@
 	"settings": {
 		"files.associations": {
 			"*.codeunit": "xml",
-		  },
+		},
 		"python.testing.autoTestDiscoverOnSaveEnabled": true,
 		"python.testing.unittestEnabled": false,
 		"python.testing.pytestEnabled": true,
