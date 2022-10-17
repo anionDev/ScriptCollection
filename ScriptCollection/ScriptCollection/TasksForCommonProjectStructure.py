@@ -770,10 +770,17 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  buildenvironment: str, actual_commandline_arguments: list[str]) -> None:
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  buildenvironment: str, actual_commandline_arguments: list[str],
+                                           clear_artifacts_folder: bool) -> None:
         sc = ScriptCollectionCore()
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
+        verbosity = self.get_verbosity_from_commandline_arguments(actual_commandline_arguments, verbosity)
+
+        # Clear previously builded artifacts if desired:
+        if clear_artifacts_folder:
+            artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
+            GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # Check codeunit-conformity
         codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit")
@@ -813,8 +820,9 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
-        GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}...")
+        GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
