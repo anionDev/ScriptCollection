@@ -774,6 +774,7 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
+        verbosity = self.get_verbosity_from_commandline_arguments(actual_commandline_arguments, verbosity)
 
         # Check codeunit-conformity
         codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit")
