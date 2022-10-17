@@ -256,12 +256,12 @@ class TasksForCommonProjectStructure:
     @staticmethod
     @GeneralUtilities.check_arguments
     def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],   default_value: dict[str, str]) -> dict[str, str]():
-        result_plain = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
-        if result_plain is None:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
+        if result is None:
             return default_value
         else:
-            result: dict[str, str] = dict[str, str]()
-            files_tuples = GeneralUtilities.to_list(result_plain, ";")
+            result = dict[str, str]
+            files_tuples = GeneralUtilities.to_list(result, ";")
             for files_tuple in files_tuples:
                 splitted = files_tuple.split("=")
                 result[splitted[0]] = splitted[1]
@@ -613,13 +613,13 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
-    def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str,
+    def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str, codeunits: dict[str, CodeUnitConfiguration],
                                                                       new_version_branch_name: str = "other/next-release", main_branch_name: str = "main", verbosity: int = 1) -> None:
         self.assert_no_uncommitted_changes(repository_folder)
         repository_name = os.path.basename(repository_folder)
         self.__sc.git_checkout(repository_folder, new_version_branch_name)
-        for codeunit in self.get_codeunits(repository_folder):
-            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity)
+        for codeunitname, codeunit_confoguration in codeunits.items():
+            self.build_codeunit(os.path.join(repository_folder, codeunitname), verbosity, "QualityCheck", codeunit_confoguration.additional_arguments_file)
         self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
         self.__sc.git_merge(repository_folder, new_version_branch_name, main_branch_name, False, True, f'Merge branch {new_version_branch_name} into {main_branch_name}')
         self.__sc.git_checkout(repository_folder, main_branch_name)
@@ -814,30 +814,31 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         codeunit_name: str = os.path.basename(codeunit_folder)
-        GeneralUtilities.write_message_to_stdout(f"Build codeunit {codeunit_name}...")
+        GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}...")
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
         reference_folder = os.path.join(other_folder, "Reference")
         sc = ScriptCollectionCore()
-        additional_arguments_c = []
-        additional_arguments_b = []
-        additional_arguments_r = []
-        additional_arguments_l = []
-        additional_arguments_g = []
+        additional_arguments_c: str = ""
+        additional_arguments_b: str = ""
+        additional_arguments_r: str = ""
+        additional_arguments_l: str = ""
+        additional_arguments_g: str = ""
         if additional_arguments_file is not None:
             config = configparser.ConfigParser()
+            config.read(additional_arguments_file)
             section_name = f"{codeunit_name}_Configuration"
             if config.has_option(section_name, "ArgumentsForCommonTasks"):
-                additional_arguments_c = config.get(codeunit_name, "ArgumentsForCommonTasks")
+                additional_arguments_c = config.get(section_name, "ArgumentsForCommonTasks")
             if config.has_option(section_name, "ArgumentsForBuild"):
-                additional_arguments_b = config.get(codeunit_name, "ArgumentsForBuild")
+                additional_arguments_b = config.get(section_name, "ArgumentsForBuild")
             if config.has_option(section_name, "ArgumentsForRunTestcases"):
-                additional_arguments_r = config.get(codeunit_name, "ArgumentsForRunTestcases")
+                additional_arguments_r = config.get(section_name, "ArgumentsForRunTestcases")
             if config.has_option(section_name, "ArgumentsForLinting"):
-                additional_arguments_l = config.get(codeunit_name, "ArgumentsForLinting")
+                additional_arguments_l = config.get(section_name, "ArgumentsForLinting")
             if config.has_option(section_name, "ArgumentsForGenerateReference"):
-                additional_arguments_g = config.get(codeunit_name, "ArgumentsForGenerateReference")
+                additional_arguments_g = config.get(section_name, "ArgumentsForGenerateReference")
         general_argument = f"--overwrite_verbosity={str(verbosity)} --overwrite_buildenvironment={build_environment}"
 
         GeneralUtilities.write_message_to_stdout("Start CommonTasks.py.")
@@ -850,3 +851,4 @@ class TasksForCommonProjectStructure:
         sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("GenerateReference.py.")
         sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
+        GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
