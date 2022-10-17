@@ -256,12 +256,12 @@ class TasksForCommonProjectStructure:
     @staticmethod
     @GeneralUtilities.check_arguments
     def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],   default_value: dict[str, str]) -> dict[str, str]():
-        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
-        if result is None:
+        result_plain = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
+        if result_plain is None:
             return default_value
         else:
-            result = dict[str, str]
-            files_tuples = GeneralUtilities.to_list(result, ";")
+            result: dict[str, str] = dict[str, str]()
+            files_tuples = GeneralUtilities.to_list(result_plain, ";")
             for files_tuple in files_tuples:
                 splitted = files_tuple.split("=")
                 result[splitted[0]] = splitted[1]
