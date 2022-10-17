@@ -263,7 +263,7 @@ class TasksForCommonProjectStructure:
             result = dict[str, str]
             files_tuples = GeneralUtilities.to_list(result, ";")
             for files_tuple in files_tuples:
-                splitted = files_tuple.split()
+                splitted = files_tuple.split(":")
                 result[splitted[0]] = splitted[1]
             return result
 
