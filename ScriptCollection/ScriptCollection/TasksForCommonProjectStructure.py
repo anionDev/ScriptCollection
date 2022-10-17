@@ -770,12 +770,18 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  buildenvironment: str, actual_commandline_arguments: list[str],
-                                           clear_artifacts_folder: bool) -> None:
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  buildenvironment: str,  clear_artifacts_folder: bool,
+                                           commandline_arguments: list[str]) -> None:
+        if commandline_arguments is None:
+            raise ValueError('The "commandline_arguments"-parameter is not defined.')
+        if len(commandline_arguments) == 0:
+            raise ValueError('An empty array as argument for the "commandline_arguments"-parameter is not valid.')
+        commandline_arguments = commandline_arguments[1:]
         sc = ScriptCollectionCore()
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
-        verbosity = self.get_verbosity_from_commandline_arguments(actual_commandline_arguments, verbosity)
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        GeneralUtilities.write_message_to_stdout(f"Build-environment: {buildenvironment}")
 
         # Clear previously builded artifacts if desired:
         if clear_artifacts_folder:
@@ -800,8 +806,8 @@ class TasksForCommonProjectStructure:
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
 
         # Build dependent code units
-        additional_arguments_file = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "additionalargumentsfile",  None)
-        build_environment = self.get_string_value_from_commandline_arguments(actual_commandline_arguments, "buildenvironment",  None)
+        additional_arguments_file = self.get_string_value_from_commandline_arguments(commandline_arguments, "additionalargumentsfile",  None)
+        build_environment = self.get_string_value_from_commandline_arguments(commandline_arguments, "buildenvironment",  None)
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, build_environment, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
