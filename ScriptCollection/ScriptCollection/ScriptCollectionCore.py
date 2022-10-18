@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.0"
+version = "3.3.1"
 __version__ = version
 
 
@@ -67,7 +67,12 @@ class ScriptCollectionCore:
 
         return (False, errors)
 
-    @ GeneralUtilities.check_arguments
+    @GeneralUtilities.check_arguments
+    def replace_version_in_dockerfile_file(self, dockerfile: str, new_version_value: str) -> None:
+        GeneralUtilities.write_text_to_file(dockerfile, re.sub("ARG Version = \"\\d+\\.\\d+\\.\\d+\"", f"ARG Version = \"{new_version_value}\"",
+                                                               GeneralUtilities.read_text_from_file(dockerfile)))
+
+    @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, threshold_in_percent: float):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
@@ -75,14 +80,17 @@ class ScriptCollectionCore:
         if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
+    @GeneralUtilities.check_arguments
     def replace_version_in_python_file(self, file: str, new_version_value: str):
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
+    @GeneralUtilities.check_arguments
     def replace_version_in_pyproject_file(self, file: str, new_version_value: str):
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
+    @GeneralUtilities.check_arguments
     def replace_version_in_nuspec_file(self, nuspec_file: str, current_version: str):
         versionregex = "\\d+\\.\\d+\\.\\d+"
         versiononlyregex = f"^{versionregex}$"
@@ -93,6 +101,7 @@ class ScriptCollectionCore:
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
+    @GeneralUtilities.check_arguments
     def replace_version_in_csproj_file(self, csproj_file: str, current_version: str):
         versionregex = "\\d+\\.\\d+\\.\\d+"
         versiononlyregex = f"^{versionregex}$"
