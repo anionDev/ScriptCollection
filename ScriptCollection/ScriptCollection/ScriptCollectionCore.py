@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.1"
+version = "3.3.2"
 __version__ = version
 
 
@@ -69,7 +69,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def replace_version_in_dockerfile_file(self, dockerfile: str, new_version_value: str) -> None:
-        GeneralUtilities.write_text_to_file(dockerfile, re.sub("ARG Version = \"\\d+\\.\\d+\\.\\d+\"", f"ARG Version = \"{new_version_value}\"",
+        GeneralUtilities.write_text_to_file(dockerfile, re.sub("ARG Version=\"\\d+\\.\\d+\\.\\d+\"", f"ARG Version=\"{new_version_value}\"",
                                                                GeneralUtilities.read_text_from_file(dockerfile)))
 
     @GeneralUtilities.check_arguments
