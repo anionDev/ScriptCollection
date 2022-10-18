@@ -832,6 +832,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
+        GeneralUtilities.write_message_to_stdout(f"Build-environment: {build_environment}.")
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
