@@ -729,12 +729,38 @@ class TasksForCommonProjectStructure:
             args.append("--no-cache")
         args.append(".")
         codeunit_content_folder = os.path.join(codeunit_folder, codeunitname)
-        sc.run_program_argsasarray("docker", args, codeunit_content_folder, verbosity=verbosity)
+        sc.run_program_argsasarray("docker", args, codeunit_content_folder, verbosity=verbosity, print_errors_as_information=True)
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
         app_artifacts_folder = os.path.join(artifacts_folder, "ApplicationImage")
         GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
         GeneralUtilities.ensure_directory_exists(app_artifacts_folder)
-        sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{version}.tar", f"{codeunitname_lower}:{version}"], app_artifacts_folder, verbosity=verbosity)
+        sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{version}.tar",
+                                   f"{codeunitname_lower}:{version}"], app_artifacts_folder, verbosity=verbosity, print_errors_as_information=True)
+
+    @GeneralUtilities.check_arguments
+    def push_docker_build_artifact_of_repository_in_common_file_structure(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
+                                                                          verbosity: int, commandline_arguments: list[str]):
+        folder_of_this_file = os.path.dirname(push_artifacts_file)
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{product_name}", folder_of_this_file)
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        artifacts_folder = self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)
+        applicationimage_folder = os.path.join(artifacts_folder, "ApplicationImage")
+        sc = ScriptCollectionCore()
+        image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
+        image_filename = os.path.basename(image_file)
+        version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+        image_tag_name = codeunitname.lower()
+        image_latest = f"{registry}/{image_tag_name}:latest"
+        image_version = f"{registry}/{image_tag_name}:{version}"
+        GeneralUtilities.write_message_to_stdout("Load image...")
+        sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
+        GeneralUtilities.write_message_to_stdout("Tag image...")
+        sc.run_program("docker", f"tag {image_tag_name}:{version} {image_latest}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {image_tag_name}:{version} {image_version}", verbosity=verbosity)
+        GeneralUtilities.write_message_to_stdout("Push image...")
+        sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
+        sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
@@ -832,7 +858,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
-        GeneralUtilities.write_message_to_stdout(f"Build-environment: {build_environment}.")
+        GeneralUtilities.write_message_to_stdout(f"Build-environment: {build_environment}")
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
@@ -859,14 +885,14 @@ class TasksForCommonProjectStructure:
                 additional_arguments_g = config.get(section_name, "ArgumentsForGenerateReference")
         general_argument = f"--overwrite_verbosity={str(verbosity)} --overwrite_buildenvironment={build_environment}"
 
-        GeneralUtilities.write_message_to_stdout("Start CommonTasks.py.")
+        GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
         sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument}", other_folder, verbosity=verbosity)
-        GeneralUtilities.write_message_to_stdout("Start Build.py.")
+        GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
-        GeneralUtilities.write_message_to_stdout("RunTestcases.py.")
+        GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
         sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
-        GeneralUtilities.write_message_to_stdout("Linting.py.")
+        GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
         sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
-        GeneralUtilities.write_message_to_stdout("GenerateReference.py.")
+        GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
