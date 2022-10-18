@@ -713,17 +713,17 @@ class TasksForCommonProjectStructure:
 
         return project_version
 
-    def standardized_tasks_build_for_docker_library_project_in_common_project_structure(self, build_script_file: str,  buildenvironment: str,
-                                                                                        verbosity: int, commandline_arguments: list[str]):
-        codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
-        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
-        use_cache: bool = False
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_docker_library_project_in_common_project_structure(self, build_script_file: str, build_configuration: str, verbosity: int, commandline_arguments: list[str]):
+        use_cache: bool = build_configuration == "QualityCheck"
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
+        codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
 
         codeunitname_lower = codeunitname.lower()
         version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
-        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"EnvironmentStage={buildenvironment}",
+        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"EnvironmentStage={build_configuration}",
                 "--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{version}", "--file", "Dockerfile"]
         if not use_cache:
             args.append("--no-cache")
@@ -741,6 +741,7 @@ class TasksForCommonProjectStructure:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return root.xpath('//codeunit:dependentcodeunit/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})
 
+    @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_docker_project_in_common_project_structure(self, run_testcases_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(run_testcases_script_file)))
         repository_folder: str = str(Path(os.path.dirname(run_testcases_script_file)).parent.parent.parent.absolute())
@@ -748,23 +749,25 @@ class TasksForCommonProjectStructure:
         date = int(round(datetime.now().timestamp()))
         # TODO generate real coverage report
         dummy_test_coverage_file = f"""<?xml version="1.0" ?>
-    <coverage version="6.3.2" timestamp="{date}" lines-valid="0" lines-covered="0" line-rate="0" branches-covered="0" branches-valid="0" branch-rate="0" complexity="0">
-        <sources>
-            <source>{codeunitname}</source>
-        </sources>
-        <packages>
-            <package name="{codeunitname}" line-rate="0" branch-rate="0" complexity="0">
-            </package>
-        </packages>
-    </coverage>"""
+        <coverage version="6.3.2" timestamp="{date}" lines-valid="0" lines-covered="0" line-rate="0" branches-covered="0" branches-valid="0" branch-rate="0" complexity="0">
+            <sources>
+                <source>{codeunitname}</source>
+            </sources>
+            <packages>
+                <package name="{codeunitname}" line-rate="0" branch-rate="0" complexity="0">
+                </package>
+            </packages>
+        </coverage>"""
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
         testcoverage_artifacts_folder = os.path.join(artifacts_folder, "TestCoverage")
+        GeneralUtilities.ensure_directory_exists(testcoverage_artifacts_folder)
         testcoverage_file = os.path.join(testcoverage_artifacts_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_exists(testcoverage_file)
         GeneralUtilities.write_text_to_file(testcoverage_file, dummy_test_coverage_file)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, True, buildenvironment, commandline_arguments)
         self.update_path_of_source(repository_folder, codeunitname)
 
+    @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_docker_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]) -> None:
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO
