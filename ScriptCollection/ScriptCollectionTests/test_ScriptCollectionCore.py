@@ -59,7 +59,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             GeneralUtilities.ensure_file_exists(file_c_d_head)  # item 11
 
             # act
-            sc.escape_git_repositories_in_folder(folder)
+            renamed_items=sc.escape_git_repositories_in_folder(folder)
 
             # assert
             assert os.path.isdir(folder_a)  # item 1
@@ -82,7 +82,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             assert os.path.isfile(os.path.join(folder_c, "d.gitxd.gitxd", "head"))  # item 11
 
             # act
-            sc.deescape_git_repositories_in_folder(folder)
+            sc.deescape_git_repositories_in_folder(renamed_items)
 
             # assert
             assert os.path.isdir(folder_a)  # item 1

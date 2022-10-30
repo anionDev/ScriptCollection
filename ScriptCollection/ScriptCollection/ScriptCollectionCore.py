@@ -56,7 +56,7 @@ class ScriptCollectionCore:
         else:
             errorsonly_argument = " --errors-only"
         (exit_code, stdout, stderr, _) = self.run_program("pylint", filename+errorsonly_argument, working_directory, throw_exception_if_exitcode_is_not_zero=False)
-        if(exit_code != 0):
+        if (exit_code != 0):
             errors.append(f"Linting-issues of {file}:")
             errors.append(f"Pylint-exitcode: {exit_code}")
             for line in GeneralUtilities.string_to_lines(stdout):
@@ -77,7 +77,7 @@ class ScriptCollectionCore:
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
         minimalrequiredtestcoverageinpercent = threshold_in_percent
-        if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
+        if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
@@ -179,12 +179,12 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
         result = self.run_program("git", f"verify-commit {revision_identifier}", repository_folder, throw_exception_if_exitcode_is_not_zero=False)
-        if(result[0] != 0):
+        if (result[0] != 0):
             return False
-        if(not GeneralUtilities.contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):
+        if (not GeneralUtilities.contains_line(result[1].splitlines(), f"gpg\\:\\ using\\ [A-Za-z0-9]+\\ key\\ [A-Za-z0-9]+{key}")):
             # TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
-        if(not GeneralUtilities.contains_line(result[1].splitlines(), "gpg\\:\\ Good\\ signature\\ from")):
+        if (not GeneralUtilities.contains_line(result[1].splitlines(), "gpg\\:\\ Good\\ signature\\ from")):
             # TODO check whether this works on machines where gpg is installed in another langauge than english
             return False
         return True
@@ -244,9 +244,9 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_repository_has_unstaged_changes(self, repository_folder: str) -> bool:
-        if(self.git_repository_has_unstaged_changes_of_tracked_files(repository_folder)):
+        if (self.git_repository_has_unstaged_changes_of_tracked_files(repository_folder)):
             return True
-        if(self.git_repository_has_new_untracked_files(repository_folder)):
+        if (self.git_repository_has_new_untracked_files(repository_folder)):
             return True
         return False
 
@@ -281,7 +281,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_clone(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
-        if(os.path.isdir(clone_target_folder)):
+        if (os.path.isdir(clone_target_folder)):
             pass  # TODO throw error
         else:
             args = ["clone", remote_repository_path, clone_target_folder]
@@ -344,7 +344,7 @@ class ScriptCollectionCore:
         author_name = GeneralUtilities.str_none_safe(author_name).strip()
         author_email = GeneralUtilities.str_none_safe(author_email).strip()
         argument = ['commit', '--quiet', '--message', message]
-        if(GeneralUtilities.string_has_content(author_name)):
+        if (GeneralUtilities.string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
 
@@ -430,9 +430,9 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
         exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False, verbosity=0)[0]
-        if(exit_code == 0):
+        if (exit_code == 0):
             return True
-        if(exit_code == 1):
+        if (exit_code == 1):
             return False
         raise Exception(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
@@ -458,7 +458,7 @@ class ScriptCollectionCore:
             items[item] = "f"
         for file_or_folder, item_type in items.items():
             truncated_file = file_or_folder[path_prefix:]
-            if(filter_function is None or filter_function(folder, truncated_file)):
+            if (filter_function is None or filter_function(folder, truncated_file)):
                 owner_and_permisssion = self.get_file_owner_and_file_permission(file_or_folder)
                 user = owner_and_permisssion[0]
                 permissions = owner_and_permisssion[1]
@@ -467,36 +467,32 @@ class ScriptCollectionCore:
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
-    def escape_git_repositories_in_folder(self, folder: str):
+    def escape_git_repositories_in_folder(self, folder: str) -> dict[str, str]:
+        return self.__escape_git_repositories_in_folder_internal(folder, dict[str, str]())
+
+    def __escape_git_repositories_in_folder_internal(self, folder: str, renamed_items: dict[str, str]) -> dict[str, str]:
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
             filename = os.path.basename(file)
             if ".git" in filename:
                 new_name = filename.replace(".git", ".gitx")
-                os.rename(file, os.path.join(folder, new_name))
+                target = os.path.join(folder, new_name)
+                os.rename(file, target)
+                renamed_items[target] = file
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
             foldername = os.path.basename(subfolder)
             if ".git" in foldername:
                 new_name = foldername.replace(".git", ".gitx")
                 subfolder2 = os.path.join(str(Path(subfolder).parent), new_name)
                 os.rename(subfolder, subfolder2)
+                renamed_items[subfolder2] = subfolder
             else:
                 subfolder2 = subfolder
-            self.escape_git_repositories_in_folder(subfolder2)
+            self.__escape_git_repositories_in_folder_internal(subfolder2, renamed_items)
+        return renamed_items
 
-    def deescape_git_repositories_in_folder(self, folder: str):
-        for file in GeneralUtilities.get_direct_files_of_folder(folder):
-            filename = os.path.basename(file)
-            if ".gitx" in filename:
-                new_name = filename.replace(".gitx", ".git")
-                os.rename(file, os.path.join(folder, new_name))
-        for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
-            foldername = os.path.basename(subfolder)
-            if ".gitx" in foldername:
-                subfolder2 = os.path.join(str(Path(subfolder).parent), foldername.replace(".gitx", ".git"))
-                os.rename(subfolder, subfolder2)
-            else:
-                subfolder2 = subfolder
-            self.deescape_git_repositories_in_folder(subfolder2)
+    def deescape_git_repositories_in_folder(self, renamed_items: dict[str, str]):
+        for renamed_item, original_name in renamed_items.items():
+            os.rename(renamed_item, original_name)
 
     def __sort_fmd(self, line: str):
         splitted: list = line.split(";")
@@ -570,7 +566,7 @@ class ScriptCollectionCore:
 
         try:
             length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
-            if(frames_per_second.endswith("fps")):
+            if (frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
                 x = self.roundup(float(frames_per_second[:-3]), 2)
                 frames_per_secondx = str(x)
@@ -607,17 +603,17 @@ class ScriptCollectionCore:
             size = int(size_string)
         else:
             if len(size_string) >= 3:
-                if(size_string.endswith("kb")):
+                if (size_string.endswith("kb")):
                     size = int(size_string[:-2]) * pow(10, 3)
-                elif(size_string.endswith("mb")):
+                elif (size_string.endswith("mb")):
                     size = int(size_string[:-2]) * pow(10, 6)
-                elif(size_string.endswith("gb")):
+                elif (size_string.endswith("gb")):
                     size = int(size_string[:-2]) * pow(10, 9)
-                elif(size_string.endswith("kib")):
+                elif (size_string.endswith("kib")):
                     size = int(size_string[:-3]) * pow(2, 10)
-                elif(size_string.endswith("mib")):
+                elif (size_string.endswith("mib")):
                     size = int(size_string[:-3]) * pow(2, 20)
-                elif(size_string.endswith("gib")):
+                elif (size_string.endswith("gib")):
                     size = int(size_string[:-3]) * pow(2, 30)
                 else:
                     GeneralUtilities.write_message_to_stderr("Wrong format")
@@ -644,7 +640,7 @@ class ScriptCollectionCore:
         self.git_push(repository, remotename, targetbranch, targetbranch, False, True)
         if (GeneralUtilities.string_has_nonwhitespace_content(remotename)):
             self.git_push(repository, remotename, sourcebranch, sourcebranch, False, True)
-        if(remove_source_branch):
+        if (remove_source_branch):
             self.git_remove_branch(repository, sourcebranch)
 
     @GeneralUtilities.check_arguments
@@ -654,12 +650,12 @@ class ScriptCollectionCore:
 
             # read file
             lines = GeneralUtilities.read_lines_from_file(file, encoding)
-            if(len(lines) == 0):
+            if (len(lines) == 0):
                 return 0
 
             # store first line if desiredpopd
 
-            if(ignore_first_line):
+            if (ignore_first_line):
                 first_line = lines.pop(0)
 
             # remove empty lines if desired
@@ -667,7 +663,7 @@ class ScriptCollectionCore:
                 temp = lines
                 lines = []
                 for line in temp:
-                    if(not (GeneralUtilities.string_is_none_or_whitespace(line))):
+                    if (not (GeneralUtilities.string_is_none_or_whitespace(line))):
                         lines.append(line)
 
             # remove duplicated lines if desired
@@ -725,12 +721,12 @@ class ScriptCollectionCore:
                     if conflictResolveMode == "ignore":
                         pass
                     elif conflictResolveMode == "preservenewest":
-                        if(os.path.getmtime(file) - os.path.getmtime(new_filename) > 0):
+                        if (os.path.getmtime(file) - os.path.getmtime(new_filename) > 0):
                             send2trash.send2trash(file)
                         else:
                             send2trash.send2trash(new_filename)
                             os.rename(file, new_filename)
-                    elif(conflictResolveMode == "merge"):
+                    elif (conflictResolveMode == "merge"):
                         self.__merge_files(file, new_filename)
                         send2trash.send2trash(file)
                     else:
@@ -856,7 +852,7 @@ class ScriptCollectionCore:
         for root, _, files in os.walk(folder):
             for file in files:
                 full_path = os.path.join(root, file)
-                with(open(full_path, "rb").read()) as text_io_wrapper:
+                with (open(full_path, "rb").read()) as text_io_wrapper:
                     content = text_io_wrapper
                     path_in_iso = '/' + files_directory + self.__adjust_folder_name(full_path[len(folder)::1]).upper()
                     if path_in_iso not in created_directories:
@@ -883,7 +879,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def SCFilenameObfuscator(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
-        if(not obfuscate_all_files):
+        if (not obfuscate_all_files):
             obfuscate_file_extensions = extensions.split(",")
 
         if (os.path.isdir(inputfolder)):
@@ -932,7 +928,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def SCObfuscateFilesFolder(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
-        if(not obfuscate_all_files):
+        if (not obfuscate_all_files):
             if "," in extensions:
                 obfuscate_file_extensions = extensions.split(",")
             else:
@@ -952,7 +948,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def upload_file_to_file_host(self, file: str, host: str) -> int:
-        if(host is None):
+        if (host is None):
             return self.upload_file_to_random_filesharing_service(file)
         elif host == "anonfiles.com":
             return self.upload_file_to_anonfiles(file)
@@ -1032,7 +1028,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __to_octet_helper(self, string: str) -> str:
-        if(string == "-"):
+        if (string == "-"):
             return "0"
         else:
             return "1"
@@ -1255,21 +1251,21 @@ class ScriptCollectionCore:
     def __format_program_execution_information(self, exitcode: int = None,  stdout: str = None, stderr: str = None, program: str = None, argument: str = None,
                                                workingdirectory: str = None, title: str = None, pid: int = None, execution_duration: timedelta = None):
         result = ""
-        if(exitcode is not None and stdout is not None and stderr is not None):
+        if (exitcode is not None and stdout is not None and stderr is not None):
             result = f"{result} Exitcode: {exitcode}; StdOut: '{stdout}'; StdErr: '{stderr}'"
-        if(pid is not None):
+        if (pid is not None):
             result = f"Pid: '{pid}'; {result}"
-        if(program is not None and argument is not None and workingdirectory is not None):
+        if (program is not None and argument is not None and workingdirectory is not None):
             result = f"Command: '{workingdirectory}> {program} {argument}'; {result}"
-        if(execution_duration is not None):
+        if (execution_duration is not None):
             result = f"{result}; Duration: '{str(execution_duration)}'"
-        if(title is not None):
+        if (title is not None):
             result = f"Title: '{title}'; {result}"
         return result.strip()
 
     @GeneralUtilities.check_arguments
     def verify_no_pending_mock_program_calls(self):
-        if(len(self.__mocked_program_calls) > 0):
+        if (len(self.__mocked_program_calls) > 0):
             raise AssertionError(
                 "The following mock-calls were not called:\n"+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
 
@@ -1301,7 +1297,7 @@ class ScriptCollectionCore:
     def __get_mock_program_call(self, program: str, argument: str, workingdirectory: str):
         result: ScriptCollectionCore.__MockProgramCall = None
         for mock_call in self.__mocked_program_calls:
-            if((re.match(mock_call.program, program) is not None)
+            if ((re.match(mock_call.program, program) is not None)
                and (re.match(mock_call.argument, argument) is not None)
                and (re.match(mock_call.workingdirectory, workingdirectory) is not None)):
                 result = mock_call
