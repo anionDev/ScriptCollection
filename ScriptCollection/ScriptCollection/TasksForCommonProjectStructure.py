@@ -854,9 +854,25 @@ class TasksForCommonProjectStructure:
             shutil.copytree(artifacts_folder, target_folder)
 
     @GeneralUtilities.check_arguments
+    def build_codeunits(self, repository_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+        codeunits = []
+        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
+        for subfolder in subfolders:
+            codeunit_name = os.path.basename(subfolder)
+            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit")
+            if os.path.exists(codeunit_file):
+                codeunits.append(codeunit_name)
+        # TODO set order
+        for codeunit in codeunits:
+            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, build_environment, additional_arguments_file)
+
+    @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit")
+        if(not os.path.isfile(codeunit_file)):
+            raise ValueError(f'"{codeunit_folder}" is no codeunit-folder.')
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environment: {build_environment}")
         other_folder = os.path.join(codeunit_folder, "Other")

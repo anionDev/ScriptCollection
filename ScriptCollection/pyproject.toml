@@ -62,6 +62,7 @@ SCShowMissingFiles = "ScriptCollection.Executables:ShowMissingFiles"
 SCUpdateNugetpackagesInCsharpProject = "ScriptCollection.Executables:UpdateNugetpackagesInCsharpProject"
 SCUploadFile = "ScriptCollection.Executables:UploadFile"
 SCBuildCodeUnit = "ScriptCollection.Executables:BuildCodeUnit"
+SCBuildCodeUnits = "ScriptCollection.Executables:BuildCodeUnits"
 
 [tool.setuptools.dynamic]
 readme = {file = ["ReadMe.md"]}
