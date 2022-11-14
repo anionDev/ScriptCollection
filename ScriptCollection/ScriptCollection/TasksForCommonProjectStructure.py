@@ -801,6 +801,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  buildenvironment: str,  clear_artifacts_folder: bool,
                                            commandline_arguments: list[str]) -> None:
+        build_environment = self.get_string_value_from_commandline_arguments(commandline_arguments, "buildenvironment",  buildenvironment)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
         if len(commandline_arguments) == 0:
@@ -836,7 +837,6 @@ class TasksForCommonProjectStructure:
 
         # Build dependent code units
         additional_arguments_file = self.get_string_value_from_commandline_arguments(commandline_arguments, "additionalargumentsfile",  None)
-        build_environment = self.get_string_value_from_commandline_arguments(commandline_arguments, "buildenvironment",  None)
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, build_environment, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
