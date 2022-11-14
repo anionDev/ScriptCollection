@@ -168,17 +168,6 @@ class TasksForCommonProjectStructure:
         self.update_path_of_source(repository_folder, codeunitname)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_node_project_in_common_project_structure(self, buildscript_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
-        codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
-        repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
-        codeunit_folder = os.path.join(repository_folder, codeunitname)
-        # target_directory = GeneralUtilities.resolve_relative_path(
-        #    "../Artifacts/npm", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
-        # TODO use this variable and move file accordingly
-        self.__sc.run_program("npm", "run build", codeunit_folder,  verbosity=verbosity)
-
-    @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit_in_common_project_structure(self, buildscript_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -842,6 +831,65 @@ class TasksForCommonProjectStructure:
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, build_environment, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_script_file: str,
+                                                                              build_configuration: str, verbosity: int, commandline_arguments: list[str]):
+        # TODO use unused parameter
+        sc = ScriptCollectionCore()
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        sc.program_runner = ProgramRunnerEpew()
+        build_script_folder = os.path.dirname(build_script_file)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
+        sc.run_program("npm", "run build", codeunit_folder)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_linting_for_node_project_in_common_project_structure(self, linting_script_file: str, verbosity: int,
+                                                                                build_environment: str, commandline_arguments: list[str]):
+        # TODO use unused parameter
+        sc = ScriptCollectionCore()
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        sc.program_runner = ProgramRunnerEpew()
+        build_script_folder = os.path.dirname(linting_script_file)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
+        sc.run_program("npm", "run lint", codeunit_folder)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_run_testcases_for_node_project_in_common_project_structure(self, runtestcases_script_file: str,
+                                                                                      buildenvironment: str, generate_badges: bool, verbosity: int,
+                                                                                      commandline_arguments: list[str]):
+        # TODO really use buildenvironment etc.
+        sc = ScriptCollectionCore()
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        sc.program_runner = ProgramRunnerEpew()
+        build_script_folder = os.path.dirname(runtestcases_script_file)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
+        sc.run_program("npm", "run test", codeunit_folder)
+        coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
+        target_file = os.path.join(coverage_folder, "TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(target_file)
+        os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
+        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        codeunitname = os.path.basename(codeunit_folder)
+        self.check_testcoverage_for_project_in_common_project_structure(target_file, repository_folder, codeunitname)
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, buildenvironment, commandline_arguments)
+        self.update_path_of_source(repository_folder, codeunitname)
+
+    @GeneralUtilities.check_arguments
+    def do_npm_install(self, package_json_folder: str, verbosity: int):
+        sc = ScriptCollectionCore()
+        sc.program_runner = ProgramRunnerEpew()
+        sc.run_program("npm", "install", package_json_folder, verbosity=int)
+
+    @GeneralUtilities.check_arguments
+    def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
+        filename = package_json_file
+        with open(filename, 'r', encoding="utf-8") as f:
+            data = json.load(f)
+            data['version'] = version
+        os.remove(filename)
+        with open(filename, 'w', encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+    @GeneralUtilities.check_arguments
     def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
@@ -867,62 +915,6 @@ class TasksForCommonProjectStructure:
         # TODO set order
         for codeunit in codeunits:
             self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, build_environment, additional_arguments_file)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_node_library_project_in_common_project_structure(self, build_script_file: str,
-                                                                                      build_configuration: str, verbosity: int, commandline_arguments: list):
-        # TODO use unused parameter
-        sc = ScriptCollectionCore()
-        sc.program_runner = ProgramRunnerEpew()
-        build_script_folder = os.path.dirname(build_script_file)
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        sc.run_program("npm", "run build", codeunit_folder)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_node_project_in_common_project_structure(self, linting_script_file: str, verbosity: int,
-                                                                                build_environment: str, commandline_arguments: list):
-        # TODO use unused parameter
-        sc = ScriptCollectionCore()
-        sc.program_runner = ProgramRunnerEpew()
-        build_script_folder = os.path.dirname(linting_script_file)
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        sc.run_program("npm", "run lint", codeunit_folder)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_node_project_in_common_project_structure(self, runtestcases_script_file: str,
-                                                                                      buildenvironment: str, generate_badges: bool, verbosity: int,
-                                                                                      commandline_arguments: list):
-        # TODO really use verbosity etc.
-        sc = ScriptCollectionCore()
-        sc.program_runner = ProgramRunnerEpew()
-        build_script_folder = os.path.dirname(runtestcases_script_file)
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        sc.run_program("npm", "run test", codeunit_folder)
-        coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
-        target_file = os.path.join(coverage_folder, "TestCoverage.xml")
-        GeneralUtilities.ensure_file_does_not_exist(target_file)
-        os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
-        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
-        codeunitname = os.path.basename(codeunit_folder)
-        self.check_testcoverage_for_project_in_common_project_structure(target_file, repository_folder, codeunitname)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, buildenvironment, commandline_arguments)
-        self.update_path_of_source(repository_folder, codeunitname)
-
-    @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str):
-        sc = ScriptCollectionCore()
-        sc.program_runner = ProgramRunnerEpew()
-        sc.run_program("npm", "install", package_json_folder)
-
-    @GeneralUtilities.check_arguments
-    def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
-        filename = package_json_file
-        with open(filename, 'r', encoding="utf-8") as f:
-            data = json.load(f)
-            data['version'] = version
-        os.remove(filename)
-        with open(filename, 'w', encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
