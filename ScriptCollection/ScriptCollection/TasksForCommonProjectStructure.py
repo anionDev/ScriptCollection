@@ -246,7 +246,16 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],   default_value: dict[str, str]) -> dict[str, str]():
+    def get_buildenvironment_from_commandline_arguments(commandline_arguments: list[str],  default_value: str) -> str:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "buildenvironment")
+        if result is None:
+            return default_value
+        else:
+            return result
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],  default_value: dict[str, str]) -> dict[str, str]():
         result_plain = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
         if result_plain is None:
             return default_value
@@ -289,32 +298,39 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict[str, str], commitid: str, verbosity: int):
-        csproj_file_folder = os.path.dirname(csproj_file)
-        csproj_file_name = os.path.basename(csproj_file)
-        self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
-        GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
-        GeneralUtilities.ensure_directory_exists(outputfolder)
-        # TODO pass commitid, timestamp and if desired something like keypair, certificate to the src-code
-        self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder}", csproj_file_folder, verbosity=verbosity)
-        for file, keyfile in files_to_sign.items():
-            self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
+    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict[str, str], commitid: str,
+                                                    verbosity: int, runtimes: list[str]):
+
+        for runtime in runtimes:
+            outputfolder = outputfolder+runtime
+            csproj_file_folder = os.path.dirname(csproj_file)
+            csproj_file_name = os.path.basename(csproj_file)
+            self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
+            GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+            GeneralUtilities.ensure_directory_exists(outputfolder)
+            # TODO pass commitid, timestamp and if desired something like keypair, certificate to the src-code
+            self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder} --runtime {runtime}", csproj_file_folder, verbosity=verbosity)
+            for file, keyfile in files_to_sign.items():
+                self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str, default_build_configuration: str,
-                                                                                verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, default_build_environment: str,
+                                                                                build_environment_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll
+        build_environment = self.get_buildenvironment_from_commandline_arguments(commandline_arguments, default_build_environment)
         self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(
-            buildscript_file, buildenvironment, default_build_configuration, verbosity, commandline_arguments)
+            buildscript_file, build_environment_mapping, default_build_environment, verbosity, build_environment, runtimes, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str, default_build_configuration: str,
+    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, default_build_environment: str,
+                                                                                        build_environment_mapping:  dict[str, str], runtimes: list[str],
                                                                                         verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll and converts it to a nupkg-file
+        build_environment = self.get_buildenvironment_from_commandline_arguments(commandline_arguments, default_build_environment)
         self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(
-            buildscript_file, buildenvironment, default_build_configuration, verbosity, commandline_arguments)
+            buildscript_file, build_environment_mapping, default_build_environment, verbosity, build_environment, runtimes, commandline_arguments)
         self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -326,24 +342,34 @@ class TasksForCommonProjectStructure:
         raise ValueError(f"Unknown build-environment: {buildenvironment}")
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, buildenvironment: str, default_build_configuration: str,
-                                                                                  verbosity: int, commandline_arguments: list[str]):
+    def get_default_build_environment_mapping(self) -> dict[str, str]:
+        return {
+            "Development": "Development",
+            "QualityCheck": "QualityCheck",
+            "Productive": "Productive"
+        }
 
+    @GeneralUtilities.check_arguments
+    def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, build_environment_mapping:  dict[str, str],
+                                                                                  default_build_configuration: str,  verbosity: int, build_environment: str,
+                                                                                  runtimes: list[str], commandline_arguments: list[str]):
+        dotnet_build_configuration: str = build_environment_mapping[build_environment]
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments,  dict())
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         commitid = self.__sc.git_get_current_commit_id(repository_folder)
-        outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts/BuildResult", os.path.dirname(buildscript_file))
+        outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts", os.path.dirname(buildscript_file))
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
         csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
-        buildconfiguration = self.__get_dotnet_buildconfiguration_by_build_environment(buildenvironment, default_build_configuration, commandline_arguments)
+        buildconfiguration = self.__get_dotnet_buildconfiguration_by_build_environment(dotnet_build_configuration, default_build_configuration, commandline_arguments)
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
-        self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration, os.path.join(outputfolder, codeunitname), files_to_sign, commitid, verbosity=verbosity)
-        self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration, os.path.join(
-            outputfolder, codeunitname+"Tests"), files_to_sign, commitid, verbosity=verbosity)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration,
+                                                         os.path.join(outputfolder, "BuildResult_dotnet_"), files_to_sign, commitid, verbosity, runtimes)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration,
+                                                         os.path.join(outputfolder, "BuildResult_dotnettests_"), files_to_sign, commitid, verbosity, runtimes)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]):
