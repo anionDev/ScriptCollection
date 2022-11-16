@@ -109,7 +109,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_wheel_file_in_repository_in_common_repository_format(self, repository_folder: str, codeunit_name: str) -> str:
-        return self.__sc.find_file_by_extension(os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name), "Wheel"), "whl")
+        return self.__sc.find_file_by_extension(os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunit_name),
+                                                             "BuildResult_Wheel"), "whl")
 
     @GeneralUtilities.check_arguments
     def __get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
@@ -120,7 +121,7 @@ class TasksForCommonProjectStructure:
     def check_testcoverage_for_project_in_common_project_structure(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
-        codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit")
+        codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         threshold_in_percent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
         minimalrequiredtestcoverageinpercent = threshold_in_percent
         if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
@@ -174,7 +175,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute())
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         target_directory = GeneralUtilities.resolve_relative_path(
-            "../Artifacts/Wheel", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
+            "../Artifacts/BuildResult_Wheel", os.path.join(self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)))
         GeneralUtilities.ensure_directory_exists(target_directory)
         # Copy ReadMe-file to subfolder as workaround because it seems that pyproject.toml or setuptools can not handle paths to a ReadMe-file in the parent-folder
         shutil.copy(os.path.join(repository_folder, "ReadMe.md"), os.path.join(codeunit_folder, "ReadMe.md"))
@@ -215,6 +216,11 @@ class TasksForCommonProjectStructure:
         root: etree._ElementTree = etree.parse(codeunit_file)
         result = str(root.xpath('//codeunit:version/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0])
         return result
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_buildconfigurationdevelopment_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> str:
+        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationdevelopment",  default_value)
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -335,6 +341,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __get_dotnet_buildconfiguration_by_build_environment(self, buildenvironment: str, default_value: str, commandline_arguments: list[str]):
+        if buildenvironment == "Development":
+            return self.get_buildconfigurationdevelopment_from_commandline_arguments(commandline_arguments, default_value)
         if buildenvironment == "QualityCheck":
             return self.get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments, default_value)
         if buildenvironment == "Productive":
@@ -367,9 +375,9 @@ class TasksForCommonProjectStructure:
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
         self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration,
-                                                         os.path.join(outputfolder, "BuildResult_dotnet_"), files_to_sign, commitid, verbosity, runtimes)
+                                                         os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid, verbosity, runtimes)
         self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration,
-                                                         os.path.join(outputfolder, "BuildResult_dotnettests_"), files_to_sign, commitid, verbosity, runtimes)
+                                                         os.path.join(outputfolder, "BuildResult_DotNetTests_"), files_to_sign, commitid, verbosity, runtimes)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]):
@@ -377,7 +385,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         build_folder = os.path.join(repository_folder, codeunitname, "Other", "Build")
-        outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts/Nuget", os.path.dirname(buildscript_file))
+        outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts/BuildResult_NuGet", os.path.dirname(buildscript_file))
         root: etree._ElementTree = etree.parse(os.path.join(build_folder, f"{codeunitname}.nuspec"))
         current_version = root.xpath("//*[name() = 'package']/*[name() = 'metadata']/*[name() = 'version']/text()")[0]
         nupkg_filename = f"{codeunitname}.{current_version}.nupkg"
@@ -417,6 +425,7 @@ class TasksForCommonProjectStructure:
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverageReport'.
         This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         if verbosity == 0:
             verbose_argument_for_reportgenerator = "Off"
         if verbosity == 1:
@@ -498,7 +507,7 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
   <body>
     <h1 class="display-1">{title}</h1>
@@ -593,7 +602,7 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
 
   <body>
@@ -611,7 +620,7 @@ class TasksForCommonProjectStructure:
                                                                                 registry_address: str, api_key: str):
         # when pusing to "default public" nuget-server then use registry_address: "nuget.org"
         build_artifact_folder = GeneralUtilities.resolve_relative_path(
-            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Artifacts/Nuget", os.path.dirname(push_script_file))
+            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Artifacts/BuildResult_NuGet", os.path.dirname(push_script_file))
         self.__sc.push_nuget_build_artifact_of_repository_in_common_file_structure(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"),
                                                                                    registry_address, api_key)
 
@@ -917,7 +926,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
-        codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit")
+        codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
@@ -987,4 +996,23 @@ class TasksForCommonProjectStructure:
         sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
+
+        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
+        build_codeunit_info_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
+        version = self.get_version_of_codeunit(codeunit_file)
+        GeneralUtilities.ensure_file_exists(build_codeunit_info_file)
+        artifacts_list = ""
+        for artifact_folder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
+            artifact_name = os.path.basename(artifact_folder)
+            artifacts_list = f"        <codeunit:artifact>{artifact_name}<codeunit:artifact>"
+        artifacts = '\n'.join(artifacts_list)
+        GeneralUtilities.write_text_to_file(build_codeunit_info_file, f"""<?xml version="1.0" encoding="UTF-8" ?>
+<codeunit:artifactsinformation xmlns:codeunit="https://github.com/anionDev/ProjectTemplates" artifactsinformationspecificationversion="1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/artifactsinformation.xsd">
+    <codeunit:name>{codeunit_name}</codeunit:name>
+    <codeunit:version>{version}</codeunit:version>
+    <codeunit:artifacts>
+{artifacts}
+    </codeunit:artifacts>
+</codeunit:artifactsinformation>""")
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
