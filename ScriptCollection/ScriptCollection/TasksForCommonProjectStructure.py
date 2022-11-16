@@ -877,7 +877,7 @@ class TasksForCommonProjectStructure:
     def do_npm_install(self, package_json_folder: str, verbosity: int):
         sc = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
-        sc.run_program("npm", "install", package_json_folder, verbosity=int)
+        sc.run_program("npm", "install", package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
