@@ -287,7 +287,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def update_version_of_codeunit_to_project_version(self, common_tasks_file: str, current_version: str) -> None:
         codeunit_name: str = os.path.basename(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)))
-        codeunit_file: str = os.path.join(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)), f"{codeunit_name}.codeunit")
+        codeunit_file: str = os.path.join(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)), f"{codeunit_name}.codeunit.xml")
         self.write_version_to_codeunit_file(codeunit_file, current_version)
 
     @GeneralUtilities.check_arguments
@@ -540,7 +540,7 @@ class TasksForCommonProjectStructure:
 
         for codeunitname, codeunit_configuration in information.codeunits.items():
             codeunit_folder = os.path.join(information.repository, codeunitname)
-            codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+            codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
             self.build_codeunit(os.path.join(information.repository, codeunitname), information.verbosity, information.build_environment_for_productive,
                                 codeunit_configuration.additional_arguments_file)
 
@@ -548,11 +548,10 @@ class TasksForCommonProjectStructure:
 
         for codeunitname, codeunit_configuration in information.codeunits.items():
             codeunit_folder = os.path.join(information.repository, codeunitname)
-            codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+            codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
 
             target_folder_for_codeunit = os.path.join(target_folder_base, codeunitname)
             GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
-            shutil.copyfile(os.path.join(information.repository, codeunitname, f"{codeunitname}.codeunit"), os.path.join(target_folder_for_codeunit, f"{codeunitname}.codeunit"))
             shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), os.path.join(target_folder_for_codeunit, "Artifacts"))
 
         for codeunitname, codeunit_configuration in information.codeunits.items():
@@ -588,7 +587,7 @@ class TasksForCommonProjectStructure:
                 reference_versions_html_lines.append("<ul>")
                 for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
                     codeunit_folder = os.path.join(information.repository, codeunitname)
-                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
                     reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">' +
                                                          f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
                 reference_versions_html_lines.append("</ul>")
@@ -634,7 +633,7 @@ class TasksForCommonProjectStructure:
         result: list[str] = []
         for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
             subfoldername = os.path.basename(direct_subfolder)
-            if os.path.isfile(os.path.join(direct_subfolder, f"{subfoldername}.codeunit")):
+            if os.path.isfile(os.path.join(direct_subfolder, f"{subfoldername}.codeunit.xml")):
                 result.append(subfoldername)
         return result
 
@@ -748,7 +747,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
 
         codeunitname_lower = codeunitname.lower()
-        version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+        version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"EnvironmentStage={build_configuration}",
                 "--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{version}", "--file", "Dockerfile"]
         if not use_cache:
@@ -775,7 +774,7 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
         image_filename = os.path.basename(image_file)
-        version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit"))
+        version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         image_tag_name = codeunitname.lower()
         image_latest = f"{registry}/{image_tag_name}:latest"
         image_version = f"{registry}/{image_tag_name}:{version}"
@@ -845,7 +844,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # Check codeunit-conformity
-        codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit")
+        codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
         namespaces = {'codeunit': 'https://github.com/anionDev/ProjectTemplates', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
@@ -944,7 +943,7 @@ class TasksForCommonProjectStructure:
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
         for subfolder in subfolders:
             codeunit_name = os.path.basename(subfolder)
-            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit")
+            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             if os.path.exists(codeunit_file):
                 codeunits.append(codeunit_name)
         # TODO set order
@@ -953,9 +952,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+        now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
-        codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit")
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if(not os.path.isfile(codeunit_file)):
             raise ValueError(f'"{codeunit_folder}" is no codeunit-folder.')
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
@@ -1001,18 +1001,22 @@ class TasksForCommonProjectStructure:
         build_codeunit_info_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         version = self.get_version_of_codeunit(codeunit_file)
         GeneralUtilities.ensure_file_exists(build_codeunit_info_file)
-        artifacts_list = ""
+        artifacts_list = []
         for artifact_folder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
             artifact_name = os.path.basename(artifact_folder)
-            artifacts_list = f"        <codeunit:artifact>{artifact_name}<codeunit:artifact>"
+            artifacts_list.append(f"        <codeunit:artifact>{artifact_name}<codeunit:artifact>")
         artifacts = '\n'.join(artifacts_list)
+        moment = GeneralUtilities.datetime_to_string(now)
         GeneralUtilities.write_text_to_file(build_codeunit_info_file, f"""<?xml version="1.0" encoding="UTF-8" ?>
 <codeunit:artifactsinformation xmlns:codeunit="https://github.com/anionDev/ProjectTemplates" artifactsinformationspecificationversion="1.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/artifactsinformation.xsd">
     <codeunit:name>{codeunit_name}</codeunit:name>
     <codeunit:version>{version}</codeunit:version>
+    <codeunit:timestamp>{moment}</codeunit:timestamp>
     <codeunit:artifacts>
 {artifacts}
     </codeunit:artifacts>
 </codeunit:artifactsinformation>""")
+        shutil.copyfile(codeunit_file,
+                        os.path.join(artifacts_folder, f"{codeunit_name}.codeunit.xml"))
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
