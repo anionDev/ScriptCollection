@@ -1013,6 +1013,7 @@ class TasksForCommonProjectStructure:
     <codeunit:name>{codeunit_name}</codeunit:name>
     <codeunit:version>{version}</codeunit:version>
     <codeunit:timestamp>{moment}</codeunit:timestamp>
+    <codeunit:targetenvironment>{build_environment}</codeunit:targetenvironment>
     <codeunit:artifacts>
 {artifacts}
     </codeunit:artifacts>
