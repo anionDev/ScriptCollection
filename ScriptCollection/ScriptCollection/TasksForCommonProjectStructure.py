@@ -56,8 +56,8 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     public_repository_url: str = None
     target_branch_name: str = None
     codeunits: dict[str, CodeUnitConfiguration]
-    build_environment_for_qualitycheck: str = "QualityCheck"
-    build_environment_for_productive: str = "Productive"
+    target_environmenttype_for_qualitycheck: str = "QualityCheck"
+    target_environmenttype_for_productive: str = "Productive"
 
     def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
         self.repository = repository
@@ -77,8 +77,8 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     targetbranch: str = "stable"
     sign_git_tags: bool = True
     codeunits: dict[str, CodeUnitConfiguration]
-    build_environment_for_qualitycheck: str = "QualityCheck"
-    build_environment_for_productive: str = "Productive"
+    target_environmenttype_for_qualitycheck: str = "QualityCheck"
+    target_environmenttype_for_productive: str = "Productive"
 
     push_source_branch: bool = False
     push_source_branch_remote_name: str = None
@@ -159,17 +159,17 @@ class TasksForCommonProjectStructure:
         TasksForCommonProjectStructure.__adjust_source_in_testcoverage_file(full_file, codeunitname)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_python_codeunit_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool, verbosity: int, buildenvironment: str,
+    def standardized_tasks_run_testcases_for_python_codeunit_in_common_project_structure(self, run_testcases_file: str, generate_badges: bool, verbosity: int, targetenvironmenttype: str,
                                                                                          commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(run_testcases_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname, verbosity)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, buildenvironment, commandline_arguments)
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.update_path_of_source(repository_folder, codeunitname)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_python_codeunit_in_common_project_structure(self, buildscript_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_python_codeunit_in_common_project_structure(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         codeunit_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute())
@@ -252,8 +252,8 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_buildenvironment_from_commandline_arguments(commandline_arguments: list[str],  default_value: str) -> str:
-        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "buildenvironment")
+    def get_targetenvironmenttype_from_commandline_arguments(commandline_arguments: list[str],  default_value: str) -> str:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "targetenvironmenttype")
         if result is None:
             return default_value
         else:
@@ -300,7 +300,7 @@ class TasksForCommonProjectStructure:
         self.write_version_to_codeunit_file(codeunit_file, current_version)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
         generated_reference_folder = GeneralUtilities.resolve_relative_path("../Artifacts/Reference", folder_of_current_file)
@@ -328,37 +328,37 @@ class TasksForCommonProjectStructure:
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, default_build_environment: str,
-                                                                                build_environment_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, default_target_environmenttype: str,
+                                                                                target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll
-        build_environment = self.get_buildenvironment_from_commandline_arguments(commandline_arguments, default_build_environment)
+        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(
-            buildscript_file, build_environment_mapping, default_build_environment, verbosity, build_environment, runtimes, commandline_arguments)
+            buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype, runtimes, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, default_build_environment: str,
-                                                                                        build_environment_mapping:  dict[str, str], runtimes: list[str],
+    def standardized_tasks_build_for_dotnet_library_project_in_common_project_structure(self, buildscript_file: str, default_target_environmenttype: str,
+                                                                                        target_environmenttype_mapping:  dict[str, str], runtimes: list[str],
                                                                                         verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll and converts it to a nupkg-file
-        build_environment = self.get_buildenvironment_from_commandline_arguments(commandline_arguments, default_build_environment)
+        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project_in_common_project_structure(
-            buildscript_file, build_environment_mapping, default_build_environment, verbosity, build_environment, runtimes, commandline_arguments)
+            buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype, runtimes, commandline_arguments)
         self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def __get_dotnet_buildconfiguration_by_build_environment(self, buildenvironment: str, default_value: str, commandline_arguments: list[str]):
-        if buildenvironment == "Development":
+    def __get_dotnet_buildconfiguration_by_target_environmenttype(self, targetenvironmenttype: str, default_value: str, commandline_arguments: list[str]):
+        if targetenvironmenttype == "Development":
             return self.get_buildconfigurationdevelopment_from_commandline_arguments(commandline_arguments, default_value)
-        if buildenvironment == "QualityCheck":
+        if targetenvironmenttype == "QualityCheck":
             return self.get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments, default_value)
-        if buildenvironment == "Productive":
+        if targetenvironmenttype == "Productive":
             return self.get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments,  "Release")
-        raise ValueError(f"Unknown build-environment: {buildenvironment}")
+        raise ValueError(f"Unknown build-environmenttype: {targetenvironmenttype}")
 
     @GeneralUtilities.check_arguments
-    def get_default_build_environment_mapping(self) -> dict[str, str]:
+    def get_default_target_environmenttype_mapping(self) -> dict[str, str]:
         return {
             "Development": "Development",
             "QualityCheck": "QualityCheck",
@@ -366,10 +366,10 @@ class TasksForCommonProjectStructure:
         }
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, build_environment_mapping:  dict[str, str],
-                                                                                  default_build_configuration: str,  verbosity: int, build_environment: str,
+    def __standardized_tasks_build_for_dotnet_project_in_common_project_structure(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str],
+                                                                                  default_build_configuration: str,  verbosity: int, target_environmenttype: str,
                                                                                   runtimes: list[str], commandline_arguments: list[str]):
-        dotnet_build_configuration: str = build_environment_mapping[build_environment]
+        dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments,  dict())
@@ -379,7 +379,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
         csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
-        buildconfiguration = self.__get_dotnet_buildconfiguration_by_build_environment(dotnet_build_configuration, default_build_configuration, commandline_arguments)
+        buildconfiguration = self.__get_dotnet_buildconfiguration_by_target_environmenttype(dotnet_build_configuration, default_build_configuration, commandline_arguments)
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
         self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration,
@@ -405,7 +405,7 @@ class TasksForCommonProjectStructure:
         os.rename(nupkg_file, f"{outputfolder}/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
+    def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
@@ -428,7 +428,8 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout("No linting-issues found.")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int, generate_badges: bool, buildenvironment: str, commandline_arguments: list[str]):
+    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str,
+                                                    commandline_arguments: list[str]):
         """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverageReport'.
@@ -459,7 +460,7 @@ class TasksForCommonProjectStructure:
                                   f"-reporttypes:Badges --verbosity={verbose_argument_for_reportgenerator}",  repository_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str, buildenvironment: str, verbosity: int, generate_badges: bool,
+    def standardized_tasks_run_testcases_for_dotnet_project_in_common_project_structure(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
                                                                                         commandline_arguments: list[str]):
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -469,14 +470,14 @@ class TasksForCommonProjectStructure:
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
-        buildconfiguration = self.__get_dotnet_buildconfiguration_by_build_environment(buildenvironment, codeunit_name, commandline_arguments)
+        buildconfiguration = self.__get_dotnet_buildconfiguration_by_target_environmenttype(targetenvironmenttype, codeunit_name, commandline_arguments)
         self.__sc.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
                               f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
                               f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name), verbosity=verbosity)
         GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
         GeneralUtilities.ensure_directory_exists(coverage_file_folder)
         os.rename(coveragefilesource, coveragefiletarget)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, buildenvironment, commandline_arguments)
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage_for_project_in_common_project_structure(coveragefiletarget, repository_folder, codeunit_name)
         self.update_path_of_source(repository_folder, codeunit_name)
 
@@ -492,7 +493,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'.")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
+    def standardized_tasks_linting_for_dotnet_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO implement function
 
@@ -549,7 +550,7 @@ class TasksForCommonProjectStructure:
         for codeunitname, codeunit_configuration in information.codeunits.items():
             codeunit_folder = os.path.join(information.repository, codeunitname)
             codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-            self.build_codeunit(os.path.join(information.repository, codeunitname), information.verbosity, information.build_environment_for_productive,
+            self.build_codeunit(os.path.join(information.repository, codeunitname), information.verbosity, information.target_environmenttype_for_productive,
                                 codeunit_configuration.additional_arguments_file)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
@@ -720,7 +721,7 @@ class TasksForCommonProjectStructure:
             for _, codeunit in information.codeunits.items():
                 GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit.name}.")
                 self.build_codeunit(os.path.join(information.repository, codeunit.name), information.verbosity,
-                                    information.build_environment_for_qualitycheck, codeunit.additional_arguments_file)
+                                    information.target_environmenttype_for_qualitycheck, codeunit.additional_arguments_file)
                 GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}.")
 
             self.assert_no_uncommitted_changes(information.repository)
@@ -756,7 +757,7 @@ class TasksForCommonProjectStructure:
 
         codeunitname_lower = codeunitname.lower()
         version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"EnvironmentStage={build_configuration}",
+        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"environmenttypeStage={build_configuration}",
                 "--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{version}", "--file", "Dockerfile"]
         if not use_cache:
             args.append("--no-cache")
@@ -764,7 +765,7 @@ class TasksForCommonProjectStructure:
         codeunit_content_folder = os.path.join(codeunit_folder, codeunitname)
         sc.run_program_argsasarray("docker", args, codeunit_content_folder, verbosity=verbosity, print_errors_as_information=True)
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
-        app_artifacts_folder = os.path.join(artifacts_folder, "ApplicationImage")
+        app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
         GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
         GeneralUtilities.ensure_directory_exists(app_artifacts_folder)
         sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{version}.tar",
@@ -801,7 +802,8 @@ class TasksForCommonProjectStructure:
         return root.xpath('//codeunit:dependentcodeunit/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_docker_project_in_common_project_structure(self, run_testcases_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]):
+    def standardized_tasks_run_testcases_for_docker_project_in_common_project_structure(self, run_testcases_script_file: str, verbosity: int, targetenvironmenttype: str,
+                                                                                        commandline_arguments: list[str]):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(run_testcases_script_file)))
         repository_folder: str = str(Path(os.path.dirname(run_testcases_script_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(run_testcases_script_file)).parent.parent.name
@@ -823,19 +825,19 @@ class TasksForCommonProjectStructure:
         testcoverage_file = os.path.join(testcoverage_artifacts_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_exists(testcoverage_file)
         GeneralUtilities.write_text_to_file(testcoverage_file, dummy_test_coverage_file)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, True, buildenvironment, commandline_arguments)
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, True, targetenvironmenttype, commandline_arguments)
         self.update_path_of_source(repository_folder, codeunitname)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_docker_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, buildenvironment: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_linting_for_docker_project_in_common_project_structure(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  buildenvironment: str,  clear_artifacts_folder: bool,
-                                           commandline_arguments: list[str], additional_arguments_file: str) -> None:
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
+                                           additional_arguments_file: str, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
-        build_environment = self.get_buildenvironment_from_commandline_arguments(commandline_arguments, buildenvironment)
+        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
         if len(commandline_arguments) == 0:
@@ -845,7 +847,7 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        GeneralUtilities.write_message_to_stdout(f"Build-environment: {buildenvironment}")
+        GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {targetenvironmenttype}")
 
         # Clear previously builded artifacts if desired:
         if clear_artifacts_folder:
@@ -871,7 +873,7 @@ class TasksForCommonProjectStructure:
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
 
         # Build dependent code units
-        self.build_dependent_code_units(repository_folder, codeunitname, verbosity, build_environment, additional_arguments_file)
+        self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_script_file: str,
@@ -886,7 +888,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_node_project_in_common_project_structure(self, linting_script_file: str, verbosity: int,
-                                                                                build_environment: str, commandline_arguments: list[str]):
+                                                                                target_environmenttype: str, commandline_arguments: list[str]):
         # TODO use unused parameter
         sc = ScriptCollectionCore()
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -897,9 +899,9 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_node_project_in_common_project_structure(self, runtestcases_script_file: str,
-                                                                                      buildenvironment: str, generate_badges: bool, verbosity: int,
+                                                                                      targetenvironmenttype: str, generate_badges: bool, verbosity: int,
                                                                                       commandline_arguments: list[str]):
-        # TODO really use buildenvironment etc.
+        # TODO really use targetenvironmenttype etc.
         sc = ScriptCollectionCore()
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc.program_runner = ProgramRunnerEpew()
@@ -913,7 +915,7 @@ class TasksForCommonProjectStructure:
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         codeunitname = os.path.basename(codeunit_folder)
         self.check_testcoverage_for_project_in_common_project_structure(target_file, repository_folder, codeunitname)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, buildenvironment, commandline_arguments)
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.update_path_of_source(repository_folder, codeunitname)
 
     @GeneralUtilities.check_arguments
@@ -933,7 +935,7 @@ class TasksForCommonProjectStructure:
             json.dump(data, f, indent=2)
 
     @GeneralUtilities.check_arguments
-    def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
+    def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, target_environmenttype: str, additional_arguments_file: str) -> None:
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
@@ -941,16 +943,16 @@ class TasksForCommonProjectStructure:
         if 0 < len(dependent_codeunits):
             GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for {codeunit_name}.")
         for dependent_codeunit in dependent_codeunits:
-            other_folder = os.path.join(repo_folder, codeunit_name, "Other")
+            other_folder = os.path.join(repo_folder, dependent_codeunit, "Other")
             artifacts_folder = os.path.join(other_folder, "Artifacts")
-            self.build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, build_environment, additional_arguments_file)
+            self.build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, target_environmenttype, additional_arguments_file)
             target_folder = os.path.join(dependent_codeunits_folder, dependent_codeunit)
             GeneralUtilities.ensure_directory_does_not_exist(target_folder)
             shutil.copytree(artifacts_folder, target_folder)
         GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
-    def build_codeunits(self, repository_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         codeunits = []
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
         for subfolder in subfolders:
@@ -960,10 +962,10 @@ class TasksForCommonProjectStructure:
                 codeunits.append(codeunit_name)
         # TODO set order (the "last" should be first to not overwrite its artifacts)
         for codeunit in codeunits:
-            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, build_environment, additional_arguments_file)
+            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
-    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
@@ -972,7 +974,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f'"{codeunit_folder}" is no codeunit-folder.')
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
-        GeneralUtilities.write_message_to_stdout(f"Build-environment: {build_environment}")
+        GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {target_environmenttype}")
 
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
@@ -984,7 +986,7 @@ class TasksForCommonProjectStructure:
         additional_arguments_r: str = ""
         additional_arguments_l: str = ""
         additional_arguments_g: str = ""
-        general_argument = f'--overwrite_verbosity={str(verbosity)} --overwrite_buildenvironment={build_environment}'
+        general_argument = f'--overwrite_verbosity={str(verbosity)} --overwrite_targetenvironmenttype={target_environmenttype}'
         if additional_arguments_file is None:
             c_additional_argument = ""
         else:
@@ -1029,7 +1031,7 @@ class TasksForCommonProjectStructure:
     <codeunit:name>{codeunit_name}</codeunit:name>
     <codeunit:version>{version}</codeunit:version>
     <codeunit:timestamp>{moment}</codeunit:timestamp>
-    <codeunit:targetenvironment>{build_environment}</codeunit:targetenvironment>
+    <codeunit:targetenvironmenttype>{target_environmenttype}</codeunit:targetenvironmenttype>
     <codeunit:artifacts>
 {artifacts}
     </codeunit:artifacts>
