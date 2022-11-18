@@ -261,6 +261,15 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
+    def get_additionalargumentsfile_from_commandline_arguments(commandline_arguments: list[str],  default_value: str) -> str:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "additionalargumentsfile")
+        if result is None:
+            return default_value
+        else:
+            return result
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
     def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],  default_value: dict[str, str]) -> dict[str, str]():
         result_plain = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
         if result_plain is None:
@@ -945,7 +954,7 @@ class TasksForCommonProjectStructure:
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             if os.path.exists(codeunit_file):
                 codeunits.append(codeunit_name)
-        # TODO set order
+        # TODO set order (the "last" should be first to not overwrite its artifacts)
         for codeunit in codeunits:
             self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, build_environment, additional_arguments_file)
 
@@ -957,8 +966,11 @@ class TasksForCommonProjectStructure:
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if(not os.path.isfile(codeunit_file)):
             raise ValueError(f'"{codeunit_folder}" is no codeunit-folder.')
+        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environment: {build_environment}")
+        GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
+
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
@@ -969,7 +981,10 @@ class TasksForCommonProjectStructure:
         additional_arguments_r: str = ""
         additional_arguments_l: str = ""
         additional_arguments_g: str = ""
-        if additional_arguments_file is not None:
+        general_argument = f'--overwrite_verbosity={str(verbosity)} --overwrite_buildenvironment={build_environment}'
+        if additional_arguments_file:
+            c_additional_argument = ""
+        else:
             config = configparser.ConfigParser()
             config.read(additional_arguments_file)
             section_name = f"{codeunit_name}_Configuration"
@@ -983,10 +998,10 @@ class TasksForCommonProjectStructure:
                 additional_arguments_l = config.get(section_name, "ArgumentsForLinting")
             if config.has_option(section_name, "ArgumentsForGenerateReference"):
                 additional_arguments_g = config.get(section_name, "ArgumentsForGenerateReference")
-        general_argument = f"--overwrite_verbosity={str(verbosity)} --overwrite_buildenvironment={build_environment}"
+            c_additional_argument = f'--overwrite_additionalargumentsfile="{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
-        sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument}", other_folder, verbosity=verbosity)
+        sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additional_argument}", other_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
@@ -996,7 +1011,6 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
 
-        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         build_codeunit_info_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         version = self.get_version_of_codeunit(codeunit_file)
         GeneralUtilities.ensure_file_exists(build_codeunit_info_file)
