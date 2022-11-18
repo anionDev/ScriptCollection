@@ -768,12 +768,12 @@ class TasksForCommonProjectStructure:
         app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
         GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
         GeneralUtilities.ensure_directory_exists(app_artifacts_folder)
-        sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}.tar",
+        sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{version}.tar",
                                    f"{codeunitname_lower}:{version}"], app_artifacts_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact_of_repository_in_common_file_structure(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
-                                                                            verbosity: int, commandline_arguments: list[str]):
+                                                                          verbosity: int, commandline_arguments: list[str]):
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{product_name}", folder_of_this_file)
@@ -803,7 +803,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_docker_project_in_common_project_structure(self, run_testcases_script_file: str, verbosity: int, targetenvironmenttype: str,
-                                                                                          commandline_arguments: list[str]):
+                                                                                        commandline_arguments: list[str]):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(run_testcases_script_file)))
         repository_folder: str = str(Path(os.path.dirname(run_testcases_script_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(run_testcases_script_file)).parent.parent.name
