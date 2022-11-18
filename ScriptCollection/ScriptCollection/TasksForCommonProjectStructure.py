@@ -934,11 +934,12 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
-        GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for {codeunit_name}.")
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
+        if 0 < len(dependent_codeunits):
+            GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for {codeunit_name}.")
         for dependent_codeunit in dependent_codeunits:
             other_folder = os.path.join(repo_folder, codeunit_name, "Other")
             artifacts_folder = os.path.join(other_folder, "Artifacts")
