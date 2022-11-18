@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ScriptCollection"
 dynamic = ["readme"]
-version = "3.3.9"
+version = "3.3.10"
 authors = [
   { name="Marius Göcke", email="marius.goecke@gmail.com" },
 ]
