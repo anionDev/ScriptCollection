@@ -941,7 +941,7 @@ class TasksForCommonProjectStructure:
         if 0 < len(dependent_codeunits):
             GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for {codeunit_name}.")
         for dependent_codeunit in dependent_codeunits:
-            other_folder = os.path.join(repo_folder, codeunit_name, "Other")
+            other_folder = os.path.join(repo_folder, dependent_codeunit, "Other")
             artifacts_folder = os.path.join(other_folder, "Artifacts")
             self.build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, build_environment, additional_arguments_file)
             target_folder = os.path.join(dependent_codeunits_folder, dependent_codeunit)
