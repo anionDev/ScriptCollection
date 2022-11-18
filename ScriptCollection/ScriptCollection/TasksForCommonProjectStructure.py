@@ -304,11 +304,10 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, outputfolder: str, files_to_sign: dict[str, str], commitid: str,
+    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
                                                     verbosity: int, runtimes: list[str]):
-
         for runtime in runtimes:
-            outputfolder = outputfolder+runtime
+            outputfolder = originaloutputfolder+runtime
             csproj_file_folder = os.path.dirname(csproj_file)
             csproj_file_name = os.path.basename(csproj_file)
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
