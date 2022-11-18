@@ -982,7 +982,7 @@ class TasksForCommonProjectStructure:
         additional_arguments_l: str = ""
         additional_arguments_g: str = ""
         general_argument = f'--overwrite_verbosity={str(verbosity)} --overwrite_buildenvironment={build_environment}'
-        if additional_arguments_file:
+        if additional_arguments_file is None:
             c_additional_argument = ""
         else:
             config = configparser.ConfigParser()
