@@ -833,8 +833,9 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  buildenvironment: str,  clear_artifacts_folder: bool,
-                                           commandline_arguments: list[str]) -> None:
-        build_environment = self.get_string_value_from_commandline_arguments(commandline_arguments, "buildenvironment",  buildenvironment)
+                                           commandline_arguments: list[str], additional_arguments_file: str) -> None:
+        additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
+        build_environment = self.get_buildenvironment_from_commandline_arguments(commandline_arguments, buildenvironment)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
         if len(commandline_arguments) == 0:
@@ -852,6 +853,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # Check codeunit-conformity
+        # TODO check if foldername=="<codeunitname>[.codeunit.xml]"==codeunitname in file
         codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
@@ -869,7 +871,6 @@ class TasksForCommonProjectStructure:
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
 
         # Build dependent code units
-        additional_arguments_file = self.get_string_value_from_commandline_arguments(commandline_arguments, "additionalargumentsfile",  None)
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, build_environment, additional_arguments_file)
 
     @GeneralUtilities.check_arguments
@@ -933,6 +934,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, build_environment: str, additional_arguments_file: str) -> None:
+        GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for {codeunit_name}.")
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
@@ -944,6 +946,7 @@ class TasksForCommonProjectStructure:
             target_folder = os.path.join(dependent_codeunits_folder, dependent_codeunit)
             GeneralUtilities.ensure_directory_does_not_exist(target_folder)
             shutil.copytree(artifacts_folder, target_folder)
+        GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, build_environment: str = "QualityCheck", additional_arguments_file: str = None) -> None:
@@ -969,7 +972,6 @@ class TasksForCommonProjectStructure:
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environment: {build_environment}")
-        GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
