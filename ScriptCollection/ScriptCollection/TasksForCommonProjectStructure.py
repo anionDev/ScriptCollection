@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import re
+import tempfile
 import json
 import configparser
 import xmlschema
@@ -124,7 +125,7 @@ class TasksForCommonProjectStructure:
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         threshold_in_percent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
         minimalrequiredtestcoverageinpercent = threshold_in_percent
-        if(coverage_in_percent < minimalrequiredtestcoverageinpercent):
+        if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
@@ -466,17 +467,18 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         testprojectname = codeunit_name+"Tests"
-        coveragefilesource = os.path.join(repository_folder, codeunit_name, testprojectname, "TestCoverage.xml")
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
-        GeneralUtilities.ensure_file_does_not_exist(coveragefilesource)
         buildconfiguration = self.__get_dotnet_buildconfiguration_by_target_environmenttype(targetenvironmenttype, codeunit_name, commandline_arguments)
-        self.__sc.run_program("dotnet", f"test {testprojectname}/{testprojectname}.csproj -c {buildconfiguration}"
-                              f" --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestCoverage.xml"
-                              f" /p:CoverletOutputFormat=cobertura", os.path.join(repository_folder, codeunit_name), verbosity=verbosity)
-        GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
-        GeneralUtilities.ensure_directory_exists(coverage_file_folder)
-        os.rename(coveragefilesource, coveragefiletarget)
+        with tempfile.TemporaryDirectory() as temp_directory:
+            self.__sc.run_program_argsasarray("dotnet", ["test", f"{testprojectname}/{testprojectname}.csproj", "-c", buildconfiguration,
+                                                        "--verbosity", "normal", "--collect", "XPlat Code Coverage", "--results-directory", temp_directory],
+                                                        os.path.join(repository_folder, codeunit_name), verbosity=verbosity)
+            temp_directory_subdir = GeneralUtilities.get_direct_folders_of_folder(temp_directory)[0]
+            test_coverage_file = GeneralUtilities.get_direct_files_of_folder(temp_directory_subdir)[0]
+            GeneralUtilities.ensure_directory_exists(coverage_file_folder)
+            GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
+            shutil.copy(test_coverage_file, coveragefiletarget)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage_for_project_in_common_project_structure(coveragefiletarget, repository_folder, codeunit_name)
         self.update_path_of_source(repository_folder, codeunit_name)
@@ -708,7 +710,7 @@ class TasksForCommonProjectStructure:
     def __standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
 
         src_branch_commit_id = self.__sc.git_get_current_commit_id(information.repository,  information.sourcebranch)
-        if(src_branch_commit_id == self.__sc.git_get_current_commit_id(information.repository,  information.targetbranch)):
+        if (src_branch_commit_id == self.__sc.git_get_current_commit_id(information.repository,  information.targetbranch)):
             GeneralUtilities.write_message_to_stderr(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
@@ -970,7 +972,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
-        if(not os.path.isfile(codeunit_file)):
+        if (not os.path.isfile(codeunit_file)):
             raise ValueError(f'"{codeunit_folder}" is no codeunit-folder.')
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
