@@ -405,6 +405,17 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(outputfolder)
         os.rename(nupkg_file, f"{outputfolder}/{nupkg_filename}")
 
+
+    @GeneralUtilities.check_arguments
+    def generate_sbom_for_dotnet_project(self, codeunit_folder: str) -> None:
+        codeunit_name = os.path.basename(codeunit_folder)
+        sc = ScriptCollectionCore()
+        bomfile_folder = "Other\\Artifacts\\BOM"
+        sc.run_program("dotnet", f"CycloneDX {codeunit_name}\\{codeunit_name}.csproj -o {bomfile_folder}", codeunit_folder)
+        target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.sbom.xml"
+        GeneralUtilities.ensure_file_does_not_exist(target)
+        os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_python_codeunit_in_common_project_structure(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
