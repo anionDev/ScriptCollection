@@ -387,6 +387,7 @@ class TasksForCommonProjectStructure:
                                                          os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid, verbosity, runtimes)
         self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration,
                                                          os.path.join(outputfolder, "BuildResult_DotNetTests_"), files_to_sign, commitid, verbosity, runtimes)
+        self.generate_sbom_for_dotnet_project(codeunit_folder)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]):
@@ -404,7 +405,6 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
         GeneralUtilities.ensure_directory_exists(outputfolder)
         os.rename(nupkg_file, f"{outputfolder}/{nupkg_filename}")
-
 
     @GeneralUtilities.check_arguments
     def generate_sbom_for_dotnet_project(self, codeunit_folder: str) -> None:
@@ -483,8 +483,8 @@ class TasksForCommonProjectStructure:
         buildconfiguration = self.__get_dotnet_buildconfiguration_by_target_environmenttype(targetenvironmenttype, codeunit_name, commandline_arguments)
         with tempfile.TemporaryDirectory() as temp_directory:
             self.__sc.run_program_argsasarray("dotnet", ["test", f"{testprojectname}/{testprojectname}.csproj", "-c", buildconfiguration,
-                                                        "--verbosity", "normal", "--collect", "XPlat Code Coverage", "--results-directory", temp_directory],
-                                                        os.path.join(repository_folder, codeunit_name), verbosity=verbosity)
+                                                         "--verbosity", "normal", "--collect", "XPlat Code Coverage", "--results-directory", temp_directory],
+                                              os.path.join(repository_folder, codeunit_name), verbosity=verbosity)
             temp_directory_subdir = GeneralUtilities.get_direct_folders_of_folder(temp_directory)[0]
             test_coverage_file = GeneralUtilities.get_direct_files_of_folder(temp_directory_subdir)[0]
             GeneralUtilities.ensure_directory_exists(coverage_file_folder)
