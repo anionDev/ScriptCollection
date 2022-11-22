@@ -961,6 +961,7 @@ class TasksForCommonProjectStructure:
         codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
+        GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
         sc = ScriptCollectionCore()
         sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.api.json BuildResult_DotNet_{runtime}\\{codeunitname}.dll v1", artifacts_folder)
 
