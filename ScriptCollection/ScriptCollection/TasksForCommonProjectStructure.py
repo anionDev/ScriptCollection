@@ -965,6 +965,26 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
+    def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, release_notes: str = None):
+        sc = ScriptCollectionCore()
+        github_repo = f"{github_username}/{productname}"
+        artifacts_file = f"{build_artifacts_folder}\\{productname}\\{version}\\{productname}.v{version}.artifacts.zip"
+        release_title = f"Release v{version}"
+        if release_notes is None:
+            release_notes = release_title  # TODO implement good system for customizing release-notes
+        sc.run_program("gh", f"release create v{version} -R {github_repo} \"{artifacts_file}\" -n \"{release_notes}\" -t \"{release_title}\"")
+
+    @GeneralUtilities.check_arguments
+    def create_archive_of_artifacts(self, project_name: str, version: str, build_artifacts_folder: str):
+        build_artifacts_folder_for_project = f"{build_artifacts_folder}\\{project_name}"
+        folder = f"{build_artifacts_folder_for_project}\\{version}"
+        filename_without_extension = f"{project_name}.v{version}.artifacts"
+        filename = f"{filename_without_extension}.zip"
+        GeneralUtilities.ensure_file_does_not_exist(filename)
+        shutil.make_archive(filename_without_extension, 'zip', folder)
+        shutil.move(filename, folder)
+
+    @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         codeunits = []
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
