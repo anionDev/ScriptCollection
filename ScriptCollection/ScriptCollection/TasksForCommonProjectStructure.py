@@ -888,6 +888,12 @@ class TasksForCommonProjectStructure:
         # Build dependent code units
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
 
+        # Check if changelog exists
+        changelog_folder = os.path.join(repository_folder, codeunitname, "Other", "Resources", "Changelog")
+        changelog_file = os.path.join(changelog_folder, f"v{version}.md")
+        if not os.path.isfile(changelog_file):
+            raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_script_file: str,
                                                                               build_configuration: str, verbosity: int, commandline_arguments: list[str]):
@@ -965,15 +971,14 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
-    def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, release_notes: str = None):
+    def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, codeunit_folder: str):
         sc = ScriptCollectionCore()
         github_repo = f"{github_username}/{productname}"
         artifacts_file = f"{build_artifacts_folder}\\{productname}\\{version}\\{productname}.v{version}.artifacts.zip"
         release_title = f"Release v{version}"
-        if release_notes is None:
-            release_notes = release_title  # TODO implement good system for customizing release-notes
+        changelog_file = os.path.join(codeunit_folder, "Other", "Resources", "Changelog", f"v{version}.md")
         sc.run_program_argsasarray("gh", ["release", "create", f"v{version}", "-R", github_repo,
-                                          artifacts_file, "-n", release_notes, "-t", release_title])
+                                          artifacts_file, "-F", changelog_file, "-t", release_title])
 
     @GeneralUtilities.check_arguments
     def create_archive_of_artifacts(self, project_name: str, version: str, build_artifacts_folder: str):
