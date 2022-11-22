@@ -957,6 +957,14 @@ class TasksForCommonProjectStructure:
         sc.run_program("npm", "install", package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
+    def generate_openapi_file(self, buildscript_file: str, runtime: str) -> None:
+        codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
+        repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
+        artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
+        sc = ScriptCollectionCore()
+        sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.api.json BuildResult_DotNet_{runtime}\\{codeunitname}.dll v1", artifacts_folder)
+
+    @GeneralUtilities.check_arguments
     def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
         filename = package_json_file
         with open(filename, 'r', encoding="utf-8") as f:
