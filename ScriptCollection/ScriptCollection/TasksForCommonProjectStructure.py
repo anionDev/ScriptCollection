@@ -972,7 +972,8 @@ class TasksForCommonProjectStructure:
         release_title = f"Release v{version}"
         if release_notes is None:
             release_notes = release_title  # TODO implement good system for customizing release-notes
-        sc.run_program("gh", f"release create v{version} -R {github_repo} \"{artifacts_file}\" -n \"{release_notes}\" -t \"{release_title}\"")
+        sc.run_program_argsasarray("gh", ["release", "create", f"v{version}", "-R", github_repo,
+                                          artifacts_file, "-n", release_notes, "-t", release_title])
 
     @GeneralUtilities.check_arguments
     def create_archive_of_artifacts(self, project_name: str, version: str, build_artifacts_folder: str):
