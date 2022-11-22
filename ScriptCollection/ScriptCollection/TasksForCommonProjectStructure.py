@@ -321,6 +321,8 @@ class TasksForCommonProjectStructure:
             csproj_file_folder = os.path.dirname(csproj_file)
             csproj_file_name = os.path.basename(csproj_file)
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
+            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "bin"))
+            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "obj"))
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
             GeneralUtilities.ensure_directory_exists(outputfolder)
             # TODO pass commitid, timestamp and if desired something like keypair, certificate to the src-code
