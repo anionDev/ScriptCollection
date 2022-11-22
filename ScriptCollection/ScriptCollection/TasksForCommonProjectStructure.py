@@ -301,6 +301,17 @@ class TasksForCommonProjectStructure:
         self.write_version_to_codeunit_file(codeunit_file, current_version)
 
     @GeneralUtilities.check_arguments
+    def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int):
+        sc = ScriptCollectionCore()
+        codeunit_folder: str = str(Path(os.path.dirname(commontasks_script_file_of_current_file)).parent.absolute())
+        codeunitname: str = os.path.basename(str(Path(os.path.dirname(commontasks_script_file_of_current_file)).parent.absolute()))
+        csproj_folder = os.path.join(codeunit_folder, codeunitname)
+        for search_result in Path(csproj_folder).glob('**/*.tt'):
+            tt_file = str(search_result)
+            relative_path_to_tt_file = str(Path(tt_file).relative_to(Path(csproj_folder)))
+            sc.run_program("texttransform", relative_path_to_tt_file, csproj_folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
@@ -321,6 +332,8 @@ class TasksForCommonProjectStructure:
             csproj_file_folder = os.path.dirname(csproj_file)
             csproj_file_name = os.path.basename(csproj_file)
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
+            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "bin"))
+            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "obj"))
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
             GeneralUtilities.ensure_directory_exists(outputfolder)
             # TODO pass commitid, timestamp and if desired something like keypair, certificate to the src-code
@@ -942,6 +955,14 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
         sc.run_program("npm", "install", package_json_folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def generate_openapi_file(self, buildscript_file: str, runtime: str) -> None:
+        codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
+        repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
+        artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
+        sc = ScriptCollectionCore()
+        sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.api.json BuildResult_DotNet_{runtime}\\{codeunitname}.dll v1", artifacts_folder)
 
     @GeneralUtilities.check_arguments
     def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
