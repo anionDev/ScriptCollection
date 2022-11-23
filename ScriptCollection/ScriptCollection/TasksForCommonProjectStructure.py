@@ -218,6 +218,11 @@ class TasksForCommonProjectStructure:
         result = str(root.xpath('//codeunit:version/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0])
         return result
 
+    @GeneralUtilities.check_arguments
+    def get_version_of_codeunit_folder(self, codeunit_folder: str) -> None:
+        codeunit_file = os.path.join(codeunit_folder, f"{os.path.basename(codeunit_folder)}.codeunit.xml")
+        return self.get_version_of_codeunit(codeunit_file)
+
     @staticmethod
     @GeneralUtilities.check_arguments
     def get_buildconfigurationdevelopment_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> str:
@@ -388,7 +393,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments,  dict())
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
-        commitid = self.__sc.git_get_current_commit_id(repository_folder)
+        commitid = self.__sc.git_get_commit_id(repository_folder)
         outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts", os.path.dirname(buildscript_file))
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
@@ -733,8 +738,8 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __standardized_tasks_merge_to_stable_branch_for_project_in_common_project_format(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
 
-        src_branch_commit_id = self.__sc.git_get_current_commit_id(information.repository,  information.sourcebranch)
-        if (src_branch_commit_id == self.__sc.git_get_current_commit_id(information.repository,  information.targetbranch)):
+        src_branch_commit_id = self.__sc.git_get_commit_id(information.repository,  information.sourcebranch)
+        if (src_branch_commit_id == self.__sc.git_get_commit_id(information.repository,  information.targetbranch)):
             GeneralUtilities.write_message_to_stderr(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
@@ -860,7 +865,7 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
                                            additional_arguments_file: str, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
@@ -869,7 +874,6 @@ class TasksForCommonProjectStructure:
         if len(commandline_arguments) == 0:
             raise ValueError('An empty array as argument for the "commandline_arguments"-parameter is not valid.')
         commandline_arguments = commandline_arguments[1:]
-        sc = ScriptCollectionCore()
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -894,18 +898,34 @@ class TasksForCommonProjectStructure:
         schemaLocation = root.xpath('//codeunit:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
-        # Update version
-        version = sc.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_scripts_file)))
-        self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
-
         # Build dependent code units
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
+
+        # Update version
+        self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
+
+        # set default constants
+        self.set_default_constants(os.path.join(repository_folder, codeunitname))
 
         # Check if changelog exists
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
         changelog_file = os.path.join(changelog_folder, f"v{version}.md")
         if not os.path.isfile(changelog_file):
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+
+    @GeneralUtilities.check_arguments
+    def get_version_of_project(self, repository_folder: str):
+        return ScriptCollectionCore().get_semver_version_from_gitversion(repository_folder)
+
+    @GeneralUtilities.check_arguments
+    def replace_common_variables_in_nuspec_file(self, codeunit_folder: str):
+        codeunit_name = os.path.basename(codeunit_folder)
+        sc = ScriptCollectionCore()
+        version = self.get_version_of_codeunit_folder(codeunit_folder)
+        commit_id = sc.git_get_commit_id(codeunit_folder)
+        nuspec_file = os.path.join(codeunit_folder, "Other", "Build", f"{codeunit_name}.nuspec")
+        sc.replace_version_in_nuspec_file(nuspec_file, version)
+        sc.replace_commit_id_nuspec_file(nuspec_file, commit_id)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_script_file: str,
@@ -955,6 +975,48 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
         sc.run_program("npm", "install", package_json_folder, verbosity=verbosity)
+
+    @GeneralUtilities. check_arguments
+    def set_default_constants(self, codeunit_folder: str):
+        self.set_constant_for_commitid(codeunit_folder)
+        self.set_constant_for_commitdate(codeunit_folder)
+
+    @GeneralUtilities. check_arguments
+    def set_constant_for_commitid(self, codeunit_folder: str):
+        sc = ScriptCollectionCore()
+        commit_id = sc.git_get_commit_id(codeunit_folder)
+        self.set_constant(codeunit_folder, "commitid", commit_id)
+
+    @GeneralUtilities. check_arguments
+    def set_constant_for_commitdate(self, codeunit_folder: str):
+        sc = ScriptCollectionCore()
+        commit_date: datetime = sc.git_get_commit_date(codeunit_folder)
+        self.set_constant(codeunit_folder, "commitdate", GeneralUtilities.datetime_to_string(commit_date))
+
+    @GeneralUtilities. check_arguments
+    def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
+        if documentationsummary is None:
+            documentationsummary = ""
+        constants_folder = os.path.join(codeunit_folder, "Other", "Resources", "Constants")
+        GeneralUtilities.ensure_directory_exists(constants_folder)
+        constants_metafile = os.path.join(constants_folder, f"{constantname}.constant.xml")
+        if constants_valuefile is None:
+            constants_valuefile_folder = constants_folder
+            constants_valuefile_name = f"{constantname}.value.xml"
+            constants_valuefiler_reference = f"./{constants_valuefile_name}"
+        else:
+            constants_valuefile_folder = os.path.dirname(constants_valuefile)
+            constants_valuefile_name = os.path.basename(constants_valuefile)
+            constants_valuefiler_reference = os.path.join(constants_valuefile_folder, constants_valuefile_name)
+
+        GeneralUtilities.write_text_to_file(constants_metafile, f"""<?xml version="1.0" encoding="UTF-8" ?>
+<constant:constant xmlns:constant="https://github.com/anionDev/ProjectTemplates" constantspecificationversion="1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/codeunit.xsd">
+    <constant:name>{constantname}</constant:name>
+    <constant:documentationsummary>{documentationsummary}</constant:documentationsummary>
+    <constant:path>{constants_valuefiler_reference}</constant:path>
+</constant:constant>""")
+        GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
     def generate_openapi_file(self, buildscript_file: str, runtime: str) -> None:

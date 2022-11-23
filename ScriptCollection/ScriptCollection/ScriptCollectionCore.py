@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.16"
+version = "3.3.17"
 __version__ = version
 
 
@@ -91,15 +91,28 @@ class ScriptCollectionCore:
                                                          GeneralUtilities.read_text_from_file(file)))
 
     @GeneralUtilities.check_arguments
-    def replace_version_in_nuspec_file(self, nuspec_file: str, current_version: str):
+    def replace_version_in_nuspec_file(self, nuspec_file: str, new_version: str) -> None:
+        # TODO use XSLT instead
         versionregex = "\\d+\\.\\d+\\.\\d+"
         versiononlyregex = f"^{versionregex}$"
         pattern = re.compile(versiononlyregex)
-        if pattern.match(current_version):
+        if pattern.match(new_version):
             GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"<version>{versionregex}<\\/version>",
-                                                                    f"<version>{current_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
+                                                                    f"<version>{new_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
         else:
-            raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
+            raise ValueError(f"Version '{new_version}' does not match version-regex '{versiononlyregex}'")
+
+    @GeneralUtilities.check_arguments
+    def replace_commit_id_nuspec_file(self, nuspec_file: str, commit_id: str) -> None:
+        # TODO use XSLT instead
+        commit_id_regex = "[a-fA-F0-9]+"
+        commit_id_only_regex = f"^{commit_id_regex}$"
+        pattern = re.compile(commit_id_only_regex)
+        if pattern.match(commit_id):
+            GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"commit=\\\"{commit_id_regex}\\\"",
+                                                                    f"commit=\"{commit_id}\"", GeneralUtilities.read_text_from_file(nuspec_file)))
+        else:
+            raise ValueError(f"Commit-id '{commit_id}' does not match version-regex '{commit_id_only_regex}'")
 
     @GeneralUtilities.check_arguments
     def replace_version_in_csproj_file(self, csproj_file: str, current_version: str):
@@ -251,10 +264,18 @@ class ScriptCollectionCore:
         return False
 
     @GeneralUtilities.check_arguments
-    def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
+    def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
         result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit],
                                                                          repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace('\n', '')
+
+    @GeneralUtilities.check_arguments
+    def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit],
+                                                                         repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        date_as_string = result[1].replace('\n', '')
+        result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
+        return result
 
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
@@ -367,7 +388,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'")
             self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
-        return self.git_get_current_commit_id(directory)
+        return self.git_get_commit_id(directory)
 
     @GeneralUtilities.check_arguments
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
@@ -399,7 +420,7 @@ class ScriptCollectionCore:
             args.append(commit_message)
         args.append(sourcebranch)
         self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        return self.git_get_current_commit_id(directory)
+        return self.git_get_commit_id(directory)
 
     @GeneralUtilities.check_arguments
     def git_undo_all_changes(self, directory: str) -> None:
