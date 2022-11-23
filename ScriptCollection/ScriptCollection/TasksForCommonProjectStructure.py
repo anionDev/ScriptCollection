@@ -860,7 +860,7 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
                                            additional_arguments_file: str, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
@@ -894,12 +894,14 @@ class TasksForCommonProjectStructure:
         schemaLocation = root.xpath('//codeunit:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
-        # Update version
-        version = sc.get_semver_version_from_gitversion(GeneralUtilities.resolve_relative_path("../..", os.path.dirname(common_tasks_scripts_file)))
-        self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
-
         # Build dependent code units
         self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
+
+        # Update version
+        self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
+
+        # set default constants
+        self.set_default_constants(os.path.join(repository_folder, codeunitname))
 
         # Check if changelog exists
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
@@ -907,8 +909,9 @@ class TasksForCommonProjectStructure:
         if not os.path.isfile(changelog_file):
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
 
-        # set default constants
-        self.set_default_constants(os.path.join(repository_folder, codeunitname))
+    @GeneralUtilities.check_arguments
+    def get_version_of_project(self, repository_folder: str):
+        return ScriptCollectionCore().get_semver_version_from_gitversion(repository_folder)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_script_file: str,
