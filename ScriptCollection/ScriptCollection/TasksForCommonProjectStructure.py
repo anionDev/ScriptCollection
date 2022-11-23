@@ -968,17 +968,13 @@ class TasksForCommonProjectStructure:
     def set_constant_for_commitid(self, codeunit_folder: str):
         sc = ScriptCollectionCore()
         commit_id = sc.git_get_commit_id(codeunit_folder)
-        self.set_local_constant(codeunit_folder, "commitid", commit_id)
+        self.set_constant(codeunit_folder, "commitid", commit_id)
 
     @GeneralUtilities. check_arguments
     def set_constant_for_commitdate(self, codeunit_folder: str):
         sc = ScriptCollectionCore()
         commit_date: datetime = sc.git_get_commit_date(codeunit_folder)
-        self.set_local_constant(codeunit_folder, "commitdate", GeneralUtilities.datetime_to_string(commit_date))
-
-    @GeneralUtilities. check_arguments
-    def set_local_constant(self, codeunit_folder: str, constantname: str, constantvalue: str, documentationsummary: str = None):
-        self.set_local_constant(codeunit_folder, constantname, constantvalue, documentationsummary)
+        self.set_constant(codeunit_folder, "commitdate", GeneralUtilities.datetime_to_string(commit_date))
 
     @GeneralUtilities. check_arguments
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
