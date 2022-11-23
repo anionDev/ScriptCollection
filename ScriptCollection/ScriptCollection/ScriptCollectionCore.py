@@ -251,10 +251,20 @@ class ScriptCollectionCore:
         return False
 
     @GeneralUtilities.check_arguments
-    def git_get_current_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
+    def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
         result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit],
                                                                          repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace('\n', '')
+
+    @GeneralUtilities.check_arguments
+    def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit],
+                                                                         repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        date_as_string= result[1].replace('\n', '')
+        result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
+        return result
+
+
 
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
@@ -367,7 +377,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'")
             self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
-        return self.git_get_current_commit_id(directory)
+        return self.git_get_commit_id(directory)
 
     @GeneralUtilities.check_arguments
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
@@ -399,7 +409,7 @@ class ScriptCollectionCore:
             args.append(commit_message)
         args.append(sourcebranch)
         self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        return self.git_get_current_commit_id(directory)
+        return self.git_get_commit_id(directory)
 
     @GeneralUtilities.check_arguments
     def git_undo_all_changes(self, directory: str) -> None:
