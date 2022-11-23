@@ -869,7 +869,6 @@ class TasksForCommonProjectStructure:
         if len(commandline_arguments) == 0:
             raise ValueError('An empty array as argument for the "commandline_arguments"-parameter is not valid.')
         commandline_arguments = commandline_arguments[1:]
-        sc = ScriptCollectionCore()
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
