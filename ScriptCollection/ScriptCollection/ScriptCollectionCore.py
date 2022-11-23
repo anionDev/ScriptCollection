@@ -91,11 +91,6 @@ class ScriptCollectionCore:
                                                          GeneralUtilities.read_text_from_file(file)))
 
     @GeneralUtilities.check_arguments
-    def replace_common_variables_in_nuspec_file(self, nuspec_file: str, new_version: str, commit_id: str):
-        self.replace_version_in_nuspec_file(nuspec_file, new_version)
-        self.replace_commit_id_nuspec_file(nuspec_file, commit_id)
-
-    @GeneralUtilities.check_arguments
     def replace_version_in_nuspec_file(self, nuspec_file: str, new_version: str) -> None:
         # TODO use XSLT instead
         versionregex = "\\d+\\.\\d+\\.\\d+"
@@ -110,7 +105,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def replace_commit_id_nuspec_file(self, nuspec_file: str, commit_id: str) -> None:
         # TODO use XSLT instead
-        commit_id_regex = "[a-fA-F0-8]+"
+        commit_id_regex = "[a-fA-F0-9]+"
         commit_id_only_regex = f"^{commit_id_regex}$"
         pattern = re.compile(commit_id_only_regex)
         if pattern.match(commit_id):

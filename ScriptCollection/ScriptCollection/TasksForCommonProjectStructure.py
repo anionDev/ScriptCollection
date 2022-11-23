@@ -218,6 +218,11 @@ class TasksForCommonProjectStructure:
         result = str(root.xpath('//codeunit:version/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0])
         return result
 
+    @GeneralUtilities.check_arguments
+    def get_version_of_codeunit_folder(self, codeunit_folder: str) -> None:
+        codeunit_file = os.path.join(codeunit_folder, f"{os.path.basename(codeunit_folder)}.codeunit.xml")
+        return self.get_version_of_codeunit(codeunit_file)
+
     @staticmethod
     @GeneralUtilities.check_arguments
     def get_buildconfigurationdevelopment_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> str:
@@ -911,6 +916,16 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str):
         return ScriptCollectionCore().get_semver_version_from_gitversion(repository_folder)
+
+    @GeneralUtilities.check_arguments
+    def replace_common_variables_in_nuspec_file(self, codeunit_folder: str):
+        codeunit_name = os.path.basename(codeunit_folder)
+        sc = ScriptCollectionCore()
+        version = self.get_version_of_codeunit_folder(codeunit_folder)
+        commit_id = sc.git_get_commit_id(codeunit_folder)
+        nuspec_file = os.path.join(codeunit_folder, "Other", "Build", f"{codeunit_name}.nuspec")
+        sc.replace_version_in_nuspec_file(nuspec_file, version)
+        sc.replace_commit_id_nuspec_file(nuspec_file, commit_id)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_script_file: str,
