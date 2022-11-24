@@ -1006,8 +1006,8 @@ class TasksForCommonProjectStructure:
             constants_valuefiler_reference = os.path.join(constants_valuefile_folder, constants_valuefile_name)
 
         GeneralUtilities.write_text_to_file(constants_metafile, f"""<?xml version="1.0" encoding="UTF-8" ?>
-<constant:constant xmlns:constant="https://github.com/anionDev/ProjectTemplates" constantspecificationversion="1.1.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/codeunit.xsd">
+<constant:constant xmlns:constant="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" constantspecificationversion="1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/raw/main/Conventions/RepositoryStructure/CommonProjectStructure/constant.xsd">
     <constant:name>{constantname}</constant:name>
     <constant:documentationsummary>{documentationsummary}</constant:documentationsummary>
     <constant:path>{constants_valuefiler_reference}</constant:path>
