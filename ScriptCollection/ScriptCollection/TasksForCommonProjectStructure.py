@@ -94,6 +94,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 
 class TasksForCommonProjectStructure:
     __sc: ScriptCollectionCore = None
+    reference_latest_version_of_xsd_when_generating_xml: bool = True
 
     def __init__(self, sc: ScriptCollectionCore = None):
         if sc is None:
@@ -890,13 +891,15 @@ class TasksForCommonProjectStructure:
         codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
-        namespaces = {'codeunit': 'https://github.com/anionDev/ProjectTemplates', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
+                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunitfile)
-        codeunit_file_version = root.xpath('//codeunit:codeunit/@codeunitspecificationversion',  namespaces=namespaces)[0]
+        codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion',  namespaces=namespaces)[0]
         supported_codeunitspecificationversion = "1.1.0"
         if codeunit_file_version != supported_codeunitspecificationversion:
             raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
-        schemaLocation = root.xpath('//codeunit:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
+        schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
         # Build dependent code units
@@ -1005,6 +1008,7 @@ class TasksForCommonProjectStructure:
             constants_valuefile_name = os.path.basename(constants_valuefile)
             constants_valuefiler_reference = os.path.join(constants_valuefile_folder, constants_valuefile_name)
 
+        # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
         GeneralUtilities.write_text_to_file(constants_metafile, f"""<?xml version="1.0" encoding="UTF-8" ?>
 <cps:constant xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" constantspecificationversion="1.1.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/raw/main/Conventions/RepositoryStructure/CommonProjectStructure/constant.xsd">
@@ -1012,6 +1016,7 @@ class TasksForCommonProjectStructure:
     <cps:documentationsummary>{documentationsummary}</cps:documentationsummary>
     <cps:path>{constants_valuefiler_reference}</cps:path>
 </cps:constant>""")
+        # TODO validate generated xml against xsd
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
@@ -1141,6 +1146,7 @@ class TasksForCommonProjectStructure:
             artifacts_list.append(f"        <codeunit:artifact>{artifact_name}<codeunit:artifact>")
         artifacts = '\n'.join(artifacts_list)
         moment = GeneralUtilities.datetime_to_string(now)
+        # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
         GeneralUtilities.write_text_to_file(artifactsinformation_file, f"""<?xml version="1.0" encoding="UTF-8" ?>
 <cps:artifactsinformation xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" artifactsinformationspecificationversion="1.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/artifactsinformation.xsd">
