@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.17"
+version = "3.3.18"
 __version__ = version
 
 
@@ -101,18 +101,6 @@ class ScriptCollectionCore:
                                                                     f"<version>{new_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
         else:
             raise ValueError(f"Version '{new_version}' does not match version-regex '{versiononlyregex}'")
-
-    @GeneralUtilities.check_arguments
-    def replace_commit_id_nuspec_file(self, nuspec_file: str, commit_id: str) -> None:
-        # TODO use XSLT instead
-        commit_id_regex = "[a-fA-F0-9]+"
-        commit_id_only_regex = f"^{commit_id_regex}$"
-        pattern = re.compile(commit_id_only_regex)
-        if pattern.match(commit_id):
-            GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"commit=\\\"{commit_id_regex}\\\"",
-                                                                    f"commit=\"{commit_id}\"", GeneralUtilities.read_text_from_file(nuspec_file)))
-        else:
-            raise ValueError(f"Commit-id '{commit_id}' does not match version-regex '{commit_id_only_regex}'")
 
     @GeneralUtilities.check_arguments
     def replace_version_in_csproj_file(self, csproj_file: str, current_version: str):
