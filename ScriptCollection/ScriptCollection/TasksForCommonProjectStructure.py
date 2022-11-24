@@ -1006,12 +1006,12 @@ class TasksForCommonProjectStructure:
             constants_valuefiler_reference = os.path.join(constants_valuefile_folder, constants_valuefile_name)
 
         GeneralUtilities.write_text_to_file(constants_metafile, f"""<?xml version="1.0" encoding="UTF-8" ?>
-<constant:constant xmlns:constant="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" constantspecificationversion="1.1.0"
+<cps:constant xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" constantspecificationversion="1.1.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/raw/main/Conventions/RepositoryStructure/CommonProjectStructure/constant.xsd">
-    <constant:name>{constantname}</constant:name>
-    <constant:documentationsummary>{documentationsummary}</constant:documentationsummary>
-    <constant:path>{constants_valuefiler_reference}</constant:path>
-</constant:constant>""")
+    <cps:name>{constantname}</cps:name>
+    <cps:documentationsummary>{documentationsummary}</cps:documentationsummary>
+    <cps:path>{constants_valuefiler_reference}</cps:path>
+</cps:constant>""")
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
@@ -1132,26 +1132,27 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         self.__sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
 
-        build_codeunit_info_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
+        artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         version = self.get_version_of_codeunit(codeunit_file)
-        GeneralUtilities.ensure_file_exists(build_codeunit_info_file)
+        GeneralUtilities.ensure_file_exists(artifactsinformation_file)
         artifacts_list = []
         for artifact_folder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
             artifact_name = os.path.basename(artifact_folder)
             artifacts_list.append(f"        <codeunit:artifact>{artifact_name}<codeunit:artifact>")
         artifacts = '\n'.join(artifacts_list)
         moment = GeneralUtilities.datetime_to_string(now)
-        GeneralUtilities.write_text_to_file(build_codeunit_info_file, f"""<?xml version="1.0" encoding="UTF-8" ?>
-<codeunit:artifactsinformation xmlns:codeunit="https://github.com/anionDev/ProjectTemplates" artifactsinformationspecificationversion="1.0.0"
+        GeneralUtilities.write_text_to_file(artifactsinformation_file, f"""<?xml version="1.0" encoding="UTF-8" ?>
+<cps:artifactsinformation xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" artifactsinformationspecificationversion="1.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/artifactsinformation.xsd">
-    <codeunit:name>{codeunit_name}</codeunit:name>
-    <codeunit:version>{version}</codeunit:version>
-    <codeunit:timestamp>{moment}</codeunit:timestamp>
-    <codeunit:targetenvironmenttype>{target_environmenttype}</codeunit:targetenvironmenttype>
-    <codeunit:artifacts>
+    <cps:name>{codeunit_name}</cps:name>
+    <cps:version>{version}</cps:version>
+    <cps:timestamp>{moment}</cps:timestamp>
+    <cps:targetenvironmenttype>{target_environmenttype}</cps:targetenvironmenttype>
+    <cps:artifacts>
 {artifacts}
-    </codeunit:artifacts>
-</codeunit:artifactsinformation>""")
+    </cps:artifacts>
+</cps:artifactsinformation>""")
+        # TODO validate artifactsinformation_file against xsd
         shutil.copyfile(codeunit_file,
                         os.path.join(artifacts_folder, f"{codeunit_name}.codeunit.xml"))
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
