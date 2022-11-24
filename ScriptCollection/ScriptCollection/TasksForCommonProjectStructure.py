@@ -419,7 +419,8 @@ class TasksForCommonProjectStructure:
         nupkg_filename = f"{codeunitname}.{current_version}.nupkg"
         nupkg_file = f"{build_folder}/{nupkg_filename}"
         GeneralUtilities.ensure_file_does_not_exist(nupkg_file)
-        self.__sc.run_program("nuget", f"pack {codeunitname}.nuspec", build_folder, verbosity=verbosity)
+        commit_id = self.__sc.git_get_commit_id(repository_folder)
+        self.__sc.run_program("nuget", f"pack {codeunitname}.nuspec -Properties \"commitid={commit_id}\"", build_folder, verbosity=verbosity)
         GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
         GeneralUtilities.ensure_directory_exists(outputfolder)
         os.rename(nupkg_file, f"{outputfolder}/{nupkg_filename}")
@@ -920,12 +921,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def replace_common_variables_in_nuspec_file(self, codeunit_folder: str):
         codeunit_name = os.path.basename(codeunit_folder)
-        sc = ScriptCollectionCore()
         version = self.get_version_of_codeunit_folder(codeunit_folder)
-        commit_id = sc.git_get_commit_id(codeunit_folder)
         nuspec_file = os.path.join(codeunit_folder, "Other", "Build", f"{codeunit_name}.nuspec")
-        sc.replace_version_in_nuspec_file(nuspec_file, version)
-        sc.replace_commit_id_nuspec_file(nuspec_file, commit_id)
+        self.__sc.replace_version_in_nuspec_file(nuspec_file, version)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project_in_common_project_structure(self, build_script_file: str,
@@ -983,14 +981,12 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities. check_arguments
     def set_constant_for_commitid(self, codeunit_folder: str):
-        sc = ScriptCollectionCore()
-        commit_id = sc.git_get_commit_id(codeunit_folder)
+        commit_id = self.__sc.git_get_commit_id(codeunit_folder)
         self.set_constant(codeunit_folder, "commitid", commit_id)
 
     @GeneralUtilities. check_arguments
     def set_constant_for_commitdate(self, codeunit_folder: str):
-        sc = ScriptCollectionCore()
-        commit_date: datetime = sc.git_get_commit_date(codeunit_folder)
+        commit_date: datetime = self.__sc.git_get_commit_date(codeunit_folder)
         self.set_constant(codeunit_folder, "commitdate", GeneralUtilities.datetime_to_string(commit_date))
 
     @GeneralUtilities. check_arguments
@@ -1024,8 +1020,7 @@ class TasksForCommonProjectStructure:
         repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
-        sc = ScriptCollectionCore()
-        sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.api.json BuildResult_DotNet_{runtime}\\{codeunitname}.dll v1", artifacts_folder)
+        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.api.json BuildResult_DotNet_{runtime}\\{codeunitname}.dll v1", artifacts_folder)
 
     @GeneralUtilities.check_arguments
     def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
@@ -1056,12 +1051,11 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, repository_folder: str):
-        sc = ScriptCollectionCore()
         github_repo = f"{github_username}/{productname}"
         artifacts_file = f"{build_artifacts_folder}\\{productname}\\{version}\\{productname}.v{version}.artifacts.zip"
         release_title = f"Release v{version}"
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version}.md")
-        sc.run_program_argsasarray("gh", ["release", "create", f"v{version}", "-R", github_repo,
+        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{version}", "-R", github_repo,
                                           artifacts_file, "-F", changelog_file, "-t", release_title])
 
     @GeneralUtilities.check_arguments
@@ -1103,7 +1097,6 @@ class TasksForCommonProjectStructure:
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
         reference_folder = os.path.join(other_folder, "Reference")
-        sc = ScriptCollectionCore()
         additional_arguments_c: str = ""
         additional_arguments_b: str = ""
         additional_arguments_r: str = ""
@@ -1129,15 +1122,15 @@ class TasksForCommonProjectStructure:
             c_additional_argument = f'--overwrite_additionalargumentsfile="{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
-        sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additional_argument}", other_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additional_argument}", other_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
-        sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
-        sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
-        sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
-        sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
 
         build_codeunit_info_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         version = self.get_version_of_codeunit(codeunit_file)
