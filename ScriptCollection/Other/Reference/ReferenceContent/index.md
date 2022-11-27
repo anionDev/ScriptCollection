@@ -1,3 +1,5 @@
 # ScriptCollection reference
 
-TODO
+The following articles are available in the documentation
+
+- [Required tools for CommonProjectStructure](./RequiredToolsForCommonProjectStructure.md)

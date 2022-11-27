@@ -1,12 +1,14 @@
 # ScriptCollection
 
+## General
+
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/ScriptCollection.svg)](https://pypi.org/project/ScriptCollection/)
 ![PyPI](https://img.shields.io/pypi/v/ScriptCollection)
 ![Dependencies](https://img.shields.io/librariesio/github/anionDev/ScriptCollection)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/aniondev/scriptcollection/badge/main)](https://www.codefactor.io/repository/github/aniondev/scriptcollection/overview/main)
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
-![Coverage](./ScriptCollection/Other/Resources/TestCoverageBadges/badge_shieldsio_linecoverage_blue.svg)
+![Coverage](https://raw.githubusercontent.com/anionDev/ScriptCollection/main/ScriptCollection/Other/Resources/TestCoverageBadges/badge_shieldsio_linecoverage_blue.svg)
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![GitHub last commit](https://img.shields.io/github/last-commit/anionDev/ScriptCollection)
