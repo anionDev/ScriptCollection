@@ -16,7 +16,7 @@ def common_tasks():
     targetenvironmenttype = t.get_targetenvironmenttype_from_commandline_arguments(cmd_args, "QualityCheck")
     additional_arguments_file = t.get_additionalargumentsfile_from_commandline_arguments(cmd_args, None)
     version = t.get_version_of_project(GeneralUtilities.resolve_relative_path("../..", folder_of_current_file))
-    sc.replace_version_in_pyproject_file(GeneralUtilities.resolve_relative_path("../pyproject.toml", folder_of_current_file), version)
+    sc.replace_version_in_ini_file(GeneralUtilities.resolve_relative_path("../setup.cfg", folder_of_current_file), version)
     sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path("../ScriptCollection/ScriptCollectionCore.py", folder_of_current_file), version)
     t.standardized_tasks_do_common_tasks(file, version, verbosity, targetenvironmenttype, True, additional_arguments_file, sys.argv)
 
