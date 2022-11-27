@@ -71,9 +71,6 @@
 		]
 	},
 	"settings": {
-		"files.associations": {
-			"*.codeunit": "xml",
-		},
 		"python.testing.autoTestDiscoverOnSaveEnabled": true,
 		"python.testing.unittestEnabled": false,
 		"python.testing.pytestEnabled": true,
