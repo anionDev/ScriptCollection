@@ -38,7 +38,8 @@ TODO
 
 ### scriptcollection
 
-TODO
+[ScriptCollection](https://pypi.org/project/ScriptCollection) is required to run the scripts (`Build.py`, etc.).
+The package can be installed using `pip install ScriptCollection`.
 
 ### sn
 
@@ -46,8 +47,8 @@ TODO
 
 ### swagger
 
-[Swagger](https://swagger.io/) is required to generate the `APISpecification`-artifact for .NET-WebAPI-Projects.
-It can be installed using `dotnet tool install --global swashbuckle.aspnetcore.cli`.
+[Swagger](https://swagger.io) is required to generate the `APISpecification`-artifact for .NET-WebAPI-Projects.
+The commandline-command can be installed using `dotnet tool install --global swashbuckle.aspnetcore.cli`.
 
 ### python
 
