@@ -117,7 +117,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return float(str(root.xpath('//codeunit:minimalcodecoverageinpercent/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0]))
+        return float(str(root.xpath('//cps:minimalcodecoverageinpercent/text()', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0]))
 
     @GeneralUtilities.check_arguments
     def check_testcoverage_for_project_in_common_project_structure(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
@@ -216,7 +218,8 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_version_of_codeunit(self, codeunit_file: str) -> None:
         root: etree._ElementTree = etree.parse(codeunit_file)
-        result = str(root.xpath('//codeunit:version/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0])
+        result = str(root.xpath('//cps:version/text()',
+                     namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0])
         return result
 
     @GeneralUtilities.check_arguments
@@ -520,8 +523,8 @@ class TasksForCommonProjectStructure:
         versiononlyregex = f"^{versionregex}$"
         pattern = re.compile(versiononlyregex)
         if pattern.match(current_version):
-            GeneralUtilities.write_text_to_file(codeunit_file, re.sub(f"<codeunit:version>{versionregex}<\\/codeunit:version>",
-                                                                      f"<codeunit:version>{current_version}</codeunit:version>", GeneralUtilities.read_text_from_file(codeunit_file)))
+            GeneralUtilities.write_text_to_file(codeunit_file, re.sub(f"<cps:version>{versionregex}<\\/cps:version>",
+                                                                      f"<cps:version>{current_version}</cps:version>", GeneralUtilities.read_text_from_file(codeunit_file)))
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'.")
 
@@ -832,7 +835,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return root.xpath('//codeunit:dependentcodeunit/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})
+        return root.xpath('//cps:dependentcodeunit/text()', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_docker_project_in_common_project_structure(self, run_testcases_script_file: str, verbosity: int, targetenvironmenttype: str,
@@ -1143,7 +1148,7 @@ class TasksForCommonProjectStructure:
         artifacts_list = []
         for artifact_folder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
             artifact_name = os.path.basename(artifact_folder)
-            artifacts_list.append(f"        <codeunit:artifact>{artifact_name}<codeunit:artifact>")
+            artifacts_list.append(f"        <cps:artifact>{artifact_name}<cps:artifact>")
         artifacts = '\n'.join(artifacts_list)
         moment = GeneralUtilities.datetime_to_string(now)
         # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
