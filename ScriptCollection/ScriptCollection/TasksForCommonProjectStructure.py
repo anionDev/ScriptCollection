@@ -94,6 +94,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 
 class TasksForCommonProjectStructure:
     __sc: ScriptCollectionCore = None
+    reference_latest_version_of_xsd_when_generating_xml: bool = True
 
     def __init__(self, sc: ScriptCollectionCore = None):
         if sc is None:
@@ -116,7 +117,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return float(str(root.xpath('//codeunit:minimalcodecoverageinpercent/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0]))
+        return float(str(root.xpath('//cps:minimalcodecoverageinpercent/text()', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0]))
 
     @GeneralUtilities.check_arguments
     def check_testcoverage_for_project_in_common_project_structure(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
@@ -215,7 +218,8 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_version_of_codeunit(self, codeunit_file: str) -> None:
         root: etree._ElementTree = etree.parse(codeunit_file)
-        result = str(root.xpath('//codeunit:version/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})[0])
+        result = str(root.xpath('//cps:version/text()',
+                     namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0])
         return result
 
     @GeneralUtilities.check_arguments
@@ -519,8 +523,8 @@ class TasksForCommonProjectStructure:
         versiononlyregex = f"^{versionregex}$"
         pattern = re.compile(versiononlyregex)
         if pattern.match(current_version):
-            GeneralUtilities.write_text_to_file(codeunit_file, re.sub(f"<codeunit:version>{versionregex}<\\/codeunit:version>",
-                                                                      f"<codeunit:version>{current_version}</codeunit:version>", GeneralUtilities.read_text_from_file(codeunit_file)))
+            GeneralUtilities.write_text_to_file(codeunit_file, re.sub(f"<cps:version>{versionregex}<\\/cps:version>",
+                                                                      f"<cps:version>{current_version}</cps:version>", GeneralUtilities.read_text_from_file(codeunit_file)))
         else:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'.")
 
@@ -831,7 +835,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return root.xpath('//codeunit:dependentcodeunit/text()', namespaces={'codeunit': 'https://github.com/anionDev/ProjectTemplates'})
+        return root.xpath('//cps:dependentcodeunit/text()', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_docker_project_in_common_project_structure(self, run_testcases_script_file: str, verbosity: int, targetenvironmenttype: str,
@@ -890,13 +896,15 @@ class TasksForCommonProjectStructure:
         codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
-        namespaces = {'codeunit': 'https://github.com/anionDev/ProjectTemplates', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
+                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunitfile)
-        codeunit_file_version = root.xpath('//codeunit:codeunit/@codeunitspecificationversion',  namespaces=namespaces)[0]
+        codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion',  namespaces=namespaces)[0]
         supported_codeunitspecificationversion = "1.1.0"
         if codeunit_file_version != supported_codeunitspecificationversion:
             raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
-        schemaLocation = root.xpath('//codeunit:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
+        schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
         # Build dependent code units
@@ -1005,13 +1013,15 @@ class TasksForCommonProjectStructure:
             constants_valuefile_name = os.path.basename(constants_valuefile)
             constants_valuefiler_reference = os.path.join(constants_valuefile_folder, constants_valuefile_name)
 
+        # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
         GeneralUtilities.write_text_to_file(constants_metafile, f"""<?xml version="1.0" encoding="UTF-8" ?>
-<constant:constant xmlns:constant="https://github.com/anionDev/ProjectTemplates" constantspecificationversion="1.1.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/codeunit.xsd">
-    <constant:name>{constantname}</constant:name>
-    <constant:documentationsummary>{documentationsummary}</constant:documentationsummary>
-    <constant:path>{constants_valuefiler_reference}</constant:path>
-</constant:constant>""")
+<cps:constant xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" constantspecificationversion="1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/raw/main/Conventions/RepositoryStructure/CommonProjectStructure/constant.xsd">
+    <cps:name>{constantname}</cps:name>
+    <cps:documentationsummary>{documentationsummary}</cps:documentationsummary>
+    <cps:path>{constants_valuefiler_reference}</cps:path>
+</cps:constant>""")
+        # TODO validate generated xml against xsd
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
@@ -1132,26 +1142,28 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         self.__sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
 
-        build_codeunit_info_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
+        artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         version = self.get_version_of_codeunit(codeunit_file)
-        GeneralUtilities.ensure_file_exists(build_codeunit_info_file)
+        GeneralUtilities.ensure_file_exists(artifactsinformation_file)
         artifacts_list = []
         for artifact_folder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
             artifact_name = os.path.basename(artifact_folder)
-            artifacts_list.append(f"        <codeunit:artifact>{artifact_name}<codeunit:artifact>")
+            artifacts_list.append(f"        <cps:artifact>{artifact_name}<cps:artifact>")
         artifacts = '\n'.join(artifacts_list)
         moment = GeneralUtilities.datetime_to_string(now)
-        GeneralUtilities.write_text_to_file(build_codeunit_info_file, f"""<?xml version="1.0" encoding="UTF-8" ?>
-<codeunit:artifactsinformation xmlns:codeunit="https://github.com/anionDev/ProjectTemplates" artifactsinformationspecificationversion="1.0.0"
+        # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
+        GeneralUtilities.write_text_to_file(artifactsinformation_file, f"""<?xml version="1.0" encoding="UTF-8" ?>
+<cps:artifactsinformation xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" artifactsinformationspecificationversion="1.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/artifactsinformation.xsd">
-    <codeunit:name>{codeunit_name}</codeunit:name>
-    <codeunit:version>{version}</codeunit:version>
-    <codeunit:timestamp>{moment}</codeunit:timestamp>
-    <codeunit:targetenvironmenttype>{target_environmenttype}</codeunit:targetenvironmenttype>
-    <codeunit:artifacts>
+    <cps:name>{codeunit_name}</cps:name>
+    <cps:version>{version}</cps:version>
+    <cps:timestamp>{moment}</cps:timestamp>
+    <cps:targetenvironmenttype>{target_environmenttype}</cps:targetenvironmenttype>
+    <cps:artifacts>
 {artifacts}
-    </codeunit:artifacts>
-</codeunit:artifactsinformation>""")
+    </cps:artifacts>
+</cps:artifactsinformation>""")
+        # TODO validate artifactsinformation_file against xsd
         shutil.copyfile(codeunit_file,
                         os.path.join(artifacts_folder, f"{codeunit_name}.codeunit.xml"))
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")

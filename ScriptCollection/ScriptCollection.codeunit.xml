@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<codeunit:codeunit xmlns:codeunit="https://github.com/anionDev/ProjectTemplates" codeunitspecificationversion="1.1.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/codeunit.xsd">
-    <codeunit:name>ScriptCollection</codeunit:name>
-    <codeunit:version>3.3.18</codeunit:version>
-    <codeunit:minimalcodecoverageinpercent>30</codeunit:minimalcodecoverageinpercent>
-    <codeunit:dependentcodeunits></codeunit:dependentcodeunits>
-</codeunit:codeunit>
+<cps:codeunit xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" codeunitspecificationversion="1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/raw/main/Conventions/RepositoryStructure/CommonProjectStructure/codeunit.xsd">
+    <cps:name>ScriptCollection</cps:name>
+    <cps:version>3.3.19</cps:version>
+    <cps:minimalcodecoverageinpercent>30</cps:minimalcodecoverageinpercent>
+    <cps:dependentcodeunits></cps:dependentcodeunits>
+</cps:codeunit>
