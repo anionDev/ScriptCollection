@@ -1,5 +1,7 @@
 # ScriptCollection
 
+![Development-state](https://img.shields.io/badge/development--state-active%20development-brightgreen)
+
 ## General
 
 The ScriptCollection is the place for reusable scripts.
