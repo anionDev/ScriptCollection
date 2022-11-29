@@ -24,6 +24,11 @@ TODO
 
 TODO
 
+### dotnet cyclonedx
+
+[CycloneDX for .NET-projects](https://github.com/CycloneDX/cyclonedx-dotnet) is a tool to generate `sbom.xml` in the `BOM`-artifact for .NET-projects.
+The commandline-tool can be installed using `dotnet tool install --global CycloneDX`.
+
 ### gh
 
 TODO
@@ -48,7 +53,7 @@ TODO
 ### swagger
 
 [Swagger](https://swagger.io) is required to generate the `APISpecification`-artifact for .NET-WebAPI-Projects.
-The commandline-command can be installed using `dotnet tool install --global swashbuckle.aspnetcore.cli`.
+The commandline-tool can be installed using `dotnet tool install --global swashbuckle.aspnetcore.cli`.
 
 ### python
 
