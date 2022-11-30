@@ -914,6 +914,9 @@ class TasksForCommonProjectStructure:
         # set default constants
         self.set_default_constants(os.path.join(repository_folder, codeunitname))
 
+        # check for cycles in dependent code unitss
+        # TODO implement codeunit-sycle-check
+
         # Check if changelog exists
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
         changelog_file = os.path.join(changelog_folder, f"v{version}.md")
