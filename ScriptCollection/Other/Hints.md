@@ -7,6 +7,7 @@ The following tools from the [tools-list](https://github.com/anionDev/ScriptColl
 - `coverage`
 - `docfx`
 - `git`
+- `gitversion`
 - `python`
 - `reportgenerator`
 - `scriptcollection`

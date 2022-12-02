@@ -37,6 +37,10 @@ TODO
 
 TODO
 
+### gitversion
+
+TODO
+
 ### NuGet
 
 TODO
