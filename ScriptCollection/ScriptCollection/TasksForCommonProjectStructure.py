@@ -808,20 +808,22 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact_of_repository_in_common_file_structure(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
-                                                                          verbosity: int, commandline_arguments: list[str]):
+                                                                          verbosity: int, push_readme: bool = False, commandline_arguments: list[str]):
+        self = TasksForCommonProjectStructure()
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{product_name}", folder_of_this_file)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         artifacts_folder = self.get_artifacts_folder_in_repository_in_common_repository_format(repository_folder, codeunitname)
-        applicationimage_folder = os.path.join(artifacts_folder, "ApplicationImage")
+        applicationimage_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
         sc = ScriptCollectionCore()
         image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
         image_filename = os.path.basename(image_file)
         version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         image_tag_name = codeunitname.lower()
-        image_latest = f"{registry}/{image_tag_name}:latest"
-        image_version = f"{registry}/{image_tag_name}:{version}"
+        repo = f"{registry}/{image_tag_name}"
+        image_latest = f"{repo}:latest"
+        image_version = f"{repo}:{version}"
         GeneralUtilities.write_message_to_stdout("Load image...")
         sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Tag image...")
@@ -830,6 +832,8 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout("Push image...")
         sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
         sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
+        if push_readme:
+            sc.run_program("docker", f"pushrm {repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
