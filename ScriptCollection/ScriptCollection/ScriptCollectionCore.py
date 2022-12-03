@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.21"
+version = "3.3.22"
 __version__ = version
 
 
@@ -1138,7 +1138,11 @@ class ScriptCollectionCore:
 
         start_datetime = datetime.utcnow()
 
-        cmd = f'{working_directory}>{program} {arguments_for_log}'
+        if arguments_for_log is None:
+            arguments_for_log = arguments_as_array
+
+        arguments_for_log_as_string = ' '.join(arguments_for_log)
+        cmd = f'{working_directory}>{program} {arguments_for_log_as_string}'
         if GeneralUtilities.string_is_none_or_whitespace(title):
             info_for_log = cmd
         else:
