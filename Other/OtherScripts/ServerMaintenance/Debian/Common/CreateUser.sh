@@ -22,7 +22,7 @@ if [ "$userhaspassword" == "true" ] ; then
 fi
 
 if [ "$userShouldBeSudoer" == "true" ] ; then
-    ../Common/AptUpdate.sh
+    ./AptUpdate.sh
     apt-get -y install sudo
     sudo adduser $username sudo
     if [ "$userCanUseSudoWithoutPassword" == "true" ] ; then
