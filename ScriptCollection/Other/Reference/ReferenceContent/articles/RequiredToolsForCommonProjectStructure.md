@@ -13,16 +13,21 @@ For typically used tools the [Tools](#Tools)-section contains a short descriptio
 [coverage](https://github.com/nedbat/coveragepy) is required to create test-coverage-reports for [python](https://www.python.org)-projects.
 The package can be installed using `pip install coverage`.
 
-### docker
-
-[docker](https://www.docker.com) is required to create docker-images from a dockerfile.
-Install-instructions can be found [here](https://docs.docker.com/engine/install/).
-
 ### docfx
 
 [DocFX](https://github.com/dotnet/docfx) is a tool to generate HTML-references by markdown-files.
 It is primary used for references based on [documentation-comments](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/documentation-comments) in the source-code of .NET-projects.
 The commandline-tool can be installed using `choco install docfx`.
+
+### docker
+
+[docker](https://www.docker.com) is required to create docker-images from a dockerfile.
+Install-instructions can be found [here](https://github.com/christian-korneck/docker-pushrm#installation).
+
+### docker pushrm
+
+[pushrm](https://github.com/christian-korneck/docker-pushrm) is a commandline-tool to edit descriptions of a docker-image on [hub.docker.com](https://hub.docker.com).
+Install-instructions can be found [here](https://docs.docker.com/engine/install/).
 
 ### dotnet
 
