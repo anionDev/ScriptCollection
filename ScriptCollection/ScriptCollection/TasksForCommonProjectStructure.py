@@ -808,7 +808,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact_of_repository_in_common_file_structure(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
-                                                                          verbosity: int, push_readme: bool = False, commandline_arguments: list[str]):
+                                                                          verbosity: int, push_readme: bool, commandline_arguments: list[str]):
         self = TasksForCommonProjectStructure()
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
