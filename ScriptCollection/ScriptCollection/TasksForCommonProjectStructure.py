@@ -784,7 +784,6 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_library_project_in_common_project_structure(self, build_script_file: str, target_environment_type: str,
                                                                                         verbosity: int, commandline_arguments: list[str]):
-        self = TasksForCommonProjectStructure()
         use_cache: bool = target_environment_type != "Productive"
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
