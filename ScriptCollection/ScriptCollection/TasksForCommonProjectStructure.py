@@ -782,8 +782,10 @@ class TasksForCommonProjectStructure:
         return project_version
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_docker_library_project_in_common_project_structure(self, build_script_file: str, build_configuration: str, verbosity: int, commandline_arguments: list[str]):
-        use_cache: bool = build_configuration == "QualityCheck"
+    def standardized_tasks_build_for_docker_library_project_in_common_project_structure(self, build_script_file: str, target_environment_type: str,
+                                                                                        verbosity: int, commandline_arguments: list[str]):
+        self = TasksForCommonProjectStructure()
+        use_cache: bool = target_environment_type != "Productive"
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
@@ -791,7 +793,7 @@ class TasksForCommonProjectStructure:
 
         codeunitname_lower = codeunitname.lower()
         version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"environmenttypeStage={build_configuration}",
+        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={target_environment_type}",
                 "--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{version}", "--file", "Dockerfile"]
         if not use_cache:
             args.append("--no-cache")
@@ -803,7 +805,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
         GeneralUtilities.ensure_directory_exists(app_artifacts_folder)
         sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{version}.tar",
-                                   f"{codeunitname_lower}:{version}"], app_artifacts_folder, verbosity=verbosity, print_errors_as_information=True)
+                                              f"{codeunitname_lower}:{version}"], app_artifacts_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact_of_repository_in_common_file_structure(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
@@ -882,7 +884,6 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {targetenvironmenttype}")
 
         # Clear previously builded artifacts if desired:
         if clear_artifacts_folder:
