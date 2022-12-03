@@ -19,7 +19,7 @@ def common_tasks():
         "../..", os.path.dirname(file)))  # Should always be the same as the project-version
     sc.replace_version_in_ini_file(GeneralUtilities.resolve_relative_path("../setup.cfg", folder_of_current_file), codeunit_version)
     sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path("../ScriptCollection/ScriptCollectionCore.py", folder_of_current_file), codeunit_version)
-    t.standardized_tasks_do_common_tasks(file, codeunit_version, verbosity, targetenvironmenttype, True, additional_arguments_file, sys.argv)
+    t.standardized_tasks_do_common_tasks(file, codeunit_version, verbosity, targetenvironmenttype, True, additional_arguments_file, cmd_args)
 
 
 if __name__ == "__main__":

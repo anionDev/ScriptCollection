@@ -10,19 +10,24 @@ For typically used tools the [Tools](#Tools)-section contains a short descriptio
 
 ### coverage
 
-TODO
+[coverage](https://github.com/nedbat/coveragepy) is required to create test-coverage-reports for [python](https://www.python.org)-projects.
+The package can be installed using `pip install coverage`.
 
 ### docker
 
-TODO
+[docker](https://www.docker.com) is required to create docker-images from a dockerfile.
+Install-instructions can be found [here](https://docs.docker.com/engine/install/).
 
 ### docfx
 
-TODO
+[DocFX](https://github.com/dotnet/docfx) is a tool to generate HTML-references by markdown-files.
+It is primary used for references based on [documentation-comments](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/documentation-comments) in the source-code of .NET-projects.
+The commandline-tool can be installed using `choco install docfx`.
 
 ### dotnet
 
-TODO
+[dotnet](https://learn.microsoft.com/de-de/dotnet/core/tools/dotnet) is the CLI-command to provide commands for working with .NET projects and run .NET applications.
+Install-instructions for the commandline-tool can be found [here](https://dotnet.microsoft.com/en-us/download).
 
 ### dotnet cyclonedx
 
@@ -31,24 +36,33 @@ The commandline-tool can be installed using `dotnet tool install --global Cyclon
 
 ### gh
 
-TODO
+[gh](https://cli.github.com/) is a GitHub's commandline-tool to interact with [github.com](github.com) from commandline.
+The commandline-tool can be installed using `choco install gh`.
+Further installation-instructions are on the [official website](https://cli.github.com/manual/installation).
 
 ### git
 
-TODO
+[git](https://git-scm.com/) is a common version control system.
 
-### NuGet
+### gitversion
 
-TODO
+[gitversion](https://gitversion.net) is a tool to calculate the project-version based on the git-history.
+The commandline-tool can be installed using `choco install gitversion.portable`.
+
+### nuget
+
+[NuGet](https://www.nuget.org/) is required to create [NuGet-packages](https://www.nuget.org/packages).
+The commandline-tool can be installed using `choco install nuget.commandline`.
 
 ### scriptcollection
 
-[ScriptCollection](https://pypi.org/project/ScriptCollection) is required to run the scripts (`Build.py`, etc.).
+[ScriptCollection](https://github.com/anionDev/ScriptCollection) is required to run the scripts (`Build.py`, etc.).
 The package can be installed using `pip install ScriptCollection`.
 
 ### sn
 
-TODO
+The [Strong Name tool](https://learn.microsoft.com/en-us/dotnet/framework/tools/sn-exe-strong-name-tool) (Sn.exe) helps sign assemblies with strong names.
+It is contained the [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/).
 
 ### swagger
 
@@ -57,24 +71,28 @@ The commandline-tool can be installed using `dotnet tool install --global swashb
 
 ### python
 
-TODO
+[Python](https://www.python.org) is a common script-language.
 
 ### ng
 
-TODO
+[ng](https://github.com/angular/angular-cli) is a CLI-tool to manage angular-projects.
+The commandline-tool can be installed using `npm i @angular/cli`.
 
 ### npm
 
-TODO
+[npm](https://www.npmjs.com) is the package-manager of [node](https://nodejs.org/en).
+The command `npm` is usually be available after you have installed node.
 
 ### reportgenerator
 
-TODO
+[ReportGenerator](https://reportgenerator.io/) is required to generate HTML-reports from test-coverage-reports.
+The commandline-tool can be installed using `choco install reportgenerator.portable`.
 
 ### texttransform
 
-TODO
+[TextTransform](https://learn.microsoft.com/en-us/visualstudio/modeling/generating-files-with-the-texttransform-utility) is a tool to generate C#-files from [T4](https://learn.microsoft.com/en-us/visualstudio/modeling/code-generation-and-t4-text-templates)-templates.
 
 ### twine
 
-TODO
+[Twine](https://twine.readthedocs.io/en/stable/) is a utility for publishing [python](https://www.python.org) packages to PyPI and other repositories.
+The commandline-tool can be installed using `pip install twine`.

@@ -32,3 +32,5 @@ scriptcollection
 gh
 docfx
 cyclonedx
+gitversion
+dockerfile

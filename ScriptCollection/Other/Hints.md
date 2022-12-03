@@ -7,11 +7,12 @@ The following tools from the [tools-list](https://github.com/anionDev/ScriptColl
 - `coverage`
 - `docfx`
 - `git`
+- `gitversion`
 - `python`
 - `reportgenerator`
 - `scriptcollection`
 
-For a productive build to create a release the following tools are also required:
+To create a productive build for a release the following tools are also required:
 
 - `gh`
 - `twine`
