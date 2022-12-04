@@ -1073,6 +1073,40 @@ class TasksForCommonProjectStructure:
                                           artifacts_file, "-F", changelog_file, "-t", release_title])
 
     @GeneralUtilities.check_arguments
+    def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
+        folder_of_current_file = os.path.dirname(file)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("..", folder_of_current_file)
+        codeunit_name = os.path.basename(codeunit_folder)
+        codeunit_name_lower = codeunit_name.lower()
+        examples_folder = GeneralUtilities.resolve_relative_path("Other/Examples", codeunit_folder)
+        for example_folder in GeneralUtilities.get_direct_folders_of_folder(examples_folder):
+            docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
+            if os.path.isfile(docker_compose_file):
+                filecontent = GeneralUtilities.read_text_from_file(docker_compose_file)
+                replaced = re.sub(f'image:\\s+[\'"]{codeunit_name_lower}:\\d+\\.\\d+\\.\\d+[\'"]', f"image: '{codeunit_name_lower}:{codeunit_version}'", filecontent)
+                GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
+
+    @GeneralUtilities.check_arguments
+    def run_dockerfile_example_in_common_project_structure(self, current_file: str, verbosity: int = 3, remove_old_container: bool = False):
+        folder = os.path.dirname(current_file)
+        example_name = os.path.basename(folder)
+        GeneralUtilities.write_message_to_stdout(f'Run "{example_name}"-example')
+        sc = ScriptCollectionCore()
+        oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../Artifacts/BuildResult_OCIImage", folder)
+        image_filename = os.path.basename(sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
+        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../..", folder))
+        codeunit_name_lower = codeunit_name.lower()
+        if remove_old_container:
+            GeneralUtilities.write_message_to_stdout(f"Ensure container {codeunit_name_lower} does not exist...")
+            sc.run_program("docker", f"container rm -f {codeunit_name_lower}", oci_image_artifacts_folder)
+        GeneralUtilities.write_message_to_stdout("Load docker-image...")
+        sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder)
+        project_name = f"{codeunit_name}_{example_name}".lower()
+        sc.program_runner = ProgramRunnerEpew()
+        GeneralUtilities.write_message_to_stdout("Start docker-container...")
+        sc.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity)
+
+    @GeneralUtilities.check_arguments
     def create_archive_of_artifacts(self, project_name: str, version: str, build_artifacts_folder: str):
         build_artifacts_folder_for_project = f"{build_artifacts_folder}\\{project_name}"
         folder = f"{build_artifacts_folder_for_project}\\{version}"
