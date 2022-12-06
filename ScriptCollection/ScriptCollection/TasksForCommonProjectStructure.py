@@ -819,7 +819,7 @@ class TasksForCommonProjectStructure:
                                                      "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact_of_repository(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
                                                  verbosity: int, push_readme: bool, commandline_arguments: list[str]):
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
