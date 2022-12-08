@@ -67,9 +67,9 @@ class GeneralUtilities:
     @check_arguments
     def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list[str]:
         result = list()
-        if(string is not None):
+        if (string is not None):
             lines = list()
-            if("\n" in string):
+            if ("\n" in string):
                 lines = string.split("\n")
             else:
                 lines.append(string)
@@ -97,25 +97,39 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def copy_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(srcDir, dstDir, overwrite_existing_files, False)
+
+    @staticmethod
+    @check_arguments
     def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(srcDir, dstDir, overwrite_existing_files, True)
+
+    @staticmethod
+    @check_arguments
+    def __copy_or_move_content_of_folder(srcDir, dstDir, overwrite_existing_files, remove_source: bool) -> None:
         srcDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(srcDir)
         dstDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(dstDir)
-        if(os.path.isdir(srcDir)):
+        if (os.path.isdir(srcDir)):
             GeneralUtilities.ensure_directory_exists(dstDir)
             for file in GeneralUtilities.get_direct_files_of_folder(srcDirFull):
                 filename = os.path.basename(file)
                 targetfile = os.path.join(dstDirFull, filename)
-                if(os.path.isfile(targetfile)):
+                if (os.path.isfile(targetfile)):
                     if overwrite_existing_files:
                         GeneralUtilities.ensure_file_does_not_exist(targetfile)
                     else:
                         raise ValueError(f"Targetfile {targetfile} does already exist")
-                shutil.move(file, dstDirFull)
+                if remove_source:
+                    shutil.move(file, dstDirFull)
+                else:
+                    shutil.copy(file, dstDirFull)
             for sub_folder in GeneralUtilities.get_direct_folders_of_folder(srcDirFull):
                 foldername = os.path.basename(sub_folder)
                 sub_target = os.path.join(dstDirFull, foldername)
-                GeneralUtilities.move_content_of_folder(sub_folder, sub_target, overwrite_existing_files)
-                GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
+                GeneralUtilities.__copy_or_move_content_of_folder(sub_folder, sub_target, overwrite_existing_files, remove_source)
+                if remove_source:
+                    GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
         else:
             raise ValueError(f"Folder '{srcDir}' does not exist")
 
@@ -165,7 +179,7 @@ class GeneralUtilities:
             for key, value in replacements.items():
                 previousValue = text
                 text = text.replace(f"__{key}__", value)
-                if(not text == previousValue):
+                if (not text == previousValue):
                     changed = True
         return text
 
@@ -326,7 +340,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def ensure_file_exists(path: str) -> None:
-        if(not os.path.isfile(path)):
+        if (not os.path.isfile(path)):
             with open(path, "a+", encoding="utf-8"):
                 pass
 
@@ -344,7 +358,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def ensure_directory_does_not_exist(path: str) -> None:
-        if(os.path.isdir(path)):
+        if (os.path.isdir(path)):
             for root, dirs, files in os.walk(path, topdown=False):
                 for name in files:
                     filename = os.path.join(root, name)
@@ -370,7 +384,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def ensure_file_does_not_exist(path: str) -> None:
-        if(os.path.isfile(path)):
+        if (os.path.isfile(path)):
             os.remove(path)
 
     @staticmethod
@@ -465,7 +479,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def resolve_relative_path(path: str, base_path: str):
-        if(os.path.isabs(path)):
+        if (os.path.isabs(path)):
             return path
         else:
             return str(Path(os.path.join(base_path, path)).resolve())
@@ -551,7 +565,7 @@ class GeneralUtilities:
     @check_arguments
     def replace_in_filename(file: str, replace_from: str, replace_to: str, replace_only_full_match=False):
         filename = Path(file).name
-        if(GeneralUtilities.__should_get_replaced(filename, replace_from, replace_only_full_match)):
+        if (GeneralUtilities.__should_get_replaced(filename, replace_from, replace_only_full_match)):
             folder_of_file = os.path.dirname(file)
             os.rename(file, os.path.join(folder_of_file, filename.replace(replace_from, replace_to)))
 
@@ -559,7 +573,7 @@ class GeneralUtilities:
     @check_arguments
     def replace_in_foldername(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
         foldername = Path(folder).name
-        if(GeneralUtilities.__should_get_replaced(foldername, replace_from, replace_only_full_match)):
+        if (GeneralUtilities.__should_get_replaced(foldername, replace_from, replace_only_full_match)):
             folder_of_folder = os.path.dirname(folder)
             os.rename(folder, os.path.join(folder_of_folder, foldername.replace(replace_from, replace_to)))
 
@@ -649,7 +663,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def get_time_based_logfilename(name: str = "Log", in_utc: bool = False) -> str:
-        if(in_utc):
+        if (in_utc):
             d = datetime.utcnow()
         else:
             d = datetime.now()
@@ -669,7 +683,7 @@ class GeneralUtilities:
     @check_arguments
     def contains_line(lines, regex: str) -> bool:
         for line in lines:
-            if(re.match(regex, line)):
+            if (re.match(regex, line)):
                 return True
         return False
 
@@ -766,5 +780,5 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def assert_condition(condition: bool, information: str) -> None:
-        if(not condition):
+        if (not condition):
             raise ValueError("Condition failed. "+information)
