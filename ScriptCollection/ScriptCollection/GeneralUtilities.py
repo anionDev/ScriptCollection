@@ -624,9 +624,9 @@ class GeneralUtilities:
     @check_arguments
     def string_to_boolean(value: str) -> bool:
         value = value.strip().lower()
-        if value in ('yes', 'true', 't', 'y', '1'):
+        if value in ('yes', 'y', 'true', 't', '1'):
             return True
-        elif value in ('no', 'false', 'f', 'n', '0'):
+        elif value in ('no', 'n', 'false', 'f', '0'):
             return False
         else:
             raise Exception(f"Can not convert '{value}' to a boolean value")
