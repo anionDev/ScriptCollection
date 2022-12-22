@@ -1162,8 +1162,11 @@ class TasksForCommonProjectStructure:
             if os.path.exists(codeunit_file):
                 codeunits.append(codeunit_name)
         # TODO set order (the "last" should be first to not overwrite its artifacts)
-        for codeunit in codeunits:
-            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge)
+        if len(codeunits) == 0:
+            GeneralUtilities.write_message_to_stderr(f'No codeunit-folder found in folder "{repository_folder}"')
+        else:
+            for codeunit in codeunits:
+                self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge)
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
