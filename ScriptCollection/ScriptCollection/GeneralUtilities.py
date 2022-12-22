@@ -6,6 +6,8 @@ import re
 import os
 import shutil
 import stat
+import secrets
+import string
 import sys
 import traceback
 from datetime import datetime, timedelta
@@ -776,6 +778,13 @@ class GeneralUtilities:
             root = root+1
             square = root*root
         return root*root
+
+    @staticmethod
+    @check_arguments
+    def generate_password(length: int = 16, alphabet: str = None) -> None:
+        if alphabet is None:
+            alphabet = string.ascii_letters + string.digits+"_"
+        return ''.join(secrets.choice(alphabet) for i in range(length))
 
     @staticmethod
     @check_arguments

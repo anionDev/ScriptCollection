@@ -1381,3 +1381,55 @@ class ScriptCollectionCore:
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         return GeneralUtilities.strip_new_line_character(result[1])
+
+    @GeneralUtilities.check_arguments
+    def generate_certificate_authority(self, name: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
+                                       days_until_expire: int = 1825, password: str = None) -> None:
+        if password is None:
+            password = GeneralUtilities.generate_password()
+        self.run_program("openssl", f'req -new -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -days {days_until_expire} -nodes -x509 -subj ' +
+                         f'"/C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={name}/OU={subj_ou}" -passout pass:{password} ' +
+                         f'-keyout {name}.key -out {name}.crt')
+
+    @GeneralUtilities.check_arguments
+    def generate_certificate(self, domain: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
+                             days_until_expire: int = 397, password: str = None) -> None:
+        if password is None:
+            password = GeneralUtilities.generate_password()
+        rsa_key_length = 4096
+        self.run_program("openssl", f'genrsa -out {domain}.key {rsa_key_length}')
+        self.run_program("openssl", f'req -new -subj "/C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou}" -x509 ' +
+                         f'-key {domain}.key -out {domain}.crt -days {days_until_expire}')
+        self.run_program("openssl", f'pkcs12 -export -out {domain}.pfx -password pass:{password} -inkey {domain}.key -in {domain}.crt')
+        GeneralUtilities.write_text_to_file("san.conf", f"""[ req ]
+default_bits       = {rsa_key_length}
+distinguished_name = req_distinguished_name
+req_extensions     = v3_req
+default_md         = sha256
+dirstring_type     = nombstr
+prompt             = no
+
+[ req_distinguished_name ]
+countryName        = {subj_c}
+stateOrProvinceName= {subj_st}
+localityName       = {subj_l}
+organizationName   = {subj_o}
+commonName         = {domain}
+
+[v3_req]
+subjectAltName     = @subject_alt_name
+
+[ subject_alt_name ]
+DNS                = {domain}
+""")
+
+    @GeneralUtilities.check_arguments
+    def generate_certificate_sign_request(self, domain: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str) -> None:
+        self.run_program("openssl", f'req -new -subj "/C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou}" ' +
+                         f'-key {domain}.key -out {domain}.csr -config san.conf')
+
+    @GeneralUtilities.check_arguments
+    def sign_certificate(self, ca_folder: str, ca_name: str, target_certificate: str, days_until_expire: int = 397) -> None:
+        ca = os.path.join(ca_folder, ca_name)
+        self.run_program("openssl", f'x509 -req -in {target_certificate}.csr -CA {ca}.crt -CAkey {ca}.key -CAserial {ca}.srl ' +
+                         f'-out {target_certificate}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile san.conf')
