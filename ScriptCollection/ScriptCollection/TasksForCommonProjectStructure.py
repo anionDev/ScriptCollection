@@ -136,18 +136,6 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
-    @GeneralUtilities.check_arguments
-    def __standardized_tasks_run_testcases_for_python_codeunit(self, repository_folder: str, codeunitname: str, verbosity: int):
-        codeunit_folder = os.path.join(repository_folder, codeunitname)
-        self.__sc.run_program("coverage", "run -m pytest", codeunit_folder,  verbosity=verbosity)
-        self.__sc.run_program("coverage", "xml", codeunit_folder, verbosity=verbosity)
-        coveragefolder = os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverage")
-        GeneralUtilities.ensure_directory_exists(coveragefolder)
-        coveragefile = os.path.join(coveragefolder, "TestCoverage.xml")
-        GeneralUtilities.ensure_file_does_not_exist(coveragefile)
-        os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
-        self.check_testcoverage(coveragefile, repository_folder, codeunitname)
-
     @staticmethod
     @GeneralUtilities.check_arguments
     def __adjust_source_in_testcoverage_file(testcoverage_file: str, codeunitname: str) -> None:
@@ -163,14 +151,22 @@ class TasksForCommonProjectStructure:
         TasksForCommonProjectStructure.__adjust_source_in_testcoverage_file(full_file, codeunitname)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_python_codeunit(self, run_testcases_file: str, generate_badges: bool, verbosity: int, targetenvironmenttype: str,
-                                                             commandline_arguments: list[str]):
+    def standardized_tasks_run_testcases_for_python_codeunit(self, run_testcases_file: str, generate_badges: bool, verbosity: int,
+                                                             targetenvironmenttype: str, commandline_arguments: list[str]):
         codeunitname: str = Path(os.path.dirname(run_testcases_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
-        self.__standardized_tasks_run_testcases_for_python_codeunit(repository_folder, codeunitname, verbosity)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        self.__sc.run_program("coverage", "run -m pytest", codeunit_folder,  verbosity=verbosity)
+        self.__sc.run_program("coverage", "xml", codeunit_folder, verbosity=verbosity)
+        coveragefolder = os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverage")
+        GeneralUtilities.ensure_directory_exists(coveragefolder)
+        coveragefile = os.path.join(coveragefolder, "TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(coveragefile)
+        os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.update_path_of_source(repository_folder, codeunitname)
+        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+        self.check_testcoverage(coveragefile, repository_folder, codeunitname)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
@@ -248,6 +244,15 @@ class TasksForCommonProjectStructure:
             return default_value
         else:
             return result
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_is_pre_merge_value_from_commandline_arguments(commandline_arguments: list[str],  default_value: bool) -> bool:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "is_pre_merge")
+        if result is None:
+            return default_value
+        else:
+            return GeneralUtilities.string_to_boolean(result)
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -463,11 +468,12 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str,
-                                                    commandline_arguments: list[str]):
+                                                    commandline_arguments: list[str], add_testcoverage_history_entry: bool = None):
         """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverageReport'.
         This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
+        codeunit_version = self.get_version_of_codeunit(os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml"))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         if verbosity == 0:
             verbose_argument_for_reportgenerator = "Off"
@@ -480,18 +486,31 @@ class TasksForCommonProjectStructure:
 
         # Generating report
         GeneralUtilities.ensure_directory_does_not_exist(os.path.join(repository_folder, codeunitname, f"{codeunitname}/Other/Artifacts/TestCoverageReport"))
-        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, f"{codeunitname}/Other/Artifacts/TestCoverageReport"))
-        self.__sc.run_program("reportgenerator", f"-reports:{codeunitname}/Other/Artifacts/TestCoverage/TestCoverage.xml " +
-                              f"-targetdir:{codeunitname}/Other/Artifacts/TestCoverageReport --verbosity={verbose_argument_for_reportgenerator}", repository_folder)
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverageReport"))
 
+        if add_testcoverage_history_entry is None:
+            add_testcoverage_history_entry = self.get_is_pre_merge_value_from_commandline_arguments(commandline_arguments, add_testcoverage_history_entry)
+
+        history_argument = ""
+        if add_testcoverage_history_entry:
+            history_folder = "Other/Resources/TestCoverageHistory"
+            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, history_folder))
+            history_argument = f" -historydir:{history_folder}"
+        self.__sc.run_program("reportgenerator", "-reports:Other/Artifacts/TestCoverage/TestCoverage.xml " +
+                              f"-targetdir:Other/Artifacts/TestCoverageReport --verbosity={verbose_argument_for_reportgenerator}{history_argument} " +
+                              f"-title:{codeunitname} -tag:v{codeunit_version}",
+                              os.path.join(repository_folder, codeunitname))
+
+        # Generating badges
         if generate_badges:
-            # Generating badges
-            testcoverageubfolger = f"{codeunitname}/Other/Resources/TestCoverageBadges"
+            testcoverageubfolger = "Other/Resources/TestCoverageBadges"
             fulltestcoverageubfolger = os.path.join(repository_folder, codeunitname, testcoverageubfolger)
             GeneralUtilities.ensure_directory_does_not_exist(fulltestcoverageubfolger)
             GeneralUtilities.ensure_directory_exists(fulltestcoverageubfolger)
-            self.__sc.run_program("reportgenerator", f"-reports:{codeunitname}/Other/Artifacts/TestCoverage/TestCoverage.xml -targetdir:{testcoverageubfolger} " +
-                                  f"-reporttypes:Badges --verbosity={verbose_argument_for_reportgenerator}",  repository_folder, verbosity=verbosity)
+            self.__sc.run_program("reportgenerator", "-reports:Other/Artifacts/TestCoverage/TestCoverage.xml " +
+                                  f"-targetdir:{testcoverageubfolger} -reporttypes:Badges " +
+                                  f"--verbosity={verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname),
+                                  verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
@@ -512,9 +531,15 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_exists(coverage_file_folder)
             GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
             shutil.copy(test_coverage_file, coveragefiletarget)
+        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+
+    def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
+                                       targetenvironmenttype: str, commandline_arguments: list[str]):
+        coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
+        coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
+        self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
-        self.update_path_of_source(repository_folder, codeunit_name)
 
     @GeneralUtilities.check_arguments
     def write_version_to_codeunit_file(self, codeunit_file: str, current_version: str) -> None:
@@ -681,13 +706,15 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
-    def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str, codeunits: dict[str, CodeUnitConfiguration],
-                                                                      new_version_branch_name: str = "other/next-release", main_branch_name: str = "main", verbosity: int = 1) -> None:
+    def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str,
+                                                                      codeunits: dict[str, CodeUnitConfiguration],
+                                                                      new_version_branch_name: str = "other/next-release", main_branch_name: str = "main",
+                                                                      verbosity: int = 1) -> None:
         self.assert_no_uncommitted_changes(repository_folder)
         repository_name = os.path.basename(repository_folder)
         self.__sc.git_checkout(repository_folder, new_version_branch_name)
         for codeunitname, codeunit_confoguration in codeunits.items():
-            self.build_codeunit(os.path.join(repository_folder, codeunitname), verbosity, "QualityCheck", codeunit_confoguration.additional_arguments_file)
+            self.build_codeunit(os.path.join(repository_folder, codeunitname), verbosity, "QualityCheck", codeunit_confoguration.additional_arguments_file, True)
         self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
         self.__sc.git_merge(repository_folder, new_version_branch_name, main_branch_name, False, True, f'Merge branch {new_version_branch_name} into {main_branch_name}')
         self.__sc.git_checkout(repository_folder, main_branch_name)
@@ -819,8 +846,8 @@ class TasksForCommonProjectStructure:
                                                      "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact_of_repository(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
-                                                 verbosity: int, push_readme: bool, commandline_arguments: list[str]):
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
+                                   verbosity: int, push_readme: bool, commandline_arguments: list[str]):
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{product_name}", folder_of_this_file)
@@ -855,7 +882,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_docker_project(self, run_testcases_script_file: str, verbosity: int, targetenvironmenttype: str,
-                                                            commandline_arguments: list[str]):
+                                                            commandline_arguments: list[str], generate_badges: bool = True):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(run_testcases_script_file)))
         repository_folder: str = str(Path(os.path.dirname(run_testcases_script_file)).parent.parent.parent.absolute())
         codeunitname: str = Path(os.path.dirname(run_testcases_script_file)).parent.parent.name
@@ -877,8 +904,7 @@ class TasksForCommonProjectStructure:
         testcoverage_file = os.path.join(testcoverage_artifacts_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_exists(testcoverage_file)
         GeneralUtilities.write_text_to_file(testcoverage_file, dummy_test_coverage_file)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, True, targetenvironmenttype, commandline_arguments)
-        self.update_path_of_source(repository_folder, codeunitname)
+        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_docker_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -975,22 +1001,19 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_run_testcases_for_node_project(self, runtestcases_script_file: str,
                                                           targetenvironmenttype: str, generate_badges: bool, verbosity: int,
                                                           commandline_arguments: list[str]):
-        # TODO really use targetenvironmenttype etc.
+        # TODO use targetenvironmenttype etc.
         sc = ScriptCollectionCore()
+        codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc.program_runner = ProgramRunnerEpew()
-        build_script_folder = os.path.dirname(runtestcases_script_file)
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
         sc.run_program("npm", "run test", codeunit_folder)
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
         target_file = os.path.join(coverage_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
-        codeunitname = os.path.basename(codeunit_folder)
-        self.check_testcoverage(target_file, repository_folder, codeunitname)
-        self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
-        self.update_path_of_source(repository_folder, codeunitname)
+        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, verbosity: int):
@@ -1129,7 +1152,8 @@ class TasksForCommonProjectStructure:
         shutil.move(filename, folder)
 
     @GeneralUtilities.check_arguments
-    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
+                        is_pre_merge: bool = False) -> None:
         codeunits = []
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
         for subfolder in subfolders:
@@ -1139,10 +1163,11 @@ class TasksForCommonProjectStructure:
                 codeunits.append(codeunit_name)
         # TODO set order (the "last" should be first to not overwrite its artifacts)
         for codeunit in codeunits:
-            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file)
+            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge)
 
     @GeneralUtilities.check_arguments
-    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
+                       is_pre_merge: bool = False) -> None:
         now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
@@ -1163,6 +1188,10 @@ class TasksForCommonProjectStructure:
         additional_arguments_l: str = ""
         additional_arguments_g: str = ""
         general_argument = f'--overwrite_verbosity={str(verbosity)} --overwrite_targetenvironmenttype={target_environmenttype}'
+
+        if is_pre_merge:
+            general_argument = general_argument+" --overwrite_is_pre_merge=true"
+
         if additional_arguments_file is None:
             c_additional_argument = ""
         else:
