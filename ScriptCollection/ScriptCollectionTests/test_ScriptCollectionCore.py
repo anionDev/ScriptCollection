@@ -59,7 +59,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             GeneralUtilities.ensure_file_exists(file_c_d_head)  # item 11
 
             # act
-            renamed_items=sc.escape_git_repositories_in_folder(folder)
+            renamed_items = sc.escape_git_repositories_in_folder(folder)
 
             # assert
             assert os.path.isdir(folder_a)  # item 1
