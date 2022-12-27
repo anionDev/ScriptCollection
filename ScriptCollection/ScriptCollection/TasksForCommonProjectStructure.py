@@ -1181,11 +1181,16 @@ class TasksForCommonProjectStructure:
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             if os.path.exists(codeunit_file):
                 codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-        # TODO set order (the "last" should be first to not overwrite its artifacts)
         sorted_codeunits = self._internal_sort_codenits(codeunits)
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
+            if verbosity>1:
+                GeneralUtilities.write_message_to_stdout("Attempt to build codeunits in the following order:")
+                i=0
+                for codeunit in sorted_codeunits:
+                    i=i+1
+                    GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
             for codeunit in sorted_codeunits:
                 self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
 
