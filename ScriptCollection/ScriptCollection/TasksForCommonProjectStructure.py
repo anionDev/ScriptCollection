@@ -1058,7 +1058,7 @@ class TasksForCommonProjectStructure:
         constants_metafile = os.path.join(constants_folder, f"{constantname}.constant.xml")
         if constants_valuefile is None:
             constants_valuefile_folder = constants_folder
-            constants_valuefile_name = f"{constantname}.value.xml"
+            constants_valuefile_name = f"{constantname}.value.txt"
             constants_valuefiler_reference = f"./{constants_valuefile_name}"
         else:
             constants_valuefile_folder = os.path.dirname(constants_valuefile)
