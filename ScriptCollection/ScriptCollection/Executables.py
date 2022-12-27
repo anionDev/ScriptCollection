@@ -1,3 +1,4 @@
+import os
 import argparse
 import time
 import traceback
@@ -289,4 +290,58 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     args = parser.parse_args()
     TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.buildenvironment, args.additionalargumentsfile)
+    return 0
+
+
+def GenerateCertificateAuthority() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--name', required=True)
+    parser.add_argument('--subj_c', required=True)
+    parser.add_argument('--subj_st', required=True)
+    parser.add_argument('--subj_l', required=True)
+    parser.add_argument('--subj_o', required=True)
+    parser.add_argument('--subj_ou', required=True)
+    parser.add_argument('--days_until_expire', required=False, default=None, type=int)
+    parser.add_argument('--password', required=False, default=None)
+    args = parser.parse_args()
+    ScriptCollectionCore().generate_certificate_authority(os.getcwd(), args.name, args.subj_c, args.subj_st, args.subj_l, args.subj_o, args.subj_ou, args.days_until_expire, args.password)
+    return 0
+
+
+def GenerateCertificate() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--domain', required=True)
+    parser.add_argument('--subj_c', required=True)
+    parser.add_argument('--subj_st', required=True)
+    parser.add_argument('--subj_l', required=True)
+    parser.add_argument('--subj_o', required=True)
+    parser.add_argument('--subj_ou', required=True)
+    parser.add_argument('--days_until_expire', required=False, default=None, type=int)
+    parser.add_argument('--password', required=False, default=None)
+    args = parser.parse_args()
+    ScriptCollectionCore().generate_certificate(os.getcwd(), args.domain, args.subj_c, args.subj_st, args.subj_l, args.subj_o, args.subj_ou, args.days_until_expire, args.password)
+    return 0
+
+
+def GenerateCertificateSignRequest() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--domain', required=True)
+    parser.add_argument('--subj_c', required=True)
+    parser.add_argument('--subj_st', required=True)
+    parser.add_argument('--subj_l', required=True)
+    parser.add_argument('--subj_o', required=True)
+    parser.add_argument('--subj_ou', required=True)
+    args = parser.parse_args()
+    ScriptCollectionCore().generate_certificate_sign_request(os.getcwd(),args.domain, args.subj_c, args.subj_st, args.subj_l, args.subj_o, args.sub_ou)
+    return 0
+
+
+def SignCertificate() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cafolder', required=True)
+    parser.add_argument('--caname', required=True)
+    parser.add_argument('--targetcertificate', required=True)
+    parser.add_argument('--days_until_expire', required=False, default=None, type=int)
+    args = parser.parse_args()
+    ScriptCollectionCore().sign_certificate(os.getcwd(), args.cafolder, args.caname, args.targetcertificate, args.args.days_until_expire)
     return 0

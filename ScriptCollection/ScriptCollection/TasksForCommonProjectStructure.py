@@ -1,4 +1,5 @@
 from datetime import datetime
+from graphlib import TopologicalSorter
 import os
 from pathlib import Path
 import shutil
@@ -249,6 +250,15 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_is_pre_merge_value_from_commandline_arguments(commandline_arguments: list[str],  default_value: bool) -> bool:
         result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "is_pre_merge")
+        if result is None:
+            return default_value
+        else:
+            return GeneralUtilities.string_to_boolean(result)
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments: list[str],  default_value: bool) -> bool:
+        result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "assume_dependent_codeunits_are_already_built")
         if result is None:
             return default_value
         else:
@@ -874,11 +884,11 @@ class TasksForCommonProjectStructure:
             sc.run_program("docker", f"pushrm {repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
+    def get_dependent_code_units(self, codeunit_file: str) -> set[str]:
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return root.xpath('//cps:dependentcodeunit/text()', namespaces={
+        return set(root.xpath('//cps:dependentcodeunit/text()', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
-        })
+        }))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_docker_project(self, run_testcases_script_file: str, verbosity: int, targetenvironmenttype: str,
@@ -913,9 +923,11 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
-                                           additional_arguments_file: str, commandline_arguments: list[str]) -> None:
+                                           additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
+        assume_dependent_codeunits_are_already_built = self.get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments,
+                                                                                                                                        assume_dependent_codeunits_are_already_built)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
         if len(commandline_arguments) == 0:
@@ -947,7 +959,8 @@ class TasksForCommonProjectStructure:
         xmlschema.validate(codeunitfile, schemaLocation)
 
         # Build dependent code units
-        self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
+        if not assume_dependent_codeunits_are_already_built:
+            self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
 
         # Update version
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
@@ -1152,22 +1165,33 @@ class TasksForCommonProjectStructure:
         shutil.move(filename, folder)
 
     @GeneralUtilities.check_arguments
+    def _internal_sort_codenits(self, codeunits=dict[str, set[str]]) -> list[str]:
+        result: list[str] = list[str]()
+        ts = TopologicalSorter(codeunits)
+        result = list(ts.static_order())
+        return result
+
+    @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                         is_pre_merge: bool = False) -> None:
-        codeunits = []
+        codeunits: dict[str, set[str]] = dict[str, set[str]]()
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
         for subfolder in subfolders:
-            codeunit_name = os.path.basename(subfolder)
+            codeunit_name: str = os.path.basename(subfolder)
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             if os.path.exists(codeunit_file):
-                codeunits.append(codeunit_name)
+                codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
         # TODO set order (the "last" should be first to not overwrite its artifacts)
-        for codeunit in codeunits:
-            self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge)
+        sorted_codeunits = self._internal_sort_codenits(codeunits)
+        if len(sorted_codeunits) == 0:
+            raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
+        else:
+            for codeunit in sorted_codeunits:
+                self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
-                       is_pre_merge: bool = False) -> None:
+                       is_pre_merge: bool = False, assume_dependent_codeunits_are_already_built: bool = False) -> None:
         now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
@@ -1189,12 +1213,15 @@ class TasksForCommonProjectStructure:
         additional_arguments_g: str = ""
         general_argument = f'--overwrite_verbosity={str(verbosity)} --overwrite_targetenvironmenttype={target_environmenttype}'
 
+        c_additionalargumentsfile_argument = ""
+
         if is_pre_merge:
             general_argument = general_argument+" --overwrite_is_pre_merge=true"
 
-        if additional_arguments_file is None:
-            c_additional_argument = ""
-        else:
+        if assume_dependent_codeunits_are_already_built:
+            c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built=true"
+
+        if additional_arguments_file is not None:
             config = configparser.ConfigParser()
             config.read(additional_arguments_file)
             section_name = f"{codeunit_name}_Configuration"
@@ -1208,10 +1235,10 @@ class TasksForCommonProjectStructure:
                 additional_arguments_l = config.get(section_name, "ArgumentsForLinting")
             if config.has_option(section_name, "ArgumentsForGenerateReference"):
                 additional_arguments_g = config.get(section_name, "ArgumentsForGenerateReference")
-            c_additional_argument = f'--overwrite_additionalargumentsfile="{additional_arguments_file}"'
+            c_additionalargumentsfile_argument = f'--overwrite_additionalargumentsfile="{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
-        self.__sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additional_argument}", other_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
