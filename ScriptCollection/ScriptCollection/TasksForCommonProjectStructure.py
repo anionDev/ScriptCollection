@@ -1043,12 +1043,12 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities. check_arguments
     def set_constant_for_commitid(self, codeunit_folder: str):
         commit_id = self.__sc.git_get_commit_id(codeunit_folder)
-        self.set_constant(codeunit_folder, "commitid", commit_id)
+        self.set_constant(codeunit_folder, "CommitId", commit_id)
 
     @GeneralUtilities. check_arguments
     def set_constant_for_commitdate(self, codeunit_folder: str):
         commit_date: datetime = self.__sc.git_get_commit_date(codeunit_folder)
-        self.set_constant(codeunit_folder, "commitdate", GeneralUtilities.datetime_to_string(commit_date))
+        self.set_constant(codeunit_folder, "CommitDate", GeneralUtilities.datetime_to_string(commit_date))
 
     @GeneralUtilities. check_arguments
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
