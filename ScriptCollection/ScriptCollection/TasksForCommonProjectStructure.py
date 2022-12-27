@@ -17,13 +17,11 @@ from .ProgramRunnerEpew import ProgramRunnerEpew
 class CodeUnitConfiguration():
     name: str
     push_to_registry_script: str
-    additional_arguments_file: str
 
-    def __init__(self, name: str, push_to_registry_script: str, additional_arguments_file: str):
+    def __init__(self, name: str, push_to_registry_script: str):
 
         self.name = name
         self.push_to_registry_script = push_to_registry_script
-        self.additional_arguments_file = additional_arguments_file
 
 
 class CreateReleaseConfiguration():
@@ -36,9 +34,10 @@ class CreateReleaseConfiguration():
     reference_repository_branch_name: str = "main"
     build_repository_branch: str = "main"
     public_repository_url: str
+    additional_arguments_file: str = None
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, codeunits: dict[str, CodeUnitConfiguration],
-                 verbosity: int, public_repository_url: str):
+                 verbosity: int, public_repository_url: str, additional_arguments_file: str):
 
         self.projectname = projectname
         self.remotename = remotename
@@ -47,6 +46,7 @@ class CreateReleaseConfiguration():
         self.verbosity = verbosity
         self.public_repository_url = public_repository_url
         self.reference_repository_remote_name = self.remotename
+        self.additional_arguments_file = additional_arguments_file
 
 
 class CreateReleaseInformationForProjectInCommonProjectFormat:
@@ -60,12 +60,14 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     codeunits: dict[str, CodeUnitConfiguration]
     target_environmenttype_for_qualitycheck: str = "QualityCheck"
     target_environmenttype_for_productive: str = "Productive"
+    additional_arguments_file: str = None
 
-    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str):
+    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str, additional_arguments_file: str):
         self.repository = repository
         self.public_repository_url = public_repository_url
         self.target_branch_name = target_branch_name
         self.artifacts_folder = artifacts_folder
+        self.additional_arguments_file = additional_arguments_file
         if projectname is None:
             projectname = os.path.basename(self.repository)
         else:
@@ -81,6 +83,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     codeunits: dict[str, CodeUnitConfiguration]
     target_environmenttype_for_qualitycheck: str = "QualityCheck"
     target_environmenttype_for_productive: str = "Productive"
+    additional_arguments_file: str = None
 
     push_source_branch: bool = False
     push_source_branch_remote_name: str = None
@@ -89,8 +92,9 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 
     verbosity: int = 1
 
-    def __init__(self, repository: str):
+    def __init__(self, repository: str, additional_arguments_file: str):
         self.repository = repository
+        self.additional_arguments_file = additional_arguments_file
 
 
 class TasksForCommonProjectStructure:
@@ -617,11 +621,8 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"The folder '{target_folder_base}' already exists.")
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
-        for codeunitname, codeunit_configuration in information.codeunits.items():
-            codeunit_folder = os.path.join(information.repository, codeunitname)
-            codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-            self.build_codeunit(os.path.join(information.repository, codeunitname), information.verbosity, information.target_environmenttype_for_productive,
-                                codeunit_configuration.additional_arguments_file)
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive,
+                             information.additional_arguments_file)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -717,14 +718,13 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str,
-                                                                      codeunits: dict[str, CodeUnitConfiguration],
                                                                       new_version_branch_name: str = "other/next-release", main_branch_name: str = "main",
-                                                                      verbosity: int = 1) -> None:
+                                                                      verbosity: int = 1, additional_arguments_file=None,
+                                                                      build_target_environement_type: str = "QualityCheck") -> None:
         self.assert_no_uncommitted_changes(repository_folder)
         repository_name = os.path.basename(repository_folder)
         self.__sc.git_checkout(repository_folder, new_version_branch_name)
-        for codeunitname, codeunit_confoguration in codeunits.items():
-            self.build_codeunit(os.path.join(repository_folder, codeunitname), verbosity, "QualityCheck", codeunit_confoguration.additional_arguments_file, True)
+        self.build_codeunits(repository_folder, verbosity, build_target_environement_type, additional_arguments_file, True)
         self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
         self.__sc.git_merge(repository_folder, new_version_branch_name, main_branch_name, False, True, f'Merge branch {new_version_branch_name} into {main_branch_name}')
         self.__sc.git_checkout(repository_folder, main_branch_name)
@@ -742,7 +742,7 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(build_repository_folder, createReleaseConfiguration.build_repository_branch)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
-        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder)
+        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.ad)
         mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
         mergeToStableBranchInformation.push_target_branch = createReleaseConfiguration.remotename is not None
         mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
@@ -751,9 +751,12 @@ class TasksForCommonProjectStructure:
         mergeToStableBranchInformation.codeunits = createReleaseConfiguration.codeunits
         new_project_version = self.__standardized_tasks_merge_to_stable_branch(mergeToStableBranchInformation)
 
-        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.artifacts_folder,
-                                                                                           createReleaseConfiguration.projectname, createReleaseConfiguration.public_repository_url,
-                                                                                           mergeToStableBranchInformation.targetbranch)
+        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder,
+                                                                                           createReleaseConfiguration.artifacts_folder,
+                                                                                           createReleaseConfiguration.projectname,
+                                                                                           createReleaseConfiguration.public_repository_url,
+                                                                                           mergeToStableBranchInformation.targetbranch,
+                                                                                           mergeToStableBranchInformation.additional_arguments_file)
         createReleaseInformation.verbosity = createReleaseConfiguration.verbosity
         createReleaseInformation.codeunits = createReleaseConfiguration.codeunits
         self.__standardized_tasks_release_buildartifact(createReleaseInformation)
@@ -789,12 +792,8 @@ class TasksForCommonProjectStructure:
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         success = False
         try:
-            for _, codeunit in information.codeunits.items():
-                GeneralUtilities.write_message_to_stdout(f"Start processing codeunit {codeunit.name}.")
-                self.build_codeunit(os.path.join(information.repository, codeunit.name), information.verbosity,
-                                    information.target_environmenttype_for_qualitycheck, codeunit.additional_arguments_file)
-                GeneralUtilities.write_message_to_stdout(f"Finished processing codeunit {codeunit.name}.")
-
+            self.build_codeunits(information.repository, information.verbosity,
+                                 information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False)
             self.assert_no_uncommitted_changes(information.repository)
             success = True
         except Exception as exception:
@@ -959,7 +958,9 @@ class TasksForCommonProjectStructure:
         xmlschema.validate(codeunitfile, schemaLocation)
 
         # Build dependent code units
-        if not assume_dependent_codeunits_are_already_built:
+        if assume_dependent_codeunits_are_already_built:
+            pass # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
+        else:
             self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
 
         # Update version
@@ -1185,11 +1186,11 @@ class TasksForCommonProjectStructure:
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
-            if verbosity>1:
+            if verbosity > 1:
                 GeneralUtilities.write_message_to_stdout("Attempt to build codeunits in the following order:")
-                i=0
+                i = 0
                 for codeunit in sorted_codeunits:
-                    i=i+1
+                    i = i+1
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
             for codeunit in sorted_codeunits:
                 self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
