@@ -1078,12 +1078,14 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
-    def generate_openapi_file(self, buildscript_file: str, runtime: str) -> None:
+    def generate_openapi_file(self, buildscript_file: str, runtime: str, swagger_document_name: str = "APISpecification") -> None:
         codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
-        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.api.json BuildResult_DotNet_{runtime}\\{codeunitname}.dll v1", artifacts_folder)
+        version = self.get_version_of_codeunit_folder(os.path.join(repository_folder, codeunitname))
+        self.__sc.run_program("swagger",
+                              f"tofile --output APISpecification\\{codeunitname}.v{version}.api.json BuildResult_DotNet_{runtime}\\{codeunitname}.dll {swagger_document_name}", artifacts_folder)
 
     @GeneralUtilities.check_arguments
     def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
