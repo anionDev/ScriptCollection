@@ -959,9 +959,10 @@ class TasksForCommonProjectStructure:
 
         # Build dependent code units
         if assume_dependent_codeunits_are_already_built:
-            pass # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
+            pass  # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
         else:
             self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
+        self.copy_buildartifacts_from_dependent_code_units(repository_folder, codeunitname)
 
         # Update version
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
@@ -1102,15 +1103,25 @@ class TasksForCommonProjectStructure:
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
         if 0 < len(dependent_codeunits):
-            GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for {codeunit_name}.")
+            GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for codeunit {codeunit_name}.")
         for dependent_codeunit in dependent_codeunits:
-            other_folder = os.path.join(repo_folder, dependent_codeunit, "Other")
-            artifacts_folder = os.path.join(other_folder, "Artifacts")
             self.build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, target_environmenttype, additional_arguments_file)
+        if 0 < len(dependent_codeunits):
+            GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
+
+    @GeneralUtilities.check_arguments
+    def copy_buildartifacts_from_dependent_code_units(self, repo_folder: str, codeunit_name: str) -> None:
+        GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
+        codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
+        dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+        dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
+        GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
+        for dependent_codeunit in dependent_codeunits:
             target_folder = os.path.join(dependent_codeunits_folder, dependent_codeunit)
             GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+            other_folder = os.path.join(repo_folder, dependent_codeunit, "Other")
+            artifacts_folder = os.path.join(other_folder, "Artifacts")
             shutil.copytree(artifacts_folder, target_folder)
-        GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, repository_folder: str):
