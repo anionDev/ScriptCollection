@@ -957,6 +957,8 @@ class TasksForCommonProjectStructure:
         schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
+        # TODO implement cycle-check for dependent codeunits
+
         # Build dependent code units
         if assume_dependent_codeunits_are_already_built:
             pass  # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
@@ -969,9 +971,6 @@ class TasksForCommonProjectStructure:
 
         # set default constants
         self.set_default_constants(os.path.join(repository_folder, codeunitname))
-
-        # check for cycles in dependent code unitss
-        # TODO implement codeunit-sycle-check
 
         # Check if changelog exists
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
