@@ -742,7 +742,7 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(build_repository_folder, createReleaseConfiguration.build_repository_branch)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
-        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.ad)
+        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.additional_arguments_file)
         mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
         mergeToStableBranchInformation.push_target_branch = createReleaseConfiguration.remotename is not None
         mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
@@ -828,11 +828,11 @@ class TasksForCommonProjectStructure:
         codeunitname_lower = codeunitname.lower()
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={target_environment_type}",
-                "--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", "Dockerfile"]
+                "--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
         if not use_cache:
             args.append("--no-cache")
         args.append(".")
-        codeunit_content_folder = os.path.join(codeunit_folder, codeunitname)
+        codeunit_content_folder = os.path.join(codeunit_folder)
         sc.run_program_argsasarray("docker", args, codeunit_content_folder, verbosity=verbosity, print_errors_as_information=True)
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
         app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
@@ -957,20 +957,20 @@ class TasksForCommonProjectStructure:
         schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
+        # TODO implement cycle-check for dependent codeunits
+
         # Build dependent code units
         if assume_dependent_codeunits_are_already_built:
-            pass # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
+            pass  # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
         else:
             self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
+        self.copy_buildartifacts_from_dependent_code_units(repository_folder, codeunitname)
 
         # Update version
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
 
         # set default constants
         self.set_default_constants(os.path.join(repository_folder, codeunitname))
-
-        # check for cycles in dependent code unitss
-        # TODO implement codeunit-sycle-check
 
         # Check if changelog exists
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
@@ -1043,12 +1043,12 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities. check_arguments
     def set_constant_for_commitid(self, codeunit_folder: str):
         commit_id = self.__sc.git_get_commit_id(codeunit_folder)
-        self.set_constant(codeunit_folder, "commitid", commit_id)
+        self.set_constant(codeunit_folder, "CommitId", commit_id)
 
     @GeneralUtilities. check_arguments
     def set_constant_for_commitdate(self, codeunit_folder: str):
         commit_date: datetime = self.__sc.git_get_commit_date(codeunit_folder)
-        self.set_constant(codeunit_folder, "commitdate", GeneralUtilities.datetime_to_string(commit_date))
+        self.set_constant(codeunit_folder, "CommitDate", GeneralUtilities.datetime_to_string(commit_date))
 
     @GeneralUtilities. check_arguments
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
@@ -1102,15 +1102,25 @@ class TasksForCommonProjectStructure:
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
         if 0 < len(dependent_codeunits):
-            GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for {codeunit_name}.")
+            GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for codeunit {codeunit_name}.")
         for dependent_codeunit in dependent_codeunits:
-            other_folder = os.path.join(repo_folder, dependent_codeunit, "Other")
-            artifacts_folder = os.path.join(other_folder, "Artifacts")
             self.build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, target_environmenttype, additional_arguments_file)
+        if 0 < len(dependent_codeunits):
+            GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
+
+    @GeneralUtilities.check_arguments
+    def copy_buildartifacts_from_dependent_code_units(self, repo_folder: str, codeunit_name: str) -> None:
+        GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
+        codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
+        dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+        dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
+        GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
+        for dependent_codeunit in dependent_codeunits:
             target_folder = os.path.join(dependent_codeunits_folder, dependent_codeunit)
             GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+            other_folder = os.path.join(repo_folder, dependent_codeunit, "Other")
+            artifacts_folder = os.path.join(other_folder, "Artifacts")
             shutil.copytree(artifacts_folder, target_folder)
-        GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, repository_folder: str):
