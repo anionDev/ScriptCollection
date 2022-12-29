@@ -462,7 +462,7 @@ class TasksForCommonProjectStructure:
         os.rename(nupkg_file, f"{outputfolder}/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
-    def generate_sbom_for_dotnet_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: str) -> None:
+    def generate_sbom_for_dotnet_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
         codeunit_name = os.path.basename(codeunit_folder)
         sc = ScriptCollectionCore()
         bomfile_folder = "Other\\Artifacts\\BOM"
@@ -1056,6 +1056,8 @@ class TasksForCommonProjectStructure:
     def set_default_constants(self, codeunit_folder: str):
         self.set_constant_for_commitid(codeunit_folder)
         self.set_constant_for_commitdate(codeunit_folder)
+        self.set_constant_for_commitname(codeunit_folder)
+        self.set_constant_for_commitversion(codeunit_folder)
 
     @GeneralUtilities. check_arguments
     def set_constant_for_commitid(self, codeunit_folder: str):
@@ -1096,7 +1098,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generate_openapi_file(self, buildscript_file: str, runtime: str, swagger_document_name: str,
-                              verbosity: int, commandline_arguments: str) -> None:
+                              verbosity: int, commandline_arguments: list[str]) -> None:
         codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
@@ -1148,7 +1150,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, repository_folder: str,
-                           verbosity: int, commandline_arguments: str):
+                           verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         github_repo = f"{github_username}/{productname}"
         artifacts_file = f"{build_artifacts_folder}\\{productname}\\{version}\\{productname}.v{version}.artifacts.zip"
