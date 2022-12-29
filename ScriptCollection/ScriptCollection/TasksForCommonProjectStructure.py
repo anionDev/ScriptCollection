@@ -976,12 +976,12 @@ class TasksForCommonProjectStructure:
 
         # TODO implement cycle-check for dependent codeunits
 
-        # Build dependent code units
+        # Get artifacts from dependent codeunits
         if assume_dependent_codeunits_are_already_built:
             pass  # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
         else:
             self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
-        self.copy_buildartifacts_from_dependent_code_units(repository_folder, codeunitname)
+        self.copy_artifacts_from_dependent_code_units(repository_folder, codeunitname)
 
         # Update version
         self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
@@ -1145,7 +1145,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
-    def copy_buildartifacts_from_dependent_code_units(self, repo_folder: str, codeunit_name: str) -> None:
+    def copy_artifacts_from_dependent_code_units(self, repo_folder: str, codeunit_name: str) -> None:
         GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
@@ -1272,9 +1272,11 @@ class TasksForCommonProjectStructure:
 
         if is_pre_merge:
             general_argument = general_argument+" --overwrite_is_pre_merge=true"
+            GeneralUtilities.write_message_to_stdout("This is a pre-merge-build")
 
         if assume_dependent_codeunits_are_already_built:
             c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built=true"
+            GeneralUtilities.write_message_to_stdout("Assume dependent codeunits are already built")
 
         if additional_arguments_file is not None:
             config = configparser.ConfigParser()
