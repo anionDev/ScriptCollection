@@ -1077,7 +1077,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities. check_arguments
     def set_constant_for_commitversion(self, codeunit_folder: str):
         codeunit_version: str = self.get_version_of_codeunit_folder(codeunit_folder)
-        self.set_constant(codeunit_folder, "CodeUnitVersion", GeneralUtilities.datetime_to_string(codeunit_version))
+        self.set_constant(codeunit_folder, "CodeUnitVersion", codeunit_version)
 
     @GeneralUtilities. check_arguments
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
