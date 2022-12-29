@@ -1070,6 +1070,16 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, "CommitDate", GeneralUtilities.datetime_to_string(commit_date))
 
     @GeneralUtilities. check_arguments
+    def set_constant_for_commitname(self, codeunit_folder: str):
+        codeunit_name: str = os.path.basename(codeunit_folder)
+        self.set_constant(codeunit_folder, "CodeUnitName", codeunit_name)
+
+    @GeneralUtilities. check_arguments
+    def set_constant_for_commitversion(self, codeunit_folder: str):
+        codeunit_version: str = self.get_version_of_codeunit_folder(codeunit_folder)
+        self.set_constant(codeunit_folder, "CodeUnitVersion", GeneralUtilities.datetime_to_string(codeunit_version))
+
+    @GeneralUtilities. check_arguments
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
         if documentationsummary is None:
             documentationsummary = ""
