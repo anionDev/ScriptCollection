@@ -3,6 +3,10 @@
 		{
 			"path": "./ScriptCollection",
 			"name": "ScriptCollection"
+		},
+		{
+			"path": ".",
+			"name": "Entire codeunit"
 		}
 	],
 	"tasks": {
