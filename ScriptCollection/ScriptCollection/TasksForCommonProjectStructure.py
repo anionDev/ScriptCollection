@@ -1140,7 +1140,7 @@ class TasksForCommonProjectStructure:
         if 0 < len(dependent_codeunits):
             GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for codeunit {codeunit_name}.")
         for dependent_codeunit in dependent_codeunits:
-            self.build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, target_environmenttype, additional_arguments_file)
+            self.__build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, target_environmenttype, additional_arguments_file)
         if 0 < len(dependent_codeunits):
             GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
 
@@ -1242,11 +1242,11 @@ class TasksForCommonProjectStructure:
                     i = i+1
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
             for codeunit in sorted_codeunits:
-                self.build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
+                self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
 
     @GeneralUtilities.check_arguments
-    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
-                       is_pre_merge: bool = False, assume_dependent_codeunits_are_already_built: bool = False) -> None:
+    def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
+                         is_pre_merge: bool = False, assume_dependent_codeunits_are_already_built: bool = False) -> None:
         now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
