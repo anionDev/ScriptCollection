@@ -99,21 +99,21 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def copy_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(srcDir, dstDir, overwrite_existing_files, False)
+    def copy_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, False)
 
     @staticmethod
     @check_arguments
-    def move_content_of_folder(srcDir, dstDir, overwrite_existing_files=False) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(srcDir, dstDir, overwrite_existing_files, True)
+    def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True)
 
     @staticmethod
     @check_arguments
-    def __copy_or_move_content_of_folder(srcDir, dstDir, overwrite_existing_files, remove_source: bool) -> None:
-        srcDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(srcDir)
-        dstDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(dstDir)
-        if (os.path.isdir(srcDir)):
-            GeneralUtilities.ensure_directory_exists(dstDir)
+    def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files, remove_source: bool) -> None:
+        srcDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(source_directory)
+        dstDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(target_directory)
+        if (os.path.isdir(source_directory)):
+            GeneralUtilities.ensure_directory_exists(target_directory)
             for file in GeneralUtilities.get_direct_files_of_folder(srcDirFull):
                 filename = os.path.basename(file)
                 targetfile = os.path.join(dstDirFull, filename)
@@ -133,7 +133,7 @@ class GeneralUtilities:
                 if remove_source:
                     GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
         else:
-            raise ValueError(f"Folder '{srcDir}' does not exist")
+            raise ValueError(f"Folder '{source_directory}' does not exist")
 
     @staticmethod
     @check_arguments

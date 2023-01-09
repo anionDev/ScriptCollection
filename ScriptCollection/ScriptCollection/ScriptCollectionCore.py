@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.36"
+version = "3.3.37"
 __version__ = version
 
 
@@ -1116,7 +1116,7 @@ class ScriptCollectionCore:
         else:
             info_for_log = title
 
-        if verbosity == 3:
+        if verbosity >= 3:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
         if isinstance(self.program_runner, ProgramRunnerEpew):
@@ -1146,8 +1146,6 @@ class ScriptCollectionCore:
             info_for_log = cmd
         else:
             info_for_log = title
-        if verbosity == 3:
-            GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
         epew_will_be_used = isinstance(self.program_runner, ProgramRunnerEpew)
         program_manages_logging_itself = epew_will_be_used

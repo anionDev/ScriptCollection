@@ -271,17 +271,6 @@ def HealthCheck() -> int:
     return ScriptCollectionCore().SCHealthcheck(args.file)
 
 
-def BuildCodeUnit() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--codeunitfolder', required=False, default=".")
-    parser.add_argument('--verbosity', required=False, default=1)
-    parser.add_argument('--buildenvironment', required=False, default="QualityCheck")
-    parser.add_argument('--additionalargumentsfile', required=False, default=None)
-    args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.buildenvironment, args.additionalargumentsfile)
-    return 0
-
-
 def BuildCodeUnits() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repositoryfolder', required=False, default=".")
@@ -332,7 +321,7 @@ def GenerateCertificateSignRequest() -> int:
     parser.add_argument('--subj_o', required=True)
     parser.add_argument('--subj_ou', required=True)
     args = parser.parse_args()
-    ScriptCollectionCore().generate_certificate_sign_request(os.getcwd(),args.domain, args.subj_c, args.subj_st, args.subj_l, args.subj_o, args.sub_ou)
+    ScriptCollectionCore().generate_certificate_sign_request(os.getcwd(), args.domain, args.subj_c, args.subj_st, args.subj_l, args.subj_o, args.sub_ou)
     return 0
 
 
