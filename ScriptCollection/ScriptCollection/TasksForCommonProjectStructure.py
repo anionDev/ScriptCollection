@@ -25,6 +25,7 @@ class CreateReleaseConfiguration():
     build_repository_branch: str = "main"
     public_repository_url: str
     additional_arguments_file: str = None
+    fast_forward_source_branch: bool = True
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str,
                  verbosity: int, public_repository_url: str, additional_arguments_file: str):
@@ -632,7 +633,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
         self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive,
-                             information.additional_arguments_file, True, information.export_target)
+                             information.additional_arguments_file, False, information.export_target)
 
         reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -726,56 +727,61 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
-    def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str,
-                                                                      new_version_branch_name: str = "other/next-release", main_branch_name: str = "main",
-                                                                      verbosity: int = 1, additional_arguments_file=None) -> None:
+    def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release",
+                             target_branch: str = "main", verbosity: int = 1, additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
+        # This is an automatization for 1-man-projects. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
+        # (like GitHub, GitLab or Azure DevOps)
         self.assert_no_uncommitted_changes(repository_folder)
-        repository_name = os.path.basename(repository_folder)
-        self.__sc.git_checkout(repository_folder, new_version_branch_name)
-        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, False, None)
+        self.__sc.git_checkout(repository_folder, source_branch)
+        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None)
         self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
-        self.__sc.git_merge(repository_folder, new_version_branch_name, main_branch_name, False, True, f'Merge branch {new_version_branch_name} into {main_branch_name}')
-        self.__sc.git_checkout(repository_folder, main_branch_name)
-        self.__sc.git_commit(build_repository_folder, f"Updated submodule {repository_name}")
+        self.__sc.git_merge(repository_folder, source_branch, target_branch, False, True, f'Merge branch {source_branch} into {target_branch}')
+        self.__sc.git_checkout(repository_folder, target_branch)
+        if fast_forward_source_branch:
+            self.__sc.git_merge(repository_folder, target_branch, source_branch, True, True)
 
     @GeneralUtilities.check_arguments
-    def create_release_for_project_in_standardized_release_repository_format(self, create_release_file: str, createReleaseConfiguration: CreateReleaseConfiguration):
+    def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfiguration):
 
-        GeneralUtilities.write_message_to_stdout(f"Create release for project {createReleaseConfiguration.projectname}.")
+        GeneralUtilities.write_message_to_stdout(f"Create release for project {createRelease_configuration.projectname}.")
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
         build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
         self.assert_no_uncommitted_changes(build_repository_folder)
 
-        self.__sc.git_checkout(build_repository_folder, createReleaseConfiguration.build_repository_branch)
+        self.__sc.git_checkout(build_repository_folder, createRelease_configuration.build_repository_branch)
 
-        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createRelease_configuration.projectname}", build_repository_folder)
         mergeInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder,
-                                                                                         createReleaseConfiguration.additional_arguments_file,
-                                                                                         createReleaseConfiguration.artifacts_folder)
-        mergeInformation.verbosity = createReleaseConfiguration.verbosity
-        mergeInformation.push_target_branch = createReleaseConfiguration.remotename is not None
-        mergeInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
-        mergeInformation.push_source_branch = createReleaseConfiguration.remotename is not None
-        mergeInformation.push_source_branch_remote_name = createReleaseConfiguration.remotename
+                                                                                         createRelease_configuration.additional_arguments_file,
+                                                                                         createRelease_configuration.artifacts_folder)
+        mergeInformation.verbosity = createRelease_configuration.verbosity
+        mergeInformation.push_target_branch = createRelease_configuration.remotename is not None
+        mergeInformation.push_target_branch_remote_name = createRelease_configuration.remotename
+        mergeInformation.push_source_branch = createRelease_configuration.remotename is not None
+        mergeInformation.push_source_branch_remote_name = createRelease_configuration.remotename
         new_project_version = self.__standardized_tasks_merge_to_stable_branch(mergeInformation)
 
+        if createRelease_configuration.fast_forward_source_branch:
+            self.__sc.git_merge(repository_folder, mergeInformation.targetbranch, mergeInformation.sourcebranch, True, True)
+
         createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder,
-                                                                                           createReleaseConfiguration.artifacts_folder,
-                                                                                           createReleaseConfiguration.projectname,
-                                                                                           createReleaseConfiguration.public_repository_url,
+                                                                                           createRelease_configuration.artifacts_folder,
+                                                                                           createRelease_configuration.projectname,
+                                                                                           createRelease_configuration.public_repository_url,
                                                                                            mergeInformation.targetbranch,
                                                                                            mergeInformation.additional_arguments_file,
                                                                                            mergeInformation.export_target)
-        createReleaseInformation.verbosity = createReleaseConfiguration.verbosity
+        createReleaseInformation.verbosity = createRelease_configuration.verbosity
         self.__standardized_tasks_release_buildartifact(createReleaseInformation)
 
-        self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createReleaseConfiguration.projectname} v{new_project_version}")
-        if createReleaseConfiguration.reference_repository_remote_name is not None:
-            self.__sc.git_push(createReleaseInformation.reference_repository, createReleaseConfiguration.reference_repository_remote_name, createReleaseConfiguration.reference_repository_branch_name,
-                               createReleaseConfiguration.reference_repository_branch_name,  verbosity=createReleaseConfiguration.verbosity)
-        self.__sc.git_commit(build_repository_folder, f"Added {createReleaseConfiguration.projectname} release v{new_project_version}")
-        GeneralUtilities.write_message_to_stdout(f"Finished release for project {createReleaseConfiguration.projectname} successfully.")
+        self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
+        if createRelease_configuration.reference_repository_remote_name is not None:
+            self.__sc.git_push(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name,
+                               createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name,
+                               verbosity=createRelease_configuration.verbosity)
+        self.__sc.git_commit(build_repository_folder, f"Added {createRelease_configuration.projectname} release v{new_project_version}")
+        GeneralUtilities.write_message_to_stdout(f"Finished release for project {createRelease_configuration.projectname} successfully.")
         return new_project_version
 
     @GeneralUtilities.check_arguments
@@ -802,8 +808,8 @@ class TasksForCommonProjectStructure:
         success = False
         self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
         try:
-            self.build_codeunits(information.repository, information.verbosity,
-                                 information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, True, information.export_target)
+            self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck,
+                                 information.additional_arguments_file, False, information.export_target)
             success = True
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
@@ -1154,15 +1160,14 @@ class TasksForCommonProjectStructure:
             shutil.copytree(artifacts_folder, target_folder)
 
     @GeneralUtilities.check_arguments
-    def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, repository_folder: str,
+    def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str,
                            verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         github_repo = f"{github_username}/{productname}"
-        artifacts_file = f"{build_artifacts_folder}\\{productname}\\{version}\\{productname}.v{version}.artifacts.zip"
-        release_title = f"Release v{version}"
-        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version}.md")
-        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{version}", "-R", github_repo,
-                                          artifacts_file, "-F", changelog_file, "-t", release_title], verbosity=verbosity)
+        artifacts_files = [file for file in GeneralUtilities.get_direct_files_of_folder(f"{build_artifacts_folder}\\{productname}\\{projectversion}") if file.endswith(".zip")]
+        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{projectversion}.md")
+        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo,
+                                                 "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifacts_files, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
