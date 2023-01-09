@@ -1160,15 +1160,14 @@ class TasksForCommonProjectStructure:
             shutil.copytree(artifacts_folder, target_folder)
 
     @GeneralUtilities.check_arguments
-    def add_github_release(self, productname: str, version: str, build_artifacts_folder: str, github_username: str, repository_folder: str,
+    def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str,
                            verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         github_repo = f"{github_username}/{productname}"
-        artifacts_file = f"{build_artifacts_folder}\\{productname}\\{version}\\{productname}.v{version}.artifacts.zip"
-        release_title = f"Release v{version}"
-        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version}.md")
-        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{version}", "-R", github_repo,
-                                          artifacts_file, "-F", changelog_file, "-t", release_title], verbosity=verbosity)
+        artifacts_files = [file for file in GeneralUtilities.get_direct_files_of_folder(f"{build_artifacts_folder}\\{productname}\\{projectversion}") if file.endswith(".zip")]
+        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{projectversion}.md")
+        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo,
+                                                              "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifacts_files, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
