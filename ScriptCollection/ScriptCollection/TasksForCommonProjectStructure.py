@@ -61,13 +61,16 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     target_environmenttype_for_qualitycheck: str = "QualityCheck"
     target_environmenttype_for_productive: str = "Productive"
     additional_arguments_file: str = None
+    export_target: str = None
 
-    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str, additional_arguments_file: str):
+    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str,
+                 target_branch_name: str, additional_arguments_file: str, export_target: str):
         self.repository = repository
         self.public_repository_url = public_repository_url
         self.target_branch_name = target_branch_name
         self.artifacts_folder = artifacts_folder
         self.additional_arguments_file = additional_arguments_file
+        self.export_target = export_target
         if projectname is None:
             projectname = os.path.basename(self.repository)
         else:
@@ -84,6 +87,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     target_environmenttype_for_qualitycheck: str = "QualityCheck"
     target_environmenttype_for_productive: str = "Productive"
     additional_arguments_file: str = None
+    export_target: str = None
 
     push_source_branch: bool = False
     push_source_branch_remote_name: str = None
@@ -92,9 +96,10 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 
     verbosity: int = 1
 
-    def __init__(self, repository: str, additional_arguments_file: str):
+    def __init__(self, repository: str, additional_arguments_file: str, export_target: str):
         self.repository = repository
         self.additional_arguments_file = additional_arguments_file
+        self.export_target = export_target
 
 
 class TasksForCommonProjectStructure:
@@ -638,7 +643,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
         self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive,
-                             information.additional_arguments_file)
+                             information.additional_arguments_file, False, information.export_target)
 
         reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -735,12 +740,11 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def prepare_release_by_building_code_units_and_committing_changes(self, repository_folder: str, build_repository_folder: str,
                                                                       new_version_branch_name: str = "other/next-release", main_branch_name: str = "main",
-                                                                      verbosity: int = 1, additional_arguments_file=None,
-                                                                      build_target_environement_type: str = "QualityCheck") -> None:
+                                                                      verbosity: int = 1, additional_arguments_file=None) -> None:
         self.assert_no_uncommitted_changes(repository_folder)
         repository_name = os.path.basename(repository_folder)
         self.__sc.git_checkout(repository_folder, new_version_branch_name)
-        self.build_codeunits(repository_folder, verbosity, build_target_environement_type, additional_arguments_file, True)
+        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file)
         self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
         self.__sc.git_merge(repository_folder, new_version_branch_name, main_branch_name, False, True, f'Merge branch {new_version_branch_name} into {main_branch_name}')
         self.__sc.git_checkout(repository_folder, main_branch_name)
@@ -758,7 +762,8 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(build_repository_folder, createReleaseConfiguration.build_repository_branch)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
-        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createReleaseConfiguration.additional_arguments_file)
+        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder,
+                                                                                                       createReleaseConfiguration.additional_arguments_file, createReleaseConfiguration.artifacts_folder)
         mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
         mergeToStableBranchInformation.push_target_branch = createReleaseConfiguration.remotename is not None
         mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
@@ -772,7 +777,8 @@ class TasksForCommonProjectStructure:
                                                                                            createReleaseConfiguration.projectname,
                                                                                            createReleaseConfiguration.public_repository_url,
                                                                                            mergeToStableBranchInformation.targetbranch,
-                                                                                           mergeToStableBranchInformation.additional_arguments_file)
+                                                                                           mergeToStableBranchInformation.additional_arguments_file,
+                                                                                           mergeToStableBranchInformation.export_target)
         createReleaseInformation.verbosity = createReleaseConfiguration.verbosity
         createReleaseInformation.codeunits = createReleaseConfiguration.codeunits
         self.__standardized_tasks_release_buildartifact(createReleaseInformation)
@@ -808,9 +814,9 @@ class TasksForCommonProjectStructure:
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         success = False
         try:
-            self.build_codeunits(information.repository, information.verbosity,
-                                 information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False)
             self.assert_no_uncommitted_changes(information.repository)
+            self.build_codeunits(information.repository, information.verbosity,
+                                 information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, True, information.export_target)
             success = True
         except Exception as exception:
             GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
@@ -1205,10 +1211,10 @@ class TasksForCommonProjectStructure:
         sc.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def create_archive_of_artifacts(self, project_name: str, version: str, build_artifacts_folder: str):
+    def __create_archive_of_artifacts(self, project_name: str, version: str, build_artifacts_folder: str, build_environment_target_type: str):
         build_artifacts_folder_for_project = f"{build_artifacts_folder}\\{project_name}"
         folder = f"{build_artifacts_folder_for_project}\\{version}"
-        filename_without_extension = f"{project_name}.v{version}.artifacts"
+        filename_without_extension = f"{project_name}.v{version}.Artifacts.{build_environment_target_type}"
         filename = f"{filename_without_extension}.zip"
         GeneralUtilities.ensure_file_does_not_exist(filename)
         shutil.make_archive(filename_without_extension, 'zip', folder)
@@ -1223,7 +1229,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
-                        is_pre_merge: bool = False) -> None:
+                        is_pre_merge: bool = False, export_target_directory: str = None) -> None:
         codeunits: dict[str, set[str]] = dict[str, set[str]]()
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
         for subfolder in subfolders:
@@ -1243,6 +1249,15 @@ class TasksForCommonProjectStructure:
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
             for codeunit in sorted_codeunits:
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
+        project_name = os.path.basename(repository_folder)
+        project_version = self.get_version_of_project(repository_folder)
+        for codeunit in sorted_codeunits:
+            if export_target_directory == None:
+                target_folder = os.path.join(export_target_directory, project_name, project_version, codeunit)
+                GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+                GeneralUtilities.ensure_directory_exists(target_folder)
+                GeneralUtilities.copy_content_of_folder(os.path.join(repository_folder, codeunit, "Other", "Artifacts"), target_folder)
+                self.__create_archive_of_artifacts(project_name, project_version, target_folder, target_environmenttype)
 
     @GeneralUtilities.check_arguments
     def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
