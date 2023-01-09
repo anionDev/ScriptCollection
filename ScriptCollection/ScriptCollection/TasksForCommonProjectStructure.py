@@ -523,13 +523,13 @@ class TasksForCommonProjectStructure:
 
         history_argument = ""
         if add_testcoverage_history_entry:
-            history_folder = "Other/Resources/TestCoverageHistory"
+            history_folder = f"{codeunitname}/Other/Resources/TestCoverageHistory"
             GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, history_folder))
             history_argument = f" -historydir:{history_folder}"
-        self.__sc.run_program("reportgenerator", "-reports:Other/Artifacts/TestCoverage/TestCoverage.xml " +
-                              f"-targetdir:Other/Artifacts/TestCoverageReport --verbosity={verbose_argument_for_reportgenerator}{history_argument} " +
+        self.__sc.run_program("reportgenerator", f"-reports:{codeunitname}/Other/Artifacts/TestCoverage/TestCoverage.xml " +
+                              f"-targetdir:{codeunitname}/Other/Artifacts/TestCoverageReport --verbosity:{verbose_argument_for_reportgenerator}{history_argument} " +
                               f"-title:{codeunitname} -tag:v{codeunit_version}",
-                              os.path.join(repository_folder, codeunitname), verbosity=verbosity)
+                              repository_folder, verbosity=verbosity)
 
         # Generating badges
         if generate_badges:
