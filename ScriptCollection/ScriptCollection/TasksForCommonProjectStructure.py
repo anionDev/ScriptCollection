@@ -728,7 +728,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release",
-                             target_branch: str = "main", verbosity: int = 1, additional_arguments_file=None, fast_forward_source_branch: bool = False) -> None:
+                             target_branch: str = "main", verbosity: int = 1, additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
         # This is an automatization for 1-man-projects. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
         # (like GitHub, GitLab or Azure DevOps)
         self.assert_no_uncommitted_changes(repository_folder)
@@ -777,9 +777,8 @@ class TasksForCommonProjectStructure:
 
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
         if createRelease_configuration.reference_repository_remote_name is not None:
-            self.__sc.git_push(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name,
-                               createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name,
-                               verbosity=createRelease_configuration.verbosity)
+            self.__sc.git_push(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name, createRelease_configuration.reference_repository_branch_name,
+                               createRelease_configuration.reference_repository_branch_name,  verbosity=createRelease_configuration.verbosity)
         self.__sc.git_commit(build_repository_folder, f"Added {createRelease_configuration.projectname} release v{new_project_version}")
         GeneralUtilities.write_message_to_stdout(f"Finished release for project {createRelease_configuration.projectname} successfully.")
         return new_project_version
