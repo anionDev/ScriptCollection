@@ -1245,9 +1245,9 @@ class TasksForCommonProjectStructure:
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
             for codeunit in sorted_codeunits:
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
-        project_name = os.path.basename(repository_folder)
-        project_version = self.get_version_of_project(repository_folder)
-        if export_target_directory is None:
+        if export_target_directory is not None:
+            project_name = os.path.basename(repository_folder)
+            project_version = self.get_version_of_project(repository_folder)
             for codeunit in sorted_codeunits:
                 target_folder = os.path.join(export_target_directory, project_name, project_version, codeunit, "Artifacts")
                 GeneralUtilities.ensure_directory_does_not_exist(target_folder)
