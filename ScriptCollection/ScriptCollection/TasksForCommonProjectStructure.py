@@ -14,21 +14,11 @@ from .ScriptCollectionCore import ScriptCollectionCore
 from .ProgramRunnerEpew import ProgramRunnerEpew
 
 
-class CodeUnitConfiguration():
-    name: str
-    push_to_registry_script: str
-
-    def __init__(self, name: str, push_to_registry_script: str):
-
-        self.name = name
-        self.push_to_registry_script = push_to_registry_script
-
-
 class CreateReleaseConfiguration():
     projectname: str
     remotename: str
     artifacts_folder: str
-    codeunits: dict[str, CodeUnitConfiguration]
+    push_artifacts_scripts_folder: str
     verbosity: int
     reference_repository_remote_name: str = None
     reference_repository_branch_name: str = "main"
@@ -36,13 +26,13 @@ class CreateReleaseConfiguration():
     public_repository_url: str
     additional_arguments_file: str = None
 
-    def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, codeunits: dict[str, CodeUnitConfiguration],
+    def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str,
                  verbosity: int, public_repository_url: str, additional_arguments_file: str):
 
         self.projectname = projectname
         self.remotename = remotename
         self.artifacts_folder = build_artifacts_target_folder
-        self.codeunits = codeunits
+        self.push_artifacts_scripts_folder = push_artifacts_scripts_folder
         self.verbosity = verbosity
         self.public_repository_url = public_repository_url
         self.reference_repository_remote_name = self.remotename
@@ -57,7 +47,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     reference_repository: str = None
     public_repository_url: str = None
     target_branch_name: str = None
-    codeunits: dict[str, CodeUnitConfiguration]
+    push_artifacts_scripts_folder: str = None
     target_environmenttype_for_qualitycheck: str = "QualityCheck"
     target_environmenttype_for_productive: str = "Productive"
     additional_arguments_file: str = None
@@ -83,7 +73,6 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     sourcebranch: str = "main"
     targetbranch: str = "stable"
     sign_git_tags: bool = True
-    codeunits: dict[str, CodeUnitConfiguration]
     target_environmenttype_for_qualitycheck: str = "QualityCheck"
     target_environmenttype_for_productive: str = "Productive"
     additional_arguments_file: str = None
@@ -544,7 +533,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_exists(fulltestcoverageubfolger)
             self.__sc.run_program("reportgenerator", "-reports:Other/Artifacts/TestCoverage/TestCoverage.xml " +
                                   f"-targetdir:{testcoverageubfolger} -reporttypes:Badges " +
-                                  f"--verbosity={verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname),
+                                  f"--verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname),
                                   verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
@@ -600,24 +589,24 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Folder '{target_folder}' already exists.")
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
-        title = f"{codeunitname}-reference (codeunit v{codeunit_version}, conained in project {projectname} ({project_version_identifier}))"
+        codeunit_version_identifier = "Latest" if project_version_identifier == "Latest" else "v"+codeunit_version
+        title = f"Reference of codeunit {codeunitname} <i>{codeunit_version_identifier}</i> (contained in project {projectname} <i>{project_version_identifier}</i>)"
         if public_repository_url is None:
             repo_url_html = ""
         else:
-            repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a><br>'
+            repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
         index_file_for_reference = os.path.join(target_folder, "index.html")
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   </head>
   <body>
     <h1 class="display-1">{title}</h1>
     <hr/>
     Available reference-content for {codeunitname}:<br>
-    {repo_url_html}
+    {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
     <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
   </body>
@@ -643,60 +632,59 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
         self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive,
-                             information.additional_arguments_file, False, information.export_target)
+                             information.additional_arguments_file, True, information.export_target)
 
-        reference_repository_target_for_project = os.path.join(information.reference_repository, "ReferenceContent")
+        reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
 
-        for codeunitname, codeunit_configuration in information.codeunits.items():
-            codeunit_folder = os.path.join(information.repository, codeunitname)
-            codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
+        for codeunitname in self.get_codeunits(information.repository):
 
-            target_folder_for_codeunit = os.path.join(target_folder_base, codeunitname)
-            GeneralUtilities.ensure_directory_exists(target_folder_for_codeunit)
-            shutil.copytree(os.path.join(codeunit_folder, "Other", "Artifacts"), os.path.join(target_folder_for_codeunit, "Artifacts"))
+            # Push artifacts to registry
+            scriptfilename = f"PushBuildArtifacts.{codeunitname}.py"
+            push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
+            if os.path.isfile(push_artifact_to_registry_script):
+                GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}.")
+                self.__sc.run_program("python", push_artifact_to_registry_script, information.push_artifacts_scripts_folder,
+                                      verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
-        for codeunitname, codeunit_configuration in information.codeunits.items():
-            push_artifact_to_registry_script = codeunit_configuration.push_to_registry_script
-            folder = os.path.dirname(push_artifact_to_registry_script)
-            file = os.path.basename(push_artifact_to_registry_script)
-            GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}.")
-            self.__sc.run_program("python", file, folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
+            codeunit_version = self.get_version_of_codeunit_folder(os.path.join(information.repository, codeunitname))
 
             # Copy reference of codeunit to reference-repository
-            self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_repository_target_for_project, information.repository,
+            self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, information.repository,
                                                                              codeunitname, information.projectname, codeunit_version, information.public_repository_url,
                                                                              f"v{project_version}")
-            self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_repository_target_for_project, information.repository,
+            self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, information.repository,
                                                                              codeunitname, information.projectname, codeunit_version, information.public_repository_url,
                                                                              information.target_branch_name)
 
-            GeneralUtilities.write_message_to_stdout("Create entire reference")
-            all_available_version_identifier_folders_of_reference = list(
-                folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_repository_target_for_project))
-            all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
-            all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
-            reference_versions_html_lines = []
-            for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
-                version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
-                if version_identifier_of_project == "Latest":
-                    latest_version_hint = f" (v {project_version})"
-                else:
-                    latest_version_hint = ""
-                reference_versions_html_lines.append('<hr>')
-                reference_versions_html_lines.append(f'<h2 class="display-2">{version_identifier_of_project}{latest_version_hint}</h2>')
-                reference_versions_html_lines.append("Contained codeunits:<br>")
-                reference_versions_html_lines.append("<ul>")
-                for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
-                    codeunit_folder = os.path.join(information.repository, codeunitname)
-                    codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-                    reference_versions_html_lines.append(f'<li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">' +
-                                                         f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
-                reference_versions_html_lines.append("</ul>")
+            # Generate reference
+            self.__generate_entire_reference(information.projectname, project_version, reference_folder)
 
-            reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
-            title = f"{information.projectname}-reference"
-            reference_index_file = os.path.join(reference_repository_target_for_project, "index.html")
-            reference_index_file_content = f"""<!DOCTYPE html>
+    @GeneralUtilities.check_arguments
+    def __generate_entire_reference(self, projectname: str, project_version: str, reference_folder: str) -> None:
+        all_available_version_identifier_folders_of_reference = list(
+            folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
+        all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
+        all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
+        reference_versions_html_lines = []
+        for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
+            version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
+            if version_identifier_of_project == "Latest":
+                latest_version_hint = f" (v {project_version})"
+            else:
+                latest_version_hint = ""
+            reference_versions_html_lines.append('    <hr/>')
+            reference_versions_html_lines.append(f'    <h2 class="display-2">{version_identifier_of_project}{latest_version_hint}</h2>')
+            reference_versions_html_lines.append("    Contained codeunits:<br/>")
+            reference_versions_html_lines.append("    <ul>")
+            for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
+                reference_versions_html_lines.append(f'      <li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">' +
+                                                     f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
+            reference_versions_html_lines.append("    </ul>")
+
+        reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
+        title = f"{projectname}-reference"
+        reference_index_file = os.path.join(reference_folder, "index.html")
+        reference_index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
 
   <head>
@@ -708,12 +696,12 @@ class TasksForCommonProjectStructure:
   <body>
     <h1 class="display-1">{title}</h1>
     <hr/>
-    {reference_versions_links_file_content}
+{reference_versions_links_file_content}
   </body>
 
 </html>
 """  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
-            GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
+        GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
     @GeneralUtilities.check_arguments
     def push_nuget_build_artifact(self, push_script_file: str, codeunitname: str, registry_address: str, api_key: str):
@@ -744,7 +732,7 @@ class TasksForCommonProjectStructure:
         self.assert_no_uncommitted_changes(repository_folder)
         repository_name = os.path.basename(repository_folder)
         self.__sc.git_checkout(repository_folder, new_version_branch_name)
-        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file)
+        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, False, None)
         self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
         self.__sc.git_merge(repository_folder, new_version_branch_name, main_branch_name, False, True, f'Merge branch {new_version_branch_name} into {main_branch_name}')
         self.__sc.git_checkout(repository_folder, main_branch_name)
@@ -762,25 +750,24 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(build_repository_folder, createReleaseConfiguration.build_repository_branch)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createReleaseConfiguration.projectname}", build_repository_folder)
-        mergeToStableBranchInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder,
-                                                                                                       createReleaseConfiguration.additional_arguments_file, createReleaseConfiguration.artifacts_folder)
-        mergeToStableBranchInformation.verbosity = createReleaseConfiguration.verbosity
-        mergeToStableBranchInformation.push_target_branch = createReleaseConfiguration.remotename is not None
-        mergeToStableBranchInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
-        mergeToStableBranchInformation.push_source_branch = createReleaseConfiguration.remotename is not None
-        mergeToStableBranchInformation.push_source_branch_remote_name = createReleaseConfiguration.remotename
-        mergeToStableBranchInformation.codeunits = createReleaseConfiguration.codeunits
-        new_project_version = self.__standardized_tasks_merge_to_stable_branch(mergeToStableBranchInformation)
+        mergeInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder,
+                                                                                         createReleaseConfiguration.additional_arguments_file,
+                                                                                         createReleaseConfiguration.artifacts_folder)
+        mergeInformation.verbosity = createReleaseConfiguration.verbosity
+        mergeInformation.push_target_branch = createReleaseConfiguration.remotename is not None
+        mergeInformation.push_target_branch_remote_name = createReleaseConfiguration.remotename
+        mergeInformation.push_source_branch = createReleaseConfiguration.remotename is not None
+        mergeInformation.push_source_branch_remote_name = createReleaseConfiguration.remotename
+        new_project_version = self.__standardized_tasks_merge_to_stable_branch(mergeInformation)
 
         createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder,
                                                                                            createReleaseConfiguration.artifacts_folder,
                                                                                            createReleaseConfiguration.projectname,
                                                                                            createReleaseConfiguration.public_repository_url,
-                                                                                           mergeToStableBranchInformation.targetbranch,
-                                                                                           mergeToStableBranchInformation.additional_arguments_file,
-                                                                                           mergeToStableBranchInformation.export_target)
+                                                                                           mergeInformation.targetbranch,
+                                                                                           mergeInformation.additional_arguments_file,
+                                                                                           mergeInformation.export_target)
         createReleaseInformation.verbosity = createReleaseConfiguration.verbosity
-        createReleaseInformation.codeunits = createReleaseConfiguration.codeunits
         self.__standardized_tasks_release_buildartifact(createReleaseInformation)
 
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createReleaseConfiguration.projectname} v{new_project_version}")
@@ -813,8 +800,8 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("git", "clean -dfx", information.repository,  verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         success = False
+        self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
         try:
-            self.assert_no_uncommitted_changes(information.repository)
             self.build_codeunits(information.repository, information.verbosity,
                                  information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, True, information.export_target)
             success = True
@@ -822,9 +809,11 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
 
         if not success:
+            GeneralUtilities.write_message_to_stdout("Release was not successful, abort merge...")
+            self.__sc.git_merge_abort(information.repository)
             raise Exception("Release was not successful.")
 
-        commit_id = self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, True)
+        commit_id = self.__sc.git_commit(information.repository, information.sourcebranch)
         self.__sc.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
 
         if information.push_source_branch:
@@ -1211,14 +1200,21 @@ class TasksForCommonProjectStructure:
         sc.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def __create_archive_of_artifacts(self, project_name: str, version: str, build_artifacts_folder: str, build_environment_target_type: str):
-        build_artifacts_folder_for_project = f"{build_artifacts_folder}\\{project_name}"
-        folder = f"{build_artifacts_folder_for_project}\\{version}"
-        filename_without_extension = f"{project_name}.v{version}.Artifacts.{build_environment_target_type}"
+    def __create_archive_of_artifacts(self, codeunitname: str, version: str, build_artifacts_folder: str, build_environment_target_type: str, remove_build_artifacts: bool):
+        filename_without_extension = f"{codeunitname}.v{version}.{build_environment_target_type}.Artifacts"
+        working_dir = os.path.dirname(build_artifacts_folder)
+        temp_folder = os.path.join(working_dir, filename_without_extension)
+        GeneralUtilities.ensure_directory_does_not_exist(temp_folder)
+        content_folder = os.path.join(temp_folder, filename_without_extension)
+        GeneralUtilities.ensure_directory_exists(content_folder)
+        GeneralUtilities.copy_content_of_folder(build_artifacts_folder, content_folder)
         filename = f"{filename_without_extension}.zip"
         GeneralUtilities.ensure_file_does_not_exist(filename)
-        shutil.make_archive(filename_without_extension, 'zip', folder)
-        shutil.move(filename, folder)
+        shutil.make_archive(filename_without_extension, 'zip', temp_folder)
+        shutil.move(filename, working_dir)
+        GeneralUtilities.ensure_directory_does_not_exist(temp_folder)
+        if remove_build_artifacts:
+            GeneralUtilities.ensure_directory_does_not_exist(build_artifacts_folder)
 
     @GeneralUtilities.check_arguments
     def _internal_sort_codenits(self, codeunits=dict[str, set[str]]) -> list[str]:
@@ -1251,13 +1247,13 @@ class TasksForCommonProjectStructure:
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
         project_name = os.path.basename(repository_folder)
         project_version = self.get_version_of_project(repository_folder)
-        for codeunit in sorted_codeunits:
-            if export_target_directory == None:
-                target_folder = os.path.join(export_target_directory, project_name, project_version, codeunit)
+        if export_target_directory is None:
+            for codeunit in sorted_codeunits:
+                target_folder = os.path.join(export_target_directory, project_name, project_version, codeunit, "Artifacts")
                 GeneralUtilities.ensure_directory_does_not_exist(target_folder)
                 GeneralUtilities.ensure_directory_exists(target_folder)
                 GeneralUtilities.copy_content_of_folder(os.path.join(repository_folder, codeunit, "Other", "Artifacts"), target_folder)
-                self.__create_archive_of_artifacts(project_name, project_version, target_folder, target_environmenttype)
+                self.__create_archive_of_artifacts(project_name, project_version, target_folder, target_environmenttype, target_environmenttype != "Productive")
 
     @GeneralUtilities.check_arguments
     def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
