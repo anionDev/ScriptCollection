@@ -25,7 +25,6 @@ class CreateReleaseConfiguration():
     build_repository_branch: str = "main"
     public_repository_url: str
     additional_arguments_file: str = None
-    fast_forward_source_branch: bool = True
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str,
                  verbosity: int, public_repository_url: str, additional_arguments_file: str):
@@ -762,9 +761,6 @@ class TasksForCommonProjectStructure:
         mergeInformation.push_source_branch_remote_name = createRelease_configuration.remotename
         new_project_version = self.__standardized_tasks_merge_to_stable_branch(mergeInformation)
 
-        if createRelease_configuration.fast_forward_source_branch:
-            self.__sc.git_merge(repository_folder, mergeInformation.targetbranch, mergeInformation.sourcebranch, True, True)
-
         createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder,
                                                                                            createRelease_configuration.artifacts_folder,
                                                                                            createRelease_configuration.projectname,
@@ -805,21 +801,13 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(information.repository, information.sourcebranch)
         self.__sc.run_program("git", "clean -dfx", information.repository,  verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
-        success = False
-        self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, False, False)
-        try:
-            self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck,
-                                 information.additional_arguments_file, False, information.export_target)
-            success = True
-        except Exception as exception:
-            GeneralUtilities.write_exception_to_stderr(exception, "Error while doing merge-tasks. Merge will be aborted.")
 
-        if not success:
-            GeneralUtilities.write_message_to_stdout("Release was not successful, abort merge...")
-            self.__sc.git_merge_abort(information.repository)
-            raise Exception("Release was not successful.")
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck,
+                             information.additional_arguments_file, False, information.export_target)
 
-        commit_id = self.__sc.git_commit(information.repository, information.sourcebranch)
+        self.assert_no_uncommitted_changes(information.repository)
+
+        commit_id = self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, True, True)
         self.__sc.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
 
         if information.push_source_branch:
