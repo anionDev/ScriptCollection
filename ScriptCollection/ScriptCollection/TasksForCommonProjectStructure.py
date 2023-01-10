@@ -54,13 +54,14 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     export_target: str = None
 
     def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str,
-                 target_branch_name: str, additional_arguments_file: str, export_target: str):
+                 target_branch_name: str, additional_arguments_file: str, export_target: str, push_artifacts_scripts_folder: str):
         self.repository = repository
         self.public_repository_url = public_repository_url
         self.target_branch_name = target_branch_name
         self.artifacts_folder = artifacts_folder
         self.additional_arguments_file = additional_arguments_file
         self.export_target = export_target
+        self.push_artifacts_scripts_folder = push_artifacts_scripts_folder
         if projectname is None:
             projectname = os.path.basename(self.repository)
         else:
@@ -627,8 +628,6 @@ class TasksForCommonProjectStructure:
         # This function is intended to be called directly after __standardized_tasks_merge_to_stable_branch
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
-        if os.path.isdir(target_folder_base):
-            raise ValueError(f"The folder '{target_folder_base}' already exists.")
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
         self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive,
@@ -767,7 +766,8 @@ class TasksForCommonProjectStructure:
                                                                                            createRelease_configuration.public_repository_url,
                                                                                            mergeInformation.targetbranch,
                                                                                            mergeInformation.additional_arguments_file,
-                                                                                           mergeInformation.export_target)
+                                                                                           mergeInformation.export_target,
+                                                                                           createRelease_configuration.push_artifacts_scripts_folder)
         createReleaseInformation.verbosity = createRelease_configuration.verbosity
         self.__standardized_tasks_release_buildartifact(createReleaseInformation)
 
