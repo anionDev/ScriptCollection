@@ -731,9 +731,9 @@ class TasksForCommonProjectStructure:
         # (like GitHub, GitLab or Azure DevOps)
         self.assert_no_uncommitted_changes(repository_folder)
         self.__sc.git_checkout(repository_folder, source_branch)
+        self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
         self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None)
-        self.__sc.git_commit(repository_folder, "Updates due to building code-units.")
-        self.__sc.git_merge(repository_folder, source_branch, target_branch, False, True, f'Merge branch {source_branch} into {target_branch}')
+        self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
         if fast_forward_source_branch:
             self.__sc.git_merge(repository_folder, target_branch, source_branch, True, True)
