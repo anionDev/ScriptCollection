@@ -13,11 +13,11 @@
 		"version": "2.0.0",
 		"tasks": [
 			{
-				"label": "ScriptCollection: Build entire codeunit",
-				"command": "SCBuildCodeunit",
+				"label": "ScriptCollection: Build codeunits",
+				"command": "SCBuildCodeunits",
 				"args": [
 					"--codeunitfolder",
-					"${workspaceFolder}/ScriptCollection"
+					"${workspaceFolder}"
 				],
 				"type": "shell",
 			}
