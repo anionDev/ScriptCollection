@@ -183,8 +183,22 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefile, repository_folder, codeunitname)
 
+    def copy_source_files_to_output_directory(self, buildscript_file: str):
+        sc = ScriptCollectionCore()
+        folder = os.path.dirname(os.path.realpath(buildscript_file))
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", folder)
+        result = sc.run_program_argsasarray("git", ["ls-tree", "-r", "HEAD", "--name-only"], codeunit_folder)
+        files = [f for f in result[1].split('\n') if len(f) > 0]
+        for file in files:
+            full_source_file = os.path.join(codeunit_folder, file)
+            target_file = os.path.join(codeunit_folder, "Other", "Artifacts", "SourceCode", file)
+            target_folder = os.path.dirname(target_file)
+            GeneralUtilities.ensure_directory_exists(target_folder)
+            shutil.copyfile(full_source_file, target_file)
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
+        self.copy_source_files_to_output_directory(buildscript_file)
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         codeunit_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute())
@@ -392,6 +406,7 @@ class TasksForCommonProjectStructure:
                                                             verbosity: int, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll and converts it to a nupkg-file
+
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project(
             buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype, runtimes, commandline_arguments)
@@ -418,7 +433,8 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str],
                                                       default_build_configuration: str,  verbosity: int, target_environmenttype: str,
-                                                      runtimes: list[str], commandline_arguments: list[str]):
+                                                      runtimes: list[str], commandline_arguments: list[str]) -> None:
+        self.copy_source_files_to_output_directory(buildscript_file)
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -825,6 +841,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str,
                                                     verbosity: int, commandline_arguments: list[str]):
+        self.copy_source_files_to_output_directory(build_script_file)
         use_cache: bool = target_environment_type != "Productive"
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
@@ -926,6 +943,13 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO
 
+    def copy_licence_file(self, common_tasks_scripts_file: str):
+        folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
+        license_file = GeneralUtilities.resolve_relative_path("../../License.txt", folder_of_current_file)
+        target_folder = GeneralUtilities.resolve_relative_path("Artifacts/License", folder_of_current_file)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        shutil.copy(license_file, target_folder)
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
                                            additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
@@ -983,6 +1007,12 @@ class TasksForCommonProjectStructure:
         changelog_file = os.path.join(changelog_folder, f"v{version}.md")
         if not os.path.isfile(changelog_file):
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+        target_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts", "Changelog")
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        shutil.copy(changelog_file, target_folder)
+
+        # Copy license-file
+        self.copy_licence_file(common_tasks_scripts_file)
 
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str):
@@ -999,6 +1029,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_for_node_project(self, build_script_file: str, build_environment_target_type: str,
                                                   verbosity: int, commandline_arguments: list[str]):
         # TODO use unused parameter
+        self.copy_source_files_to_output_directory(build_script_file)
         sc = ScriptCollectionCore()
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc.program_runner = ProgramRunnerEpew()
