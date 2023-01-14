@@ -339,21 +339,34 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # act
         (exit_code, _, _2, _3) = sc.run_program("git", "status", dir_path)
 
-        # assert    def test_file_is_git_ignored_1(self) -> None:
-
+        # assert
         assert exit_code == 0
+
+    def test_file_is_git_ignored_1(self) -> None:
 
         # arrange
         sc = ScriptCollectionCore()
-        repository = str(Path(__file__).parent.parent.absolute())
+        repository = str(Path(__file__).parent.parent.parent.absolute())
 
         # act
-        result = sc.file_is_git_ignored("Tests/tests.py", repository)
+        result = sc.file_is_git_ignored(os.path.join("ScriptCollection", "setup.cfg"), repository)
 
         # assert
         assert result is False
 
-    def test_file_is_git_ignored_2(self) -> NoReturn:
+    def test_file_is_git_ignored_2(self) -> None:
+
+        # arrange
+        sc = ScriptCollectionCore()
+        repository = str(Path(__file__).parent.parent.parent.absolute())
+
+        # act
+        result = sc.file_is_git_ignored(os.path.join("ScriptCollection", "ScriptCollection.egg-info", "entry_points.txt"), repository)
+
+        # assert
+        assert result is True
+
+    def test_file_is_git_ignored_3(self) -> NoReturn:
         tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
         GeneralUtilities.ensure_directory_exists(tests_folder)
         sc = ScriptCollectionCore()

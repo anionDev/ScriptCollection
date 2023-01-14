@@ -172,7 +172,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         codeunit_folder = os.path.join(repository_folder, codeunitname)
-        self.__sc.run_program("coverage", "run -m pytest", codeunit_folder,  verbosity=verbosity)
+        self.__sc.run_program("coverage", f"run -m pytest ./{codeunitname}Tests", codeunit_folder,  verbosity=verbosity)
         self.__sc.run_program("coverage", "xml", codeunit_folder, verbosity=verbosity)
         coveragefolder = os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverage")
         GeneralUtilities.ensure_directory_exists(coveragefolder)
