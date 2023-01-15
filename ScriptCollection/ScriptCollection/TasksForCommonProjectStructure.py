@@ -1224,23 +1224,6 @@ class TasksForCommonProjectStructure:
         sc.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def __create_archive_of_artifacts(self, codeunitname: str, version: str, build_artifacts_folder: str, build_environment_target_type: str, remove_build_artifacts: bool):
-        filename_without_extension = f"{codeunitname}.v{version}.{build_environment_target_type}.Artifacts"
-        working_dir = os.path.dirname(build_artifacts_folder)
-        temp_folder = os.path.join(working_dir, filename_without_extension)
-        GeneralUtilities.ensure_directory_does_not_exist(temp_folder)
-        content_folder = os.path.join(temp_folder, filename_without_extension)
-        GeneralUtilities.ensure_directory_exists(content_folder)
-        GeneralUtilities.copy_content_of_folder(build_artifacts_folder, content_folder)
-        filename = f"{filename_without_extension}.zip"
-        GeneralUtilities.ensure_file_does_not_exist(filename)
-        shutil.make_archive(filename_without_extension, 'zip', temp_folder)
-        shutil.move(filename, working_dir)
-        GeneralUtilities.ensure_directory_does_not_exist(temp_folder)
-        if remove_build_artifacts:
-            GeneralUtilities.ensure_directory_does_not_exist(build_artifacts_folder)
-
-    @GeneralUtilities.check_arguments
     def _internal_sort_codenits(self, codeunits=dict[str, set[str]]) -> list[str]:
         result: list[str] = list[str]()
         ts = TopologicalSorter(codeunits)
@@ -1273,11 +1256,15 @@ class TasksForCommonProjectStructure:
             project_name = os.path.basename(repository_folder)
             project_version = self.get_version_of_project(repository_folder)
             for codeunit in sorted_codeunits:
-                target_folder = os.path.join(export_target_directory, project_name, project_version, codeunit, "Artifacts")
+                codeunit_version = self.get_version_of_codeunit_folder(os.path.join(repository_folder,  codeunit))
+                artifacts_folder = os.path.join(repository_folder,  codeunit, "Other", "Artifacts")
+                target_folder = os.path.join(export_target_directory, project_name, project_version, codeunit)
                 GeneralUtilities.ensure_directory_does_not_exist(target_folder)
                 GeneralUtilities.ensure_directory_exists(target_folder)
-                GeneralUtilities.copy_content_of_folder(os.path.join(repository_folder, codeunit, "Other", "Artifacts"), target_folder)
-                self.__create_archive_of_artifacts(project_name, project_version, target_folder, target_environmenttype, target_environmenttype != "Productive")
+                filename_without_extension = f"{codeunit}.v{codeunit_version}.{target_environmenttype}.Artifacts"
+                shutil.make_archive(filename_without_extension, 'zip', artifacts_folder)
+                archive_file = os.path.join(os.getcwd(), f"{filename_without_extension}.zip")
+                shutil.move(archive_file, target_folder)
 
     @GeneralUtilities.check_arguments
     def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
