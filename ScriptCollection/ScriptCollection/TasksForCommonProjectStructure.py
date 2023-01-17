@@ -478,7 +478,7 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         bomfile_folder = "Other\\Artifacts\\BOM"
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.run_program("dotnet", f"CycloneDX {codeunit_name}\\{codeunit_name}.csproj -o {bomfile_folder}", codeunit_folder, verbosity=verbosity)
+        sc.run_program("dotnet", f"CycloneDX {codeunit_name}\\{codeunit_name}.csproj -o {bomfile_folder} --disable-github-licenses", codeunit_folder, verbosity=verbosity)
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml"))
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
