@@ -654,10 +654,10 @@ class TasksForCommonProjectStructure:
         for codeunitname in self.get_codeunits(information.repository):
 
             # Push artifacts to registry
-            scriptfilename = f"PushBuildArtifacts.{codeunitname}.py"
+            scriptfilename = f"PushArtifacts.{codeunitname}.py"
             push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
             if os.path.isfile(push_artifact_to_registry_script):
-                GeneralUtilities.write_message_to_stdout(f"Push buildartifact of codeunit {codeunitname}.")
+                GeneralUtilities.write_message_to_stdout(f"Push artifacts of codeunit {codeunitname}.")
                 self.__sc.run_program("python", push_artifact_to_registry_script, information.push_artifacts_scripts_folder,
                                       verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
