@@ -345,7 +345,7 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
-    def update_version_of_codeunit_to_project_version(self, common_tasks_file: str, current_version: str) -> None:
+    def update_version_of_codeunit(self, common_tasks_file: str, current_version: str) -> None:
         codeunit_name: str = os.path.basename(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)))
         codeunit_file: str = os.path.join(GeneralUtilities.resolve_relative_path("..", os.path.dirname(common_tasks_file)), f"{codeunit_name}.codeunit.xml")
         self.write_version_to_codeunit_file(codeunit_file, current_version)
@@ -478,7 +478,7 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         bomfile_folder = "Other\\Artifacts\\BOM"
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.run_program("dotnet", f"CycloneDX {codeunit_name}\\{codeunit_name}.csproj -o {bomfile_folder}", codeunit_folder, verbosity=verbosity)
+        sc.run_program("dotnet", f"CycloneDX {codeunit_name}\\{codeunit_name}.csproj -o {bomfile_folder} --disable-github-licenses", codeunit_folder, verbosity=verbosity)
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml"))
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
@@ -965,6 +965,7 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        project_version = self.get_version_of_project(repository_folder)
 
         # Clear previously builded artifacts if desired:
         if clear_artifacts_folder:
@@ -996,17 +997,15 @@ class TasksForCommonProjectStructure:
             self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
         self.copy_artifacts_from_dependent_code_units(repository_folder, codeunitname)
 
-        # Update version
-        self.update_version_of_codeunit_to_project_version(common_tasks_scripts_file, version)
+        # Update codeunit-version
+        self.update_version_of_codeunit(common_tasks_scripts_file, version)
 
         # set default constants
         self.set_default_constants(os.path.join(repository_folder, codeunitname))
 
-        # Check if changelog exists
+        # Copy changelog-file
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
-        changelog_file = os.path.join(changelog_folder, f"v{version}.md")
-        if not os.path.isfile(changelog_file):
-            raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+        changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
         target_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts", "Changelog")
         GeneralUtilities.ensure_directory_exists(target_folder)
         shutil.copy(changelog_file, target_folder)
@@ -1241,6 +1240,7 @@ class TasksForCommonProjectStructure:
             if os.path.exists(codeunit_file):
                 codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
         sorted_codeunits = self._internal_sort_codenits(codeunits)
+        project_version = self.get_version_of_project(repository_folder)
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
@@ -1250,11 +1250,11 @@ class TasksForCommonProjectStructure:
                 for codeunit in sorted_codeunits:
                     i = i+1
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
+            self.__do_repository_checks(repository_folder, project_version)
             for codeunit in sorted_codeunits:
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
         if export_target_directory is not None:
             project_name = os.path.basename(repository_folder)
-            project_version = self.get_version_of_project(repository_folder)
             for codeunit in sorted_codeunits:
                 codeunit_version = self.get_version_of_codeunit_folder(os.path.join(repository_folder,  codeunit))
                 artifacts_folder = os.path.join(repository_folder,  codeunit, "Other", "Artifacts")
@@ -1265,6 +1265,21 @@ class TasksForCommonProjectStructure:
                 shutil.make_archive(filename_without_extension, 'zip', artifacts_folder)
                 archive_file = os.path.join(os.getcwd(), f"{filename_without_extension}.zip")
                 shutil.move(archive_file, target_folder)
+
+    @GeneralUtilities.check_arguments
+    def __do_repository_checks(self, repository_folder: str, project_version: str):
+        self.__check_if_changelog_exists(repository_folder, project_version)
+
+    @GeneralUtilities.check_arguments
+    def __check_whether_atifacts_exists(self, codeunit_folder: str):
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def __check_if_changelog_exists(self, repository_folder: str, project_version: str):
+        changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
+        changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
+        if not os.path.isfile(changelog_file):
+            raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
 
     @GeneralUtilities.check_arguments
     def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
@@ -1351,4 +1366,5 @@ class TasksForCommonProjectStructure:
         # TODO validate artifactsinformation_file against xsd
         shutil.copyfile(codeunit_file,
                         os.path.join(artifacts_folder, f"{codeunit_name}.codeunit.xml"))
+        self.__check_whether_atifacts_exists(codeunit_folder)
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
