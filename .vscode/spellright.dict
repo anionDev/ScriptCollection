@@ -35,3 +35,4 @@ docfx
 cyclonedx
 gitversion
 dockerfile
+pyOpenSSL

@@ -17,6 +17,7 @@ from pathlib import Path
 from shutil import copyfile
 import typing
 from defusedxml.minidom import parse
+from OpenSSL import crypto
 
 
 class GeneralUtilities:
@@ -791,3 +792,19 @@ class GeneralUtilities:
     def assert_condition(condition: bool, information: str) -> None:
         if (not condition):
             raise ValueError("Condition failed. "+information)
+
+    @staticmethod
+    @check_arguments
+    def get_certificate_expiry_date(certificate_file: str) -> datetime:
+        with open(certificate_file, encoding="utf-8") as certificate_file_content:
+            cert = crypto.load_certificate(crypto.FILETYPE_PEM, certificate_file_content.read())
+            date_as_bytes = cert.get_notAfter()
+            date_as_string = date_as_bytes.decode("utf-8")
+            result = datetime.strptime(date_as_string, '%Y%m%d%H%M%SZ')
+            return result
+
+
+    @staticmethod
+    @check_arguments
+    def certificate_is_expired(certificate_file: str) -> bool:
+        return GeneralUtilities.get_certificate_expiry_date(certificate_file) < datetime.now()
