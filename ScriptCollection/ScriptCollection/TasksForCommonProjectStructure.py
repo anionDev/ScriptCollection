@@ -534,9 +534,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
-                                                            target_environmenttype_mapping:  dict[str, str], target_environmenttype: str,
-                                                            commandline_arguments: list[str]):
-        dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
+                                                            target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]):
+        dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
