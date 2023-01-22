@@ -256,21 +256,6 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_buildconfigurationdevelopment_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> str:
-        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationdevelopment",  default_value)
-
-    @staticmethod
-    @GeneralUtilities.check_arguments
-    def get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments: list[str], default_value: str) -> str:
-        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationqualitycheck",  default_value)
-
-    @staticmethod
-    @GeneralUtilities.check_arguments
-    def get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments: list[str],  default_value: str) -> str:
-        return TasksForCommonProjectStructure.get_string_value_from_commandline_arguments(commandline_arguments, "buildconfigurationproductive",  default_value)
-
-    @staticmethod
-    @GeneralUtilities.check_arguments
     def get_string_value_from_commandline_arguments(commandline_arguments: list[str], property_name: str, default_value: str) -> str:
         result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, property_name)
         if result is None:
@@ -379,8 +364,10 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, buildconfiguration: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
-                                                    verbosity: int, runtimes: list[str]):
+    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
+                                                    verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str],
+                                                    commandline_arguments: list[str]):
+        dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
             csproj_file_folder = os.path.dirname(csproj_file)
@@ -390,8 +377,8 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "obj"))
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
             GeneralUtilities.ensure_directory_exists(outputfolder)
-            # TODO pass commitid, timestamp and if desired something like keypair, certificate to the src-code
-            self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {buildconfiguration} -o {outputfolder} --runtime {runtime}", csproj_file_folder, verbosity=verbosity)
+            self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {dotnet_build_configuration} -o {outputfolder} --runtime {runtime}",
+                                  csproj_file_folder, verbosity=verbosity)
             for file, keyfile in files_to_sign.items():
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
@@ -417,16 +404,6 @@ class TasksForCommonProjectStructure:
         self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def __get_dotnet_buildconfiguration_by_target_environmenttype(self, targetenvironmenttype: str, default_value: str, commandline_arguments: list[str]):
-        if targetenvironmenttype == TasksForCommonProjectStructure.get_development_environment_name():
-            return self.get_buildconfigurationdevelopment_from_commandline_arguments(commandline_arguments, default_value)
-        if targetenvironmenttype == TasksForCommonProjectStructure.get_qualitycheck_environment_name():
-            return self.get_buildconfigurationqualitycheck_from_commandline_arguments(commandline_arguments, default_value)
-        if targetenvironmenttype == TasksForCommonProjectStructure.get_productive_environment_name():
-            return self.get_buildconfigurationproductive_from_commandline_arguments(commandline_arguments,  "Release")
-        raise ValueError(f"Unknown build-environmenttype: {targetenvironmenttype}")
-
-    @GeneralUtilities.check_arguments
     def get_default_target_environmenttype_mapping(self) -> dict[str, str]:
         return {
             TasksForCommonProjectStructure.get_development_environment_name(): TasksForCommonProjectStructure.get_development_environment_name(),
@@ -436,10 +413,9 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str],
-                                                      default_build_configuration: str,  verbosity: int, target_environmenttype: str,
+                                                      target_environment_type: str,  verbosity: int, target_environmenttype: str,
                                                       runtimes: list[str], commandline_arguments: list[str]) -> None:
         self.copy_source_files_to_output_directory(buildscript_file)
-        dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments,  dict())
@@ -448,14 +424,13 @@ class TasksForCommonProjectStructure:
         outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts", os.path.dirname(buildscript_file))
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
-        csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
-        buildconfiguration = self.__get_dotnet_buildconfiguration_by_target_environmenttype(dotnet_build_configuration, default_build_configuration, commandline_arguments)
+        # csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
-        self.__standardized_tasks_build_for_dotnet_build(csproj_file, buildconfiguration,
-                                                         os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid, verbosity, runtimes)
-        self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, buildconfiguration,
-                                                         os.path.join(outputfolder, "BuildResult_DotNetTests_"), files_to_sign, commitid, verbosity, runtimes)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid,
+                                                         verbosity, runtimes, target_environment_type, target_environmenttype_mapping, commandline_arguments)
+        # self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, os.path.join(outputfolder, "BuildResult_DotNetTests_"), files_to_sign, commitid,
+        #                                                verbosity, runtimes, target_environment_type, target_environmenttype_mapping, commandline_arguments)
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -559,16 +534,16 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
+                                                            target_environmenttype_mapping:  dict[str, str], target_environmenttype: str,
                                                             commandline_arguments: list[str]):
+        dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
-        testprojectname = codeunit_name+"Tests"
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
-        buildconfiguration = self.__get_dotnet_buildconfiguration_by_target_environmenttype(targetenvironmenttype, codeunit_name, commandline_arguments)
         with tempfile.TemporaryDirectory() as temp_directory:
-            self.__sc.run_program_argsasarray("dotnet", ["test", f"{testprojectname}/{testprojectname}.csproj", "-c", buildconfiguration,
+            self.__sc.run_program_argsasarray("dotnet", ["test", "-c", dotnet_build_configuration,
                                                          "--verbosity", "normal", "--collect", "XPlat Code Coverage", "--results-directory", temp_directory],
                                               os.path.join(repository_folder, codeunit_name), verbosity=verbosity)
             temp_directory_subdir = GeneralUtilities.get_direct_folders_of_folder(temp_directory)[0]
