@@ -25,9 +25,10 @@ class CreateReleaseConfiguration():
     build_repository_branch: str = "main"
     public_repository_url: str
     additional_arguments_file: str = None
+    artifacts_which_have_artifacts_to_push: list[str] = None
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str,
-                 verbosity: int, public_repository_url: str, additional_arguments_file: str):
+                 verbosity: int, public_repository_url: str, additional_arguments_file: str, artifacts_which_have_artifacts_to_push: list[str]):
 
         self.projectname = projectname
         self.remotename = remotename
@@ -37,6 +38,7 @@ class CreateReleaseConfiguration():
         self.public_repository_url = public_repository_url
         self.reference_repository_remote_name = self.remotename
         self.additional_arguments_file = additional_arguments_file
+        self.artifacts_which_have_artifacts_to_push = artifacts_which_have_artifacts_to_push
 
 
 class CreateReleaseInformationForProjectInCommonProjectFormat:
@@ -52,9 +54,10 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     target_environmenttype_for_productive: str = "Productive"
     additional_arguments_file: str = None
     export_target: str = None
+    artifacts_which_have_artifacts_to_push: list[str] = None
 
-    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str,
-                 target_branch_name: str, additional_arguments_file: str, export_target: str, push_artifacts_scripts_folder: str):
+    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str,
+                 additional_arguments_file: str, export_target: str, push_artifacts_scripts_folder: str, artifacts_which_have_artifacts_to_push: list[str]):
         self.repository = repository
         self.public_repository_url = public_repository_url
         self.target_branch_name = target_branch_name
@@ -67,6 +70,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
         else:
             self.projectname = projectname
         self.reference_repository = GeneralUtilities.resolve_relative_path(f"../{projectname}Reference", repository)
+        self.artifacts_which_have_artifacts_to_push = artifacts_which_have_artifacts_to_push
 
 
 class MergeToStableBranchInformationForProjectInCommonProjectFormat:
@@ -652,18 +656,18 @@ class TasksForCommonProjectStructure:
         reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
 
         for codeunitname in self.get_codeunits(information.repository):
-
             # Push artifacts to registry
-            scriptfilename = f"PushArtifacts.{codeunitname}.py"
-            push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
-            if os.path.isfile(push_artifact_to_registry_script):
+            if codeunitname in information.artifacts_which_have_artifacts_to_push:
+                scriptfilename = f"PushArtifacts.{codeunitname}.py"
+                push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
+                if not os.path.isfile(push_artifact_to_registry_script):
+                    raise ValueError(f"Script '{push_artifact_to_registry_script}' does not exist.")
                 GeneralUtilities.write_message_to_stdout(f"Push artifacts of codeunit {codeunitname}.")
                 self.__sc.run_program("python", push_artifact_to_registry_script, information.push_artifacts_scripts_folder,
                                       verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
-            codeunit_version = self.get_version_of_codeunit_folder(os.path.join(information.repository, codeunitname))
-
             # Copy reference of codeunit to reference-repository
+            codeunit_version = self.get_version_of_codeunit_folder(os.path.join(information.repository, codeunitname))
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, information.repository,
                                                                              codeunitname, information.projectname, codeunit_version, information.public_repository_url,
                                                                              f"v{project_version}")
@@ -783,7 +787,8 @@ class TasksForCommonProjectStructure:
                                                                                            mergeInformation.targetbranch,
                                                                                            mergeInformation.additional_arguments_file,
                                                                                            mergeInformation.export_target,
-                                                                                           createRelease_configuration.push_artifacts_scripts_folder)
+                                                                                           createRelease_configuration.push_artifacts_scripts_folder,
+                                                                                           createRelease_configuration.artifacts_which_have_artifacts_to_push)
         createReleaseInformation.verbosity = createRelease_configuration.verbosity
         self.__standardized_tasks_release_buildartifact(createReleaseInformation)
 
