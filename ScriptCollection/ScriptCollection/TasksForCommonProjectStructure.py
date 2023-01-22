@@ -1187,10 +1187,13 @@ class TasksForCommonProjectStructure:
                            verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         github_repo = f"{github_username}/{productname}"
-        artifacts_files = [file for file in GeneralUtilities.get_direct_files_of_folder(f"{build_artifacts_folder}\\{productname}\\{projectversion}") if file.endswith(".zip")]
+        artifact_files = []
+        codeunits = self.get_codeunits(repository_folder)
+        for codeunit in codeunits:
+            artifact_files.append(self.__sc.find_file_by_extension(f"{build_artifacts_folder}\\{productname}\\{projectversion}\\{codeunit}", "Productive.Artifacts.zip"))
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{projectversion}.md")
-        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo,
-                                                 "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifacts_files, verbosity=verbosity)
+        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo,  "--notes-file", changelog_file,
+                                                 "--title", f"Release v{projectversion}"]+artifact_files, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
