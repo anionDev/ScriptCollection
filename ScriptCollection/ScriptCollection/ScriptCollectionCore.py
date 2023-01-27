@@ -15,10 +15,12 @@ import shutil
 import traceback
 import uuid
 import ntplib
+import qrcode
 from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
+import io
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
@@ -772,7 +774,12 @@ class ScriptCollectionCore:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
-        self.run_program("qr", qrcode_content)
+        qr = qrcode.QRCode()
+        qr.add_data(qrcode_content)
+        f = io.StringIO()
+        qr.print_ascii(out=f)
+        f.seek(0)
+        GeneralUtilities.write_message_to_stdout(f.read())
 
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
