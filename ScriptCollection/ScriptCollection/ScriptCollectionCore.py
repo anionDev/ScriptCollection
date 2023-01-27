@@ -784,7 +784,9 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
         separator_line = "--------------------------------------------------------"
-        for line in GeneralUtilities.read_csv_file(csvfile, True):
+        lines = GeneralUtilities.read_csv_file(csvfile, True)
+        lines.sort(key=lambda items: ''.join(items).lower())
+        for line in lines:
             GeneralUtilities.write_message_to_stdout(separator_line)
             self.__print_qr_code_by_csv_line(line[0], line[1], line[2], line[3], line[4])
         GeneralUtilities.write_message_to_stdout(separator_line)
