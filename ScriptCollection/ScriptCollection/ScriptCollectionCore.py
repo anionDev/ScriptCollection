@@ -14,20 +14,20 @@ import re
 import shutil
 import traceback
 import uuid
+import io
 import ntplib
 import qrcode
 from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
-import io
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.54"
+version = "3.3.55"
 __version__ = version
 
 

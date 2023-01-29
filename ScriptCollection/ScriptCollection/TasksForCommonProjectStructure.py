@@ -1233,8 +1233,11 @@ class TasksForCommonProjectStructure:
                     i = i+1
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
             self.__do_repository_checks(repository_folder, project_version)
+            line = "----------"
             for codeunit in sorted_codeunits:
+                GeneralUtilities.write_message_to_stdout(line)
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
+            GeneralUtilities.write_message_to_stdout(line)
         if export_target_directory is not None:
             project_name = os.path.basename(repository_folder)
             for codeunit in sorted_codeunits:
