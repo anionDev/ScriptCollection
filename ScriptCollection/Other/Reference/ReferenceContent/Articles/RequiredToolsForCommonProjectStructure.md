@@ -97,9 +97,11 @@ The command `npm` is usually be available after you have installed node.
 [ReportGenerator](https://reportgenerator.io/) is required to generate HTML-reports from test-coverage-reports.
 The commandline-tool can be installed using `choco install reportgenerator.portable`.
 
-### texttransform
+### t4
 
-[TextTransform](https://learn.microsoft.com/en-us/visualstudio/modeling/generating-files-with-the-texttransform-utility) is a tool to generate C#-files from [T4](https://learn.microsoft.com/en-us/visualstudio/modeling/code-generation-and-t4-text-templates)-templates.
+[t4](https://github.com/mono/t4) is a tool to generate C#-files from [T4](https://learn.microsoft.com/en-us/visualstudio/modeling/code-generation-and-t4-text-templates)-templates.
+It can be installed using `dotnet tool install --global dotnet-t4`.
+It is an alternative implementation for [TextTransform](https://learn.microsoft.com/en-us/visualstudio/modeling/generating-files-with-the-texttransform-utility).
 
 ### twine
 
