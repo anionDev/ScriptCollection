@@ -14,7 +14,9 @@ import re
 import shutil
 import traceback
 import uuid
+import io
 import ntplib
+import qrcode
 from lxml import etree
 import pycdlib
 import send2trash
@@ -25,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.54"
+version = "3.3.55"
 __version__ = version
 
 
@@ -772,12 +774,19 @@ class ScriptCollectionCore:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
-        self.run_program("qr", qrcode_content)
+        qr = qrcode.QRCode()
+        qr.add_data(qrcode_content)
+        f = io.StringIO()
+        qr.print_ascii(out=f)
+        f.seek(0)
+        GeneralUtilities.write_message_to_stdout(f.read())
 
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
         separator_line = "--------------------------------------------------------"
-        for line in GeneralUtilities.read_csv_file(csvfile, True):
+        lines = GeneralUtilities.read_csv_file(csvfile, True)
+        lines.sort(key=lambda items: ''.join(items).lower())
+        for line in lines:
             GeneralUtilities.write_message_to_stdout(separator_line)
             self.__print_qr_code_by_csv_line(line[0], line[1], line[2], line[3], line[4])
         GeneralUtilities.write_message_to_stdout(separator_line)
