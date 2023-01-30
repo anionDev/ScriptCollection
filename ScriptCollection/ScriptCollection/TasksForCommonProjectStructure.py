@@ -348,7 +348,7 @@ class TasksForCommonProjectStructure:
         for search_result in Path(csproj_folder).glob('**/*.tt'):
             tt_file = str(search_result)
             relative_path_to_tt_file = str(Path(tt_file).relative_to(Path(csproj_folder)))
-            sc.run_program("texttransform", relative_path_to_tt_file, csproj_folder, verbosity=verbosity)
+            sc.run_program("t4", relative_path_to_tt_file, csproj_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
