@@ -930,6 +930,13 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_folder)
         shutil.copy(license_file, target_folder)
 
+    def take_readmefile_from_main_readmefile_of_repository(self, common_tasks_scripts_file: str):
+        folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
+        source_file = GeneralUtilities.resolve_relative_path("../../ReadMe.md", folder_of_current_file)
+        target_file = GeneralUtilities.resolve_relative_path("../ReadMe.md", folder_of_current_file)
+        GeneralUtilities.ensure_file_does_not_exist(target_file)
+        shutil.copyfile(source_file, target_file)
+
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
                                            additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
