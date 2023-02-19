@@ -803,7 +803,6 @@ class GeneralUtilities:
             result = datetime.strptime(date_as_string, '%Y%m%d%H%M%SZ')
             return result
 
-
     @staticmethod
     @check_arguments
     def certificate_is_expired(certificate_file: str) -> bool:

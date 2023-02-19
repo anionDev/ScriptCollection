@@ -1215,6 +1215,7 @@ class TasksForCommonProjectStructure:
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                         is_pre_merge: bool = False, export_target_directory: str = None) -> None:
         codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
