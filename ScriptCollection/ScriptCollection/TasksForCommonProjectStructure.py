@@ -511,15 +511,16 @@ class TasksForCommonProjectStructure:
         if add_testcoverage_history_entry is None:
             add_testcoverage_history_entry = self.get_is_pre_merge_value_from_commandline_arguments(commandline_arguments, add_testcoverage_history_entry)
 
-        history_argument = ""
-        if add_testcoverage_history_entry:
-            history_folder = f"{codeunitname}/Other/Resources/TestCoverageHistory"
-            GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, codeunitname, history_folder))
-            history_argument = f" -historydir:{history_folder}"
+        history_folder = f"{codeunitname}/Other/Resources/TestCoverageHistory"
+        history_folder_full = os.path.join(repository_folder, history_folder)
+        GeneralUtilities.ensure_directory_exists(history_folder_full)
+        history_argument = f" -historydir:{history_folder}"
         self.__sc.run_program("reportgenerator", f"-reports:{codeunitname}/Other/Artifacts/TestCoverage/TestCoverage.xml " +
                               f"-targetdir:{codeunitname}/Other/Artifacts/TestCoverageReport --verbosity:{verbose_argument_for_reportgenerator}{history_argument} " +
                               f"-title:{codeunitname} -tag:v{codeunit_version}",
                               repository_folder, verbosity=verbosity)
+        if not add_testcoverage_history_entry:
+            os.remove(GeneralUtilities.get_direct_files_of_folder(history_folder_full)[-1])
 
         # Generating badges
         if generate_badges:
@@ -1215,6 +1216,7 @@ class TasksForCommonProjectStructure:
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                         is_pre_merge: bool = False, export_target_directory: str = None) -> None:
         codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
