@@ -211,6 +211,16 @@ class TasksForCommonProjectStructure:
             "../Artifacts/BuildResult_Wheel", os.path.join(self.get_artifacts_folder(repository_folder, codeunitname)))
         GeneralUtilities.ensure_directory_exists(target_directory)
         self.__sc.run_program("python", f"-m build --wheel --outdir {target_directory}", codeunit_folder, verbosity=verbosity)
+        self.generate_bom_for_python_project(verbosity, codeunit_folder, codeunitname, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def generate_bom_for_python_project(self, verbosity: int, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]):
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
+        codeunitversion = self.get_version_of_codeunit_folder(codeunit_folder)
+        bom_folder = "Other/Artifacts/BOM"
+        bom_folder_full = os.path.join(codeunit_folder, bom_folder)
+        GeneralUtilities.ensure_directory_exists(bom_folder_full)
+        self.__sc.run_program("cyclonedx-py", f"-o ./{bom_folder}/{codeunitname}.{codeunitversion}.sbom.xml - r - i requirements.txt", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository: str, gpg_identity: str, verbosity: int) -> None:
@@ -366,7 +376,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
                                                     verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str],
-                                                    copy_license_file_to_target_folder:bool,repository_folder:str, codeunit_name:str,commandline_arguments: list[str]):
+                                                    copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]):
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         for runtime in runtimes:
@@ -381,9 +391,9 @@ class TasksForCommonProjectStructure:
             self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {dotnet_build_configuration} -o {outputfolder} --runtime {runtime}",
                                   csproj_file_folder, verbosity=verbosity)
             if copy_license_file_to_target_folder:
-                license_file=os.path.join(repository_folder,"License.txt")
-                target=os.path.join(outputfolder,f"{codeunit_name}.License.txt")
-                shutil.copyfile(license_file,target)
+                license_file = os.path.join(repository_folder, "License.txt")
+                target = os.path.join(outputfolder, f"{codeunit_name}.License.txt")
+                shutil.copyfile(license_file, target)
             for file, keyfile in files_to_sign.items():
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
@@ -395,7 +405,7 @@ class TasksForCommonProjectStructure:
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project(
             buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype,
-            runtimes, copy_license_file_to_target_folder, commandline_arguments)
+            runtimes, True, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_library_project(self, buildscript_file: str, default_target_environmenttype: str,
@@ -405,9 +415,10 @@ class TasksForCommonProjectStructure:
         # this function builds an exe or dll and converts it to a nupkg-file
 
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
-        self.__standardized_tasks_build_for_dotnet_project(
-            buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype, runtimes, commandline_arguments)
-        self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity, copy_license_file_to_target_folder, commandline_arguments)
+        self.__standardized_tasks_build_for_dotnet_project(buildscript_file, target_environmenttype_mapping, default_target_environmenttype,
+                                                           verbosity, target_environmenttype, runtimes, True, commandline_arguments)
+        self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity,
+                                                                        commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def get_default_target_environmenttype_mapping(self) -> dict[str, str]:
@@ -435,7 +446,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
         self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid,
                                                          verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
-                                                         copy_license_file_to_target_folder, repository_folder, codeunitname,commandline_arguments)
+                                                         copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments

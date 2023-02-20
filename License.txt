@@ -2,6 +2,7 @@ Copyright © 2020 Marius Göcke
 
 ScriptCollection itself is licensed under the terms of the MIT-license (see appendix 1).
 ScriptCollection uses dependencies which are released under their own license:
+-cyclonedx-bom is licensed under the terms of the Apache License, Version 2.0-license (see https://raw.githubusercontent.com/CycloneDX/cyclonedx-python/master/LICENSE )
 -defusedxml is licensed under the terms of the Python software foundation license (see appendix 4)
 -keyboard is licensed under the terms of the MIT-license (see appendix 1)
 -lxml is licensed under the terms of the BSD-license (see https://pypi.org/project/lxml )

@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 from pathlib import Path
 from ScriptCollection.GeneralUtilities import GeneralUtilities
 from ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
@@ -21,6 +22,13 @@ def common_tasks():
     sc.replace_version_in_ini_file(GeneralUtilities.resolve_relative_path("../setup.cfg", folder_of_current_file), codeunit_version)
     sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path(f"../{codeunitname}/ScriptCollectionCore.py", folder_of_current_file), codeunit_version)
     t.standardized_tasks_do_common_tasks(file, codeunit_version, verbosity, targetenvironmenttype, True, additional_arguments_file, False, cmd_args)
+    is_pre_merge = t.get_is_pre_merge_value_from_commandline_arguments(cmd_args, False)
+    if is_pre_merge or True:
+        codeunit_folder = GeneralUtilities.resolve_relative_path("..", folder_of_current_file)
+        development_requirements_file = os.path.join(codeunit_folder, "requirements.Development.txt")
+        GeneralUtilities.write_text_to_file(development_requirements_file, re.sub("ScriptCollection>=\\d+\\.\\d+\\.\\d+",
+                                                                                  f"ScriptCollection>={codeunit_version}",
+                                                                                  GeneralUtilities.read_text_from_file(development_requirements_file)))
 
 
 if __name__ == "__main__":
