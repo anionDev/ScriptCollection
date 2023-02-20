@@ -1276,6 +1276,20 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
 
     @GeneralUtilities.check_arguments
+    def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: list[str]) -> None:
+        codeunit_name: str = os.path.basename(codeunit_folder)
+        artifacts_folder = os.path.join(codeunit_folder, "Other/Artifacts")
+        existing_artifacts = [os.path.basename(x) for x in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder)]
+        for artifact_name_regex in artifact_name_regexes:
+            artifact_exists = False
+            for existing_artifact in existing_artifacts:
+                pattern = re.compile(artifact_name_regex)
+                if pattern.match(existing_artifact):
+                    artifact_exists = True
+            if not artifact_exists:
+                raise ValueError(f"Codeunit {codeunit_name} does not contain an artifact which matches the name '{artifact_name_regex}'")
+
+    @GeneralUtilities.check_arguments
     def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                          is_pre_merge: bool = False, assume_dependent_codeunits_are_already_built: bool = False) -> None:
         now = datetime.now()
@@ -1287,6 +1301,7 @@ class TasksForCommonProjectStructure:
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {target_environmenttype}")
+        GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
@@ -1327,14 +1342,23 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
         self.__sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity)
+        self.verify_artifact_exists(codeunit_folder, ["Changelog", "License", "SourceCode"])
+
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
+        self.verify_artifact_exists(codeunit_folder, ["BuildResult_.+", "BOM"])
+
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
         self.__sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
+        self.verify_artifact_exists(codeunit_folder, ["TestCoverage", "TestCoverageReport"])
+
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
         self.__sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
+        self.verify_artifact_exists(codeunit_folder, ["FailTest"])
+
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         self.__sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
+        self.verify_artifact_exists(codeunit_folder, ["Reference"])
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         version = self.get_version_of_codeunit(codeunit_file)
@@ -1358,7 +1382,5 @@ class TasksForCommonProjectStructure:
     </cps:artifacts>
 </cps:artifactsinformation>""")
         # TODO validate artifactsinformation_file against xsd
-        shutil.copyfile(codeunit_file,
-                        os.path.join(artifacts_folder, f"{codeunit_name}.codeunit.xml"))
         self.__check_whether_atifacts_exists(codeunit_folder)
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
