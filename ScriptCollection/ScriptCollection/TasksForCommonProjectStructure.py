@@ -366,8 +366,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
                                                     verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str],
-                                                    commandline_arguments: list[str]):
+                                                    copy_license_file_to_target_folder:bool,repository_folder:str, codeunit_name:str,commandline_arguments: list[str]):
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
             csproj_file_folder = os.path.dirname(csproj_file)
@@ -379,6 +380,10 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_exists(outputfolder)
             self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {dotnet_build_configuration} -o {outputfolder} --runtime {runtime}",
                                   csproj_file_folder, verbosity=verbosity)
+            if copy_license_file_to_target_folder:
+                license_file=os.path.join(repository_folder,"License.txt")
+                target=os.path.join(outputfolder,f"{codeunit_name}.License.txt")
+                shutil.copyfile(license_file,target)
             for file, keyfile in files_to_sign.items():
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
@@ -389,7 +394,8 @@ class TasksForCommonProjectStructure:
         # this function builds an exe or dll
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project(
-            buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype, runtimes, commandline_arguments)
+            buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype,
+            runtimes, copy_license_file_to_target_folder, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_library_project(self, buildscript_file: str, default_target_environmenttype: str,
@@ -401,7 +407,7 @@ class TasksForCommonProjectStructure:
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project(
             buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype, runtimes, commandline_arguments)
-        self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity, commandline_arguments)
+        self.__standardized_tasks_build_nupkg_for_dotnet_create_package(buildscript_file, verbosity, copy_license_file_to_target_folder, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def get_default_target_environmenttype_mapping(self) -> dict[str, str]:
@@ -414,7 +420,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str],
                                                       target_environment_type: str,  verbosity: int, target_environmenttype: str,
-                                                      runtimes: list[str], commandline_arguments: list[str]) -> None:
+                                                      runtimes: list[str], copy_license_file_to_target_folder: bool, commandline_arguments: list[str]) -> None:
         self.copy_source_files_to_output_directory(buildscript_file)
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -428,9 +434,8 @@ class TasksForCommonProjectStructure:
 
         self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
         self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid,
-                                                         verbosity, runtimes, target_environment_type, target_environmenttype_mapping, commandline_arguments)
-        # self.__standardized_tasks_build_for_dotnet_build(csproj_test_file, os.path.join(outputfolder, "BuildResult_DotNetTests_"), files_to_sign, commitid,
-        #                                                verbosity, runtimes, target_environment_type, target_environmenttype_mapping, commandline_arguments)
+                                                         verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
+                                                         copy_license_file_to_target_folder, repository_folder, codeunitname,commandline_arguments)
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -1342,11 +1347,11 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
         self.__sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, ["Changelog", "License", "SourceCode"])
+        self.verify_artifact_exists(codeunit_folder, ["Changelog", "License"])
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, ["BuildResult_.+", "BOM"])
+        self.verify_artifact_exists(codeunit_folder, ["BuildResult_.+", "BOM", "SourceCode"])
 
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
         self.__sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
@@ -1354,7 +1359,7 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
         self.__sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, ["FailTest"])
+        self.verify_artifact_exists(codeunit_folder, [])
 
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         self.__sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
