@@ -552,6 +552,10 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
                                                             target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]):
+        # TODO replace by:
+        # dotnet tool install --global dotnet-coverage
+        # dotnet-coverage collect dotnet run --output-format cobertura
+        # see https://learn.microsoft.com/en-us/dotnet/core/additional-tools/dotnet-coverage
         dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
