@@ -1143,13 +1143,12 @@ class TasksForCommonProjectStructure:
                               artifacts_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def replace_version_in_package_file(self: ScriptCollectionCore, package_json_file: str, version: str):
-        filename = package_json_file
-        with open(filename, 'r', encoding="utf-8") as f:
+    def replace_version_in_packagejson_file(self, packagejson_file: str, version: str):
+        encoding = "utf-8"
+        with open(packagejson_file, encoding=encoding) as f:
             data = json.load(f)
-            data['version'] = version
-        os.remove(filename)
-        with open(filename, 'w', encoding="utf-8") as f:
+        data['version'] = version
+        with open(packagejson_file, 'w', encoding=encoding) as f:
             json.dump(data, f, indent=2)
 
     @GeneralUtilities.check_arguments
@@ -1227,6 +1226,7 @@ class TasksForCommonProjectStructure:
         sc.program_runner = ProgramRunnerEpew()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
         sc.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity=verbosity)
+
 
     @GeneralUtilities.check_arguments
     def _internal_sort_codenits(self, codeunits=dict[str, set[str]]) -> list[str]:
