@@ -3,11 +3,9 @@ import argparse
 import time
 import traceback
 import keyboard
-
 from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
-from .Hardening import HardeningScript
 
 
 def DotNetsign() -> int:
@@ -252,15 +250,6 @@ Caution: This script can cause harm if you pass a wrong inputfolder-argument.'''
 
     args = parser.parse_args()
     ScriptCollectionCore().SCObfuscateFilesFolder(args.inputfolder, args.printtableheadline, args.namemappingfile, args.extensions)
-    return 0
-
-
-def Hardening() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--applicationstokeep', required=True)
-    parser.add_argument('--additionalfolderstoremove', required=True)
-    args = parser.parse_args()
-    HardeningScript(args.applicationstokeep, args.additionalfolderstoremove).run()
     return 0
 
 

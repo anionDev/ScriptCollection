@@ -969,15 +969,16 @@ class TasksForCommonProjectStructure:
         codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         project_version = self.get_version_of_project(repository_folder)
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
 
         # Clear previously builded artifacts if desired:
         if clear_artifacts_folder:
-            artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
+            artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
             GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]"==codeunitname in file
-        codeunitfile = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
+        codeunitfile = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
         # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
@@ -1004,14 +1005,19 @@ class TasksForCommonProjectStructure:
         self.update_version_of_codeunit(common_tasks_scripts_file, version)
 
         # set default constants
-        self.set_default_constants(os.path.join(repository_folder, codeunitname))
+        self.set_default_constants(os.path.join(codeunit_folder))
 
         # Copy changelog-file
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
         changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
-        target_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts", "Changelog")
+        target_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "Changelog")
         GeneralUtilities.ensure_directory_exists(target_folder)
         shutil.copy(changelog_file, target_folder)
+
+        # Hints-file
+        hints_file = os.path.join(codeunit_folder, "Hints.md")
+        if not os.path.isfile(hints_file):
+            raise ValueError(f"Hints-file '{hints_file}' does not exist.")
 
         # Copy license-file
         self.copy_licence_file(common_tasks_scripts_file)
@@ -1043,7 +1049,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        pass  # TODO npx @cyclonedx/bom . -o bom.json
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_node_project(self, linting_script_file: str, verbosity: int,
@@ -1080,34 +1086,34 @@ class TasksForCommonProjectStructure:
         sc.program_runner = ProgramRunnerEpew()
         sc.run_program("npm", "install", package_json_folder, verbosity=verbosity)
 
-    @GeneralUtilities. check_arguments
+    @GeneralUtilities.check_arguments
     def set_default_constants(self, codeunit_folder: str):
         self.set_constant_for_commitid(codeunit_folder)
         self.set_constant_for_commitdate(codeunit_folder)
         self.set_constant_for_commitname(codeunit_folder)
         self.set_constant_for_commitversion(codeunit_folder)
 
-    @GeneralUtilities. check_arguments
+    @GeneralUtilities.check_arguments
     def set_constant_for_commitid(self, codeunit_folder: str):
         commit_id = self.__sc.git_get_commit_id(codeunit_folder)
         self.set_constant(codeunit_folder, "CommitId", commit_id)
 
-    @GeneralUtilities. check_arguments
+    @GeneralUtilities.check_arguments
     def set_constant_for_commitdate(self, codeunit_folder: str):
         commit_date: datetime = self.__sc.git_get_commit_date(codeunit_folder)
         self.set_constant(codeunit_folder, "CommitDate", GeneralUtilities.datetime_to_string(commit_date))
 
-    @GeneralUtilities. check_arguments
+    @GeneralUtilities.check_arguments
     def set_constant_for_commitname(self, codeunit_folder: str):
         codeunit_name: str = os.path.basename(codeunit_folder)
         self.set_constant(codeunit_folder, "CodeUnitName", codeunit_name)
 
-    @GeneralUtilities. check_arguments
+    @GeneralUtilities.check_arguments
     def set_constant_for_commitversion(self, codeunit_folder: str):
         codeunit_version: str = self.get_version_of_codeunit_folder(codeunit_folder)
         self.set_constant(codeunit_folder, "CodeUnitVersion", codeunit_version)
 
-    @GeneralUtilities. check_arguments
+    @GeneralUtilities.check_arguments
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
         if documentationsummary is None:
             documentationsummary = ""
@@ -1297,18 +1303,22 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
 
     @GeneralUtilities.check_arguments
-    def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: list[str]) -> None:
+    def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
         codeunit_name: str = os.path.basename(codeunit_folder)
         artifacts_folder = os.path.join(codeunit_folder, "Other/Artifacts")
         existing_artifacts = [os.path.basename(x) for x in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder)]
-        for artifact_name_regex in artifact_name_regexes:
+        for artifact_name_regex, required in artifact_name_regexes.items():
             artifact_exists = False
             for existing_artifact in existing_artifacts:
                 pattern = re.compile(artifact_name_regex)
                 if pattern.match(existing_artifact):
                     artifact_exists = True
             if not artifact_exists:
-                raise ValueError(f"Codeunit {codeunit_name} does not contain an artifact which matches the name '{artifact_name_regex}'")
+                message = f"Codeunit {codeunit_name} does not contain an artifact which matches the name '{artifact_name_regex}'."
+                if required:
+                    raise ValueError(message)
+                else:
+                    GeneralUtilities.write_message_to_stderr(f"Warning: {message}")
 
     @GeneralUtilities.check_arguments
     def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
@@ -1363,23 +1373,23 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
         self.__sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, ["Changelog", "License"])
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, ["BuildResult_.+", "BOM", "SourceCode"])
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "SourceCode": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
         self.__sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, ["TestCoverage", "TestCoverageReport"])
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
         self.__sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, [])
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]())
 
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
         self.__sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, ["Reference"])
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         version = self.get_version_of_codeunit(codeunit_file)
