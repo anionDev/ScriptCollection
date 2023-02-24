@@ -552,25 +552,16 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
                                                             target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]):
-        # TODO replace by:
-        # dotnet tool install --global dotnet-coverage
-        # dotnet-coverage collect dotnet run --output-format cobertura
-        # see https://learn.microsoft.com/en-us/dotnet/core/additional-tools/dotnet-coverage
         dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
-        coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
-        with tempfile.TemporaryDirectory() as temp_directory:
-            self.__sc.run_program_argsasarray("dotnet", ["test", "-c", dotnet_build_configuration,
-                                                         "--verbosity", "normal", "--collect", "XPlat Code Coverage", "--results-directory", temp_directory],
-                                              os.path.join(repository_folder, codeunit_name), verbosity=verbosity)
-            temp_directory_subdir = GeneralUtilities.get_direct_folders_of_folder(temp_directory)[0]
-            test_coverage_file = GeneralUtilities.get_direct_files_of_folder(temp_directory_subdir)[0]
-            GeneralUtilities.ensure_directory_exists(coverage_file_folder)
-            GeneralUtilities.ensure_file_does_not_exist(coveragefiletarget)
-            shutil.copy(test_coverage_file, coveragefiletarget)
+        working_directory = os.path.join(repository_folder, codeunit_name, f"{codeunit_name}Tests")
+        self.__sc.run_program("dotnet-coverage", f"collect dotnet test -c {dotnet_build_configuration} --output-format cobertura " +
+                              "--output ..\\Other\\Artifacts\\TestCoverage\\Testcoverage", working_directory, verbosity=verbosity)
+        #TODO ensure that testproject is not contained in TestCoverage.xml
+        os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
