@@ -1015,7 +1015,7 @@ class TasksForCommonProjectStructure:
         shutil.copy(changelog_file, target_folder)
 
         # Hints-file
-        hints_file = os.path.join(codeunit_folder, "Hints.md")
+        hints_file = os.path.join(codeunit_folder, "Other", "Hints.md")
         if not os.path.isfile(hints_file):
             raise ValueError(f"Hints-file '{hints_file}' does not exist.")
 
@@ -1049,7 +1049,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        pass  # TODO
+        # TODO
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_node_project(self, linting_script_file: str, verbosity: int,
