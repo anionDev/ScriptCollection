@@ -1038,6 +1038,12 @@ class TasksForCommonProjectStructure:
         build_script_folder = os.path.dirname(build_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
         sc.run_program("npm", "run build", codeunit_folder, verbosity=verbosity)
+        self.standardized_tasks_build_bom_for_node_project(codeunit_folder, verbosity, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]):
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        pass  # TODO npx @cyclonedx/bom . -o bom.json
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_node_project(self, linting_script_file: str, verbosity: int,
@@ -1226,7 +1232,6 @@ class TasksForCommonProjectStructure:
         sc.program_runner = ProgramRunnerEpew()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
         sc.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity=verbosity)
-
 
     @GeneralUtilities.check_arguments
     def _internal_sort_codenits(self, codeunits=dict[str, set[str]]) -> list[str]:
