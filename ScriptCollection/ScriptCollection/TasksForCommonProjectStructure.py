@@ -556,10 +556,13 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
-        working_directory = os.path.join(repository_folder, codeunit_name, f"{codeunit_name}Tests")
-        self.__sc.run_program("dotnet-coverage", f"collect dotnet test -c {dotnet_build_configuration} --output-format cobertura " +
-                              "--output ..\\Other\\Artifacts\\TestCoverage\\Testcoverage", working_directory, verbosity=verbosity)
-        # TODO ensure that testproject is not contained in TestCoverage.xml
+        working_directory = os.path.join(repository_folder, codeunit_name)
+        runsettings_argument=""
+        runsettings_file = ".runsettings"
+        if os.path.isfile(os.path.join(working_directory, runsettings_file)):
+            runsettings_argument = f"--settings {runsettings_file} "
+        self.__sc.run_program("dotnet-coverage", f"collect dotnet test {runsettings_argument}-c {dotnet_build_configuration} --output-format cobertura " +
+                              "--output Other\\Artifacts\\TestCoverage\\Testcoverage", working_directory, verbosity=verbosity)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
