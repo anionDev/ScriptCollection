@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import shutil
 import re
-import tempfile
 import json
 import configparser
 import xmlschema
@@ -560,7 +559,7 @@ class TasksForCommonProjectStructure:
         working_directory = os.path.join(repository_folder, codeunit_name, f"{codeunit_name}Tests")
         self.__sc.run_program("dotnet-coverage", f"collect dotnet test -c {dotnet_build_configuration} --output-format cobertura " +
                               "--output ..\\Other\\Artifacts\\TestCoverage\\Testcoverage", working_directory, verbosity=verbosity)
-        #TODO ensure that testproject is not contained in TestCoverage.xml
+        # TODO ensure that testproject is not contained in TestCoverage.xml
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
