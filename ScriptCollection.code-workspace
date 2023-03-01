@@ -1,25 +1,25 @@
 {
 	"folders": [
 		{
-			"path": "./ScriptCollection",
-			"name": "ScriptCollection",
-		},
-		{
 			"path": ".",
 			"name": "Entire codeunit",
+		},
+		{
+			"path": "./ScriptCollection",
+			"name": "ScriptCollection",
 		}
 	],
 	"tasks": {
 		"version": "2.0.0",
 		"tasks": [
 			{
-				"label": "ScriptCollection: Build codeunits",
+				"label": "Build all codeunits",
 				"command": "SCBuildCodeunits",
-				"args": [
-					"--codeunitfolder",
-					"${workspaceFolder}"
-				],
+				"args": [],
 				"type": "shell",
+				"options": {
+					"cwd": "${workspaceFolder}",
+				},
 			}
 		]
 	},
