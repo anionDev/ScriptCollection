@@ -1,7 +1,10 @@
 Artifacts
 Resources/TestCoverageBadges/**
 !Resources/TestCoverageBadges/badge_shieldsio_linecoverage_blue.svg
-Reference/ReferenceContent/api/**
+Reference/ReferenceContent/API/**
+!Reference/ReferenceContent/API/index.md
 Resources/DependentCodeUnits
-Resources/Constants
-!Reference/ReferenceContent/api/index.md
+Resources/Constants/CodeUnitName.*
+Resources/Constants/CodeUnitVersion.*
+Resources/Constants/CommitDate.*
+Resources/Constants/CommitId.*

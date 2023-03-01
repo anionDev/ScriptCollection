@@ -557,7 +557,7 @@ class TasksForCommonProjectStructure:
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         working_directory = os.path.join(repository_folder, codeunit_name)
-        runsettings_argument=""
+        runsettings_argument = ""
         runsettings_file = ".runsettings"
         if os.path.isfile(os.path.join(working_directory, runsettings_file)):
             runsettings_argument = f"--settings {runsettings_file} "
@@ -968,11 +968,6 @@ class TasksForCommonProjectStructure:
         project_version = self.get_version_of_project(repository_folder)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
 
-        # Clear previously builded artifacts if desired:
-        if clear_artifacts_folder:
-            artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
-            GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
-
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]"==codeunitname in file
         codeunitfile = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
@@ -982,14 +977,35 @@ class TasksForCommonProjectStructure:
         namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
                       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunitfile)
-        codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion',  namespaces=namespaces)[0]
-        supported_codeunitspecificationversion = "1.1.0"
+
+        # Check codeunit-spcecification-version
+        codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
+        supported_codeunitspecificationversion = "1.3.0"
         if codeunit_file_version != supported_codeunitspecificationversion:
             raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
-        schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation',  namespaces=namespaces)[0]
+        schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
+        # Check developer
+        expected_authors: list[tuple[str, str]] = []
+        expected_authors_in_xml = root.xpath('//cps:codeunit/cps:developerteam/cps:developer', namespaces=namespaces)
+
+        for expected_author in expected_authors_in_xml:
+            author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
+            author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
+            expected_authors.append((author_name, author_emailaddress))
+        actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder)
+        for actual_author in actual_authors:
+            if not (actual_author) in expected_authors:
+                actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
+                raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the list of the developer-team.')
+
         # TODO implement cycle-check for dependent codeunits
+
+        # Clear previously builded artifacts if desired:
+        if clear_artifacts_folder:
+            artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
+            GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # Get artifacts from dependent codeunits
         if assume_dependent_codeunits_are_already_built:

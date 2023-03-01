@@ -198,6 +198,20 @@ class ScriptCollectionCore:
                                        repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", "").replace("\n", "").split(" ")
 
     @GeneralUtilities.check_arguments
+    def get_all_authors_and_committers_of_repository(self, repository_folder: str) -> list[tuple[str, str]]:
+        space_character = "_"
+        plain_content: list[str] = list(set([x for x in self.run_program(
+            "git", f'log --pretty=%an{space_character}%ae%n%cn{space_character}%ce', repository_folder)[1].split("\n") if len(x) > 0]))
+        result: list[tuple[str, str]] = []
+        for item in plain_content:
+            if len(re.findall(space_character, item)) == 1:
+                splitted = item.split(space_character)
+                result.append((splitted[0], splitted[1]))
+            else:
+                raise ValueError(f'Unexpected author: "{item}"')
+        return result
+
+    @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
