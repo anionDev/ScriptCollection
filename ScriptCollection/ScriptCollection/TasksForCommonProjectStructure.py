@@ -353,11 +353,11 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         codeunit_folder: str = str(Path(os.path.dirname(commontasks_script_file_of_current_file)).parent.absolute())
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(commontasks_script_file_of_current_file)).parent.absolute()))
-        csproj_folder = os.path.join(codeunit_folder, codeunitname)
-        for search_result in Path(csproj_folder).glob('**/*.tt'):
+        for search_result in Path(codeunitname).glob('**/*.tt'):
             tt_file = str(search_result)
-            relative_path_to_tt_file = str(Path(tt_file).relative_to(Path(csproj_folder)))
-            sc.run_program("t4", relative_path_to_tt_file, csproj_folder, verbosity=verbosity)
+            relative_path_to_tt_file = str(Path(tt_file).relative_to(Path(codeunitname)))
+            argument = f"--parameter=codeUnitName={codeunitname} --parameter=codeUnitFolder={codeunit_folder} {relative_path_to_tt_file}"
+            sc.run_program("t4", argument, codeunitname, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
