@@ -2,7 +2,7 @@
 	"folders": [
 		{
 			"path": ".",
-			"name": "Entire codeunit",
+			"name": "Entire repository",
 		},
 		{
 			"path": "./ScriptCollection",
