@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 import shutil
 import re
+import urllib.request
+import zipfile
 import json
 import configparser
 import xmlschema
@@ -1322,24 +1324,31 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def ensure_grylibrary_is_available(self, codeunit_folder: str):
         grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
-        grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
-        grylibrary_latest_version = self.get_version_of_codeunit_file_content(urllib.request.urlopen(grylibrary_latest_codeunit_file).read().decode("utf-8"))
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
-        if os.path.isfile(grylibrary_dll_file):
-            grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
-            grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
-            if grylibrary_existing_codeunit_version != grylibrary_latest_version:
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        if internet_connection_is_available:  # Load/Update GRYLibrary
+            grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
+            grylibrary_latest_version = self.get_version_of_codeunit_file_content(urllib.request.urlopen(grylibrary_latest_codeunit_file).read().decode("utf-8"))
+            if os.path.isfile(grylibrary_dll_file):
+                grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
+                grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
+                if grylibrary_existing_codeunit_version != grylibrary_latest_version:
+                    GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
+            if not os.path.isfile(grylibrary_dll_file):
                 GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
-        if not os.path.isfile(grylibrary_dll_file):
-            GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
-            GeneralUtilities.ensure_directory_exists(grylibrary_folder)
-            archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
-            archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
-            archive_file = os.path.join(grylibrary_folder, archive_name)
-            urllib.request.urlretrieve(archive_download_link, archive_file)
-            with zipfile.ZipFile(archive_file, 'r') as zip_ref:
-                zip_ref.extractall(grylibrary_folder)
-            GeneralUtilities.ensure_file_does_not_exist(archive_file)
+                GeneralUtilities.ensure_directory_exists(grylibrary_folder)
+                archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
+                archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
+                archive_file = os.path.join(grylibrary_folder, archive_name)
+                urllib.request.urlretrieve(archive_download_link, archive_file)
+                with zipfile.ZipFile(archive_file, 'r') as zip_ref:
+                    zip_ref.extractall(grylibrary_folder)
+                GeneralUtilities.ensure_file_does_not_exist(archive_file)
+        else:
+            if os.path.isfile(grylibrary_dll_file):
+                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary.")
+            else:
+                raise ValueError("Can not download GRYLibrary.")
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
