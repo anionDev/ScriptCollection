@@ -1326,10 +1326,12 @@ class TasksForCommonProjectStructure:
         grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        grylibrary_dll_file_exists = os.path.isfile(grylibrary_dll_file)
         if internet_connection_is_available:  # Load/Update GRYLibrary
             grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
-            grylibrary_latest_version = self.get_version_of_codeunit_file_content(urllib.request.urlopen(grylibrary_latest_codeunit_file).read().decode("utf-8"))
-            if os.path.isfile(grylibrary_dll_file):
+            with urllib.request.urlopen(grylibrary_latest_codeunit_file) as url_result:
+                grylibrary_latest_version = self.get_version_of_codeunit_file_content(url_result.read().decode("utf-8"))
+            if grylibrary_dll_file_exists:
                 grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
                 grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
                 if grylibrary_existing_codeunit_version != grylibrary_latest_version:
@@ -1345,8 +1347,8 @@ class TasksForCommonProjectStructure:
                     zip_ref.extractall(grylibrary_folder)
                 GeneralUtilities.ensure_file_does_not_exist(archive_file)
         else:
-            if os.path.isfile(grylibrary_dll_file):
-                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary.")
+            if grylibrary_dll_file_exists:
+                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary due to missing internet-connection.")
             else:
                 raise ValueError("Can not download GRYLibrary.")
 

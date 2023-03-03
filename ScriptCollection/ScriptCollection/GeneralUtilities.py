@@ -811,10 +811,11 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def internet_connection_is_available():
-        # TODO add more hosts to try
+    def internet_connection_is_available() -> bool:
+        # TODO add more hosts to check to return true if at least one is available
         try:
-            urllib.request.urlopen("https://google.com")
-            return True
+            with urllib.request.urlopen("https://google.com") as url_result:
+                return (url_result.code // 100) == 2
         except:
-            return False
+            pass
+        return False
