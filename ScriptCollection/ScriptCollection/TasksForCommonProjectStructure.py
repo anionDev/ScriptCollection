@@ -100,6 +100,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 class TasksForCommonProjectStructure:
     __sc: ScriptCollectionCore = None
     reference_latest_version_of_xsd_when_generating_xml: bool = True
+    validate_developers_of_repository: bool = True
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -993,18 +994,18 @@ class TasksForCommonProjectStructure:
         xmlschema.validate(codeunitfile, schemaLocation)
 
         # Check developer
-        expected_authors: list[tuple[str, str]] = []
-        expected_authors_in_xml = root.xpath('//cps:codeunit/cps:developerteam/cps:developer', namespaces=namespaces)
-
-        for expected_author in expected_authors_in_xml:
-            author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
-            author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
-            expected_authors.append((author_name, author_emailaddress))
-        actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder)
-        for actual_author in actual_authors:
-            if not (actual_author) in expected_authors:
-                actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
-                raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the list of the developer-team.')
+        if self.validate_developers_of_repository:
+            expected_authors: list[tuple[str, str]] = []
+            expected_authors_in_xml = root.xpath('//cps:codeunit/cps:developerteam/cps:developer', namespaces=namespaces)
+            for expected_author in expected_authors_in_xml:
+                author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
+                author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
+                expected_authors.append((author_name, author_emailaddress))
+            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunitname)
+            for actual_author in actual_authors:
+                if not (actual_author) in expected_authors:
+                    actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
+                    raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team.')
 
         # TODO implement cycle-check for dependent codeunits
 
