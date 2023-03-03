@@ -252,11 +252,15 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, repository, gpg_identity, verbosity)
 
     @GeneralUtilities.check_arguments
-    def get_version_of_codeunit(self, codeunit_file: str) -> None:
-        root: etree._ElementTree = etree.parse(codeunit_file)
+    def get_version_of_codeunit_file_content(self, codeunit_file_content: str) -> str:
+        root: etree._ElementTree = etree.fromstring(codeunit_file_content.encode("utf-8"))
         result = str(root.xpath('//cps:version/text()',
                      namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0])
         return result
+
+    @GeneralUtilities.check_arguments
+    def get_version_of_codeunit(self, codeunit_file: str) -> None:
+        return self.get_version_of_codeunit_file_content(GeneralUtilities.read_text_from_file(codeunit_file))
 
     @GeneralUtilities.check_arguments
     def get_version_of_codeunit_folder(self, codeunit_folder: str) -> None:
@@ -1314,6 +1318,28 @@ class TasksForCommonProjectStructure:
         changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
         if not os.path.isfile(changelog_file):
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+
+    @GeneralUtilities.check_arguments
+    def ensure_grylibrary_is_available(self, codeunit_folder: str):
+        grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
+        grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
+        grylibrary_latest_version = self.get_version_of_codeunit_file_content(urllib.request.urlopen(grylibrary_latest_codeunit_file).read().decode("utf-8"))
+        grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
+        if os.path.isfile(grylibrary_dll_file):
+            grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
+            grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
+            if grylibrary_existing_codeunit_version != grylibrary_latest_version:
+                GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
+        if not os.path.isfile(grylibrary_dll_file):
+            GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
+            GeneralUtilities.ensure_directory_exists(grylibrary_folder)
+            archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
+            archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
+            archive_file = os.path.join(grylibrary_folder, archive_name)
+            urllib.request.urlretrieve(archive_download_link, archive_file)
+            with zipfile.ZipFile(archive_file, 'r') as zip_ref:
+                zip_ref.extractall(grylibrary_folder)
+            GeneralUtilities.ensure_file_does_not_exist(archive_file)
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
