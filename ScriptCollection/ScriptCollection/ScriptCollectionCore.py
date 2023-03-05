@@ -27,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.61"
+version = "3.3.62"
 __version__ = version
 
 
@@ -204,7 +204,7 @@ class ScriptCollectionCore:
             subfolder_argument = ""
         else:
             subfolder_argument = f" -- {subfolder}"
-        log_result = self.run_program("git", f'log --pretty=%an{space_character}%ae%n%cn{space_character}%ce HEAD{subfolder_argument}',
+        log_result = self.run_program("git", f'log --pretty=%aN{space_character}%aE%n%cN{space_character}%cE HEAD{subfolder_argument}',
                                       repository_folder, verbosity=0)
         plain_content: list[str] = list(set([line for line in log_result[1].split("\n") if len(line) > 0]))
         result: list[tuple[str, str]] = []
