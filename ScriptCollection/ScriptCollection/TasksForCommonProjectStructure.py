@@ -100,6 +100,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 class TasksForCommonProjectStructure:
     __sc: ScriptCollectionCore = None
     reference_latest_version_of_xsd_when_generating_xml: bool = True
+    validate_developers_of_repository: bool = True
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -993,18 +994,18 @@ class TasksForCommonProjectStructure:
         xmlschema.validate(codeunitfile, schemaLocation)
 
         # Check developer
-        expected_authors: list[tuple[str, str]] = []
-        expected_authors_in_xml = root.xpath('//cps:codeunit/cps:developerteam/cps:developer', namespaces=namespaces)
-
-        for expected_author in expected_authors_in_xml:
-            author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
-            author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
-            expected_authors.append((author_name, author_emailaddress))
-        actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder)
-        for actual_author in actual_authors:
-            if not (actual_author) in expected_authors:
-                actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
-                raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the list of the developer-team.')
+        if self.validate_developers_of_repository:
+            expected_authors: list[tuple[str, str]] = []
+            expected_authors_in_xml = root.xpath('//cps:codeunit/cps:developerteam/cps:developer', namespaces=namespaces)
+            for expected_author in expected_authors_in_xml:
+                author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
+                author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
+                expected_authors.append((author_name, author_emailaddress))
+            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunitname)
+            for actual_author in actual_authors:
+                if not (actual_author) in expected_authors:
+                    actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
+                    raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team.')
 
         # TODO implement cycle-check for dependent codeunits
 
@@ -1266,17 +1267,34 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
+    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
+                       is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
+        codeunit_name = os.path.basename(codeunit_folder)
+        repository_folder = os.path.dirname(codeunit_folder)
+        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
+
+    @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                         is_pre_merge: bool = False, export_target_directory: str = None) -> None:
-        codeunits: dict[str, set[str]] = dict[str, set[str]]()
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
-        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
+        codeunits = self.get_codeunits(repository_folder)
+        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
+
+    @GeneralUtilities.check_arguments
+    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck",
+                                 additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
+        subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             if os.path.exists(codeunit_file):
-                codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-        sorted_codeunits = self._internal_sort_codenits(codeunits)
+                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
+            else:
+                raise ValueError(f"{repository_folder} does not have a codeunit with name {codeunit_name}.")
+        sorted_codeunits = self._internal_sort_codenits(codeunits_with_dependent_codeunits)
         project_version = self.get_version_of_project(repository_folder)
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
