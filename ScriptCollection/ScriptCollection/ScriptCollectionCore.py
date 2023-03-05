@@ -198,14 +198,14 @@ class ScriptCollectionCore:
                                        repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", "").replace("\n", "").split(" ")
 
     @GeneralUtilities.check_arguments
-    def get_all_authors_and_committers_of_repository(self, repository_folder: str,subfolder:str=None) -> list[tuple[str, str]]:
+    def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None, verbosity: int = 1) -> list[tuple[str, str]]:
         space_character = "_"
         if subfolder is None:
-            subfolder=""
+            subfolder = ""
         else:
-            subfolder=f" -- '{subfolder}'"
+            subfolder = f" -- {subfolder}"
         plain_content: list[str] = list(set([x for x in self.run_program(
-            "git", f'log --pretty=%an{space_character}%ae%n%cn{space_character}%ce {subfolder}', repository_folder)[1].split("\n") if len(x) > 0]))
+            "git", f'log --pretty=%an{space_character}%ae%n%cn{space_character}%ce {subfolder}', repository_folder, verbosity=verbosity)[1].split("\n") if len(x) > 0]))
         result: list[tuple[str, str]] = []
         for item in plain_content:
             if len(re.findall(space_character, item)) == 1:

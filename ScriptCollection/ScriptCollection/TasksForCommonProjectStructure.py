@@ -1001,7 +1001,7 @@ class TasksForCommonProjectStructure:
                 author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
                 author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
                 expected_authors.append((author_name, author_emailaddress))
-            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunitname)
+            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunitname, verbosity)
             for actual_author in actual_authors:
                 if not (actual_author) in expected_authors:
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
