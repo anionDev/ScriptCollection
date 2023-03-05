@@ -5,6 +5,7 @@ import hashlib
 import re
 import os
 import shutil
+import urllib
 import stat
 import secrets
 import string as strin
@@ -807,3 +808,14 @@ class GeneralUtilities:
     @check_arguments
     def certificate_is_expired(certificate_file: str) -> bool:
         return GeneralUtilities.get_certificate_expiry_date(certificate_file) < datetime.now()
+
+    @staticmethod
+    @check_arguments
+    def internet_connection_is_available() -> bool:
+        # TODO add more hosts to check to return true if at least one is available
+        try:
+            with urllib.request.urlopen("https://google.com") as url_result:
+                return (url_result.code // 100) == 2
+        except:
+            pass
+        return False

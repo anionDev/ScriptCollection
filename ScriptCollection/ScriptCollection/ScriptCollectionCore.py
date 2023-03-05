@@ -27,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.60"
+version = "3.3.61"
 __version__ = version
 
 
@@ -196,6 +196,25 @@ class ScriptCollectionCore:
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
         return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"',
                                        repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", "").replace("\n", "").split(" ")
+
+    @GeneralUtilities.check_arguments
+    def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None, verbosity: int = 1) -> list[tuple[str, str]]:
+        space_character = "_"
+        if subfolder is None:
+            subfolder_argument = ""
+        else:
+            subfolder_argument = f" -- {subfolder}"
+        log_result = self.run_program("git", f'log --pretty=%an{space_character}%ae%n%cn{space_character}%ce HEAD{subfolder_argument}',
+                                      repository_folder, verbosity=0)
+        plain_content: list[str] = list(set([line for line in log_result[1].split("\n") if len(line) > 0]))
+        result: list[tuple[str, str]] = []
+        for item in plain_content:
+            if len(re.findall(space_character, item)) == 1:
+                splitted = item.split(space_character)
+                result.append((splitted[0], splitted[1]))
+            else:
+                raise ValueError(f'Unexpected author: "{item}"')
+        return result
 
     @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
