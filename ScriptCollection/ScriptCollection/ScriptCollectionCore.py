@@ -201,11 +201,12 @@ class ScriptCollectionCore:
     def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None, verbosity: int = 1) -> list[tuple[str, str]]:
         space_character = "_"
         if subfolder is None:
-            subfolder = ""
+            subfolder_argument = ""
         else:
-            subfolder = f" -- {subfolder}"
-        plain_content: list[str] = list(set([x for x in self.run_program(
-            "git", f'log --pretty=%an{space_character}%ae%n%cn{space_character}%ce {subfolder}', repository_folder, verbosity=verbosity)[1].split("\n") if len(x) > 0]))
+            subfolder_argument = f" -- {subfolder}"
+        log_result = self.run_program("git", f'log --pretty=%an{space_character}%ae%n%cn{space_character}%ce HEAD{subfolder_argument}',
+                                      repository_folder, verbosity=0)
+        plain_content: list[str] = list(set([line for line in log_result[1].split("\n") if len(line) > 0]))
         result: list[tuple[str, str]] = []
         for item in plain_content:
             if len(re.findall(space_character, item)) == 1:

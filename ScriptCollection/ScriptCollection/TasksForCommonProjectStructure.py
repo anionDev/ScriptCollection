@@ -1482,4 +1482,4 @@ class TasksForCommonProjectStructure:
 </cps:artifactsinformation>""")
         # TODO validate artifactsinformation_file against xsd
         self.__check_whether_atifacts_exists(codeunit_folder)
-        GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name}.")
+        GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name} without errors.")
