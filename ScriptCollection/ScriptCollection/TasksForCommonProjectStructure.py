@@ -1267,17 +1267,34 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
+    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
+                       is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
+        codeunit_name = os.path.basename(codeunit_folder)
+        repository_folder = os.path.dirname(codeunit_folder)
+        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
+
+    @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                         is_pre_merge: bool = False, export_target_directory: str = None) -> None:
-        codeunits: dict[str, set[str]] = dict[str, set[str]]()
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
-        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
+        codeunits = self.get_codeunits(repository_folder)
+        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
+
+    @GeneralUtilities.check_arguments
+    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck",
+                                 additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
+        subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             if os.path.exists(codeunit_file):
-                codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-        sorted_codeunits = self._internal_sort_codenits(codeunits)
+                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
+            else:
+                raise ValueError(f"{repository_folder} does not have a codeunit with name {codeunit_name}.")
+        sorted_codeunits = self._internal_sort_codenits(codeunits_with_dependent_codeunits)
         project_version = self.get_version_of_project(repository_folder)
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
