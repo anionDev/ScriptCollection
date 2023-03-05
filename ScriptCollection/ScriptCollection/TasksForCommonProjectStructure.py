@@ -1411,7 +1411,7 @@ class TasksForCommonProjectStructure:
         additional_arguments_r: str = ""
         additional_arguments_l: str = ""
         additional_arguments_g: str = ""
-        general_argument = f'--overwrite_verbosity={str(verbosity)} --overwrite_targetenvironmenttype={target_environmenttype}'
+        general_argument = f' --overwrite_verbosity={str(verbosity)} --overwrite_targetenvironmenttype={target_environmenttype}'
 
         c_additionalargumentsfile_argument = ""
 
@@ -1428,35 +1428,35 @@ class TasksForCommonProjectStructure:
             config.read(additional_arguments_file)
             section_name = f"{codeunit_name}_Configuration"
             if config.has_option(section_name, "ArgumentsForCommonTasks"):
-                additional_arguments_c = config.get(section_name, "ArgumentsForCommonTasks")
+                additional_arguments_c = " "+config.get(section_name, "ArgumentsForCommonTasks")
             if config.has_option(section_name, "ArgumentsForBuild"):
-                additional_arguments_b = config.get(section_name, "ArgumentsForBuild")
+                additional_arguments_b = " "+config.get(section_name, "ArgumentsForBuild")
             if config.has_option(section_name, "ArgumentsForRunTestcases"):
-                additional_arguments_r = config.get(section_name, "ArgumentsForRunTestcases")
+                additional_arguments_r = " "+config.get(section_name, "ArgumentsForRunTestcases")
             if config.has_option(section_name, "ArgumentsForLinting"):
-                additional_arguments_l = config.get(section_name, "ArgumentsForLinting")
+                additional_arguments_l = " "+config.get(section_name, "ArgumentsForLinting")
             if config.has_option(section_name, "ArgumentsForGenerateReference"):
-                additional_arguments_g = config.get(section_name, "ArgumentsForGenerateReference")
-            c_additionalargumentsfile_argument = f'--overwrite_additionalargumentsfile="{additional_arguments_file}"'
+                additional_arguments_g = " "+config.get(section_name, "ArgumentsForGenerateReference")
+            c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile="{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
-        self.__sc.run_program("python", f"CommonTasks.py {additional_arguments_c} {general_argument} {c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
-        self.__sc.run_program("python", f"Build.py {additional_arguments_b} {general_argument}",  build_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",  build_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "SourceCode": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
-        self.__sc.run_program("python", f"RunTestcases.py {additional_arguments_r} {general_argument}", quality_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
-        self.__sc.run_program("python", f"Linting.py {additional_arguments_l} {general_argument}", quality_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]())
 
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
-        self.__sc.run_program("python", f"GenerateReference.py {additional_arguments_g} {general_argument}", reference_folder, verbosity=verbosity)
+        self.__sc.run_program("python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
