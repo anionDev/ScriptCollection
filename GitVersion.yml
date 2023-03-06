@@ -6,32 +6,27 @@ minor-version-bump-message: '\+semver:\s?(minor)'
 patch-version-bump-message: '\+semver:\s?(patch)'
 branches:
   main:
-    regex: main
+    regex: ^main$
     increment: Patch
     mode: ContinuousDelivery
     source-branches: ['main']
   stable:
-    regex: stable
+    regex: ^stable$
     increment: Patch
     mode: ContinuousDelivery
     source-branches: ['main']
   feature:
-    regex: ^feature\/\S+
+    regex: ^feature\/\S+$
     increment: Minor
     mode: ContinuousDelivery
     source-branches: ['main']
   bug:
-    regex: ^bug\/\S+
-    increment: Patch
-    mode: ContinuousDelivery
-    source-branches: ['main']
-  codequality:
-    regex: ^codequality\/\S+
+    regex: ^bug\/\S+$
     increment: Patch
     mode: ContinuousDelivery
     source-branches: ['main']
   other:
-    regex: ^other\/\S+
+    regex: ^other\/\S+$
     increment: Patch
     mode: ContinuousDelivery
     source-branches: ['main']
