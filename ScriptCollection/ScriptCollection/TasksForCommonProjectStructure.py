@@ -145,12 +145,13 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
+        # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         threshold_in_percent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
         minimalrequiredtestcoverageinpercent = threshold_in_percent
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
-            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
+            raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
     def replace_version_in_python_file(self, file: str, new_version_value: str):
