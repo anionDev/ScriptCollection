@@ -61,7 +61,7 @@ Further installation-instructions are on the [official website](https://cli.gith
 ### gitversion
 
 [gitversion](https://gitversion.net) is a tool to calculate the project-version based on the git-history.
-The commandline-tool can be installed using `choco install gitversion.portable`.
+The commandline-tool can be installed using `choco install gitversion.portable` in a shell with elevated privileges.
 
 ### nuget
 
