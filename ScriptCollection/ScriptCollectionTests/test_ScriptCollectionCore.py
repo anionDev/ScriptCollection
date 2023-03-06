@@ -14,6 +14,33 @@ class ScriptCollectionCoreTests(unittest.TestCase):
     encoding = "utf-8"
     testfileprefix = "testfile_"
 
+    def test_export_filemetadata(self) -> None:
+        # arrange
+        try:
+            sc = ScriptCollectionCore()
+            tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
+            GeneralUtilities.ensure_directory_exists(tests_folder)
+            target_file = os.path.join(tests_folder, "test.csv")
+            assert not os.path.isfile(target_file)
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            folder_for_export = GeneralUtilities.resolve_relative_path("..", dir_path)
+
+            # act
+            sc.export_filemetadata(folder_for_export, target_file)
+
+            # assert
+            assert os.path.isfile(target_file)
+            # TODO add more assertions
+        finally:
+            GeneralUtilities.ensure_file_does_not_exist(target_file)
+
+    def test_git_commit_is_ancestor(self) -> None:
+        sc = ScriptCollectionCore()
+        folder_of_this_file = os.path.dirname(__file__)
+        repository = GeneralUtilities.resolve_relative_path("..\\..", folder_of_this_file)
+        assert sc.git_commit_is_ancestor(repository, "d64bc41f9d818d665993758fcdf38477e7086c3f", "c5f8e93bd6f237297d8a75faba8ff5aa6eeb5c08") == True
+        assert sc.git_commit_is_ancestor(repository, "c5f8e93bd6f237297d8a75faba8ff5aa6eeb5c08", "d64bc41f9d818d665993758fcdf38477e7086c3f") == False
+
     def test_rename_git_repositories(self) -> None:
         # arrange
         folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
@@ -402,25 +429,5 @@ class ScriptCollectionCoreTests(unittest.TestCase):
 
         # assert
         assert exit_code == 0
-
-    def test_export_filemetadata(self) -> None:
-        # arrange
-        try:
-            sc = ScriptCollectionCore()
-            tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
-            GeneralUtilities.ensure_directory_exists(tests_folder)
-            target_file = os.path.join(tests_folder, "test.csv")
-            assert not os.path.isfile(target_file)
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            folder_for_export = GeneralUtilities.resolve_relative_path("..", dir_path)
-
-            # act
-            sc.export_filemetadata(folder_for_export, target_file)
-
-            # assert
-            assert os.path.isfile(target_file)
-            # TODO add more assertions
-        finally:
-            GeneralUtilities.ensure_file_does_not_exist(target_file)
 
 # TODO all testcases should be independent of epew

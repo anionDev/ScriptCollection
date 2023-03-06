@@ -233,7 +233,14 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        return self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0] == 0
+        exit_code = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant],
+                                                 repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0]
+        if exit_code == 0:
+            return True
+        elif exit_code == 1:
+            return False
+        else:
+            raise ValueError(f"Can not calculate if {ancestor} is an ancestor of {descendant} in repository {repository_folder}.")
 
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
@@ -409,6 +416,10 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
+    def git_delete_tag(self, directory: str, tag: str) -> None:
+        self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+
+    @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str) -> None:
         self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
@@ -475,6 +486,43 @@ class ScriptCollectionCore:
     def git_get_current_branch_name(self, repository: str) -> str:
         result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace("\r", "").replace("\n", "")
+
+    @GeneralUtilities.check_arguments
+    def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
+        result = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
+        result = result[1].replace("\r", "").replace("\n", "")
+        return result
+
+    @GeneralUtilities.check_arguments
+    def git_get_tags(self, repository: str) -> list[str]:
+        tags = [line for line in self.run_program_argsasarray("git", ["tag"], repository)[1].split("\n") if len(line) > 0]
+        return tags
+
+    @GeneralUtilities.check_arguments
+    def git_move_tags_to_another_branch(self, repository: str, tag_source_branch: str, tag_target_branch: str,
+                                        sign: bool = False, message: str = None) -> None:
+        tags = self.git_get_tags(repository)
+        tags_count = len(tags)
+        counter = 0
+        for tag in tags:
+            counter = counter+1
+            GeneralUtilities.write_message_to_stdout(f"Process tag {counter}/{tags_count}.")
+            if self.git_commit_is_ancestor(repository, tag, tag_source_branch):  # tag is on source-branch
+                try:
+                    commit_id_old = self.git_get_commitid_of_tag(repository, tag)
+                    commit_date: datetime = self.git_get_commit_date(repository, commit_id_old)
+                    date_as_string = self.__datetime_to_string_for_git(commit_date)
+                    search_commit_result = self.run_program_argsasarray("git", ["log", f'--after="{date_as_string}"', f'--before="{date_as_string}"',
+                                                                                "--pretty=format:%H", tag_target_branch], repository,
+                                                                        throw_exception_if_exitcode_is_not_zero=False)
+                    if search_commit_result[0] != 0 or not GeneralUtilities.string_has_nonwhitespace_content(search_commit_result[1]):
+                        raise ValueError(f"Can not calculate corresponding commit for tag '{tag}'.")
+                    commit_id_new = search_commit_result[1]
+                    self.git_delete_tag(repository, tag)
+                    self.git_create_tag(repository, commit_id_new, tag, sign, message)
+                    i = 3
+                except Exception as e:
+                    i = 4
 
     @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
