@@ -1469,14 +1469,14 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
         result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
-        repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
-        if repository_has_uncommitted_changes:
-            if self.get_current_branch_has_tag(repository_folder):
-                tag_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
-                current_commit = self.git_get_commit_id(repository_folder)
-                current_commit_is_on_latest_tag = tag_of_latest_tag == current_commit
-                if current_commit_is_on_latest_tag:
-                    result = self.increment_version(result, False, False, True)
+        #repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
+        #if repository_has_uncommitted_changes:
+        #    if self.get_current_branch_has_tag(repository_folder):
+        #        tag_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
+        #        current_commit = self.git_get_commit_id(repository_folder)
+        #        current_commit_is_on_latest_tag = tag_of_latest_tag == current_commit
+        #        if current_commit_is_on_latest_tag:
+        #            result = self.increment_version(result, False, False, True)
         return result
 
     @GeneralUtilities.check_arguments
