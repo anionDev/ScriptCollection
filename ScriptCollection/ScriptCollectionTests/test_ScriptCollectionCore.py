@@ -38,8 +38,8 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         sc = ScriptCollectionCore()
         folder_of_this_file = os.path.dirname(__file__)
         repository = GeneralUtilities.resolve_relative_path("..\\..", folder_of_this_file)
-        assert sc.git_commit_is_ancestor(repository, "d64bc41f9d818d665993758fcdf38477e7086c3f", "c5f8e93bd6f237297d8a75faba8ff5aa6eeb5c08") == True
-        assert sc.git_commit_is_ancestor(repository, "c5f8e93bd6f237297d8a75faba8ff5aa6eeb5c08", "d64bc41f9d818d665993758fcdf38477e7086c3f") == False
+        assert sc.git_commit_is_ancestor(repository, "d64bc41f9d818d665993758fcdf38477e7086c3f", "c5f8e93bd6f237297d8a75faba8ff5aa6eeb5c08")
+        assert not sc.git_commit_is_ancestor(repository, "c5f8e93bd6f237297d8a75faba8ff5aa6eeb5c08", "d64bc41f9d818d665993758fcdf38477e7086c3f")
 
     def test_rename_git_repositories(self) -> None:
         # arrange

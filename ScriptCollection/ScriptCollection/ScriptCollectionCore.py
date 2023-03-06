@@ -27,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.61"
+version = "3.3.62"
 __version__ = version
 
 
@@ -489,8 +489,8 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
-        result = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
-        result = result[1].replace("\r", "").replace("\n", "")
+        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
+        result = stdout[1].replace("\r", "").replace("\n", "")
         return result
 
     @GeneralUtilities.check_arguments
@@ -508,21 +508,28 @@ class ScriptCollectionCore:
             counter = counter+1
             GeneralUtilities.write_message_to_stdout(f"Process tag {counter}/{tags_count}.")
             if self.git_commit_is_ancestor(repository, tag, tag_source_branch):  # tag is on source-branch
-                try:
-                    commit_id_old = self.git_get_commitid_of_tag(repository, tag)
-                    commit_date: datetime = self.git_get_commit_date(repository, commit_id_old)
-                    date_as_string = self.__datetime_to_string_for_git(commit_date)
-                    search_commit_result = self.run_program_argsasarray("git", ["log", f'--after="{date_as_string}"', f'--before="{date_as_string}"',
-                                                                                "--pretty=format:%H", tag_target_branch], repository,
-                                                                        throw_exception_if_exitcode_is_not_zero=False)
-                    if search_commit_result[0] != 0 or not GeneralUtilities.string_has_nonwhitespace_content(search_commit_result[1]):
-                        raise ValueError(f"Can not calculate corresponding commit for tag '{tag}'.")
-                    commit_id_new = search_commit_result[1]
-                    self.git_delete_tag(repository, tag)
-                    self.git_create_tag(repository, commit_id_new, tag, sign, message)
-                    i = 3
-                except Exception as e:
-                    i = 4
+                commit_id_old = self.git_get_commitid_of_tag(repository, tag)
+                commit_date: datetime = self.git_get_commit_date(repository, commit_id_old)
+                date_as_string = self.__datetime_to_string_for_git(commit_date)
+                search_commit_result = self.run_program_argsasarray("git", ["log", f'--after="{date_as_string}"', f'--before="{date_as_string}"',
+                                                                            "--pretty=format:%H", tag_target_branch], repository,
+                                                                    throw_exception_if_exitcode_is_not_zero=False)
+                if search_commit_result[0] != 0 or not GeneralUtilities.string_has_nonwhitespace_content(search_commit_result[1]):
+                    raise ValueError(f"Can not calculate corresponding commit for tag '{tag}'.")
+                commit_id_new = search_commit_result[1]
+                self.git_delete_tag(repository, tag)
+                self.git_create_tag(repository, commit_id_new, tag, sign, message)
+
+    @GeneralUtilities.check_arguments
+    def get_current_branch_has_tag(self, repository_folder: str) -> str:
+        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
+        return result[0] == 0
+
+    @GeneralUtilities.check_arguments
+    def get_latest_tag(self, repository_folder: str) -> str:
+        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
+        result = result[1].replace("\r", "").replace("\n", "")
+        return result
 
     @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
@@ -1445,8 +1452,32 @@ class ScriptCollectionCore:
         return timedelta(hours=0, minutes=0, seconds=3)
 
     @GeneralUtilities.check_arguments
-    def get_semver_version_from_gitversion(self, folder: str) -> str:
-        return self.get_version_from_gitversion(folder, "MajorMinorPatch")
+    def increment_version(self, input_version: str, increment_major: bool, increment_minor: bool, increment_patch: bool) -> str:
+        splitted = input_version.split(".")
+        GeneralUtilities.assert_condition(len(splitted) == 3, f"Version '{input_version}' does not have the 'major.minor.patch'-pattern.")
+        major = int(splitted[0])
+        minor = int(splitted[1])
+        patch = int(splitted[2])
+        if increment_major:
+            major = major+1
+        if increment_minor:
+            minor = minor+1
+        if increment_patch:
+            patch = patch+1
+        return f"{major}.{minor}.{patch}"
+
+    @GeneralUtilities.check_arguments
+    def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
+        result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
+        repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
+        if repository_has_uncommitted_changes:
+            if self.get_current_branch_has_tag(repository_folder):
+                tag_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
+                current_commit = self.git_get_commit_id(repository_folder)
+                current_commit_is_on_latest_tag = tag_of_latest_tag == current_commit
+                if current_commit_is_on_latest_tag:
+                    result = self.increment_version(result, False, False, True)
+        return result
 
     @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
