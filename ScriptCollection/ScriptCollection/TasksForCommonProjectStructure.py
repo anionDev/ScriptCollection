@@ -358,13 +358,14 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int):
         sc = ScriptCollectionCore()
-        codeunit_folder: str = str(Path(os.path.dirname(commontasks_script_file_of_current_file)).parent.absolute())
-        codeunitname: str = os.path.basename(str(Path(os.path.dirname(commontasks_script_file_of_current_file)).parent.absolute()))
-        for search_result in Path(codeunitname).glob('**/*.tt'):
+        codeunit_folder = GeneralUtilities.resolve_relative_path("..", commontasks_script_file_of_current_file)
+        repository_folder: str = os.path.dirname(codeunit_folder)
+        codeunitname: str = os.path.basename(codeunit_folder)
+        for search_result in Path(codeunit_folder).glob('**/*.tt'):
             tt_file = str(search_result)
             relative_path_to_tt_file = str(Path(tt_file).relative_to(Path(codeunitname)))
-            argument = f"--parameter=codeUnitName={codeunitname} --parameter=codeUnitFolder={codeunit_folder} {relative_path_to_tt_file}"
-            sc.run_program("t4", argument, codeunitname, verbosity=verbosity)
+            argument = f"--parameter=repositoryFolder={repository_folder} --parameter=codeUnitName={codeunitname} {relative_path_to_tt_file}"
+            sc.run_program("t4", argument, codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
