@@ -422,6 +422,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str) -> None:
         self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["submodule", "update", "--recursive"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
