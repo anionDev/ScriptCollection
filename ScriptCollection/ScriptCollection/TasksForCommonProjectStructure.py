@@ -101,6 +101,7 @@ class TasksForCommonProjectStructure:
     __sc: ScriptCollectionCore = None
     reference_latest_version_of_xsd_when_generating_xml: bool = True
     validate_developers_of_repository: bool = True
+    dotnet_runsettings_file = "runsettings.xml"
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -566,11 +567,11 @@ class TasksForCommonProjectStructure:
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         working_directory = os.path.join(repository_folder, codeunit_name)
         runsettings_argument = ""
-        runsettings_file = ".runsettings"
+        runsettings_file = self.dotnet_runsettings_file
         if os.path.isfile(os.path.join(working_directory, runsettings_file)):
             runsettings_argument = f"--settings {runsettings_file} "
-        self.__sc.run_program("dotnet-coverage", f"collect dotnet test {runsettings_argument}-c {dotnet_build_configuration} --output-format cobertura " +
-                              "--output Other\\Artifacts\\TestCoverage\\Testcoverage", working_directory, verbosity=verbosity)
+        arg = f"collect dotnet test {runsettings_argument}-c {dotnet_build_configuration} --output-format cobertura --output Other\\Artifacts\\TestCoverage\\Testcoverage"
+        self.__sc.run_program("dotnet-coverage", arg, working_directory, verbosity=verbosity)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
