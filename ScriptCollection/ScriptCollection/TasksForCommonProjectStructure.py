@@ -1007,7 +1007,10 @@ class TasksForCommonProjectStructure:
             for actual_author in actual_authors:
                 if not (actual_author) in expected_authors:
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
-                    raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team.')
+                    raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team. If {actual_author} is a '
+                                     + 'authorized developer for this codeunit you should consider defining this in the codeunit-file or adapting the name using a '
+                                     + '.mailmap-file (see https://git-scm.com/docs/gitmailmap). The developer-team-check can also be disabled using '
+                                     + 'the property validate_developers_of_repository.')
 
         # TODO implement cycle-check for dependent codeunits
 
