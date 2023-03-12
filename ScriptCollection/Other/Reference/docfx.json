@@ -10,18 +10,11 @@
         ],
         "src":"./ReferenceContent"
       },
-      {
-       "files": [
-          "**.yml"
-        ],
-        "src":"./ReferenceContent/api",
-        "dest":"../Artifacts/Reference/api"
-      }
     ],
     "resource": [
       {
         "files": [
-          "images/**"
+          "Images/**"
         ],
         "src":"./ReferenceContent"
       }

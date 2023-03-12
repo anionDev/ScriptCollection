@@ -101,6 +101,7 @@ class TasksForCommonProjectStructure:
     __sc: ScriptCollectionCore = None
     reference_latest_version_of_xsd_when_generating_xml: bool = True
     validate_developers_of_repository: bool = True
+    dotnet_runsettings_file = "runsettings.xml"
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -145,12 +146,13 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
+        # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         threshold_in_percent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
         minimalrequiredtestcoverageinpercent = threshold_in_percent
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
-            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
+            raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
     def replace_version_in_python_file(self, file: str, new_version_value: str):
@@ -566,11 +568,11 @@ class TasksForCommonProjectStructure:
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         working_directory = os.path.join(repository_folder, codeunit_name)
         runsettings_argument = ""
-        runsettings_file = ".runsettings"
+        runsettings_file = self.dotnet_runsettings_file
         if os.path.isfile(os.path.join(working_directory, runsettings_file)):
             runsettings_argument = f"--settings {runsettings_file} "
-        self.__sc.run_program("dotnet-coverage", f"collect dotnet test {runsettings_argument}-c {dotnet_build_configuration} --output-format cobertura " +
-                              "--output Other\\Artifacts\\TestCoverage\\Testcoverage", working_directory, verbosity=verbosity)
+        arg = f"collect dotnet test {runsettings_argument}-c {dotnet_build_configuration} --output-format cobertura --output Other\\Artifacts\\TestCoverage\\Testcoverage"
+        self.__sc.run_program("dotnet-coverage", arg, working_directory, verbosity=verbosity)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
@@ -1006,7 +1008,10 @@ class TasksForCommonProjectStructure:
             for actual_author in actual_authors:
                 if not (actual_author) in expected_authors:
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
-                    raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team.')
+                    raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team. If {actual_author} is a '
+                                     + 'authorized developer for this codeunit you should consider defining this in the codeunit-file or adapting the name using a '
+                                     + '.mailmap-file (see https://git-scm.com/docs/gitmailmap). The developer-team-check can also be disabled using '
+                                     + 'the property validate_developers_of_repository.')
 
         # TODO implement cycle-check for dependent codeunits
 
