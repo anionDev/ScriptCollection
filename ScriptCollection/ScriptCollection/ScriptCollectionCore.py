@@ -1,7 +1,6 @@
 from datetime import timedelta, datetime
 import binascii
 import filecmp
-import sys
 import hashlib
 from io import BytesIO
 import itertools
@@ -27,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.67"
+version = "3.3.68"
 __version__ = version
 
 
@@ -1239,11 +1238,23 @@ class ScriptCollectionCore:
                                                               timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         pid = process.pid
 
-        if program_manages_output_itself:
-            for c in iter(lambda: process.stdout.read(1), b""):
-                sys.stdout.buffer.write(c)
-            for c in iter(lambda: process.stderr.read(1), b""):
-                sys.stderr.buffer.write(c)
+        if program_manages_logging_itself:
+            stdout_readable = process.stdout.readable()
+            stderr_readable = process.stderr.readable()
+            while stdout_readable or stderr_readable:
+
+                if stdout_readable:
+                    stdout_line = GeneralUtilities.bytes_to_string(process.stdout.readline()).strip()
+                    if (len(stdout_line)) > 0:
+                        GeneralUtilities.write_message_to_stdout(stdout_line)
+
+                if stderr_readable:
+                    stderr_line = GeneralUtilities.bytes_to_string(process.stderr.readline()).strip()
+                    if (len(stderr_line)) > 0:
+                        GeneralUtilities.write_message_to_stderr(stderr_line)
+
+                stdout_readable = process.stdout.readable()
+                stderr_readable = process.stderr.readable()
 
         stdout, stderr = process.communicate()
         exit_code = process.wait()
@@ -1470,8 +1481,8 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
         result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
-        #repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
-        #if repository_has_uncommitted_changes:
+        # repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
+        # if repository_has_uncommitted_changes:
         #    if self.get_current_branch_has_tag(repository_folder):
         #        tag_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
         #        current_commit = self.git_get_commit_id(repository_folder)
