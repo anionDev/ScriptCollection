@@ -1245,7 +1245,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
-    def run_dockerfile_example(self, current_file: str, verbosity: int = 3, remove_old_container: bool = False, commandline_arguments: list[str] = []):
+    def run_dockerfile_example(self, current_file: str, verbosity: int = 3, remove_old_container: bool = False, remove_volumes_folder: bool = False, commandline_arguments: list[str] = []):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         folder = os.path.dirname(current_file)
         example_name = os.path.basename(folder)
@@ -1258,6 +1258,10 @@ class TasksForCommonProjectStructure:
         if remove_old_container:
             GeneralUtilities.write_message_to_stdout(f"Ensure container {codeunit_name_lower} does not exist...")
             sc.run_program("docker", f"container rm -f {codeunit_name_lower}", oci_image_artifacts_folder, verbosity=verbosity)
+        if remove_volumes_folder:
+            volumes_folder = os.path.join(folder, "Volumes")
+            GeneralUtilities.write_message_to_stdout(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
+            GeneralUtilities.ensure_directory_does_not_exist(volumes_folder)
         GeneralUtilities.write_message_to_stdout("Load docker-image...")
         sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         project_name = f"{codeunit_name}_{example_name}".lower()

@@ -1,7 +1,6 @@
 from datetime import timedelta, datetime
 import binascii
 import filecmp
-import sys
 import hashlib
 from io import BytesIO
 import itertools
@@ -27,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.67"
+version = "3.3.68"
 __version__ = version
 
 
