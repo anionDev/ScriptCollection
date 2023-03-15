@@ -1295,10 +1295,10 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck",
                                  additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None) -> None:
-        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
         subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
+        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
@@ -1324,7 +1324,7 @@ class TasksForCommonProjectStructure:
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
             GeneralUtilities.write_message_to_stdout(line)
         if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder):
-            GeneralUtilities.write_message_to_stdout(f"The repository has new uncommitted changes.")
+            GeneralUtilities.write_message_to_stdout("The repository has new uncommitted changes.")
         if export_target_directory is not None:
             project_name = os.path.basename(repository_folder)
             for codeunit in sorted_codeunits:
