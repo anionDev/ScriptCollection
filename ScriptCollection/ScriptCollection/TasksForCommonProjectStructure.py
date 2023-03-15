@@ -1241,7 +1241,7 @@ class TasksForCommonProjectStructure:
             docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
             if os.path.isfile(docker_compose_file):
                 filecontent = GeneralUtilities.read_text_from_file(docker_compose_file)
-                replaced = re.sub(f'image:\\s+{codeunit_name_lower}:\\d+\\.\\d+\\.\\d+', f"image: '{codeunit_name_lower}:{codeunit_version}'", filecontent)
+                replaced = re.sub(f'image:\\s+{codeunit_name_lower}:\\d+\\.\\d+\\.\\d+', f"image: {codeunit_name_lower}:{codeunit_version}", filecontent)
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
