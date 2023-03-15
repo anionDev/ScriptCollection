@@ -26,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.68"
+version = "3.3.69"
 __version__ = version
 
 
@@ -1231,14 +1231,14 @@ class ScriptCollectionCore:
             info_for_log = title
 
         epew_will_be_used = isinstance(self.program_runner, ProgramRunnerEpew)
+        program_manages_output_itself = epew_will_be_used and False  # TODO fix stdout-/stderr-reading-block below
         program_manages_logging_itself = epew_will_be_used
-        program_manages_output_itself = epew_will_be_used
 
         process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,
                                                               timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         pid = process.pid
 
-        if program_manages_logging_itself:
+        if program_manages_output_itself:
             stdout_readable = process.stdout.readable()
             stderr_readable = process.stderr.readable()
             while stdout_readable or stderr_readable:
