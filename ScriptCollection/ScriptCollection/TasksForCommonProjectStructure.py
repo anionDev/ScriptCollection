@@ -771,6 +771,9 @@ class TasksForCommonProjectStructure:
         mergeInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder,
                                                                                          createRelease_configuration.additional_arguments_file,
                                                                                          createRelease_configuration.artifacts_folder)
+
+        # TODO check if repository_folder-merge-source-branch and repository_folder-merge-target-branch have different commits and that the current checked out branch has no uncommitted changes
+
         mergeInformation.verbosity = createRelease_configuration.verbosity
         mergeInformation.push_target_branch = createRelease_configuration.remotename is not None
         mergeInformation.push_target_branch_remote_name = createRelease_configuration.remotename
