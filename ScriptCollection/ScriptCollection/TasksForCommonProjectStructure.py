@@ -360,12 +360,13 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int):
         sc = ScriptCollectionCore()
-        codeunit_folder = GeneralUtilities.resolve_relative_path("..", commontasks_script_file_of_current_file)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", commontasks_script_file_of_current_file)
         repository_folder: str = os.path.dirname(codeunit_folder)
         codeunitname: str = os.path.basename(codeunit_folder)
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
         for search_result in Path(codeunit_folder).glob('**/*.tt'):
             tt_file = str(search_result)
-            relative_path_to_tt_file = str(Path(tt_file).relative_to(Path(codeunitname)))
+            relative_path_to_tt_file = str(Path(tt_file).relative_to(codeunit_folder))
             argument = f"--parameter=repositoryFolder={repository_folder} --parameter=codeUnitName={codeunitname} {relative_path_to_tt_file}"
             sc.run_program("t4", argument, codeunit_folder, verbosity=verbosity)
 
