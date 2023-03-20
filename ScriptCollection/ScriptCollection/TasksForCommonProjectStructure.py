@@ -1326,7 +1326,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout(line)
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
             GeneralUtilities.write_message_to_stdout(line)
-        if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+        if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder) and not is_pre_merge:
             message = "Due to the build-process the repository has new uncommitted changes."
             if target_environmenttype == "Development":
                 GeneralUtilities.write_message_to_stdout(message)
