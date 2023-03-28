@@ -498,6 +498,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}.")
         src_folder = os.path.join(repository_folder, codeunitname, codeunitname)
         tests_folder = src_folder+"Tests"
+        # TODO check if there are errors in sarif-file
         for file in GeneralUtilities.get_all_files_of_folder(src_folder)+GeneralUtilities.get_all_files_of_folder(tests_folder):
             relative_file_path_in_repository = os.path.relpath(file, repository_folder)
             if file.endswith(".py") and os.path.getsize(file) > 0 and not self.__sc.file_is_git_ignored(relative_file_path_in_repository, repository_folder):
@@ -599,7 +600,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_dotnet_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
-        # TODO implement function
+        # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
@@ -948,7 +949,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_docker_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
-        # TODO
+        # TODO check if there are errors in sarif-file
 
     def copy_licence_file(self, common_tasks_scripts_file: str):
         folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
@@ -1091,6 +1092,7 @@ class TasksForCommonProjectStructure:
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
         sc.run_program("npm", "run lint", codeunit_folder, verbosity=verbosity)
+        # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_node_project(self, runtestcases_script_file: str,
@@ -1467,7 +1469,7 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",  build_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "SourceCode": True}))
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
         self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity)
