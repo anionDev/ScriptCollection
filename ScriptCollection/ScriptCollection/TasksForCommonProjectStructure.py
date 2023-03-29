@@ -460,10 +460,13 @@ class TasksForCommonProjectStructure:
         commitid = self.__sc.git_get_commit_id(repository_folder)
         outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts", os.path.dirname(buildscript_file))
         codeunit_folder = os.path.join(repository_folder, codeunitname)
-        csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
-        # csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
+        csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname + ".csproj")
+        csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
 
         self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid,
+                                                         verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
+                                                         copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_test_file,  os.path.join(outputfolder, "BuildResultTests_DotNet_"), files_to_sign, commitid,
                                                          verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
                                                          copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
 
