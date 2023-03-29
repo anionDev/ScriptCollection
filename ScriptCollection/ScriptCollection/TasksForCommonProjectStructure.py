@@ -410,12 +410,12 @@ class TasksForCommonProjectStructure:
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
             sarif_filename = f"{csproj_file_name_without_extension}.sarif"
-            sarif_source_file = os.path.join(codeunit_folder, "Other", sarif_filename)
+            sarif_source_file = os.path.join(codeunit_folder, "Other","Resources", sarif_filename)
             if os.path.exists(sarif_source_file):
                 sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
-                GeneralUtilities.ensure_directory_does_not_exist(sarif_folder)
                 GeneralUtilities.ensure_directory_exists(sarif_folder)
                 sarif_target_file = os.path.join(sarif_folder, sarif_filename)
+                GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
                 shutil.copyfile(sarif_source_file, sarif_target_file)
 
     @GeneralUtilities.check_arguments
@@ -463,7 +463,6 @@ class TasksForCommonProjectStructure:
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname + ".csproj")
         csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
-
         self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid,
                                                          verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
                                                          copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
