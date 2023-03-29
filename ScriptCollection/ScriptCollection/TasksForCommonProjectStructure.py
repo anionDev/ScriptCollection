@@ -389,15 +389,16 @@ class TasksForCommonProjectStructure:
                                                     copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]):
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
             csproj_file_folder = os.path.dirname(csproj_file)
             csproj_file_name = os.path.basename(csproj_file)
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
-            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "bin"))
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "obj"))
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
             GeneralUtilities.ensure_directory_exists(outputfolder)
+            self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
             self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {dotnet_build_configuration} -o {outputfolder} --runtime {runtime}",
                                   csproj_file_folder, verbosity=verbosity)
             if copy_license_file_to_target_folder:
@@ -406,6 +407,15 @@ class TasksForCommonProjectStructure:
                 shutil.copyfile(license_file, target)
             for file, keyfile in files_to_sign.items():
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
+
+            sarif_filename = f"{codeunit_name}.sarif"
+            sarif_source_file = os.path.join(codeunit_folder, "Other", sarif_filename)
+            if os.path.exists(sarif_source_file):
+                sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
+                GeneralUtilities.ensure_directory_does_not_exist(sarif_folder)
+                GeneralUtilities.ensure_directory_exists(sarif_folder)
+                sarif_target_file = os.path.join(sarif_folder, sarif_filename)
+                shutil.copyfile(sarif_source_file, sarif_target_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str,
@@ -453,10 +463,10 @@ class TasksForCommonProjectStructure:
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
         # csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
 
-        self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
         self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid,
                                                          verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
                                                          copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
+
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
