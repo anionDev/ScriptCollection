@@ -390,10 +390,11 @@ class TasksForCommonProjectStructure:
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        csproj_file_folder = os.path.dirname(csproj_file)
+        csproj_file_name = os.path.basename(csproj_file)
+        csproj_file_name_without_extension = csproj_file_name.split(".")[0]
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
-            csproj_file_folder = os.path.dirname(csproj_file)
-            csproj_file_name = os.path.basename(csproj_file)
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "obj"))
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
@@ -408,7 +409,7 @@ class TasksForCommonProjectStructure:
             for file, keyfile in files_to_sign.items():
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
-            sarif_filename = f"{codeunit_name}.sarif"
+            sarif_filename = f"{csproj_file_name_without_extension}.sarif"
             sarif_source_file = os.path.join(codeunit_folder, "Other", sarif_filename)
             if os.path.exists(sarif_source_file):
                 sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
