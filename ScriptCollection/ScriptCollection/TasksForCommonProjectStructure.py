@@ -417,6 +417,7 @@ class TasksForCommonProjectStructure:
                 sarif_target_file = os.path.join(sarif_folder, sarif_filename)
                 GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
                 shutil.copyfile(sarif_source_file, sarif_target_file)
+                GeneralUtilities.ensure_file_does_not_exist(sarif_source_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str,
