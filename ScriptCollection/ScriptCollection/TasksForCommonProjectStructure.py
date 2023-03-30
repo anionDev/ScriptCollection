@@ -384,6 +384,154 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docfx", "docfx.json", folder_of_current_file, verbosity=verbosity)
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
+    def standardized_task_verify_standard_format_csproj_files(self, repository_folder: str, codeunit_name: str) -> bool:
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        message = " does not match the standardized .csproj-file-format."
+
+        project_name = codeunit_name
+        csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
+        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file):
+            raise ValueError(csproj_file+message)
+
+        testproject_name = project_name+"Tests"
+        test_csproj_file = os.path.join(codeunit_folder, testproject_name, testproject_name+".csproj")
+        if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file):
+            raise ValueError(test_csproj_file+message)
+
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str) -> bool:
+        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+\\W*<PropertyGroup>
+\\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
+\\W*	<Authors>([^<]+)<\\/Authors>
+\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
+\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
+\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<SelfContained>false<\\/SelfContained>
+\\W*	<IsPackable>false<\\/IsPackable>
+\\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
+\\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+\\W*	<Copyright>([^<]+)<\\/Copyright>
+\\W*	<Description>([^<]+)<\\/Description>
+\\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)<\\/RepositoryUrl>
+\\W*	<RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
+\\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+\\W*	<Nullable>disable<\\/Nullable>
+\\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
+\\W*	<IsTestProject>false<\\/IsTestProject>
+\\W*	<LangVersion>([^<]+)<\\/LangVersion>
+\\W*	<PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+\\W*	<GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+\\W*	<AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+\\W*	<OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win-x64<\\/OutputPath>
+\\W*	<PlatformTarget>([^<]+)<\\/PlatformTarget>
+\\W*	<WarningLevel>\\d<\\/WarningLevel>
+\\W*	<Prefer32Bit>false<\\/Prefer32Bit>
+\\W*	<NoWarn>([^<]+)<\\/NoWarn>
+\\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<OutputType>([^<]+)<\\/OutputType>
+\\W*	<DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\([^<]+)\\.xml<\\/DocumentationFile>
+\\W*	(<ApplicationIcon>([^<]+)<\\/ApplicationIcon>)?
+\\W*	(<StartupObject>([^<]+)<\\/StartupObject>)?
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+\\W*	<DebugType>full<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+\\W*	<ErrorReport>prompt<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+\\W*	<DebugType>portable<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+\\W*	<DebugType>none<\\/DebugType>
+\\W*	<DebugSymbols>false<\\/DebugSymbols>
+\\W*	<Optimize>true<\\/Optimize>
+\\W*	<DefineConstants>Productive<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<ItemGroup>
+\\W*.+
+\\W*<\\/ItemGroup>
+\\W*\\/Project>
+\\W*$"""
+        return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+
+    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str) -> bool:
+        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+\\W*<PropertyGroup>
+\\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
+\\W*	<Authors>([^<]+)<\\/Authors>
+\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
+\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
+\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<SelfContained>false<\\/SelfContained>
+\\W*	<IsPackable>false<\\/IsPackable>
+\\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
+\\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+\\W*	<Copyright>([^<]+)<\\/Copyright>
+\\W*	<Description>([^<]+)<\\/Description>
+\\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)</RepositoryUrl>
+\\W*	<RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
+\\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+\\W*	<Nullable>disable<\\/Nullable>
+\\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
+\\W*	<IsTestProject>true<\\/IsTestProject>
+\\W*	<LangVersion>([^<]+)<\\/LangVersion>
+\\W*	<PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+\\W*	<GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+\\W*	<AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+\\W*	<OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win-x64<\\/OutputPath>
+\\W*	<PlatformTarget>([^<]+)<\\/PlatformTarget>
+\\W*	<WarningLevel>\\d<\\/WarningLevel>
+\\W*	<Prefer32Bit>false<\\/Prefer32Bit>
+\\W*	<NoWarn>([^<]+)<\\/NoWarn>
+\\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<OutputType>Library<\\/OutputType>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+\\W*	<DebugType>full<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+\\W*	<ErrorReport>prompt<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+\\W*	<DebugType>portable<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+\\W*	<DebugType>none<\\/DebugType>
+\\W*	<DebugSymbols>false<\\/DebugSymbols>
+\\W*	<Optimize>true<\\/Optimize>
+\\W*	<DefineConstants>Productive<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<ItemGroup>
+\\W*.+
+\\W*<\\/ItemGroup>
+\\W*\\/Project>
+\\W*$"""
+        return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+
+    def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> bool:
+        file_content = GeneralUtilities.read_text_from_file(csproj_file)
+        regex = regex.replace("\t", "").replace("\r", "").replace("\n", "")
+        file_content = file_content.replace("\t", "").replace("\r", "").replace("\n", "")
+        match = re.match(regex, file_content)
+        return match is not None
+
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
                                                     verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str],
