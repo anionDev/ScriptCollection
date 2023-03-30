@@ -384,7 +384,9 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docfx", "docfx.json", folder_of_current_file, verbosity=verbosity)
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
-    def standardized_task_verify_standard_format_csproj_files(self, repository_folder: str, codeunit_name: str) -> bool:
+    def standardized_task_verify_standard_format_csproj_files(self, codeunit_folder: str) -> bool:
+        repository_folder = os.path.basename(codeunit_folder)
+        codeunit_name = os.path.dirname(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         message = " does not match the standardized .csproj-file-format."
 
