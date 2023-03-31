@@ -149,8 +149,11 @@ class TasksForCommonProjectStructure:
         # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
-        threshold_in_percent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
-        minimalrequiredtestcoverageinpercent = threshold_in_percent
+        minimalrequiredtestcoverageinpercent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
+        minimalrecommendedcoverage = 70
+        if minimalrequiredtestcoverageinpercent < minimalrecommendedcoverage:
+            GeneralUtilities.write_message_to_stderr(f"Warning: The minimal required testcoverage is {minimalrequiredtestcoverageinpercent}% " +
+                                                     f"but should be at least {minimalrecommendedcoverage}%.")
         # TODO check that testcoverage_file_in_cobertura_format contains at least one package with at least one line of code
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
