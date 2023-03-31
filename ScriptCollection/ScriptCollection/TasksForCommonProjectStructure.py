@@ -1468,6 +1468,8 @@ class TasksForCommonProjectStructure:
                                  additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None) -> None:
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
+        if is_pre_merge and contains_uncommitted_changes:
+            raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
         subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
         codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
         for subfolder in subfolders:
@@ -1495,7 +1497,7 @@ class TasksForCommonProjectStructure:
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
             GeneralUtilities.write_message_to_stdout(line)
         if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder) and not is_pre_merge:
-            message = "Due to the build-process the repository has new uncommitted changes."
+            message = f'Due to the build-process the repository "{repository_folder}" has new uncommitted changes.'
             if target_environmenttype == "Development":
                 GeneralUtilities.write_message_to_stdout(message)
             else:
