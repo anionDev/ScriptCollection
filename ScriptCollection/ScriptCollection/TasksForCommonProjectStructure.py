@@ -149,8 +149,12 @@ class TasksForCommonProjectStructure:
         # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
-        threshold_in_percent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
-        minimalrequiredtestcoverageinpercent = threshold_in_percent
+        minimalrequiredtestcoverageinpercent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
+        minimalrecommendedcoverage = 70
+        if minimalrequiredtestcoverageinpercent < minimalrecommendedcoverage:
+            GeneralUtilities.write_message_to_stderr(f"Warning: The minimal required testcoverage is {minimalrequiredtestcoverageinpercent}% " +
+                                                     f"but should be at least {minimalrecommendedcoverage}%.")
+        # TODO check that testcoverage_file_in_cobertura_format contains at least one package with at least one line of code
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
@@ -383,21 +387,173 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docfx", "docfx.json", folder_of_current_file, verbosity=verbosity)
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
+    def standardized_task_verify_standard_format_csproj_files(self, codeunit_folder: str) -> bool:
+        repository_folder = os.path.dirname(codeunit_folder)
+        codeunit_name = os.path.basename(codeunit_folder)
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        message = " does not match the standardized .csproj-file-format."
+
+        project_name = codeunit_name
+        csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
+        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file):
+            raise ValueError(csproj_file+message)
+
+        testproject_name = project_name+"Tests"
+        test_csproj_file = os.path.join(codeunit_folder, testproject_name, testproject_name+".csproj")
+        if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file):
+            raise ValueError(test_csproj_file+message)
+
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str) -> bool:
+        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+\\W*<PropertyGroup>
+\\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
+\\W*	<Authors>([^<]+)<\\/Authors>
+\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
+\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
+\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<SelfContained>false<\\/SelfContained>
+\\W*	<IsPackable>false<\\/IsPackable>
+\\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
+\\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+\\W*	<Copyright>([^<]+)<\\/Copyright>
+\\W*	<Description>([^<]+)<\\/Description>
+\\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)<\\/RepositoryUrl>
+\\W*	<RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
+\\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+\\W*	<Nullable>disable<\\/Nullable>
+\\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
+\\W*	<IsTestProject>false<\\/IsTestProject>
+\\W*	<LangVersion>([^<]+)<\\/LangVersion>
+\\W*	<PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+\\W*	<GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+\\W*	<AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+\\W*	<OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win-x64<\\/OutputPath>
+\\W*	<PlatformTarget>([^<]+)<\\/PlatformTarget>
+\\W*	<WarningLevel>\\d<\\/WarningLevel>
+\\W*	<Prefer32Bit>false<\\/Prefer32Bit>
+\\W*	<NoWarn>([^<]+)<\\/NoWarn>
+\\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<OutputType>([^<]+)<\\/OutputType>
+\\W*	<DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\([^<]+)\\.xml<\\/DocumentationFile>
+\\W*	(<ApplicationIcon>([^<]+)<\\/ApplicationIcon>)?
+\\W*	(<StartupObject>([^<]+)<\\/StartupObject>)?
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+\\W*	<DebugType>full<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+\\W*	<ErrorReport>prompt<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+\\W*	<DebugType>portable<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+\\W*	<DebugType>none<\\/DebugType>
+\\W*	<DebugSymbols>false<\\/DebugSymbols>
+\\W*	<Optimize>true<\\/Optimize>
+\\W*	<DefineConstants>Productive<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<ItemGroup>
+\\W*.+
+\\W*<\\/ItemGroup>
+\\W*<\\/Project>
+\\W*$"""
+        return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+
+    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str) -> bool:
+        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+\\W*<PropertyGroup>
+\\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
+\\W*	<Authors>([^<]+)<\\/Authors>
+\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
+\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
+\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<SelfContained>false<\\/SelfContained>
+\\W*	<IsPackable>false<\\/IsPackable>
+\\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
+\\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+\\W*	<Copyright>([^<]+)<\\/Copyright>
+\\W*	<Description>([^<]+)<\\/Description>
+\\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)</RepositoryUrl>
+\\W*	<RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
+\\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+\\W*	<Nullable>disable<\\/Nullable>
+\\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
+\\W*	<IsTestProject>true<\\/IsTestProject>
+\\W*	<LangVersion>([^<]+)<\\/LangVersion>
+\\W*	<PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+\\W*	<GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+\\W*	<AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+\\W*	<OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win-x64<\\/OutputPath>
+\\W*	<PlatformTarget>([^<]+)<\\/PlatformTarget>
+\\W*	<WarningLevel>\\d<\\/WarningLevel>
+\\W*	<Prefer32Bit>false<\\/Prefer32Bit>
+\\W*	<NoWarn>([^<]+)<\\/NoWarn>
+\\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<OutputType>Library<\\/OutputType>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+\\W*	<DebugType>full<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+\\W*	<ErrorReport>prompt<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+\\W*	<DebugType>portable<\\/DebugType>
+\\W*	<DebugSymbols>true<\\/DebugSymbols>
+\\W*	<Optimize>false<\\/Optimize>
+\\W*	<DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+\\W*	<DebugType>none<\\/DebugType>
+\\W*	<DebugSymbols>false<\\/DebugSymbols>
+\\W*	<Optimize>true<\\/Optimize>
+\\W*	<DefineConstants>Productive<\\/DefineConstants>
+\\W*	<ErrorReport>none<\\/ErrorReport>
+\\W*<\\/PropertyGroup>
+\\W*<ItemGroup>
+\\W*.+
+\\W*<\\/ItemGroup>
+\\W*<\\/Project>
+\\W*$"""
+        return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+
+    def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> bool:
+        file_content = GeneralUtilities.read_text_from_file(csproj_file)
+        regex = regex.replace("\t", "").replace("\r", "").replace("\n", "")
+        file_content = file_content.replace("\t", "").replace("\r", "").replace("\n", "")
+        match = re.match(regex, file_content)
+        return match is not None
+
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
                                                     verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str],
                                                     copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]):
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        csproj_file_folder = os.path.dirname(csproj_file)
+        csproj_file_name = os.path.basename(csproj_file)
+        csproj_file_name_without_extension = csproj_file_name.split(".")[0]
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
-            csproj_file_folder = os.path.dirname(csproj_file)
-            csproj_file_name = os.path.basename(csproj_file)
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
-            GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "bin"))
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "obj"))
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
             GeneralUtilities.ensure_directory_exists(outputfolder)
+            self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
             self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {dotnet_build_configuration} -o {outputfolder} --runtime {runtime}",
                                   csproj_file_folder, verbosity=verbosity)
             if copy_license_file_to_target_folder:
@@ -406,6 +562,16 @@ class TasksForCommonProjectStructure:
                 shutil.copyfile(license_file, target)
             for file, keyfile in files_to_sign.items():
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
+
+            sarif_filename = f"{csproj_file_name_without_extension}.sarif"
+            sarif_source_file = os.path.join(codeunit_folder, "Other", "Resources", sarif_filename)
+            if os.path.exists(sarif_source_file):
+                sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
+                GeneralUtilities.ensure_directory_exists(sarif_folder)
+                sarif_target_file = os.path.join(sarif_folder, sarif_filename)
+                GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
+                shutil.copyfile(sarif_source_file, sarif_target_file)
+                GeneralUtilities.ensure_file_does_not_exist(sarif_source_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str,
@@ -450,13 +616,15 @@ class TasksForCommonProjectStructure:
         commitid = self.__sc.git_get_commit_id(repository_folder)
         outputfolder = GeneralUtilities.resolve_relative_path("../Artifacts", os.path.dirname(buildscript_file))
         codeunit_folder = os.path.join(repository_folder, codeunitname)
-        csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname+".csproj")
-        # csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
-
-        self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
+        csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname + ".csproj")
+        csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
         self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid,
                                                          verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
                                                          copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_test_file,  os.path.join(outputfolder, "BuildResultTests_DotNet_"), files_to_sign, commitid,
+                                                         verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
+                                                         copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
+
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -498,6 +666,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}.")
         src_folder = os.path.join(repository_folder, codeunitname, codeunitname)
         tests_folder = src_folder+"Tests"
+        # TODO check if there are errors in sarif-file
         for file in GeneralUtilities.get_all_files_of_folder(src_folder)+GeneralUtilities.get_all_files_of_folder(tests_folder):
             relative_file_path_in_repository = os.path.relpath(file, repository_folder)
             if file.endswith(".py") and os.path.getsize(file) > 0 and not self.__sc.file_is_git_ignored(relative_file_path_in_repository, repository_folder):
@@ -599,7 +768,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_dotnet_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
-        # TODO implement function
+        # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
@@ -948,7 +1117,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_docker_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
-        # TODO
+        # TODO check if there are errors in sarif-file
 
     def copy_licence_file(self, common_tasks_scripts_file: str):
         folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
@@ -1091,6 +1260,7 @@ class TasksForCommonProjectStructure:
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
         sc.run_program("npm", "run lint", codeunit_folder, verbosity=verbosity)
+        # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_node_project(self, runtestcases_script_file: str,
@@ -1301,6 +1471,8 @@ class TasksForCommonProjectStructure:
                                  additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None) -> None:
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
+        if is_pre_merge and contains_uncommitted_changes:
+            raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
         subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
         codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
         for subfolder in subfolders:
@@ -1328,7 +1500,7 @@ class TasksForCommonProjectStructure:
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
             GeneralUtilities.write_message_to_stdout(line)
         if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder) and not is_pre_merge:
-            message = "Due to the build-process the repository has new uncommitted changes."
+            message = f'Due to the build-process the repository "{repository_folder}" has new uncommitted changes.'
             if target_environmenttype == "Development":
                 GeneralUtilities.write_message_to_stdout(message)
             else:
@@ -1467,7 +1639,7 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",  build_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "SourceCode": True}))
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
         self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity)
