@@ -1151,14 +1151,14 @@ class TasksForCommonProjectStructure:
             raise ValueError('An empty array as argument for the "commandline_arguments"-parameter is not valid.')
         commandline_arguments = commandline_arguments[1:]
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
-        codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
+        codeunit_name: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         project_version = self.get_version_of_project(repository_folder)
-        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
 
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]"==codeunitname in file
-        codeunitfile = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
+        codeunitfile = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
         # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
@@ -1174,6 +1174,11 @@ class TasksForCommonProjectStructure:
         schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
+        # Check codeunit-name
+        codeunit_name_in_codeunit_file = root.xpath('//cps:codeunit/cps:name/text()', namespaces=namespaces)[0]
+        if codeunit_name != codeunit_name_in_codeunit_file:
+            raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
+
         # Check developer
         if self.validate_developers_of_repository:
             expected_authors: list[tuple[str, str]] = []
@@ -1182,7 +1187,7 @@ class TasksForCommonProjectStructure:
                 author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
                 author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
                 expected_authors.append((author_name, author_emailaddress))
-            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunitname, verbosity)
+            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name, verbosity)
             for actual_author in actual_authors:
                 if not (actual_author) in expected_authors:
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
@@ -1202,8 +1207,8 @@ class TasksForCommonProjectStructure:
         if assume_dependent_codeunits_are_already_built:
             pass  # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
         else:
-            self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
-        self.copy_artifacts_from_dependent_code_units(repository_folder, codeunitname)
+            self.build_dependent_code_units(repository_folder, codeunit_name, verbosity, target_environmenttype, additional_arguments_file)
+        self.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
         # Update codeunit-version
         self.update_version_of_codeunit(common_tasks_scripts_file, version)
