@@ -391,26 +391,29 @@ class TasksForCommonProjectStructure:
         repository_folder = os.path.dirname(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         message = " does not match the standardized .csproj-file-format."
 
         project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file):
+        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_name, codeunit_version):
             raise ValueError(csproj_file+message)
 
         testproject_name = project_name+"Tests"
         test_csproj_file = os.path.join(codeunit_folder, testproject_name, testproject_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file):
+        if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version):
             raise ValueError(test_csproj_file+message)
 
-    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str) -> bool:
-        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
+        codeunit_name_regex = re.escape(codeunit_name)
+        codeunit_version_regex = re.escape(codeunit_version)
+        regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
 \\W*<PropertyGroup>
 \\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
 \\W*	<Authors>([^<]+)<\\/Authors>
-\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
-\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
-\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<Version>{codeunit_version_regex}<\\/Version>
+\\W*	<AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+\\W*	<FileVersion>{codeunit_version_regex}<\\/FileVersion>
 \\W*	<SelfContained>false<\\/SelfContained>
 \\W*	<IsPackable>false<\\/IsPackable>
 \\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
@@ -418,8 +421,8 @@ class TasksForCommonProjectStructure:
 \\W*	<Copyright>([^<]+)<\\/Copyright>
 \\W*	<Description>([^<]+)<\\/Description>
 \\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*	<RepositoryUrl>https:\\/\\/([^<]+)<\\/RepositoryUrl>
-\\W*	<RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
+\\W*	<RootNamespace>{codeunit_name_regex}\\.Core<\\/RootNamespace>
 \\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
 \\W*	<Nullable>disable<\\/Nullable>
 \\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
@@ -434,9 +437,9 @@ class TasksForCommonProjectStructure:
 \\W*	<Prefer32Bit>false<\\/Prefer32Bit>
 \\W*	<NoWarn>([^<]+)<\\/NoWarn>
 \\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
 \\W*	<OutputType>([^<]+)<\\/OutputType>
-\\W*	<DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\([^<]+)\\.xml<\\/DocumentationFile>
+\\W*	<DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>
 \\W*	(<ApplicationIcon>([^<]+)<\\/ApplicationIcon>)?
 \\W*	(<StartupObject>([^<]+)<\\/StartupObject>)?
 \\W*<\\/PropertyGroup>
@@ -468,14 +471,16 @@ class TasksForCommonProjectStructure:
 \\W*$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
 
-    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str) -> bool:
-        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
+        codeunit_name_regex = re.escape(codeunit_name)
+        codeunit_version_regex = re.escape(codeunit_version)
+        regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
 \\W*<PropertyGroup>
 \\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
 \\W*	<Authors>([^<]+)<\\/Authors>
-\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
-\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
-\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<Version>{codeunit_version_regex}<\\/Version>
+\\W*	<AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+\\W*	<FileVersion>{codeunit_version_regex}<\\/FileVersion>
 \\W*	<SelfContained>false<\\/SelfContained>
 \\W*	<IsPackable>false<\\/IsPackable>
 \\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
@@ -483,8 +488,8 @@ class TasksForCommonProjectStructure:
 \\W*	<Copyright>([^<]+)<\\/Copyright>
 \\W*	<Description>([^<]+)<\\/Description>
 \\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*	<RepositoryUrl>https:\\/\\/([^<]+)</RepositoryUrl>
-\\W*	<RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
+\\W*	<RootNamespace>{codeunit_name_regex}\\.Tests<\\/RootNamespace>
 \\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
 \\W*	<Nullable>disable<\\/Nullable>
 \\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
@@ -499,7 +504,7 @@ class TasksForCommonProjectStructure:
 \\W*	<Prefer32Bit>false<\\/Prefer32Bit>
 \\W*	<NoWarn>([^<]+)<\\/NoWarn>
 \\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
 \\W*	<OutputType>Library<\\/OutputType>
 \\W*<\\/PropertyGroup>
 \\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
