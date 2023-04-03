@@ -391,26 +391,29 @@ class TasksForCommonProjectStructure:
         repository_folder = os.path.dirname(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         message = " does not match the standardized .csproj-file-format."
 
         project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file):
+        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_name, codeunit_version):
             raise ValueError(csproj_file+message)
 
         testproject_name = project_name+"Tests"
         test_csproj_file = os.path.join(codeunit_folder, testproject_name, testproject_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file):
+        if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version):
             raise ValueError(test_csproj_file+message)
 
-    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str) -> bool:
-        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
+        codeunit_name_regex = re.escape(codeunit_name)
+        codeunit_version_regex = re.escape(codeunit_version)
+        regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
 \\W*<PropertyGroup>
 \\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
 \\W*	<Authors>([^<]+)<\\/Authors>
-\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
-\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
-\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<Version>{codeunit_version_regex}<\\/Version>
+\\W*	<AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+\\W*	<FileVersion>{codeunit_version_regex}<\\/FileVersion>
 \\W*	<SelfContained>false<\\/SelfContained>
 \\W*	<IsPackable>false<\\/IsPackable>
 \\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
@@ -418,7 +421,7 @@ class TasksForCommonProjectStructure:
 \\W*	<Copyright>([^<]+)<\\/Copyright>
 \\W*	<Description>([^<]+)<\\/Description>
 \\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*	<RepositoryUrl>https:\\/\\/([^<]+)<\\/RepositoryUrl>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
 \\W*	<RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
 \\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
 \\W*	<Nullable>disable<\\/Nullable>
@@ -434,9 +437,9 @@ class TasksForCommonProjectStructure:
 \\W*	<Prefer32Bit>false<\\/Prefer32Bit>
 \\W*	<NoWarn>([^<]+)<\\/NoWarn>
 \\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
 \\W*	<OutputType>([^<]+)<\\/OutputType>
-\\W*	<DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\([^<]+)\\.xml<\\/DocumentationFile>
+\\W*	<DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>
 \\W*	(<ApplicationIcon>([^<]+)<\\/ApplicationIcon>)?
 \\W*	(<StartupObject>([^<]+)<\\/StartupObject>)?
 \\W*<\\/PropertyGroup>
@@ -468,22 +471,24 @@ class TasksForCommonProjectStructure:
 \\W*$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
 
-    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str) -> bool:
-        regex = """^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
+    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
+        codeunit_name_regex = re.escape(codeunit_name)
+        codeunit_version_regex = re.escape(codeunit_version)
+        regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
 \\W*<PropertyGroup>
 \\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
 \\W*	<Authors>([^<]+)<\\/Authors>
-\\W*	<Version>\\d+\\.\\d+\\.\\d+<\\/Version>
-\\W*	<AssemblyVersion>\\d+\\.\\d+\\.\\d+<\\/AssemblyVersion>
-\\W*	<FileVersion>\\d+\\.\\d+\\.\\d+<\\/FileVersion>
+\\W*	<Version>{codeunit_version_regex}<\\/Version>
+\\W*	<AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+\\W*	<FileVersion>{codeunit_version_regex}<\\/FileVersion>
 \\W*	<SelfContained>false<\\/SelfContained>
 \\W*	<IsPackable>false<\\/IsPackable>
 \\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
 \\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
 \\W*	<Copyright>([^<]+)<\\/Copyright>
-\\W*	<Description>([^<]+)<\\/Description>
+\\W*	<Description>{codeunit_name_regex}Tests\\ is\\ the\\ test-project\\ for\\ {codeunit_name_regex}\\.<\\/Description>
 \\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*	<RepositoryUrl>https:\\/\\/([^<]+)</RepositoryUrl>
+\\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
 \\W*	<RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
 \\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
 \\W*	<Nullable>disable<\\/Nullable>
@@ -499,7 +504,7 @@ class TasksForCommonProjectStructure:
 \\W*	<Prefer32Bit>false<\\/Prefer32Bit>
 \\W*	<NoWarn>([^<]+)<\\/NoWarn>
 \\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\([^<]+)\\.sarif<\\/ErrorLog>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
 \\W*	<OutputType>Library<\\/OutputType>
 \\W*<\\/PropertyGroup>
 \\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
@@ -523,9 +528,9 @@ class TasksForCommonProjectStructure:
 \\W*	<DefineConstants>Productive<\\/DefineConstants>
 \\W*	<ErrorReport>none<\\/ErrorReport>
 \\W*<\\/PropertyGroup>
-\\W*<ItemGroup>
-\\W*.+
-\\W*<\\/ItemGroup>
+\\W*(<ItemGroup>
+\\W*.*
+\\W*<\\/ItemGroup>)*
 \\W*<\\/Project>
 \\W*$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
@@ -1146,14 +1151,14 @@ class TasksForCommonProjectStructure:
             raise ValueError('An empty array as argument for the "commandline_arguments"-parameter is not valid.')
         commandline_arguments = commandline_arguments[1:]
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
-        codeunitname: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
+        codeunit_name: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         project_version = self.get_version_of_project(repository_folder)
-        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
 
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]"==codeunitname in file
-        codeunitfile = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
+        codeunitfile = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
         # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
@@ -1169,6 +1174,11 @@ class TasksForCommonProjectStructure:
         schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
         xmlschema.validate(codeunitfile, schemaLocation)
 
+        # Check codeunit-name
+        codeunit_name_in_codeunit_file = root.xpath('//cps:codeunit/cps:name/text()', namespaces=namespaces)[0]
+        if codeunit_name != codeunit_name_in_codeunit_file:
+            raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
+
         # Check developer
         if self.validate_developers_of_repository:
             expected_authors: list[tuple[str, str]] = []
@@ -1177,7 +1187,7 @@ class TasksForCommonProjectStructure:
                 author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
                 author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
                 expected_authors.append((author_name, author_emailaddress))
-            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunitname, verbosity)
+            actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name, verbosity)
             for actual_author in actual_authors:
                 if not (actual_author) in expected_authors:
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
@@ -1197,8 +1207,8 @@ class TasksForCommonProjectStructure:
         if assume_dependent_codeunits_are_already_built:
             pass  # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
         else:
-            self.build_dependent_code_units(repository_folder, codeunitname, verbosity, target_environmenttype, additional_arguments_file)
-        self.copy_artifacts_from_dependent_code_units(repository_folder, codeunitname)
+            self.build_dependent_code_units(repository_folder, codeunit_name, verbosity, target_environmenttype, additional_arguments_file)
+        self.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
         # Update codeunit-version
         self.update_version_of_codeunit(common_tasks_scripts_file, version)
