@@ -73,7 +73,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
             projectname = os.path.basename(self.repository)
         else:
             self.projectname = projectname
-        self.reference_repository = GeneralUtilities.resolve_relative_path(f"../{projectname}Reference", repository)
+        self.reference_repository = f"{repository}Reference"
         self.artifacts_which_have_artifacts_to_push = artifacts_which_have_artifacts_to_push
 
 
