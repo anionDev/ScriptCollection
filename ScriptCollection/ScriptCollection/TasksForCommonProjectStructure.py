@@ -486,7 +486,7 @@ class TasksForCommonProjectStructure:
 \\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
 \\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
 \\W*	<Copyright>([^<]+)<\\/Copyright>
-\\W*	<Description>([^<]+)<\\/Description>
+\\W*	<Description>{codeunit_name_regex}Tests\\ is\\ the\\ test-project\\ for\\ {codeunit_name_regex}\\.<\\/Description>
 \\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
 \\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
 \\W*	<RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
@@ -504,7 +504,7 @@ class TasksForCommonProjectStructure:
 \\W*	<Prefer32Bit>false<\\/Prefer32Bit>
 \\W*	<NoWarn>([^<]+)<\\/NoWarn>
 \\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
+\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
 \\W*	<OutputType>Library<\\/OutputType>
 \\W*<\\/PropertyGroup>
 \\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
@@ -528,9 +528,9 @@ class TasksForCommonProjectStructure:
 \\W*	<DefineConstants>Productive<\\/DefineConstants>
 \\W*	<ErrorReport>none<\\/ErrorReport>
 \\W*<\\/PropertyGroup>
-\\W*<ItemGroup>
-\\W*.+
-\\W*<\\/ItemGroup>
+\\W*(<ItemGroup>
+\\W*.*
+\\W*<\\/ItemGroup>)*
 \\W*<\\/Project>
 \\W*$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
