@@ -422,7 +422,7 @@ class TasksForCommonProjectStructure:
 \\W*	<Description>([^<]+)<\\/Description>
 \\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
 \\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
-\\W*	<RootNamespace>{codeunit_name_regex}\\.Core<\\/RootNamespace>
+\\W*	<RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
 \\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
 \\W*	<Nullable>disable<\\/Nullable>
 \\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
@@ -489,7 +489,7 @@ class TasksForCommonProjectStructure:
 \\W*	<Description>([^<]+)<\\/Description>
 \\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
 \\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
-\\W*	<RootNamespace>{codeunit_name_regex}\\.Tests<\\/RootNamespace>
+\\W*	<RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
 \\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
 \\W*	<Nullable>disable<\\/Nullable>
 \\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
