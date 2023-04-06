@@ -27,9 +27,11 @@ class CreateReleaseConfiguration():
     public_repository_url: str
     additional_arguments_file: str = None
     artifacts_which_have_artifacts_to_push: list[str] = None
+    repository_folder_name: str = None
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str,
-                 verbosity: int, public_repository_url: str, additional_arguments_file: str, artifacts_which_have_artifacts_to_push: list[str]):
+                 verbosity: int, public_repository_url: str, additional_arguments_file: str, artifacts_which_have_artifacts_to_push: list[str],
+                 repository_folder_name: str):
 
         self.projectname = projectname
         self.remotename = remotename
@@ -40,6 +42,7 @@ class CreateReleaseConfiguration():
         self.reference_repository_remote_name = self.remotename
         self.additional_arguments_file = additional_arguments_file
         self.artifacts_which_have_artifacts_to_push = artifacts_which_have_artifacts_to_push
+        self.repository_folder_name = repository_folder_name
 
 
 class CreateReleaseInformationForProjectInCommonProjectFormat:
@@ -70,7 +73,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
             projectname = os.path.basename(self.repository)
         else:
             self.projectname = projectname
-        self.reference_repository = GeneralUtilities.resolve_relative_path(f"../{projectname}Reference", repository)
+        self.reference_repository = f"{repository}Reference"
         self.artifacts_which_have_artifacts_to_push = artifacts_which_have_artifacts_to_push
 
 
@@ -253,10 +256,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def push_wheel_build_artifact(self, push_build_artifacts_file, product_name, codeunitname, repository: str,
-                                  apikey: str, gpg_identity: str, verbosity: int, commandline_arguments: list[str]) -> None:
+                                  apikey: str, gpg_identity: str, verbosity: int, commandline_arguments: list[str], repository_folder_name: str) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
-        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{product_name}", folder_of_this_file)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
         wheel_file = self.get_wheel_file(repository_folder, codeunitname)
         self.standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, repository, gpg_identity, verbosity)
 
@@ -896,10 +899,10 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
     @GeneralUtilities.check_arguments
-    def push_nuget_build_artifact(self, push_script_file: str, codeunitname: str, registry_address: str, api_key: str):
+    def push_nuget_build_artifact(self, push_script_file: str, codeunitname: str, registry_address: str, api_key: str, repository_folder_name: str):
         # when pusing to "default public" nuget-server then use registry_address: "nuget.org"
         build_artifact_folder = GeneralUtilities.resolve_relative_path(
-            f"../../Submodules/{codeunitname}/{codeunitname}/Other/Artifacts/BuildResult_NuGet", os.path.dirname(push_script_file))
+            f"../../Submodules/{repository_folder_name}/{codeunitname}/Other/Artifacts/BuildResult_NuGet", os.path.dirname(push_script_file))
         self.__sc.push_nuget_build_artifact(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"),
                                             registry_address, api_key)
 
@@ -942,7 +945,7 @@ class TasksForCommonProjectStructure:
 
         self.__sc.git_checkout(build_repository_folder, createRelease_configuration.build_repository_branch)
 
-        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createRelease_configuration.projectname}", build_repository_folder)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createRelease_configuration.repository_folder_name}", build_repository_folder)
         mergeInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder,
                                                                                          createRelease_configuration.additional_arguments_file,
                                                                                          createRelease_configuration.artifacts_folder)
@@ -1060,10 +1063,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
-                                   verbosity: int, push_readme: bool, commandline_arguments: list[str]):
+                                   verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str):
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{product_name}", folder_of_this_file)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         artifacts_folder = self.get_artifacts_folder(repository_folder, codeunitname)
         applicationimage_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
@@ -1351,16 +1354,15 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
-    def generate_openapi_file(self, buildscript_file: str, runtime: str, swagger_document_name: str,
-                              verbosity: int, commandline_arguments: list[str]) -> None:
+    def generate_openapi_file(self, buildscript_file: str, runtime: str, verbosity: int, commandline_arguments: list[str],
+                              swagger_document_name: str = "APISpecification") -> None:
         codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         version = self.get_version_of_codeunit_folder(os.path.join(repository_folder, codeunitname))
-        self.__sc.run_program("swagger",
-                              f"tofile --output APISpecification\\{codeunitname}.v{version}.api.json" +
+        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.v{version}.api.json" +
                               f" BuildResult_DotNet_{runtime}\\{codeunitname}.dll {swagger_document_name}",
                               artifacts_folder, verbosity=verbosity)
 
