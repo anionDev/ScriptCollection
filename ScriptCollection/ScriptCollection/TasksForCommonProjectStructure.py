@@ -1354,16 +1354,15 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
-    def generate_openapi_file(self, buildscript_file: str, runtime: str, swagger_document_name: str,
-                              verbosity: int, commandline_arguments: list[str]) -> None:
+    def generate_openapi_file(self, buildscript_file: str, runtime: str, verbosity: int, commandline_arguments: list[str],
+                              swagger_document_name: str = "APISpecification") -> None:
         codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         version = self.get_version_of_codeunit_folder(os.path.join(repository_folder, codeunitname))
-        self.__sc.run_program("swagger",
-                              f"tofile --output APISpecification\\{codeunitname}.v{version}.api.json" +
+        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.v{version}.api.json" +
                               f" BuildResult_DotNet_{runtime}\\{codeunitname}.dll {swagger_document_name}",
                               artifacts_folder, verbosity=verbosity)
 
