@@ -1370,6 +1370,39 @@ class TasksForCommonProjectStructure:
         # TODO validate generated xml against xsd
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
+
+    @GeneralUtilities.check_arguments
+    def get_constant_value(self, source_codeunit_folder: str, constant_name: str) -> str:
+        return self.__get_constant_helper( source_codeunit_folder, constant_name, "name")
+
+
+    @GeneralUtilities.check_arguments
+    def get_constant_documentation(self, source_codeunit_folder: str, constant_name: str) -> str:
+        return self.__get_constant_helper( source_codeunit_folder, constant_name, "documentationsummary")
+
+
+    @GeneralUtilities.check_arguments
+    def __get_constant_helper(self, source_codeunit_folder: str, constant_name: str, propertyname: str) -> str:
+        root: etree._ElementTree = etree.parse(os.path.join(source_codeunit_folder, "Other", "Resources", "Constants", f"{constant_name}.constant.xml"))
+        results = root.xpath(f'//cps:{propertyname}/text()', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })
+        length = len(results)
+        if (length == 0):
+            return ""
+        elif length == 1:
+            return results[0]
+        else:
+            ValueError("Too many results found.")
+
+
+    @GeneralUtilities.check_arguments
+    def copy_constant_from_dependent_codeunit(self, codeunit_folder: str, constant_name: str, source_codeunit_name: str):
+        source_codeunit_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}", codeunit_folder)
+        value = self.get_constant_value( source_codeunit_folder, constant_name)
+        documentation = self.get_constant_documentation( source_codeunit_folder, constant_name)
+        self.set_constant(codeunit_folder, constant_name, value, documentation)
+
     @GeneralUtilities.check_arguments
     def generate_openapi_file(self, buildscript_file: str, runtime: str, verbosity: int, commandline_arguments: list[str],
                               swagger_document_name: str = "APISpecification") -> None:
