@@ -1373,7 +1373,9 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_constant_value(self, source_codeunit_folder: str, constant_name: str) -> str:
-        return self.__get_constant_helper(source_codeunit_folder, constant_name, "name")
+        value_file_relative= self.__get_constant_helper(source_codeunit_folder, constant_name, "path")
+        value_file=GeneralUtilities.resolve_relative_path(value_file_relative, os.path.join(source_codeunit_folder, "Other", "Resources", "Constants"))
+        return GeneralUtilities.read_text_from_file(value_file)
 
     @GeneralUtilities.check_arguments
     def get_constant_documentation(self, source_codeunit_folder: str, constant_name: str) -> str:
