@@ -912,6 +912,23 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
+    def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str, domain: str,
+                                                        subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str):
+        target_folder = os.path.join(codeunit_folder, "Other", "Resources", "Certificate")
+        certificate_file = os.path.join(target_folder, f"{domain}.unsigned.crt")
+        certificate_exists = os.path.exists(certificate_file)
+        if certificate_exists:
+            certificate_expired = GeneralUtilities.certificate_is_expired(certificate_file)
+            generate_new_certificate = certificate_expired
+        else:
+            generate_new_certificate = True
+        if generate_new_certificate:
+            GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+            GeneralUtilities.ensure_directory_exists(target_folder)
+            GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for non-productive purposes.")
+            self.__sc.generate_certificate(target_folder, domain, subj_c, subj_st, subj_l, subj_o, subj_ou)
+
+    @GeneralUtilities.check_arguments
     def get_codeunits(self, repository_folder: str) -> list[str]:
         result: list[str] = []
         for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
