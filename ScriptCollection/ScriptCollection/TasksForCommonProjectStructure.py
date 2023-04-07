@@ -1395,7 +1395,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str):
-        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", "Constants", "Certificate", f"{domain}.unsigned.crt")
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", "Certificate", f"{domain}.unsigned.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
