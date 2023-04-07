@@ -9,6 +9,7 @@ import zipfile
 import json
 import configparser
 import xmlschema
+from OpenSSL import crypto
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
@@ -1370,16 +1371,13 @@ class TasksForCommonProjectStructure:
         # TODO validate generated xml against xsd
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
-
     @GeneralUtilities.check_arguments
     def get_constant_value(self, source_codeunit_folder: str, constant_name: str) -> str:
-        return self.__get_constant_helper( source_codeunit_folder, constant_name, "name")
-
+        return self.__get_constant_helper(source_codeunit_folder, constant_name, "name")
 
     @GeneralUtilities.check_arguments
     def get_constant_documentation(self, source_codeunit_folder: str, constant_name: str) -> str:
-        return self.__get_constant_helper( source_codeunit_folder, constant_name, "documentationsummary")
-
+        return self.__get_constant_helper(source_codeunit_folder, constant_name, "documentationsummary")
 
     @GeneralUtilities.check_arguments
     def __get_constant_helper(self, source_codeunit_folder: str, constant_name: str, propertyname: str) -> str:
@@ -1395,13 +1393,27 @@ class TasksForCommonProjectStructure:
         else:
             ValueError("Too many results found.")
 
+    @GeneralUtilities.check_arguments
+    def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str):
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", "Constants", "Certificate", f"{domain}.unsigned.crt")
+        with open(certificate_file, encoding="utf-8") as text_wrapper:
+            certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
+        certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
+        self.set_constant(codeunit_folder, "CertificatePublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
     def copy_constant_from_dependent_codeunit(self, codeunit_folder: str, constant_name: str, source_codeunit_name: str):
         source_codeunit_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}", codeunit_folder)
-        value = self.get_constant_value( source_codeunit_folder, constant_name)
-        documentation = self.get_constant_documentation( source_codeunit_folder, constant_name)
+        value = self.get_constant_value(source_codeunit_folder, constant_name)
+        documentation = self.get_constant_documentation(source_codeunit_folder, constant_name)
         self.set_constant(codeunit_folder, constant_name, value, documentation)
+
+    @GeneralUtilities.check_arguments
+    def copy_resources_from_dependent_codeunit(self, codeunit_folder: str, resource_name: str, source_codeunit_name: str):
+        source_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}/Other/Resources/{resource_name}", codeunit_folder)
+        target_folder: str = GeneralUtilities.resolve_relative_path(f"/Other/Resources/{resource_name}", codeunit_folder)
+        GeneralUtilities.ensure_file_does_not_exist(target_folder)
+        shutil.copytree(source_folder, target_folder)
 
     @GeneralUtilities.check_arguments
     def generate_openapi_file(self, buildscript_file: str, runtime: str, verbosity: int, commandline_arguments: list[str],
