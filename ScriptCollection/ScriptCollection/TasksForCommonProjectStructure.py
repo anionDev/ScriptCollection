@@ -1717,7 +1717,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",  build_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
 
-        GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
+        GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')  # TODO add option to ignore this for codeunits which do not have testable source-code
         self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
