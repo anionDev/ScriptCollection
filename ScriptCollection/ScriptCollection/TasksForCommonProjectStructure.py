@@ -412,137 +412,129 @@ class TasksForCommonProjectStructure:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
-\\W*    <PropertyGroup>
-\\W*        <TargetFramework>([^<]+)<\\/TargetFramework>
-\\W*        <Authors>([^<]+)<\\/Authors>
-\\W*        <Version>{codeunit_version_regex}<\\/Version>
-\\W*        <AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
-\\W*        <FileVersion>{codeunit_version_regex}<\\/FileVersion>
-\\W*        <SelfContained>false<\\/SelfContained>
-\\W*        <IsPackable>false<\\/IsPackable>
-\\W*        <PreserveCompilationContext>false<\\/PreserveCompilationContext>
-\\W*        <GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
-\\W*        <Copyright>([^<]+)<\\/Copyright>
-\\W*        <Description>([^<]+)<\\/Description>
-\\W*        <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*        <RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
-\\W*        <RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
-\\W*        <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
-\\W*        <Nullable>disable<\\/Nullable>
-\\W*        <Configurations>Development;QualityCheck;Productive<\\/Configurations>
-\\W*        <IsTestProject>false<\\/IsTestProject>
-\\W*        <LangVersion>([^<]+)<\\/LangVersion>
-\\W*        <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
-\\W*        <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
-\\W*        <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
-\\W*        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win-x64<\\/OutputPath>
-\\W*        <PlatformTarget>([^<]+)<\\/PlatformTarget>
-\\W*        <WarningLevel>\\d<\\/WarningLevel>
-\\W*        <Prefer32Bit>false<\\/Prefer32Bit>
-\\W*        <NoWarn>([^<]+)<\\/NoWarn>
-\\W*        <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
-\\W*        <OutputType>([^<]+)<\\/OutputType>
-\\W*        <DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>
-\\W*        .+
-\\W*    <\\/PropertyGroup>
-\\W*    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
-\\W*        <DebugType>full<\\/DebugType>
-\\W*        <DebugSymbols>true<\\/DebugSymbols>
-\\W*        <Optimize>false<\\/Optimize>
-\\W*        <DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
-\\W*        <ErrorReport>prompt<\\/ErrorReport>
-\\W*    <\\/PropertyGroup>
-\\W*    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
-\\W*        <DebugType>portable<\\/DebugType>
-\\W*        <DebugSymbols>true<\\/DebugSymbols>
-\\W*        <Optimize>false<\\/Optimize>
-\\W*        <DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
-\\W*        <ErrorReport>none<\\/ErrorReport>
-\\W*    <\\/PropertyGroup>
-\\W*    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
-\\W*        <DebugType>none<\\/DebugType>
-\\W*        <DebugSymbols>false<\\/DebugSymbols>
-\\W*        <Optimize>true<\\/Optimize>
-\\W*        <DefineConstants>Productive<\\/DefineConstants>
-\\W*        <ErrorReport>none<\\/ErrorReport>
-\\W*    <\\/PropertyGroup>
-\\W*    (<ItemGroup>
-\\W*    .*
-\\W*    <\\/ItemGroup>)*
-\\W*<\\/Project>
-\\W*$"""
+    <PropertyGroup>
+        <TargetFramework>([^<]+)<\\/TargetFramework>
+        <Authors>([^<]+)<\\/Authors>
+        <Version>{codeunit_version_regex}<\\/Version>
+        <AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+        <FileVersion>{codeunit_version_regex}<\\/FileVersion>
+        <SelfContained>false<\\/SelfContained>
+        <IsPackable>false<\\/IsPackable>
+        <PreserveCompilationContext>false<\\/PreserveCompilationContext>
+        <GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+        <Copyright>([^<]+)<\\/Copyright>
+        <Description>([^<]+)<\\/Description>
+        <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
+        <RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
+        <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+        <Nullable>disable<\\/Nullable>
+        <Configurations>Development;QualityCheck;Productive<\\/Configurations>
+        <IsTestProject>false<\\/IsTestProject>
+        <LangVersion>([^<]+)<\\/LangVersion>
+        <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+        <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+        <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win-x64<\\/OutputPath>
+        <PlatformTarget>([^<]+)<\\/PlatformTarget>
+        <WarningLevel>\\d<\\/WarningLevel>
+        <Prefer32Bit>false<\\/Prefer32Bit>
+        <NoWarn>([^<]+)<\\/NoWarn>
+        <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
+        <OutputType>([^<]+)<\\/OutputType>
+        <DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>(\\n|.)*
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+        <DebugType>full<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+        <ErrorReport>prompt<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+        <DebugType>portable<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+        <DebugType>none<\\/DebugType>
+        <DebugSymbols>false<\\/DebugSymbols>
+        <Optimize>true<\\/Optimize>
+        <DefineConstants>Productive<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>(\\n|.)*
+<\\/Project>$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
 
     def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
-\\W*    <PropertyGroup>
-\\W*        <TargetFramework>([^<]+)<\\/TargetFramework>
-\\W*        <Authors>([^<]+)<\\/Authors>
-\\W*        <Version>{codeunit_version_regex}<\\/Version>
-\\W*        <AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
-\\W*        <FileVersion>{codeunit_version_regex}<\\/FileVersion>
-\\W*        <SelfContained>false<\\/SelfContained>
-\\W*        <IsPackable>false<\\/IsPackable>
-\\W*        <PreserveCompilationContext>false<\\/PreserveCompilationContext>
-\\W*        <GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
-\\W*        <Copyright>([^<]+)<\\/Copyright>
-\\W*        <Description>{codeunit_name_regex}Tests\\ is\\ the\\ test-project\\ for\\ {codeunit_name_regex}\\.<\\/Description>
-\\W*        <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*        <RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
-\\W*        <RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
-\\W*        <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
-\\W*        <Nullable>disable<\\/Nullable>
-\\W*        <Configurations>Development;QualityCheck;Productive<\\/Configurations>
-\\W*        <IsTestProject>true<\\/IsTestProject>
-\\W*        <LangVersion>([^<]+)<\\/LangVersion>
-\\W*        <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
-\\W*        <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
-\\W*        <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
-\\W*        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win-x64<\\/OutputPath>
-\\W*        <PlatformTarget>([^<]+)<\\/PlatformTarget>
-\\W*        <WarningLevel>\\d<\\/WarningLevel>
-\\W*        <Prefer32Bit>false<\\/Prefer32Bit>
-\\W*        <NoWarn>([^<]+)<\\/NoWarn>
-\\W*        <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
-\\W*        <OutputType>Library<\\/OutputType>
-\\W*        .+
-\\W*    <\\/PropertyGroup>
-\\W*    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
-\\W*        <DebugType>full<\\/DebugType>
-\\W*        <DebugSymbols>true<\\/DebugSymbols>
-\\W*        <Optimize>false<\\/Optimize>
-\\W*        <DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
-\\W*        <ErrorReport>prompt<\\/ErrorReport>
-\\W*    <\\/PropertyGroup>
-\\W*    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
-\\W*        <DebugType>portable<\\/DebugType>
-\\W*        <DebugSymbols>true<\\/DebugSymbols>
-\\W*        <Optimize>false<\\/Optimize>
-\\W*        <DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
-\\W*        <ErrorReport>none<\\/ErrorReport>
-\\W*    <\\/PropertyGroup>
-\\W*    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
-\\W*        <DebugType>none<\\/DebugType>
-\\W*        <DebugSymbols>false<\\/DebugSymbols>
-\\W*        <Optimize>true<\\/Optimize>
-\\W*        <DefineConstants>Productive<\\/DefineConstants>
-\\W*        <ErrorReport>none<\\/ErrorReport>
-\\W*    <\\/PropertyGroup>
-\\W*    (<ItemGroup>
-\\W*    .*
-\\W*    <\\/ItemGroup>)*
-\\W*<\\/Project>
-\\W*$"""
+    <PropertyGroup>
+        <TargetFramework>([^<]+)<\\/TargetFramework>
+        <Authors>([^<]+)<\\/Authors>
+        <Version>{codeunit_version_regex}<\\/Version>
+        <AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+        <FileVersion>{codeunit_version_regex}<\\/FileVersion>
+        <SelfContained>false<\\/SelfContained>
+        <IsPackable>false<\\/IsPackable>
+        <PreserveCompilationContext>false<\\/PreserveCompilationContext>
+        <GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+        <Copyright>([^<]+)<\\/Copyright>
+        <Description>{codeunit_name_regex}Tests is the test-project for {codeunit_name_regex}\\.<\\/Description>
+        <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
+        <RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
+        <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+        <Nullable>disable<\\/Nullable>
+        <Configurations>Development;QualityCheck;Productive<\\/Configurations>
+        <IsTestProject>true<\\/IsTestProject>
+        <LangVersion>([^<]+)<\\/LangVersion>
+        <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+        <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+        <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win-x64<\\/OutputPath>
+        <PlatformTarget>([^<]+)<\\/PlatformTarget>
+        <WarningLevel>\\d<\\/WarningLevel>
+        <Prefer32Bit>false<\\/Prefer32Bit>
+        <NoWarn>([^<]+)<\\/NoWarn>
+        <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
+        <OutputType>Library<\\/OutputType>(\\n|.)*
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+        <DebugType>full<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+        <ErrorReport>prompt<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+        <DebugType>portable<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+        <DebugType>none<\\/DebugType>
+        <DebugSymbols>false<\\/DebugSymbols>
+        <Optimize>true<\\/Optimize>
+        <DefineConstants>Productive<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>(\\n|.)*
+<\\/Project>$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
 
     def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> bool:
+        filename = os.path.basename(csproj_file)
+        GeneralUtilities.write_message_to_stdout(f"Check {filename}...")
         file_content = GeneralUtilities.read_text_from_file(csproj_file)
-        regex = regex.replace("\t", "").replace("\r", "").replace("\n", "")
-        file_content = file_content.replace("\t", "").replace("\r", "").replace("\n", "")
+        regex = regex.replace("\r", "").replace("\n", "\\n")
+        file_content = file_content.replace("\r", "")
         match = re.match(regex, file_content)
         return match is not None
 
