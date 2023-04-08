@@ -1373,8 +1373,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_constant_value(self, source_codeunit_folder: str, constant_name: str) -> str:
-        value_file_relative= self.__get_constant_helper(source_codeunit_folder, constant_name, "path")
-        value_file=GeneralUtilities.resolve_relative_path(value_file_relative, os.path.join(source_codeunit_folder, "Other", "Resources", "Constants"))
+        value_file_relative = self.__get_constant_helper(source_codeunit_folder, constant_name, "path")
+        value_file = GeneralUtilities.resolve_relative_path(value_file_relative, os.path.join(source_codeunit_folder, "Other", "Resources", "Constants"))
         return GeneralUtilities.read_text_from_file(value_file)
 
     @GeneralUtilities.check_arguments
@@ -1393,7 +1393,7 @@ class TasksForCommonProjectStructure:
         elif length == 1:
             return results[0]
         else:
-            ValueError("Too many results found.")
+            raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
     def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str):
