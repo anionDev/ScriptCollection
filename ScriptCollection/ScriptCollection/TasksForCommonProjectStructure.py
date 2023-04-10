@@ -1386,7 +1386,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def copy_resources_from_dependent_codeunit(self, codeunit_folder: str, resource_name: str, source_codeunit_name: str):
         source_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}/Other/Resources/{resource_name}", codeunit_folder)
-        target_folder: str = GeneralUtilities.resolve_relative_path(f"/Other/Resources/{resource_name}", codeunit_folder)
+        target_folder: str = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         shutil.copytree(source_folder, target_folder)
 
