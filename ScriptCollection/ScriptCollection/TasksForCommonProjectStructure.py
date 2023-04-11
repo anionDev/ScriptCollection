@@ -9,6 +9,7 @@ import zipfile
 import json
 import configparser
 import xmlschema
+from OpenSSL import crypto
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
@@ -140,9 +141,16 @@ class TasksForCommonProjectStructure:
                                                              "BuildResult_Wheel"), "whl")
 
     @GeneralUtilities.check_arguments
-    def __get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
+    def get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
         root: etree._ElementTree = etree.parse(codeunit_file)
         return float(str(root.xpath('//cps:minimalcodecoverageinpercent/text()', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0]))
+
+    @GeneralUtilities.check_arguments
+    def codeunit_hast_testable_sourcecode(self, codeunit_file) -> bool:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithastestablesourcecode', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
@@ -152,7 +160,7 @@ class TasksForCommonProjectStructure:
         # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
-        minimalrequiredtestcoverageinpercent = self.__get_testcoverage_threshold_from_codeunit_file(codeunit_file)
+        minimalrequiredtestcoverageinpercent = self.get_testcoverage_threshold_from_codeunit_file(codeunit_file)
         minimalrecommendedcoverage = 70
         if minimalrequiredtestcoverageinpercent < minimalrecommendedcoverage:
             GeneralUtilities.write_message_to_stderr(f"Warning: The minimal required testcoverage is {minimalrequiredtestcoverageinpercent}% " +
@@ -411,137 +419,129 @@ class TasksForCommonProjectStructure:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
-\\W*<PropertyGroup>
-\\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
-\\W*	<Authors>([^<]+)<\\/Authors>
-\\W*	<Version>{codeunit_version_regex}<\\/Version>
-\\W*	<AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
-\\W*	<FileVersion>{codeunit_version_regex}<\\/FileVersion>
-\\W*	<SelfContained>false<\\/SelfContained>
-\\W*	<IsPackable>false<\\/IsPackable>
-\\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
-\\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
-\\W*	<Copyright>([^<]+)<\\/Copyright>
-\\W*	<Description>([^<]+)<\\/Description>
-\\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
-\\W*	<RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
-\\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
-\\W*	<Nullable>disable<\\/Nullable>
-\\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
-\\W*	<IsTestProject>false<\\/IsTestProject>
-\\W*	<LangVersion>([^<]+)<\\/LangVersion>
-\\W*	<PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
-\\W*	<GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
-\\W*	<AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
-\\W*	<OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win-x64<\\/OutputPath>
-\\W*	<PlatformTarget>([^<]+)<\\/PlatformTarget>
-\\W*	<WarningLevel>\\d<\\/WarningLevel>
-\\W*	<Prefer32Bit>false<\\/Prefer32Bit>
-\\W*	<NoWarn>([^<]+)<\\/NoWarn>
-\\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
-\\W*	<OutputType>([^<]+)<\\/OutputType>
-\\W*	<DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>
-\\W*	(<ApplicationIcon>([^<]+)<\\/ApplicationIcon>)?
-\\W*	(<StartupObject>([^<]+)<\\/StartupObject>)?
-\\W*<\\/PropertyGroup>
-\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
-\\W*	<DebugType>full<\\/DebugType>
-\\W*	<DebugSymbols>true<\\/DebugSymbols>
-\\W*	<Optimize>false<\\/Optimize>
-\\W*	<DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
-\\W*	<ErrorReport>prompt<\\/ErrorReport>
-\\W*<\\/PropertyGroup>
-\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
-\\W*	<DebugType>portable<\\/DebugType>
-\\W*	<DebugSymbols>true<\\/DebugSymbols>
-\\W*	<Optimize>false<\\/Optimize>
-\\W*	<DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
-\\W*	<ErrorReport>none<\\/ErrorReport>
-\\W*<\\/PropertyGroup>
-\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
-\\W*	<DebugType>none<\\/DebugType>
-\\W*	<DebugSymbols>false<\\/DebugSymbols>
-\\W*	<Optimize>true<\\/Optimize>
-\\W*	<DefineConstants>Productive<\\/DefineConstants>
-\\W*	<ErrorReport>none<\\/ErrorReport>
-\\W*<\\/PropertyGroup>
-\\W*<ItemGroup>
-\\W*.+
-\\W*<\\/ItemGroup>
-\\W*<\\/Project>
-\\W*$"""
+    <PropertyGroup>
+        <TargetFramework>([^<]+)<\\/TargetFramework>
+        <Authors>([^<]+)<\\/Authors>
+        <Version>{codeunit_version_regex}<\\/Version>
+        <AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+        <FileVersion>{codeunit_version_regex}<\\/FileVersion>
+        <SelfContained>false<\\/SelfContained>
+        <IsPackable>false<\\/IsPackable>
+        <PreserveCompilationContext>false<\\/PreserveCompilationContext>
+        <GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+        <Copyright>([^<]+)<\\/Copyright>
+        <Description>([^<]+)<\\/Description>
+        <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
+        <RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
+        <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+        <Nullable>disable<\\/Nullable>
+        <Configurations>Development;QualityCheck;Productive<\\/Configurations>
+        <IsTestProject>false<\\/IsTestProject>
+        <LangVersion>([^<]+)<\\/LangVersion>
+        <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+        <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+        <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win-x64<\\/OutputPath>
+        <PlatformTarget>([^<]+)<\\/PlatformTarget>
+        <WarningLevel>\\d<\\/WarningLevel>
+        <Prefer32Bit>false<\\/Prefer32Bit>
+        <NoWarn>([^<]+)<\\/NoWarn>
+        <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
+        <OutputType>([^<]+)<\\/OutputType>
+        <DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>(\\n|.)*
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+        <DebugType>full<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+        <ErrorReport>prompt<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+        <DebugType>portable<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+        <DebugType>none<\\/DebugType>
+        <DebugSymbols>false<\\/DebugSymbols>
+        <Optimize>true<\\/Optimize>
+        <DefineConstants>Productive<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>(\\n|.)*
+<\\/Project>$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
 
     def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
-\\W*<PropertyGroup>
-\\W*	<TargetFramework>([^<]+)<\\/TargetFramework>
-\\W*	<Authors>([^<]+)<\\/Authors>
-\\W*	<Version>{codeunit_version_regex}<\\/Version>
-\\W*	<AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
-\\W*	<FileVersion>{codeunit_version_regex}<\\/FileVersion>
-\\W*	<SelfContained>false<\\/SelfContained>
-\\W*	<IsPackable>false<\\/IsPackable>
-\\W*	<PreserveCompilationContext>false<\\/PreserveCompilationContext>
-\\W*	<GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
-\\W*	<Copyright>([^<]+)<\\/Copyright>
-\\W*	<Description>{codeunit_name_regex}Tests\\ is\\ the\\ test-project\\ for\\ {codeunit_name_regex}\\.<\\/Description>
-\\W*	<PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-\\W*	<RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
-\\W*	<RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
-\\W*	<ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
-\\W*	<Nullable>disable<\\/Nullable>
-\\W*	<Configurations>Development;QualityCheck;Productive<\\/Configurations>
-\\W*	<IsTestProject>true<\\/IsTestProject>
-\\W*	<LangVersion>([^<]+)<\\/LangVersion>
-\\W*	<PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
-\\W*	<GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
-\\W*	<AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
-\\W*	<OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win-x64<\\/OutputPath>
-\\W*	<PlatformTarget>([^<]+)<\\/PlatformTarget>
-\\W*	<WarningLevel>\\d<\\/WarningLevel>
-\\W*	<Prefer32Bit>false<\\/Prefer32Bit>
-\\W*	<NoWarn>([^<]+)<\\/NoWarn>
-\\W*	<WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-\\W*	<ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
-\\W*	<OutputType>Library<\\/OutputType>
-\\W*<\\/PropertyGroup>
-\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
-\\W*	<DebugType>full<\\/DebugType>
-\\W*	<DebugSymbols>true<\\/DebugSymbols>
-\\W*	<Optimize>false<\\/Optimize>
-\\W*	<DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
-\\W*	<ErrorReport>prompt<\\/ErrorReport>
-\\W*<\\/PropertyGroup>
-\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
-\\W*	<DebugType>portable<\\/DebugType>
-\\W*	<DebugSymbols>true<\\/DebugSymbols>
-\\W*	<Optimize>false<\\/Optimize>
-\\W*	<DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
-\\W*	<ErrorReport>none<\\/ErrorReport>
-\\W*<\\/PropertyGroup>
-\\W*<PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
-\\W*	<DebugType>none<\\/DebugType>
-\\W*	<DebugSymbols>false<\\/DebugSymbols>
-\\W*	<Optimize>true<\\/Optimize>
-\\W*	<DefineConstants>Productive<\\/DefineConstants>
-\\W*	<ErrorReport>none<\\/ErrorReport>
-\\W*<\\/PropertyGroup>
-\\W*(<ItemGroup>
-\\W*.*
-\\W*<\\/ItemGroup>)*
-\\W*<\\/Project>
-\\W*$"""
+    <PropertyGroup>
+        <TargetFramework>([^<]+)<\\/TargetFramework>
+        <Authors>([^<]+)<\\/Authors>
+        <Version>{codeunit_version_regex}<\\/Version>
+        <AssemblyVersion>{codeunit_version_regex}<\\/AssemblyVersion>
+        <FileVersion>{codeunit_version_regex}<\\/FileVersion>
+        <SelfContained>false<\\/SelfContained>
+        <IsPackable>false<\\/IsPackable>
+        <PreserveCompilationContext>false<\\/PreserveCompilationContext>
+        <GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
+        <Copyright>([^<]+)<\\/Copyright>
+        <Description>{codeunit_name_regex}Tests is the test-project for {codeunit_name_regex}\\.<\\/Description>
+        <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
+        <RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
+        <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
+        <Nullable>disable<\\/Nullable>
+        <Configurations>Development;QualityCheck;Productive<\\/Configurations>
+        <IsTestProject>true<\\/IsTestProject>
+        <LangVersion>([^<]+)<\\/LangVersion>
+        <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
+        <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
+        <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
+        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win-x64<\\/OutputPath>
+        <PlatformTarget>([^<]+)<\\/PlatformTarget>
+        <WarningLevel>\\d<\\/WarningLevel>
+        <Prefer32Bit>false<\\/Prefer32Bit>
+        <NoWarn>([^<]+)<\\/NoWarn>
+        <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
+        <OutputType>Library<\\/OutputType>(\\n|.)*
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
+        <DebugType>full<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;DEBUG;Development<\\/DefineConstants>
+        <ErrorReport>prompt<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='QualityCheck'\\\">
+        <DebugType>portable<\\/DebugType>
+        <DebugSymbols>true<\\/DebugSymbols>
+        <Optimize>false<\\/Optimize>
+        <DefineConstants>TRACE;QualityCheck<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>
+    <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
+        <DebugType>none<\\/DebugType>
+        <DebugSymbols>false<\\/DebugSymbols>
+        <Optimize>true<\\/Optimize>
+        <DefineConstants>Productive<\\/DefineConstants>
+        <ErrorReport>none<\\/ErrorReport>
+    <\\/PropertyGroup>(\\n|.)*
+<\\/Project>$"""
         return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
 
     def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> bool:
+        filename = os.path.basename(csproj_file)
+        GeneralUtilities.write_message_to_stdout(f"Check {filename}...")
         file_content = GeneralUtilities.read_text_from_file(csproj_file)
-        regex = regex.replace("\t", "").replace("\r", "").replace("\n", "")
-        file_content = file_content.replace("\t", "").replace("\r", "").replace("\n", "")
+        regex = regex.replace("\r", "").replace("\n", "\\n")
+        file_content = file_content.replace("\r", "")
         match = re.match(regex, file_content)
         return match is not None
 
@@ -1114,32 +1114,6 @@ class TasksForCommonProjectStructure:
         }))
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_docker_project(self, run_testcases_script_file: str, verbosity: int, targetenvironmenttype: str,
-                                                            commandline_arguments: list[str], generate_badges: bool = True):
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(run_testcases_script_file)))
-        repository_folder: str = str(Path(os.path.dirname(run_testcases_script_file)).parent.parent.parent.absolute())
-        codeunitname: str = Path(os.path.dirname(run_testcases_script_file)).parent.parent.name
-        date = int(round(datetime.now().timestamp()))
-        # TODO generate real coverage report
-        dummy_test_coverage_file = f"""<?xml version="1.0" ?>
-        <coverage version="6.3.2" timestamp="{date}" lines-valid="0" lines-covered="0" line-rate="0" branches-covered="0" branches-valid="0" branch-rate="0" complexity="0">
-            <sources>
-                <source>{codeunitname}</source>
-            </sources>
-            <packages>
-                <package name="{codeunitname}" line-rate="0" branch-rate="0" complexity="0">
-                </package>
-            </packages>
-        </coverage>"""
-        artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
-        testcoverage_artifacts_folder = os.path.join(artifacts_folder, "TestCoverage")
-        GeneralUtilities.ensure_directory_exists(testcoverage_artifacts_folder)
-        testcoverage_file = os.path.join(testcoverage_artifacts_folder, "TestCoverage.xml")
-        GeneralUtilities.ensure_file_exists(testcoverage_file)
-        GeneralUtilities.write_text_to_file(testcoverage_file, dummy_test_coverage_file)
-        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
-
-    @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_docker_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO check if there are errors in sarif-file
@@ -1177,7 +1151,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
 
         # Check codeunit-conformity
-        # TODO check if foldername=="<codeunitname>[.codeunit.xml]"==codeunitname in file
+        # TODO check if foldername=="<codeunitname>[.codeunit.xml]" == <codeunitname> in file
         codeunitfile = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
             raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
@@ -1188,7 +1162,7 @@ class TasksForCommonProjectStructure:
 
         # Check codeunit-spcecification-version
         codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
-        supported_codeunitspecificationversion = "1.3.0"
+        supported_codeunitspecificationversion = "1.4.0"
         if codeunit_file_version != supported_codeunitspecificationversion:
             raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
         schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
@@ -1371,6 +1345,52 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(os.path.join(constants_valuefile_folder, constants_valuefile_name), constant_value)
 
     @GeneralUtilities.check_arguments
+    def get_constant_value(self, source_codeunit_folder: str, constant_name: str) -> str:
+        value_file_relative = self.__get_constant_helper(source_codeunit_folder, constant_name, "path")
+        value_file = GeneralUtilities.resolve_relative_path(value_file_relative, os.path.join(source_codeunit_folder, "Other", "Resources", "Constants"))
+        return GeneralUtilities.read_text_from_file(value_file)
+
+    @GeneralUtilities.check_arguments
+    def get_constant_documentation(self, source_codeunit_folder: str, constant_name: str) -> str:
+        return self.__get_constant_helper(source_codeunit_folder, constant_name, "documentationsummary")
+
+    @GeneralUtilities.check_arguments
+    def __get_constant_helper(self, source_codeunit_folder: str, constant_name: str, propertyname: str) -> str:
+        root: etree._ElementTree = etree.parse(os.path.join(source_codeunit_folder, "Other", "Resources", "Constants", f"{constant_name}.constant.xml"))
+        results = root.xpath(f'//cps:{propertyname}/text()', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })
+        length = len(results)
+        if (length == 0):
+            return ""
+        elif length == 1:
+            return results[0]
+        else:
+            raise ValueError("Too many results found.")
+
+    @GeneralUtilities.check_arguments
+    def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str):
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", "Certificate", f"{domain}.unsigned.crt")
+        with open(certificate_file, encoding="utf-8") as text_wrapper:
+            certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
+        certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
+        self.set_constant(codeunit_folder, "CertificatePublicKey", certificate_publickey)
+
+    @GeneralUtilities.check_arguments
+    def copy_constant_from_dependent_codeunit(self, codeunit_folder: str, constant_name: str, source_codeunit_name: str):
+        source_codeunit_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}", codeunit_folder)
+        value = self.get_constant_value(source_codeunit_folder, constant_name)
+        documentation = self.get_constant_documentation(source_codeunit_folder, constant_name)
+        self.set_constant(codeunit_folder, constant_name, value, documentation)
+
+    @GeneralUtilities.check_arguments
+    def copy_resources_from_dependent_codeunit(self, codeunit_folder: str, resource_name: str, source_codeunit_name: str):
+        source_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}/Other/Resources/{resource_name}", codeunit_folder)
+        target_folder: str = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+        shutil.copytree(source_folder, target_folder)
+
+    @GeneralUtilities.check_arguments
     def generate_openapi_file(self, buildscript_file: str, runtime: str, verbosity: int, commandline_arguments: list[str],
                               swagger_document_name: str = "APISpecification") -> None:
         codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
@@ -1550,10 +1570,14 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __do_repository_checks(self, repository_folder: str, project_version: str):
         self.__check_if_changelog_exists(repository_folder, project_version)
+        self.__check_whether_security_txt_exists(repository_folder)
 
     @GeneralUtilities.check_arguments
-    def __check_whether_atifacts_exists(self, codeunit_folder: str):
-        pass  # TODO
+    def __check_whether_security_txt_exists(self, repository_folder: str):
+        security_txt_file_relative = ".well-known/security.txt"
+        security_txt_file = GeneralUtilities.resolve_relative_path(security_txt_file_relative, repository_folder)
+        if not os.path.isfile(security_txt_file):
+            raise ValueError(f"The repository does not contain a '{security_txt_file_relative}'-file. See https://securitytxt.org/ for more information.")
 
     @GeneralUtilities.check_arguments
     def __check_if_changelog_exists(self, repository_folder: str, project_version: str):
@@ -1670,9 +1694,11 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",  build_folder, verbosity=verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
 
-        GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
-        self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity)
-        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
+        codeunit_hast_testable_sourcecode = self.codeunit_hast_testable_sourcecode(codeunit_file)
+        if codeunit_hast_testable_sourcecode:
+            GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
+            self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity)
+            self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
         self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder, verbosity=verbosity)
@@ -1704,5 +1730,4 @@ class TasksForCommonProjectStructure:
     </cps:artifacts>
 </cps:artifactsinformation>""")
         # TODO validate artifactsinformation_file against xsd
-        self.__check_whether_atifacts_exists(codeunit_folder)
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name} without errors.")
