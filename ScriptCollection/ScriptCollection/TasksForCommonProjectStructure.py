@@ -161,7 +161,7 @@ class TasksForCommonProjectStructure:
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         minimalrequiredtestcoverageinpercent = self.get_testcoverage_threshold_from_codeunit_file(codeunit_file)
-        minimalrecommendedcoverage = 70
+        minimalrecommendedcoverage = 90
         if minimalrequiredtestcoverageinpercent < minimalrecommendedcoverage:
             GeneralUtilities.write_message_to_stderr(f"Warning: The minimal required testcoverage is {minimalrequiredtestcoverageinpercent}% " +
                                                      f"but should be at least {minimalrecommendedcoverage}%.")
