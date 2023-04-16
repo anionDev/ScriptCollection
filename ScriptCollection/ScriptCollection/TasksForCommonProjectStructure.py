@@ -940,9 +940,15 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release",
                              target_branch: str = "main", verbosity: int = 1, additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
-        # This is an automatization for 1-man-projects. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
+        # This is an automatization for automatic merges. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
         # (like GitHub, GitLab or Azure DevOps)
         self.assert_no_uncommitted_changes(repository_folder)
+
+        src_branch_commit_id = self.__sc.git_get_commit_id(repository_folder,  source_branch)
+        if (src_branch_commit_id == self.__sc.git_get_commit_id(repository_folder,  target_branch)):
+            GeneralUtilities.write_message_to_stderr(
+                f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
+
         self.__sc.git_checkout(repository_folder, source_branch)
         self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None)
         self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
