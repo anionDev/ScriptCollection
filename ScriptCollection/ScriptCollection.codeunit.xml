@@ -2,7 +2,7 @@
 <cps:codeunit xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" codeunitspecificationversion="1.4.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/raw/main/Conventions/RepositoryStructure/CommonProjectStructure/codeunit.xsd">
     <cps:name>ScriptCollection</cps:name>
-    <cps:version>3.3.77</cps:version>
+    <cps:version>3.3.78</cps:version>
     <cps:properties codeunithastestablesourcecode="true">
         <cps:testsettings>
             <cps:minimalcodecoverageinpercent>30</cps:minimalcodecoverageinpercent>
