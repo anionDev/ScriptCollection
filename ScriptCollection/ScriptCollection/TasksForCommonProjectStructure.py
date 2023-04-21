@@ -914,7 +914,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str, domain: str,
                                                         subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
-                                                        resource_name:str="NonProductiveCertificate"):
+                                                        resource_name: str = "NonProductiveCertificate"):
         target_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
         certificate_file = os.path.join(target_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
@@ -1376,7 +1376,7 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str, constant_name: str = "NonProductiveCertificate"):
+    def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str, constant_name: str = "NonProductiveCertificatePublicKey"):
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", constant_name, f"{domain}.unsigned.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
