@@ -1377,11 +1377,26 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str, constant_name: str = "NonProductiveCertificatePublicKey"):
+        """Expects a certificate-resource and generates a constant for its public information"""
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", constant_name, f"{domain}.unsigned.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
         self.set_constant(codeunit_folder, constant_name+"PublicKey", certificate_publickey)
+
+    @GeneralUtilities.check_arguments
+    def set_constants_for_certificate(self, codeunit_folder: str, certificate_resource_name: str = "NonProductiveCertificate"):
+        """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
+        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "password", "Password")
+        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "pfx", "PFX")
+
+    @GeneralUtilities.check_arguments
+    def __generate_constant_from_resource(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
+        certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
+        resource_file = self.__sc.find_file_by_extension(certificate_resource_folder, extension)
+        resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
+        resource_file_as_hex = resource_file_content.hex()
+        self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
 
     @GeneralUtilities.check_arguments
     def copy_constant_from_dependent_codeunit(self, codeunit_folder: str, constant_name: str, source_codeunit_name: str):
