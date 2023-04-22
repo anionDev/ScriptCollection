@@ -204,7 +204,7 @@ class TasksForCommonProjectStructure:
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.update_path_of_source(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
-        self.check_testcoverage(coveragefile, repository_folder, codeunitname)
+        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, True, targetenvironmenttype, commandline_arguments)
 
     def copy_source_files_to_output_directory(self, buildscript_file: str):
         sc = ScriptCollectionCore()
