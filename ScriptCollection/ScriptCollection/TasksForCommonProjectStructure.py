@@ -913,8 +913,9 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str, domain: str,
-                                                        subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str):
-        target_folder = os.path.join(codeunit_folder, "Other", "Resources", "Certificate")
+                                                        subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
+                                                        resource_name: str = "NonProductiveCertificate"):
+        target_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
         certificate_file = os.path.join(target_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
         if certificate_exists:
@@ -1375,12 +1376,27 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str):
-        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", "Certificate", f"{domain}.unsigned.crt")
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, constant_name: str = "NonProductiveCertificatePublicKey"):
+        """Expects a certificate-resource and generates a constant for its public information"""
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", constant_name, f"{domain}.unsigned.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
-        self.set_constant(codeunit_folder, "CertificatePublicKey", certificate_publickey)
+        self.set_constant(codeunit_folder, constant_name+"PublicKey", certificate_publickey)
+
+    @GeneralUtilities.check_arguments
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "NonProductiveCertificate"):
+        """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
+        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "password", "Password")
+        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "pfx", "PFX")
+
+    @GeneralUtilities.check_arguments
+    def __generate_constant_from_resource(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
+        certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
+        resource_file = self.__sc.find_file_by_extension(certificate_resource_folder, extension)
+        resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
+        resource_file_as_hex = resource_file_content.hex()
+        self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
 
     @GeneralUtilities.check_arguments
     def copy_constant_from_dependent_codeunit(self, codeunit_folder: str, constant_name: str, source_codeunit_name: str):
