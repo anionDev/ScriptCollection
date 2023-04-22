@@ -1376,7 +1376,7 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_server_certificatepublickey_constant(self, codeunit_folder: str, domain: str, constant_name: str = "NonProductiveCertificatePublicKey"):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, constant_name: str = "NonProductiveCertificatePublicKey"):
         """Expects a certificate-resource and generates a constant for its public information"""
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", constant_name, f"{domain}.unsigned.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
@@ -1385,7 +1385,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate(self, codeunit_folder: str, certificate_resource_name: str = "NonProductiveCertificate"):
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "NonProductiveCertificate"):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "password", "Password")
         self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "pfx", "PFX")
