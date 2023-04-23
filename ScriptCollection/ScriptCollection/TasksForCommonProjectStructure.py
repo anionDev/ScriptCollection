@@ -1507,6 +1507,7 @@ class TasksForCommonProjectStructure:
             volumes_folder = os.path.join(folder, "Volumes")
             GeneralUtilities.write_message_to_stdout(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
             GeneralUtilities.ensure_directory_does_not_exist(volumes_folder)
+            GeneralUtilities.ensure_directory_exists(volumes_folder)
         GeneralUtilities.write_message_to_stdout("Load docker-image...")
         sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         project_name = f"{codeunit_name}_{example_name}".lower()
