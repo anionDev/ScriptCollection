@@ -1498,7 +1498,7 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder)
         image_filename = os.path.basename(sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
-        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../..", folder))
+        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
         codeunit_name_lower = codeunit_name.lower()
         if remove_old_container:
             GeneralUtilities.write_message_to_stdout(f"Ensure container {codeunit_name_lower} does not exist...")
