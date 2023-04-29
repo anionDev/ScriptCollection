@@ -781,6 +781,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
                                                                     repository: str, codeunitname, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
+        codeunit_folder = os.path.join(repository, codeunitname)
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
+        codeunit_has_testcases = self.codeunit_hast_testable_sourcecode(codeunit_file)
         target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
         if os.path.isdir(target_folder) and not replace_existing_content:
             raise ValueError(f"Folder '{target_folder}' already exists.")
@@ -792,6 +795,10 @@ class TasksForCommonProjectStructure:
             repo_url_html = ""
         else:
             repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
+        if codeunit_has_testcases:
+            coverage_report_link = "<a href=""./TestCoverageReport/index.html"">TestCoverageReport</a><br>"
+        else:
+            coverage_report_link = ""
         index_file_for_reference = os.path.join(target_folder, "index.html")
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -805,23 +812,25 @@ class TasksForCommonProjectStructure:
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
-    <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
+    {coverage_report_link}
   </body>
 </html>
-"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
+"""
+
         GeneralUtilities.ensure_file_exists(index_file_for_reference)
         GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
         other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
         source_generatedreference = os.path.join(other_folder_in_repository, "Artifacts", "Reference")
         target_generatedreference = os.path.join(target_folder, "Reference")
         shutil.copytree(source_generatedreference, target_generatedreference)
-        source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
-        target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
-        shutil.copytree(source_testcoveragereport, target_testcoveragereport)
+
+        if codeunit_has_testcases:
+            source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
+            target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
+            shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_release_buildartifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
-        # This function is intended to be called directly after __standardized_tasks_merge_to_stable_branch
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
