@@ -779,8 +779,9 @@ class TasksForCommonProjectStructure:
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
-    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-                                                                    repository: str, codeunitname, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
+    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool,
+                                                                    target_folder_for_reference_repository: str, repository: str, codeunitname, projectname: str,
+                                                                    codeunit_version: str, public_repository_url: str, branch: str) -> None:
         codeunit_folder = os.path.join(repository, codeunitname)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
         codeunit_has_testcases = self.codeunit_hast_testable_sourcecode(codeunit_file)
@@ -796,7 +797,7 @@ class TasksForCommonProjectStructure:
         else:
             repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
         if codeunit_has_testcases:
-            coverage_report_link = "<a href=""./TestCoverageReport/index.html"">TestCoverageReport</a><br>"
+            coverage_report_link = '<a href=""./TestCoverageReport/index.html"">TestCoverageReport</a><br>'
         else:
             coverage_report_link = ""
         index_file_for_reference = os.path.join(target_folder, "index.html")
