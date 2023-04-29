@@ -204,7 +204,7 @@ class TasksForCommonProjectStructure:
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.update_path_of_source(repository_folder, codeunitname)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
-        self.check_testcoverage(coveragefile, repository_folder, codeunitname)
+        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, True, targetenvironmenttype, commandline_arguments)
 
     def copy_source_files_to_output_directory(self, buildscript_file: str):
         sc = ScriptCollectionCore()
@@ -779,8 +779,12 @@ class TasksForCommonProjectStructure:
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
-    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str,
-                                                                    repository: str, codeunitname, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
+    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool,
+                                                                    target_folder_for_reference_repository: str, repository: str, codeunitname, projectname: str,
+                                                                    codeunit_version: str, public_repository_url: str, branch: str) -> None:
+        codeunit_folder = os.path.join(repository, codeunitname)
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
+        codeunit_has_testcases = self.codeunit_hast_testable_sourcecode(codeunit_file)
         target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
         if os.path.isdir(target_folder) and not replace_existing_content:
             raise ValueError(f"Folder '{target_folder}' already exists.")
@@ -792,36 +796,57 @@ class TasksForCommonProjectStructure:
             repo_url_html = ""
         else:
             repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
+        if codeunit_has_testcases:
+            coverage_report_link = '<a href=""./TestCoverageReport/index.html"">TestCoverageReport</a><br>'
+        else:
+            coverage_report_link = ""
         index_file_for_reference = os.path.join(target_folder, "index.html")
+
+        design_file = None
+        design = "ModestDark"
+        if design == "ModestDark":
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+        # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
+        if design_file is None:
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
+        else:
+            design_html = f"{design_file}"
+
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
+
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
+    {design_html}
   </head>
+
   <body>
-    <h1 class="display-1">{title}</h1>
+    <h1>{title}</h1>
     <hr/>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
-    <a href="./TestCoverageReport/index.html">TestCoverageReport</a><br>
+    {coverage_report_link}
   </body>
+
 </html>
-"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
+"""
+
         GeneralUtilities.ensure_file_exists(index_file_for_reference)
         GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
         other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
         source_generatedreference = os.path.join(other_folder_in_repository, "Artifacts", "Reference")
         target_generatedreference = os.path.join(target_folder, "Reference")
         shutil.copytree(source_generatedreference, target_generatedreference)
-        source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
-        target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
-        shutil.copytree(source_testcoveragereport, target_testcoveragereport)
+
+        if codeunit_has_testcases:
+            source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
+            target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
+            shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_release_buildartifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
-        # This function is intended to be called directly after __standardized_tasks_merge_to_stable_branch
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
@@ -876,6 +901,16 @@ class TasksForCommonProjectStructure:
                                                      f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
             reference_versions_html_lines.append("    </ul>")
 
+        design_file = None
+        design = "ModestDark"
+        if design == "ModestDark":
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+        # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
+        if design_file is None:
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
+        else:
+            design_html = f"{design_file}"
+
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
         title = f"{projectname}-reference"
         reference_index_file = os.path.join(reference_folder, "index.html")
@@ -885,11 +920,11 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    {design_html}
   </head>
 
   <body>
-    <h1 class="display-1">{title}</h1>
+    <h1>{title}</h1>
     <hr/>
 {reference_versions_links_file_content}
   </body>
@@ -1498,7 +1533,7 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder)
         image_filename = os.path.basename(sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
-        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../..", folder))
+        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
         codeunit_name_lower = codeunit_name.lower()
         if remove_old_container:
             GeneralUtilities.write_message_to_stdout(f"Ensure container {codeunit_name_lower} does not exist...")
@@ -1507,6 +1542,7 @@ class TasksForCommonProjectStructure:
             volumes_folder = os.path.join(folder, "Volumes")
             GeneralUtilities.write_message_to_stdout(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
             GeneralUtilities.ensure_directory_does_not_exist(volumes_folder)
+            GeneralUtilities.ensure_directory_exists(volumes_folder)
         GeneralUtilities.write_message_to_stdout("Load docker-image...")
         sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         project_name = f"{codeunit_name}_{example_name}".lower()
