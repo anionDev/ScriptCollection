@@ -800,20 +800,35 @@ class TasksForCommonProjectStructure:
         else:
             coverage_report_link = ""
         index_file_for_reference = os.path.join(target_folder, "index.html")
+
+        design_file = None
+        design = "ModestDark"
+        if design == "ModestDark":
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+        # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
+        if design_file is None:
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
+        else:
+            design_html = f"{design_file}"
+
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
+
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
+    {design_html}
   </head>
+
   <body>
-    <h1 class="display-1">{title}</h1>
+    <h1>{title}</h1>
     <hr/>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
     {coverage_report_link}
   </body>
+
 </html>
 """
 
@@ -885,6 +900,16 @@ class TasksForCommonProjectStructure:
                                                      f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
             reference_versions_html_lines.append("    </ul>")
 
+        design_file = None
+        design = "ModestDark"
+        if design == "ModestDark":
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+        # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
+        if design_file is None:
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
+        else:
+            design_html = f"{design_file}"
+
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
         title = f"{projectname}-reference"
         reference_index_file = os.path.join(reference_folder, "index.html")
@@ -894,11 +919,11 @@ class TasksForCommonProjectStructure:
   <head>
     <meta charset="UTF-8">
     <title>{title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    {design_html}
   </head>
 
   <body>
-    <h1 class="display-1">{title}</h1>
+    <h1>{title}</h1>
     <hr/>
 {reference_versions_links_file_content}
   </body>
