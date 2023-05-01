@@ -1411,13 +1411,13 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, constant_name: str = "NonProductiveCertificatePublicKey"):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, source_constant_name: str = "NonProductiveCertificate"):
         """Expects a certificate-resource and generates a constant for its public information"""
-        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", constant_name, f"{domain}.unsigned.crt")
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.unsigned.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
-        self.set_constant(codeunit_folder, constant_name+"PublicKey", certificate_publickey)
+        self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
     def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "NonProductiveCertificate"):
