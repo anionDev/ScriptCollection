@@ -16,7 +16,6 @@ import uuid
 import io
 import ntplib
 import qrcode
-from lxml import etree
 import pycdlib
 import send2trash
 from PyPDF2 import PdfFileMerger
@@ -26,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.80"
+version = "3.3.81"
 __version__ = version
 
 
@@ -72,14 +71,6 @@ class ScriptCollectionCore:
     def replace_version_in_dockerfile_file(self, dockerfile: str, new_version_value: str) -> None:
         GeneralUtilities.write_text_to_file(dockerfile, re.sub("ARG Version=\"\\d+\\.\\d+\\.\\d+\"", f"ARG Version=\"{new_version_value}\"",
                                                                GeneralUtilities.read_text_from_file(dockerfile)))
-
-    @GeneralUtilities.check_arguments
-    def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, threshold_in_percent: float):
-        root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
-        coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
-        minimalrequiredtestcoverageinpercent = threshold_in_percent
-        if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
-            raise ValueError(f"The testcoverage must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
     def replace_version_in_python_file(self, file: str, new_version_value: str):
@@ -1218,8 +1209,6 @@ class ScriptCollectionCore:
         if mock_loader_result[0]:
             return mock_loader_result[1]
 
-        start_datetime = datetime.utcnow()
-
         if arguments_for_log is None:
             arguments_for_log = arguments_as_array
 
@@ -1260,14 +1249,11 @@ class ScriptCollectionCore:
         exit_code = process.wait()
         stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
         stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
-        end_datetime = datetime.utcnow()
 
-        if arguments_for_log is None:
-            arguments_for_log = ' '.join(arguments_as_array)
+        if arguments_for_log_as_string is None:
+            arguments_for_log_as_string = ' '.join(arguments_as_array)
         else:
-            arguments_for_log = ' '.join(arguments_for_log)
-
-        duration: timedelta = end_datetime-start_datetime
+            arguments_for_log_as_string = ' '.join(arguments_for_log)
 
         if GeneralUtilities.string_is_none_or_whitespace(title):
             info_for_log = cmd
@@ -1288,12 +1274,13 @@ class ScriptCollectionCore:
             if verbosity == 3:
                 GeneralUtilities.write_message_to_stdout(stdout)
                 self.__write_error_output(print_errors_as_information, stderr)
-                formatted = self.__format_program_execution_information(title=info_for_log, program=program, argument=arguments_for_log, workingdirectory=working_directory)
+                formatted = self.__format_program_execution_information(title=info_for_log, program=program,
+                                                                        argument=arguments_for_log_as_string, workingdirectory=working_directory)
                 GeneralUtilities.write_message_to_stdout(f"Finished '{info_for_log}'. Details: '{formatted}")
 
         if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-            formatted = self.__format_program_execution_information(exit_code, stdout, stderr, program, arguments_for_log, working_directory, info_for_log, pid, duration)
-            raise ValueError(f"Finished '{info_for_log}'. Details: '{formatted}")
+            arguments_for_log_as_string = ' '.join(arguments_for_log)
+            raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
 
         result = (exit_code, stdout, stderr, pid)
         return result
@@ -1481,14 +1468,18 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
         result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
-        # repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
-        # if repository_has_uncommitted_changes:
-        #    if self.get_current_branch_has_tag(repository_folder):
-        #        tag_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
-        #        current_commit = self.git_get_commit_id(repository_folder)
-        #        current_commit_is_on_latest_tag = tag_of_latest_tag == current_commit
-        #        if current_commit_is_on_latest_tag:
-        #            result = self.increment_version(result, False, False, True)
+
+        try:
+            if self.git_repository_has_uncommitted_changes(repository_folder):
+                if self.get_current_branch_has_tag(repository_folder):
+                    tag_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
+                    current_commit = self.git_get_commit_id(repository_folder)
+                    current_commit_is_on_latest_tag = tag_of_latest_tag == current_commit
+                    if current_commit_is_on_latest_tag:
+                        result = self.increment_version(result, False, False, True)
+        except:#Exceptions are thrown for example when no tags are available. but these cases should be ignored.
+            pass
+
         return result
 
     @GeneralUtilities.check_arguments
@@ -1496,7 +1487,9 @@ class ScriptCollectionCore:
         # called twice as workaround for issue 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
-        return GeneralUtilities.strip_new_line_character(result[1])
+        result = GeneralUtilities.strip_new_line_character(result[1])
+
+        return result
 
     @GeneralUtilities.check_arguments
     def generate_certificate_authority(self, folder: str, name: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
