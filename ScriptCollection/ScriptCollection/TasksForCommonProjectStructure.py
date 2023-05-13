@@ -1728,7 +1728,9 @@ class TasksForCommonProjectStructure:
 
         if assume_dependent_codeunits_are_already_built:
             c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built=true"
-            GeneralUtilities.write_message_to_stdout("Assume dependent codeunits are already built")
+            diagnostic=False
+            if diagnostic:
+                GeneralUtilities.write_message_to_stdout("Assume dependent codeunits are already built")
 
         if additional_arguments_file is not None:
             config = configparser.ConfigParser()
