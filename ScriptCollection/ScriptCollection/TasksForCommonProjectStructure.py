@@ -1268,18 +1268,16 @@ class TasksForCommonProjectStructure:
         # Copy license-file
         self.copy_licence_file(common_tasks_scripts_file)
 
-        # Copy license-file
+        # Generate diff-report
         self.generate_diff_report(repository_folder, codeunit_name, codeunit_version)
 
     @GeneralUtilities.check_arguments
     def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str):
-        # sh -c "git diff --src-prefix=v3.3.82/ --dst-prefix=v3.3.83/ v3.3.82 HEAD -- ScriptCollection | pygmentize -l diff -f html -O full -o file_diff.html -P style=github-dark"
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DiffReport", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
-        target_file = os.path.join(target_folder, "DiffReport.html")
-
+        target_file = os.path.join(target_folder, "DiffReport.html").replace("\\", "/")
         src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty tree
         src_prefix = "Begin"
         if self.__sc.get_current_branch_has_tag(repository_folder):
@@ -1288,9 +1286,9 @@ class TasksForCommonProjectStructure:
             src_prefix = latest_tag
         dst = "HEAD"
         dst_prefix = f"v{current_version}"
-        self.__sc.run_program(
-            "sh", f'-c "git diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name} | ' +
-            f'pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark"', repository_folder)
+        self.__sc.run_program_argsasarray(
+            "sh", ['-c', f'git diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name} | ' +
+                   f'pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark'], repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str):
