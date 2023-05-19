@@ -792,7 +792,9 @@ class TasksForCommonProjectStructure:
         codeunit_version_identifier = "Latest" if project_version_identifier == "Latest" else "v"+codeunit_version
         page_title = f"{codeunitname} {codeunit_version_identifier} codeunit-reference"
         diff_report = f"{repository}/{codeunitname}/Other/Artifacts/DiffReport/DiffReport.html"
-        diff_target_file = os.path.join(target_folder, "DiffReport/DiffReport.html")
+        diff_target_folder = os.path.join(target_folder, "DiffReport")
+        GeneralUtilities.ensure_directory_exists(diff_target_folder)
+        diff_target_file = os.path.join(diff_target_folder, "DiffReport.html")
         title = (f'Reference of codeunit {codeunitname} {codeunit_version_identifier} (contained in project ' +
                  f'<a href="{public_repository_url}">{projectname}</a> {project_version_identifier})')
         if public_repository_url is None:
