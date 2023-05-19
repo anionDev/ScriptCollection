@@ -10,6 +10,7 @@ The following tools from the [tools-list](https://github.com/anionDev/ScriptColl
 - `gitversion`
 - `python`
 - `reportgenerator`
+- `sh`
 - `scriptcollection`
 
 To create a release the following tools are also required:

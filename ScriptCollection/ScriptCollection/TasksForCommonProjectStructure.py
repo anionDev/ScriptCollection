@@ -779,7 +779,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool,
-                                                                    target_folder_for_reference_repository: str, repository: str, codeunitname, projectname: str,
+                                                                    target_folder_for_reference_repository: str, repository: str, codeunitname:str, projectname: str,
                                                                     codeunit_version: str, public_repository_url: str, branch: str) -> None:
         codeunit_folder = os.path.join(repository, codeunitname)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
@@ -790,13 +790,18 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
         codeunit_version_identifier = "Latest" if project_version_identifier == "Latest" else "v"+codeunit_version
-        title = f"Reference of codeunit {codeunitname} <i>{codeunit_version_identifier}</i> (contained in project {projectname} <i>{project_version_identifier}</i>)"
+        page_title = f"{codeunitname} {codeunit_version_identifier} codeunit-reference"
+        diff_report=f"{repository}/{codeunitname}/Other/Artifacts/DiffReport/DiffReport.html"
+        diff_target_file=os.path.join(target_folder,"DiffReport/DiffReport.html")
+        shutil.copyfile(diff_report,diff_target_file)
+        title = (f'Reference of codeunit {codeunitname} {codeunit_version_identifier} (contained in project ' +
+                 f'<a href="{public_repository_url}">{projectname}</a> {project_version_identifier})')
         if public_repository_url is None:
             repo_url_html = ""
         else:
             repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
         if codeunit_has_testcases:
-            coverage_report_link = '<a href=""./TestCoverageReport/index.html"">TestCoverageReport</a><br>'
+            coverage_report_link = '<a href="./TestCoverageReport/index.html">Test-coverage-report</a><br>'
         else:
             coverage_report_link = ""
         index_file_for_reference = os.path.join(target_folder, "index.html")
@@ -804,19 +809,19 @@ class TasksForCommonProjectStructure:
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = ""
         else:
-            design_html = f"{design_file}"
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
 
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
 
   <head>
     <meta charset="UTF-8">
-    <title>{title}</title>
+    <title>{page_title}</title>
     {design_html}
   </head>
 
@@ -826,7 +831,8 @@ class TasksForCommonProjectStructure:
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
-    {coverage_report_link}
+    {coverage_report_link}<br>
+    <a href="./DiffReport/DiffReport.html">Diff-report</a><br>
   </body>
 
 </html>
@@ -888,7 +894,7 @@ class TasksForCommonProjectStructure:
         for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
             version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
             if version_identifier_of_project == "Latest":
-                latest_version_hint = f" (v {project_version})"
+                latest_version_hint = f" (v{project_version})"
             else:
                 latest_version_hint = ""
             reference_versions_html_lines.append('    <hr/>')
@@ -903,12 +909,12 @@ class TasksForCommonProjectStructure:
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = ""
         else:
-            design_html = f"{design_file}"
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
 
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
         title = f"{projectname}-reference"
@@ -1174,7 +1180,7 @@ class TasksForCommonProjectStructure:
         shutil.copyfile(source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
                                            additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
@@ -1246,7 +1252,7 @@ class TasksForCommonProjectStructure:
         self.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
         # Update codeunit-version
-        self.update_version_of_codeunit(common_tasks_scripts_file, version)
+        self.update_version_of_codeunit(common_tasks_scripts_file, codeunit_version)
 
         # set default constants
         self.set_default_constants(os.path.join(codeunit_folder))
@@ -1265,6 +1271,28 @@ class TasksForCommonProjectStructure:
 
         # Copy license-file
         self.copy_licence_file(common_tasks_scripts_file)
+
+        # Generate diff-report
+        self.generate_diff_report(repository_folder, codeunit_name, codeunit_version)
+
+    @GeneralUtilities.check_arguments
+    def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str):
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DiffReport", codeunit_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        target_file = os.path.join(target_folder, "DiffReport.html").replace("\\", "/")
+        src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty tree
+        src_prefix = "Begin"
+        if self.__sc.get_current_branch_has_tag(repository_folder):
+            latest_tag = self.__sc.get_latest_tag(repository_folder)
+            src = self.__sc.git_get_commitid_of_tag(repository_folder, latest_tag)
+            src_prefix = latest_tag
+        dst = "HEAD"
+        dst_prefix = f"v{current_version}"
+        self.__sc.run_program_argsasarray(
+            "sh", ['-c', f'git diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name} | ' +
+                   f'pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark'], repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str):
@@ -1727,7 +1755,7 @@ class TasksForCommonProjectStructure:
 
         if assume_dependent_codeunits_are_already_built:
             c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built=true"
-            diagnostic=False
+            diagnostic = False
             if diagnostic:
                 GeneralUtilities.write_message_to_stdout("Assume dependent codeunits are already built")
 
@@ -1752,7 +1780,7 @@ class TasksForCommonProjectStructure:
                                                  other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
         if execution_result[0] != 0:
             raise ValueError(f"CommonTasks.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
-        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True}))
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         execution_result = self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",
