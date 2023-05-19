@@ -25,7 +25,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.83"
+version = "3.3.84"
 __version__ = version
 
 

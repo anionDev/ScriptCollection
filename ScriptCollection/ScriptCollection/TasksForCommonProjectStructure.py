@@ -779,7 +779,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool,
-                                                                    target_folder_for_reference_repository: str, repository: str, codeunitname:str, projectname: str,
+                                                                    target_folder_for_reference_repository: str, repository: str, codeunitname: str, projectname: str,
                                                                     codeunit_version: str, public_repository_url: str, branch: str) -> None:
         codeunit_folder = os.path.join(repository, codeunitname)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
@@ -791,9 +791,8 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_folder)
         codeunit_version_identifier = "Latest" if project_version_identifier == "Latest" else "v"+codeunit_version
         page_title = f"{codeunitname} {codeunit_version_identifier} codeunit-reference"
-        diff_report=f"{repository}/{codeunitname}/Other/Artifacts/DiffReport/DiffReport.html"
-        diff_target_file=os.path.join(target_folder,"DiffReport/DiffReport.html")
-        shutil.copyfile(diff_report,diff_target_file)
+        diff_report = f"{repository}/{codeunitname}/Other/Artifacts/DiffReport/DiffReport.html"
+        diff_target_file = os.path.join(target_folder, "DiffReport/DiffReport.html")
         title = (f'Reference of codeunit {codeunitname} {codeunit_version_identifier} (contained in project ' +
                  f'<a href="{public_repository_url}">{projectname}</a> {project_version_identifier})')
         if public_repository_url is None:
@@ -844,6 +843,8 @@ class TasksForCommonProjectStructure:
         source_generatedreference = os.path.join(other_folder_in_repository, "Artifacts", "Reference")
         target_generatedreference = os.path.join(target_folder, "Reference")
         shutil.copytree(source_generatedreference, target_generatedreference)
+
+        shutil.copyfile(diff_report, diff_target_file)
 
         if codeunit_has_testcases:
             source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
