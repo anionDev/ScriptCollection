@@ -73,6 +73,12 @@ The commandline-tool can be installed using `choco install nuget.commandline`.
 [ScriptCollection](https://github.com/anionDev/ScriptCollection) is required to run the scripts (`Build.py`, etc.).
 The package can be installed using `pip install ScriptCollection`.
 
+
+### sh
+
+The shell `sh` is already pre-installed on most linux-systems.
+On Windows a windows-port called `sh.exe` is contained in [git for windows](https://git-scm.com/download/win) and can be found usually in `C:\Program Files\Git\usr\bin`. 
+
 ### sn
 
 The [Strong Name tool](https://learn.microsoft.com/en-us/dotnet/framework/tools/sn-exe-strong-name-tool) (Sn.exe) helps sign assemblies with strong names.
