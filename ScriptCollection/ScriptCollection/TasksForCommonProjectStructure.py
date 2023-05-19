@@ -790,13 +790,14 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
         codeunit_version_identifier = "Latest" if project_version_identifier == "Latest" else "v"+codeunit_version
-        title = f"Reference of codeunit {codeunitname} <i>{codeunit_version_identifier}</i> (contained in project {projectname} <i>{project_version_identifier}</i>)"
+        page_title = f"{codeunitname} {codeunit_version_identifier} codeunit-reference"
+        title = f"Reference of codeunit {codeunitname} {codeunit_version_identifier} (contained in project {projectname} {project_version_identifier})"
         if public_repository_url is None:
             repo_url_html = ""
         else:
             repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
         if codeunit_has_testcases:
-            coverage_report_link = '<a href=""./TestCoverageReport/index.html"">TestCoverageReport</a><br>'
+            coverage_report_link = '<a href="./TestCoverageReport/index.html">Test-coverage-report</a><br>'
         else:
             coverage_report_link = ""
         index_file_for_reference = os.path.join(target_folder, "index.html")
@@ -804,19 +805,19 @@ class TasksForCommonProjectStructure:
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = ""
         else:
-            design_html = f"{design_file}"
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
 
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
 
   <head>
     <meta charset="UTF-8">
-    <title>{title}</title>
+    <title>{page_title}</title>
     {design_html}
   </head>
 
@@ -826,7 +827,7 @@ class TasksForCommonProjectStructure:
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
-    {coverage_report_link}
+    {coverage_report_link}<br>
   </body>
 
 </html>
@@ -888,7 +889,7 @@ class TasksForCommonProjectStructure:
         for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
             version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
             if version_identifier_of_project == "Latest":
-                latest_version_hint = f" (v {project_version})"
+                latest_version_hint = f" (v{project_version})"
             else:
                 latest_version_hint = ""
             reference_versions_html_lines.append('    <hr/>')
@@ -903,12 +904,12 @@ class TasksForCommonProjectStructure:
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/other/next-release/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = ""
         else:
-            design_html = f"{design_file}"
+            design_html = f'<link rel="stylesheet" href="{design_file}">'
 
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
         title = f"{projectname}-reference"
@@ -1727,7 +1728,7 @@ class TasksForCommonProjectStructure:
 
         if assume_dependent_codeunits_are_already_built:
             c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built=true"
-            diagnostic=False
+            diagnostic = False
             if diagnostic:
                 GeneralUtilities.write_message_to_stdout("Assume dependent codeunits are already built")
 
