@@ -1176,7 +1176,7 @@ class TasksForCommonProjectStructure:
         shutil.copyfile(source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool,
                                            additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
@@ -1248,7 +1248,7 @@ class TasksForCommonProjectStructure:
         self.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
         # Update codeunit-version
-        self.update_version_of_codeunit(common_tasks_scripts_file, version)
+        self.update_version_of_codeunit(common_tasks_scripts_file, codeunit_version)
 
         # set default constants
         self.set_default_constants(os.path.join(codeunit_folder))
@@ -1267,6 +1267,30 @@ class TasksForCommonProjectStructure:
 
         # Copy license-file
         self.copy_licence_file(common_tasks_scripts_file)
+
+        # Copy license-file
+        self.generate_diff_report(repository_folder, codeunit_name, codeunit_version)
+
+    @GeneralUtilities.check_arguments
+    def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str):
+        # sh -c "git diff --src-prefix=v3.3.82/ --dst-prefix=v3.3.83/ v3.3.82 HEAD -- ScriptCollection | pygmentize -l diff -f html -O full -o file_diff.html -P style=github-dark"
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DiffReport", codeunit_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        target_file = os.path.join(target_folder, "DiffReport.html")
+
+        src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty tree
+        src_prefix = "Begin"
+        if self.__sc.get_current_branch_has_tag(repository_folder):
+            latest_tag = self.__sc.get_latest_tag(repository_folder)
+            src = self.__sc.git_get_commitid_of_tag(repository_folder, latest_tag)
+            src_prefix = latest_tag
+        dst = "HEAD"
+        dst_prefix = f"v{current_version}"
+        self.__sc.run_program(
+            "sh", f'-c "git diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name} | ' +
+            f'pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark"', repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str):
@@ -1754,7 +1778,7 @@ class TasksForCommonProjectStructure:
                                                  other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
         if execution_result[0] != 0:
             raise ValueError(f"CommonTasks.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
-        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True}))
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         execution_result = self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",
