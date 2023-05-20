@@ -894,20 +894,23 @@ class TasksForCommonProjectStructure:
         all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
         all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
         reference_versions_html_lines = []
+        reference_versions_html_lines.append('    <hr/>')
         for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
             version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
             if version_identifier_of_project == "Latest":
                 latest_version_hint = f" (v{project_version})"
             else:
                 latest_version_hint = ""
-            reference_versions_html_lines.append('    <hr/>')
-            reference_versions_html_lines.append(f'    <h2 class="display-2">{version_identifier_of_project}{latest_version_hint}</h2>')
+            reference_versions_html_lines.append(f'    <h2>{version_identifier_of_project}{latest_version_hint}</h2>')
             reference_versions_html_lines.append("    Contained codeunits:<br/>")
             reference_versions_html_lines.append("    <ul>")
             for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
                 reference_versions_html_lines.append(f'      <li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">' +
                                                      f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
             reference_versions_html_lines.append("    </ul>")
+            reference_versions_html_lines.append('    <hr/>')
+            if version_identifier_of_project == "Latest":
+                latest_version_hint = "    <h2>History</h2>"
 
         design_file = None
         design = "ModestDark"
@@ -933,7 +936,6 @@ class TasksForCommonProjectStructure:
 
   <body>
     <h1>{title}</h1>
-    <hr/>
 {reference_versions_links_file_content}
   </body>
 
