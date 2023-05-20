@@ -810,7 +810,7 @@ class TasksForCommonProjectStructure:
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = GeneralUtilities.get_modest_dark_url()
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
             design_html = ""
@@ -912,7 +912,7 @@ class TasksForCommonProjectStructure:
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = GeneralUtilities.get_modest_dark_url()
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
             design_html = ""
