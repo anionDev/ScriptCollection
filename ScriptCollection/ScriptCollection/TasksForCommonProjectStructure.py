@@ -815,7 +815,7 @@ class TasksForCommonProjectStructure:
         if design_file is None:
             design_html = ""
         else:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
 
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -832,8 +832,8 @@ class TasksForCommonProjectStructure:
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
-    {coverage_report_link}<br>
     <a href="./DiffReport/DiffReport.html">Diff-report</a><br>
+    {coverage_report_link}
   </body>
 
 </html>
@@ -917,7 +917,7 @@ class TasksForCommonProjectStructure:
         if design_file is None:
             design_html = ""
         else:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
 
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
         title = f"{projectname}-reference"
