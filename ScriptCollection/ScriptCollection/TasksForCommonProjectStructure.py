@@ -1632,10 +1632,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def _internal_sort_codenits(self, codeunits=dict[str, set[str]]) -> list[str]:
-        result: list[str] = list[str]()
-        ts = TopologicalSorter(codeunits)
-        result = list(ts.static_order())
-        return result
+        return list(TopologicalSorter(codeunits).static_order())
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
