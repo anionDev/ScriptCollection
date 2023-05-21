@@ -1598,5 +1598,5 @@ DNS                 = {domain}
         GeneralUtilities.write_lines_to_file(setup_cfg_file, new_lines)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_for_dotnet_project(self, csproj_file: str, verbosity: int):
+    def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int):
         pass  # TODO
