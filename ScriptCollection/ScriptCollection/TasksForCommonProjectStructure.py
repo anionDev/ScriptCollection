@@ -2,12 +2,14 @@ from datetime import datetime
 from graphlib import TopologicalSorter
 import os
 from pathlib import Path
+from functools import cmp_to_key
 import shutil
 import re
 import urllib.request
 import zipfile
 import json
 import configparser
+from packaging import version
 import xmlschema
 from OpenSSL import crypto
 from lxml import etree
@@ -888,12 +890,31 @@ class TasksForCommonProjectStructure:
             # Generate reference
             self.__generate_entire_reference(information.projectname, project_version, reference_folder)
 
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def _internal_sort_reference_folder(folder1: str, folder2: str) -> int:
+        """Returns a value greater than 0 if and only if folder1 has a base-folder-name with a with a higher version than the base-folder-name of folder2.
+        Returns a value lower than 0 if and only if folder1 has a base-folder-name with a with a lower version than the base-folder-name of folder2.
+        Returns 0 if both values are equal."""
+        if (folder1 == folder2):
+            return 0
+        version_identifier_1 = os.path.basename(folder1)
+        if version_identifier_1 == "Latest":
+            return -1
+        version_identifier_1 = version_identifier_1[1:]
+        version_identifier_2 = os.path.basename(folder2)[1:]
+        if version.parse(version_identifier_1) < version.parse(version_identifier_2):
+            return -1
+        elif version.parse(version_identifier_1) > version.parse(version_identifier_2):
+            return 1
+        else:
+            return 0
+
     @GeneralUtilities.check_arguments
     def __generate_entire_reference(self, projectname: str, project_version: str, reference_folder: str) -> None:
-        all_available_version_identifier_folders_of_reference = list(
-            folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
-        all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
-        all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
+        all_available_version_identifier_folders_of_reference: list[str] = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
+        all_available_version_identifier_folders_of_reference = sorted(all_available_version_identifier_folders_of_reference,
+                                                                       key=cmp_to_key(TasksForCommonProjectStructure._internal_sort_reference_folder))
         reference_versions_html_lines = []
         reference_versions_html_lines.append('    <hr/>')
         for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
@@ -1132,7 +1153,7 @@ class TasksForCommonProjectStructure:
                                                      "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, project_name: str, codeunitname: str,
                                    verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str):
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -1143,16 +1164,16 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
         image_filename = os.path.basename(image_file)
-        version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
+        codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         image_tag_name = codeunitname.lower()
         repo = f"{registry}/{image_tag_name}"
         image_latest = f"{repo}:latest"
-        image_version = f"{repo}:{version}"
+        image_version = f"{repo}:{codeunit_version}"
         GeneralUtilities.write_message_to_stdout("Load image...")
         sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Tag image...")
-        sc.run_program("docker", f"tag {image_tag_name}:{version} {image_latest}", verbosity=verbosity)
-        sc.run_program("docker", f"tag {image_tag_name}:{version} {image_version}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {image_tag_name}:{codeunit_version} {image_latest}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {image_tag_name}:{codeunit_version} {image_version}", verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Push image...")
         sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
         sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
@@ -1307,9 +1328,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def replace_common_variables_in_nuspec_file(self, codeunit_folder: str):
         codeunit_name = os.path.basename(codeunit_folder)
-        version = self.get_version_of_codeunit_folder(codeunit_folder)
+        codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         nuspec_file = os.path.join(codeunit_folder, "Other", "Build", f"{codeunit_name}.nuspec")
-        self.__sc.replace_version_in_nuspec_file(nuspec_file, version)
+        self.__sc.replace_version_in_nuspec_file(nuspec_file, codeunit_version)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project(self, build_script_file: str, build_environment_target_type: str,
@@ -1488,17 +1509,17 @@ class TasksForCommonProjectStructure:
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        version = self.get_version_of_codeunit_folder(os.path.join(repository_folder, codeunitname))
-        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.v{version}.api.json" +
+        codeunit_version = self.get_version_of_codeunit_folder(os.path.join(repository_folder, codeunitname))
+        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.v{codeunit_version}.api.json" +
                               f" BuildResult_DotNet_{runtime}\\{codeunitname}.dll {swagger_document_name}",
                               artifacts_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def replace_version_in_packagejson_file(self, packagejson_file: str, version: str):
+    def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str):
         encoding = "utf-8"
         with open(packagejson_file, encoding=encoding) as f:
             data = json.load(f)
-        data['version'] = version
+        data['version'] = codeunit_version
         with open(packagejson_file, 'w', encoding=encoding) as f:
             json.dump(data, f, indent=2)
 
@@ -1819,7 +1840,7 @@ class TasksForCommonProjectStructure:
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
-        version = self.get_version_of_codeunit(codeunit_file)
+        codeunit_version = self.get_version_of_codeunit(codeunit_file)
         GeneralUtilities.ensure_file_exists(artifactsinformation_file)
         artifacts_list = []
         for artifact_folder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
@@ -1832,7 +1853,7 @@ class TasksForCommonProjectStructure:
 <cps:artifactsinformation xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" artifactsinformationspecificationversion="1.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/artifactsinformation.xsd">
     <cps:name>{codeunit_name}</cps:name>
-    <cps:version>{version}</cps:version>
+    <cps:version>{codeunit_version}</cps:version>
     <cps:timestamp>{moment}</cps:timestamp>
     <cps:targetenvironmenttype>{target_environmenttype}</cps:targetenvironmenttype>
     <cps:artifacts>
