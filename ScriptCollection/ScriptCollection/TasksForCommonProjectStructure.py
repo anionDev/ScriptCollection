@@ -684,7 +684,7 @@ class TasksForCommonProjectStructure:
                     for error in linting_result[1]:
                         GeneralUtilities.write_message_to_stderr(error)
         if errors_found:
-            raise Exception("Linting-issues occurred.")
+            raise ValueError("Linting-issues occurred.")
         else:
             GeneralUtilities.write_message_to_stdout("No linting-issues found.")
 
@@ -1204,7 +1204,7 @@ class TasksForCommonProjectStructure:
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]" == <codeunitname> in file
         codeunitfile = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if not os.path.isfile(codeunitfile):
-            raise Exception(f'Codeunitfile "{codeunitfile}" does not exist.')
+            raise ValueError(f'Codeunitfile "{codeunitfile}" does not exist.')
         # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
         namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
                       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}

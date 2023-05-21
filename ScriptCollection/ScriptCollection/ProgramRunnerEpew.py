@@ -110,7 +110,7 @@ class ProgramRunnerEpew(ProgramRunnerBase):
                 return result
             except:
                 pass
-        raise Exception(f"'{filecontent}' does not containe an int-line")
+        raise ValueError(f"'{filecontent}' does not containe an int-line")
 
     @GeneralUtilities.check_arguments
     def __load_text(self, file: str) -> str:
@@ -119,4 +119,4 @@ class ProgramRunnerEpew(ProgramRunnerBase):
             os.remove(file)
             return content
         else:
-            raise Exception(f"File '{file}' does not exist")
+            raise ValueError(f"File '{file}' does not exist")

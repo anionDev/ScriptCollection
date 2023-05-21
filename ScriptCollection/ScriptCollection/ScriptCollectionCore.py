@@ -132,7 +132,7 @@ class ScriptCollectionCore:
             filename = filename[:-4]
             extension = "exe"
         else:
-            raise Exception("Only .dll-files and .exe-files can be signed")
+            raise ValueError("Only .dll-files and .exe-files can be signed")
         self.run_program("ildasm",
                          f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
                          directory,  verbosity, False, "Sign: ildasm")
@@ -164,7 +164,7 @@ class ScriptCollectionCore:
             filename = filename[:-4]
             extension = "exe"
         else:
-            raise Exception("Only .dll-files and .exe-files can be signed")
+            raise ValueError("Only .dll-files and .exe-files can be signed")
         self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory, verbosity=verbosity)
         self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory, verbosity=verbosity)
         os.remove(directory+os.path.sep+filename+".il")
@@ -467,7 +467,7 @@ class ScriptCollectionCore:
             return True
         if (exit_code == 1):
             return False
-        raise Exception(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
+        raise ValueError(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
     @GeneralUtilities.check_arguments
     def discard_all_changes(self, repository: str) -> None:
@@ -601,7 +601,7 @@ class ScriptCollectionCore:
                         filetype_full = "File"
                     if filetype == "d":
                         filetype_full = "Directory"
-                    raise Exception(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
+                    raise ValueError(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
     @GeneralUtilities.check_arguments
     def __calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
@@ -807,7 +807,7 @@ class ScriptCollectionCore:
                         self.__merge_files(file, new_filename)
                         send2trash.send2trash(file)
                     else:
-                        raise Exception('Unknown conflict resolve mode')
+                        raise ValueError('Unknown conflict resolve mode')
             else:
                 os.rename(file, new_filename)
 
@@ -958,7 +958,7 @@ class ScriptCollectionCore:
                 self.__create_iso(files_directory_obf, outputfile)
                 shutil.rmtree(files_directory_obf)
         else:
-            raise Exception(f"Directory not found: '{inputfolder}'")
+            raise ValueError(f"Directory not found: '{inputfolder}'")
 
     @GeneralUtilities.check_arguments
     def SCFilenameObfuscator(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
@@ -986,7 +986,7 @@ class ScriptCollectionCore:
                 os.rename(file, new_file_name)
                 GeneralUtilities.append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash_value)
         else:
-            raise Exception(f"Directory not found: '{inputfolder}'")
+            raise ValueError(f"Directory not found: '{inputfolder}'")
 
     @GeneralUtilities.check_arguments
     def __extension_matchs(self, file: str, obfuscate_file_extensions) -> bool:
@@ -1028,7 +1028,7 @@ class ScriptCollectionCore:
                     os.rename(file + ".modified", file)
             self.SCFilenameObfuscator(inputfolder, printtableheadline, namemappingfile, extensions)
         else:
-            raise Exception(f"Directory not found: '{inputfolder}'")
+            raise ValueError(f"Directory not found: '{inputfolder}'")
 
     @GeneralUtilities.check_arguments
     def upload_file_to_file_host(self, file: str, host: str) -> int:
