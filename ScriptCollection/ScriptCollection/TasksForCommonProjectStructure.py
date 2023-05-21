@@ -1541,6 +1541,15 @@ class TasksForCommonProjectStructure:
                                                  "--title", f"Release v{projectversion}"]+artifact_files, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
+    def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+        verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
+        self.__sc.update_dependencies_of_python_in_setupcfg_file(os.path.join(codeunit_folder, "setup.cfg"), verbosity)
+        development_requirements_file = os.path.join(codeunit_folder, "requirements.txt")
+        if (os.path.isfile(development_requirements_file)):
+            self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file, verbosity)
+
+    @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
         folder_of_current_file = os.path.dirname(file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", folder_of_current_file)

@@ -15,6 +15,7 @@ import traceback
 import uuid
 import io
 import ntplib
+import requests
 import qrcode
 import pycdlib
 import send2trash
@@ -25,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.86"
+version = "3.3.87"
 __version__ = version
 
 
@@ -1550,3 +1551,48 @@ DNS                 = {domain}
         ca = os.path.join(ca_folder, ca_name)
         self.run_program("openssl", f'x509 -req -in {domain}.csr -CA {ca}.crt -CAkey {ca}.key -CAserial {ca}.srl ' +
                          f'-out {domain}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {domain}.san.conf', folder)
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_python_in_requirementstxt_file(self, file: str, verbosity: int):
+        lines = GeneralUtilities.read_lines_from_file(file)
+        new_lines = []
+        for line in lines:
+            new_lines.append(self.__get_updated_line_for_python_requirements(line.strip()))
+        GeneralUtilities.write_lines_to_file(file, new_lines)
+
+    @GeneralUtilities.check_arguments
+    def __get_updated_line_for_python_requirements(self, line: str) -> str:
+        if "==" in line or "<" in line:
+            return line
+        elif ">" in line:
+            try:
+                # line is something like "cyclonedx-bom>=2.0.2" and the function must return with the updated version
+                # (something like "cyclonedx-bom>=3.11.0" for example)
+                package = line.split(">")[0]
+                operator = ">=" if ">=" in line else ">"
+                response = requests.get(f'https://pypi.org/pypi/{package}/json', timeout=5)
+                latest_version = response.json()['info']['version']
+                return package+operator+latest_version
+            except:
+                return line
+        else:
+            raise ValueError(f'Unexpected line in requirements-file: "{line}"')
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_python_in_setupcfg_file(self, setup_cfg_file: str, verbosity: int):
+        lines = GeneralUtilities.read_lines_from_file(setup_cfg_file)
+        new_lines = []
+        requirement_parsing_mode = False
+        for line in lines:
+            new_line = line
+            if (requirement_parsing_mode):
+                if ("<" in line or "=" in line or ">" in line):
+                    updated_line = f"    {self.__get_updated_line_for_python_requirements(line.strip())}"
+                    new_line = updated_line
+                else:
+                    requirement_parsing_mode = False
+            else:
+                if line.startswith("install_requires ="):
+                    requirement_parsing_mode = True
+            new_lines.append(new_line)
+        GeneralUtilities.write_lines_to_file(setup_cfg_file, new_lines)
