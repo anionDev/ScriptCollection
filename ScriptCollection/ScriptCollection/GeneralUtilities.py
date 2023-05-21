@@ -26,6 +26,10 @@ class GeneralUtilities:
     __date_format: str = "%Y-%m-%dT%H:%M:%S"
 
     @staticmethod
+    def get_modest_dark_url() -> str:
+        return "https://aniondev.github.io/CDN/ScriptCollectionDesigns/ModestDark/Style.css"
+
+    @staticmethod
     def is_generic(t: typing.Type):
         return hasattr(t, "__origin__")
 

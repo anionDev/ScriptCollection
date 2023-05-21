@@ -2,12 +2,14 @@ from datetime import datetime
 from graphlib import TopologicalSorter
 import os
 from pathlib import Path
+from functools import cmp_to_key
 import shutil
 import re
 import urllib.request
 import zipfile
 import json
 import configparser
+from packaging import version
 import xmlschema
 from OpenSSL import crypto
 from lxml import etree
@@ -810,12 +812,12 @@ class TasksForCommonProjectStructure:
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = GeneralUtilities.get_modest_dark_url()
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
             design_html = ""
         else:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
 
         index_file_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -832,8 +834,8 @@ class TasksForCommonProjectStructure:
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
     <a href="./Reference/index.html">Reference</a><br>
-    {coverage_report_link}<br>
     <a href="./DiffReport/DiffReport.html">Diff-report</a><br>
+    {coverage_report_link}
   </body>
 
 </html>
@@ -887,37 +889,59 @@ class TasksForCommonProjectStructure:
             # Generate reference
             self.__generate_entire_reference(information.projectname, project_version, reference_folder)
 
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def _internal_sort_reference_folder(folder1: str, folder2: str) -> int:
+        """Returns a value greater than 0 if and only if folder1 has a base-folder-name with a with a higher version than the base-folder-name of folder2.
+        Returns a value lower than 0 if and only if folder1 has a base-folder-name with a with a lower version than the base-folder-name of folder2.
+        Returns 0 if both values are equal."""
+        if (folder1 == folder2):
+            return 0
+        version_identifier_1 = os.path.basename(folder1)
+        if version_identifier_1 == "Latest":
+            return -1
+        version_identifier_1 = version_identifier_1[1:]
+        version_identifier_2 = os.path.basename(folder2)[1:]
+        if version.parse(version_identifier_1) < version.parse(version_identifier_2):
+            return -1
+        elif version.parse(version_identifier_1) > version.parse(version_identifier_2):
+            return 1
+        else:
+            return 0
+
     @GeneralUtilities.check_arguments
     def __generate_entire_reference(self, projectname: str, project_version: str, reference_folder: str) -> None:
-        all_available_version_identifier_folders_of_reference = list(
-            folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
-        all_available_version_identifier_folders_of_reference.reverse()  # move newer versions above
-        all_available_version_identifier_folders_of_reference.insert(0, all_available_version_identifier_folders_of_reference.pop())  # move latest version to the top
+        all_available_version_identifier_folders_of_reference: list[str] = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
+        all_available_version_identifier_folders_of_reference = sorted(all_available_version_identifier_folders_of_reference,
+                                                                       key=cmp_to_key(TasksForCommonProjectStructure._internal_sort_reference_folder))
         reference_versions_html_lines = []
+        reference_versions_html_lines.append('    <hr/>')
         for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
             version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
             if version_identifier_of_project == "Latest":
                 latest_version_hint = f" (v{project_version})"
             else:
                 latest_version_hint = ""
-            reference_versions_html_lines.append('    <hr/>')
-            reference_versions_html_lines.append(f'    <h2 class="display-2">{version_identifier_of_project}{latest_version_hint}</h2>')
+            reference_versions_html_lines.append(f'    <h2>{version_identifier_of_project}{latest_version_hint}</h2>')
             reference_versions_html_lines.append("    Contained codeunits:<br/>")
             reference_versions_html_lines.append("    <ul>")
             for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
                 reference_versions_html_lines.append(f'      <li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">' +
                                                      f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
             reference_versions_html_lines.append("    </ul>")
+            reference_versions_html_lines.append('    <hr/>')
+            if version_identifier_of_project == "Latest":
+                latest_version_hint = "    <h2>History</h2>"
 
         design_file = None
         design = "ModestDark"
         if design == "ModestDark":
-            design_file = "https://raw.githubusercontent.com/anionDev/ScriptCollection/main/Other/Resources/Designs/ModestDark/Style.css"
+            design_file = GeneralUtilities.get_modest_dark_url()
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
             design_html = ""
         else:
-            design_html = f'<link rel="stylesheet" href="{design_file}">'
+            design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
 
         reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
         title = f"{projectname}-reference"
@@ -933,7 +957,6 @@ class TasksForCommonProjectStructure:
 
   <body>
     <h1>{title}</h1>
-    <hr/>
 {reference_versions_links_file_content}
   </body>
 
@@ -1129,7 +1152,7 @@ class TasksForCommonProjectStructure:
                                                      "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, product_name: str, codeunitname: str,
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, project_name: str, codeunitname: str,
                                    verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str):
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -1140,16 +1163,16 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
         image_filename = os.path.basename(image_file)
-        version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
+        codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         image_tag_name = codeunitname.lower()
         repo = f"{registry}/{image_tag_name}"
         image_latest = f"{repo}:latest"
-        image_version = f"{repo}:{version}"
+        image_version = f"{repo}:{codeunit_version}"
         GeneralUtilities.write_message_to_stdout("Load image...")
         sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Tag image...")
-        sc.run_program("docker", f"tag {image_tag_name}:{version} {image_latest}", verbosity=verbosity)
-        sc.run_program("docker", f"tag {image_tag_name}:{version} {image_version}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {image_tag_name}:{codeunit_version} {image_latest}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {image_tag_name}:{codeunit_version} {image_version}", verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Push image...")
         sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
         sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
@@ -1223,6 +1246,13 @@ class TasksForCommonProjectStructure:
         if codeunit_name != codeunit_name_in_codeunit_file:
             raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
 
+        # Check for mandatory files
+        files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
+        for file in files:
+            combined_file = os.path.join(codeunit_folder, file)
+            if not os.path.isfile(combined_file):
+                raise ValueError(f'The mandatory file "{file}" does not exist in the codeunit-folder.')
+
         # Check developer
         if self.validate_developers_of_repository:
             expected_authors: list[tuple[str, str]] = []
@@ -1285,7 +1315,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
         target_file = os.path.join(target_folder, "DiffReport.html").replace("\\", "/")
-        src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty tree
+        src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty git-tree
         src_prefix = "Begin"
         if self.__sc.get_current_branch_has_tag(repository_folder):
             latest_tag = self.__sc.get_latest_tag(repository_folder)
@@ -1304,9 +1334,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def replace_common_variables_in_nuspec_file(self, codeunit_folder: str):
         codeunit_name = os.path.basename(codeunit_folder)
-        version = self.get_version_of_codeunit_folder(codeunit_folder)
+        codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         nuspec_file = os.path.join(codeunit_folder, "Other", "Build", f"{codeunit_name}.nuspec")
-        self.__sc.replace_version_in_nuspec_file(nuspec_file, version)
+        self.__sc.replace_version_in_nuspec_file(nuspec_file, codeunit_version)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_node_project(self, build_script_file: str, build_environment_target_type: str,
@@ -1485,17 +1515,17 @@ class TasksForCommonProjectStructure:
         artifacts_folder = os.path.join(repository_folder, codeunitname, "Other", "Artifacts")
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        version = self.get_version_of_codeunit_folder(os.path.join(repository_folder, codeunitname))
-        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.v{version}.api.json" +
+        codeunit_version = self.get_version_of_codeunit_folder(os.path.join(repository_folder, codeunitname))
+        self.__sc.run_program("swagger", f"tofile --output APISpecification\\{codeunitname}.v{codeunit_version}.api.json" +
                               f" BuildResult_DotNet_{runtime}\\{codeunitname}.dll {swagger_document_name}",
                               artifacts_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def replace_version_in_packagejson_file(self, packagejson_file: str, version: str):
+    def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str):
         encoding = "utf-8"
         with open(packagejson_file, encoding=encoding) as f:
             data = json.load(f)
-        data['version'] = version
+        data['version'] = codeunit_version
         with open(packagejson_file, 'w', encoding=encoding) as f:
             json.dump(data, f, indent=2)
 
@@ -1548,6 +1578,12 @@ class TasksForCommonProjectStructure:
         development_requirements_file = os.path.join(codeunit_folder, "requirements.txt")
         if (os.path.isfile(development_requirements_file)):
             self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file, verbosity)
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+        verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
@@ -1825,7 +1861,7 @@ class TasksForCommonProjectStructure:
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
-        version = self.get_version_of_codeunit(codeunit_file)
+        codeunit_version = self.get_version_of_codeunit(codeunit_file)
         GeneralUtilities.ensure_file_exists(artifactsinformation_file)
         artifacts_list = []
         for artifact_folder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
@@ -1838,7 +1874,7 @@ class TasksForCommonProjectStructure:
 <cps:artifactsinformation xmlns:cps="https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure" artifactsinformationspecificationversion="1.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/anionDev/ProjectTemplates/main/Templates/Conventions/RepositoryStructure/CommonProjectStructure/artifactsinformation.xsd">
     <cps:name>{codeunit_name}</cps:name>
-    <cps:version>{version}</cps:version>
+    <cps:version>{codeunit_version}</cps:version>
     <cps:timestamp>{moment}</cps:timestamp>
     <cps:targetenvironmenttype>{target_environmenttype}</cps:targetenvironmenttype>
     <cps:artifacts>

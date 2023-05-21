@@ -26,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.87"
+version = "3.3.93"
 __version__ = version
 
 
@@ -1596,3 +1596,7 @@ DNS                 = {domain}
                     requirement_parsing_mode = True
             new_lines.append(new_line)
         GeneralUtilities.write_lines_to_file(setup_cfg_file, new_lines)
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_for_dotnet_project(self, csproj_file: str, verbosity: int):
+        pass  # TODO
