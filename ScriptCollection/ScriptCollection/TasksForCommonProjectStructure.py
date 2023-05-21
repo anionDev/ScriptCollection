@@ -1246,6 +1246,13 @@ class TasksForCommonProjectStructure:
         if codeunit_name != codeunit_name_in_codeunit_file:
             raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
 
+        # Check for mandatory files
+        files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
+        for file in files:
+            combined_file = os.path.join(codeunit_folder, file)
+            if not os.path.isfile(combined_file):
+                raise ValueError(f'The mandatory file "{file}" does not exist in the codeunit-folder.')
+
         # Check developer
         if self.validate_developers_of_repository:
             expected_authors: list[tuple[str, str]] = []
@@ -1308,7 +1315,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
         target_file = os.path.join(target_folder, "DiffReport.html").replace("\\", "/")
-        src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty tree
+        src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty git-tree
         src_prefix = "Begin"
         if self.__sc.get_current_branch_has_tag(repository_folder):
             latest_tag = self.__sc.get_latest_tag(repository_folder)

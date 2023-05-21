@@ -170,6 +170,14 @@ class ScriptCollectionCore:
         os.remove(directory+os.path.sep+filename+".res")
 
     @GeneralUtilities.check_arguments
+    def update_dependencies_for_dotnet_project(self, repository_folder: str, codeunit_name: str, verbosity: int, commandline_arguments: list[str]):
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_for_python_project(self, repository_folder: str, codeunit_name: str, verbosity: int, commandline_arguments: list[str]):
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
         result = self.run_program("git", f"verify-commit {revision_identifier}", repository_folder, throw_exception_if_exitcode_is_not_zero=False)
         if (result[0] != 0):
