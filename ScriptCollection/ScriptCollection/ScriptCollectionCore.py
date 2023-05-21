@@ -1602,10 +1602,10 @@ DNS                 = {domain}
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stderr(f"Check for updates in {csproj_filename}")
-        result = self.__sc.run_program("dotnet", f"list {csproj_filename} package --outdated", folder)
+        result = self.run_program("dotnet", f"list {csproj_filename} package --outdated", folder)
         for line in result[1].replace("\r", "").split("\n"):
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
                 package_name = line.replace(">", "").strip().split(" ")[0]
                 GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
-                self.__sc.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)
+                self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)

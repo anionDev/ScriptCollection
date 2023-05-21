@@ -1579,16 +1579,15 @@ class TasksForCommonProjectStructure:
         if (os.path.isfile(development_requirements_file)):
             self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file, verbosity)
 
-
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         codeunit_name = os.path.basename(codeunit_folder)
         csproj_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.csproj")
-        self.__sc.update_dependencies_of_dotnet_project(ScriptCollectionCore(), csproj_file, verbosity)
+        self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity)
         test_csproj_file = os.path.join(codeunit_folder, f"{codeunit_name}Tests", f"{codeunit_name}Tests.csproj")
-        self.__sc.update_dependencies_of_dotnet_project(ScriptCollectionCore(), test_csproj_file, verbosity)
+        self.__sc.update_dependencies_of_dotnet_project(test_csproj_file, verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
