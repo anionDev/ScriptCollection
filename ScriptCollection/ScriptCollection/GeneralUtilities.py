@@ -230,7 +230,7 @@ class GeneralUtilities:
         GeneralUtilities.write_message_to_stderr("Exception(")
         GeneralUtilities.write_message_to_stderr("Type: " + str(type(exception)))
         GeneralUtilities.write_message_to_stderr("Message: " + str(exception))
-        if str is not None:
+        if extra_message is not None:
             GeneralUtilities.write_message_to_stderr("Extra-message: " + str(extra_message))
         if isinstance(exception, OSError):
             GeneralUtilities.write_message_to_stderr(GeneralUtilities.get_advanced_errormessage_for_os_error(exception))
