@@ -157,6 +157,13 @@ class TasksForCommonProjectStructure:
         })[0]))
 
     @GeneralUtilities.check_arguments
+    def codeunit_hast_updatable_dependencies(self, codeunit_file) -> bool:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithasupdatabledependencies', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0]))
+
+    @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
@@ -1236,21 +1243,21 @@ class TasksForCommonProjectStructure:
 
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]" == <codeunitname> in file
-        codeunitfile = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
-        if not os.path.isfile(codeunitfile):
-            raise ValueError(f'Codeunitfile "{codeunitfile}" does not exist.')
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
+        if not os.path.isfile(codeunit_file):
+            raise ValueError(f'Codeunitfile "{codeunit_file}" does not exist.')
         # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
         namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
                       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-        root: etree._ElementTree = etree.parse(codeunitfile)
+        root: etree._ElementTree = etree.parse(codeunit_file)
 
         # Check codeunit-spcecification-version
         codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
-        supported_codeunitspecificationversion = "1.4.0"
+        supported_codeunitspecificationversion = "2.7.1"  # must always be the latest version of the ProjectTemplates-repository
         if codeunit_file_version != supported_codeunitspecificationversion:
             raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
         schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
-        xmlschema.validate(codeunitfile, schemaLocation)
+        xmlschema.validate(codeunit_file, schemaLocation)
 
         # Check codeunit-name
         codeunit_name_in_codeunit_file = root.xpath('//cps:codeunit/cps:name/text()', namespaces=namespaces)[0]
@@ -1259,6 +1266,10 @@ class TasksForCommonProjectStructure:
 
         # Check for mandatory files
         files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
+        if self.codeunit_hast_testable_sourcecode(codeunit_file):
+            files.append("Other/QualityCheck/RunTestcases.py")
+        if self.codeunit_hast_updatable_dependencies(codeunit_file):
+            files.append("Other/UpdateDependencies.py")
         for file in files:
             combined_file = os.path.join(codeunit_folder, file)
             if not os.path.isfile(combined_file):
