@@ -15,6 +15,7 @@ import traceback
 import uuid
 import io
 import ntplib
+import requests
 import qrcode
 import pycdlib
 import send2trash
@@ -25,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.94"
+version = "3.3.95"
 __version__ = version
 
 
@@ -131,7 +132,7 @@ class ScriptCollectionCore:
             filename = filename[:-4]
             extension = "exe"
         else:
-            raise Exception("Only .dll-files and .exe-files can be signed")
+            raise ValueError("Only .dll-files and .exe-files can be signed")
         self.run_program("ildasm",
                          f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
                          directory,  verbosity, False, "Sign: ildasm")
@@ -163,7 +164,7 @@ class ScriptCollectionCore:
             filename = filename[:-4]
             extension = "exe"
         else:
-            raise Exception("Only .dll-files and .exe-files can be signed")
+            raise ValueError("Only .dll-files and .exe-files can be signed")
         self.run_program("ildasm", f'/all /typelist /text /out={filename}.il {filename}.{extension}', directory, verbosity=verbosity)
         self.run_program("ilasm", f'/{extension} /res:{filename}.res /optimize /key={keyfile} {filename}.il', directory, verbosity=verbosity)
         os.remove(directory+os.path.sep+filename+".il")
@@ -466,7 +467,7 @@ class ScriptCollectionCore:
             return True
         if (exit_code == 1):
             return False
-        raise Exception(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
+        raise ValueError(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
     @GeneralUtilities.check_arguments
     def discard_all_changes(self, repository: str) -> None:
@@ -600,7 +601,7 @@ class ScriptCollectionCore:
                         filetype_full = "File"
                     if filetype == "d":
                         filetype_full = "Directory"
-                    raise Exception(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
+                    raise ValueError(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
     @GeneralUtilities.check_arguments
     def __calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
@@ -806,7 +807,7 @@ class ScriptCollectionCore:
                         self.__merge_files(file, new_filename)
                         send2trash.send2trash(file)
                     else:
-                        raise Exception('Unknown conflict resolve mode')
+                        raise ValueError('Unknown conflict resolve mode')
             else:
                 os.rename(file, new_filename)
 
@@ -957,7 +958,7 @@ class ScriptCollectionCore:
                 self.__create_iso(files_directory_obf, outputfile)
                 shutil.rmtree(files_directory_obf)
         else:
-            raise Exception(f"Directory not found: '{inputfolder}'")
+            raise ValueError(f"Directory not found: '{inputfolder}'")
 
     @GeneralUtilities.check_arguments
     def SCFilenameObfuscator(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
@@ -985,7 +986,7 @@ class ScriptCollectionCore:
                 os.rename(file, new_file_name)
                 GeneralUtilities.append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash_value)
         else:
-            raise Exception(f"Directory not found: '{inputfolder}'")
+            raise ValueError(f"Directory not found: '{inputfolder}'")
 
     @GeneralUtilities.check_arguments
     def __extension_matchs(self, file: str, obfuscate_file_extensions) -> bool:
@@ -1027,7 +1028,7 @@ class ScriptCollectionCore:
                     os.rename(file + ".modified", file)
             self.SCFilenameObfuscator(inputfolder, printtableheadline, namemappingfile, extensions)
         else:
-            raise Exception(f"Directory not found: '{inputfolder}'")
+            raise ValueError(f"Directory not found: '{inputfolder}'")
 
     @GeneralUtilities.check_arguments
     def upload_file_to_file_host(self, file: str, host: str) -> int:
@@ -1550,3 +1551,61 @@ DNS                 = {domain}
         ca = os.path.join(ca_folder, ca_name)
         self.run_program("openssl", f'x509 -req -in {domain}.csr -CA {ca}.crt -CAkey {ca}.key -CAserial {ca}.srl ' +
                          f'-out {domain}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {domain}.san.conf', folder)
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_python_in_requirementstxt_file(self, file: str, verbosity: int):
+        lines = GeneralUtilities.read_lines_from_file(file)
+        new_lines = []
+        for line in lines:
+            new_lines.append(self.__get_updated_line_for_python_requirements(line.strip()))
+        GeneralUtilities.write_lines_to_file(file, new_lines)
+
+    @GeneralUtilities.check_arguments
+    def __get_updated_line_for_python_requirements(self, line: str) -> str:
+        if "==" in line or "<" in line:
+            return line
+        elif ">" in line:
+            try:
+                # line is something like "cyclonedx-bom>=2.0.2" and the function must return with the updated version
+                # (something like "cyclonedx-bom>=3.11.0" for example)
+                package = line.split(">")[0]
+                operator = ">=" if ">=" in line else ">"
+                response = requests.get(f'https://pypi.org/pypi/{package}/json', timeout=5)
+                latest_version = response.json()['info']['version']
+                return package+operator+latest_version
+            except:
+                return line
+        else:
+            raise ValueError(f'Unexpected line in requirements-file: "{line}"')
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_python_in_setupcfg_file(self, setup_cfg_file: str, verbosity: int):
+        lines = GeneralUtilities.read_lines_from_file(setup_cfg_file)
+        new_lines = []
+        requirement_parsing_mode = False
+        for line in lines:
+            new_line = line
+            if (requirement_parsing_mode):
+                if ("<" in line or "=" in line or ">" in line):
+                    updated_line = f"    {self.__get_updated_line_for_python_requirements(line.strip())}"
+                    new_line = updated_line
+                else:
+                    requirement_parsing_mode = False
+            else:
+                if line.startswith("install_requires ="):
+                    requirement_parsing_mode = True
+            new_lines.append(new_line)
+        GeneralUtilities.write_lines_to_file(setup_cfg_file, new_lines)
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int):
+        folder = os.path.dirname(csproj_file)
+        csproj_filename = os.path.basename(csproj_file)
+        GeneralUtilities.write_message_to_stderr(f"Check for updates in {csproj_filename}")
+        result = self.run_program("dotnet", f"list {csproj_filename} package --outdated", folder)
+        for line in result[1].replace("\r", "").split("\n"):
+            # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
+            if ">" in line:
+                package_name = line.replace(">", "").strip().split(" ")[0]
+                GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
+                self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)

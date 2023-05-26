@@ -273,7 +273,7 @@ class GeneralUtilities:
         if type_of_argument == str:
             return argument == ""
         else:
-            raise Exception(f"expected string-variable in argument of string_is_none_or_empty but the type was '{str(type_of_argument)}'")
+            raise ValueError(f"expected string-variable in argument of string_is_none_or_empty but the type was '{str(type_of_argument)}'")
 
     @staticmethod
     @check_arguments
@@ -651,7 +651,7 @@ class GeneralUtilities:
         elif value in ('no', 'n', 'false', 'f', '0'):
             return False
         else:
-            raise Exception(f"Can not convert '{value}' to a boolean value")
+            raise ValueError(f"Can not convert '{value}' to a boolean value")
 
     @staticmethod
     @check_arguments

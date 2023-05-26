@@ -23,6 +23,17 @@
 				"options": {
 					"cwd": "${workspaceFolder}",
 				},
+			},
+			{
+				"label": "ScriptCollection: Update dependencies",
+				"command": "python",
+				"args": [
+					"UpdateDependencies.py"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "${workspaceFolder}/ScriptCollection/Other",
+				},
 			}
 		]
 	},
