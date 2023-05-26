@@ -215,10 +215,14 @@ class TasksForCommonProjectStructure:
         files = [f for f in result[1].split('\n') if len(f) > 0]
         for file in files:
             full_source_file = os.path.join(codeunit_folder, file)
-            target_file = os.path.join(codeunit_folder, "Other", "Artifacts", "SourceCode", file)
-            target_folder = os.path.dirname(target_file)
-            GeneralUtilities.ensure_directory_exists(target_folder)
-            shutil.copyfile(full_source_file, target_file)
+            if os.path.isfile(full_source_file):
+                # Reson of isdir-check:
+                # Prevent trying to copy files which are not exist.
+                # Otherwise exceptions occurr because uncommitted deletions of files will result in an error here.
+                target_file = os.path.join(codeunit_folder, "Other", "Artifacts", "SourceCode", file)
+                target_folder = os.path.dirname(target_file)
+                GeneralUtilities.ensure_directory_exists(target_folder)
+                shutil.copyfile(full_source_file, target_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
@@ -833,6 +837,7 @@ class TasksForCommonProjectStructure:
     <hr/>
     Available reference-content for {codeunitname}:<br>
     {repo_url_html}<br>
+    <!--TODO add artefacts-link: <a href="./x">Artefacts</a><br>-->
     <a href="./Reference/index.html">Reference</a><br>
     <a href="./DiffReport/DiffReport.html">Diff-report</a><br>
     {coverage_report_link}
@@ -897,11 +902,17 @@ class TasksForCommonProjectStructure:
         Returns 0 if both values are equal."""
         if (folder1 == folder2):
             return 0
+
         version_identifier_1 = os.path.basename(folder1)
         if version_identifier_1 == "Latest":
             return -1
         version_identifier_1 = version_identifier_1[1:]
-        version_identifier_2 = os.path.basename(folder2)[1:]
+
+        version_identifier_2 = os.path.basename(folder2)
+        if version_identifier_2 == "Latest":
+            return 1
+        version_identifier_2 = version_identifier_2[1:]
+
         if version.parse(version_identifier_1) < version.parse(version_identifier_2):
             return -1
         elif version.parse(version_identifier_1) > version.parse(version_identifier_2):
