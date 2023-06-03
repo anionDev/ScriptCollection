@@ -1743,6 +1743,13 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
 
     @GeneralUtilities.check_arguments
+    def update_dependency_in_resources_folder(self, update_dependencies_file, dependency_name: str, latest_version_function: str):
+        version_file = GeneralUtilities.resolve_relative_path(f"../Resources/Dependencies/{dependency_name}/Version.txt", update_dependencies_file)
+        current_version = GeneralUtilities.read_text_from_file(version_file)
+        if current_version != latest_version_function:
+            GeneralUtilities.write_text_to_file(version_file, latest_version_function)
+
+    @GeneralUtilities.check_arguments
     def ensure_grylibrary_is_available(self, codeunit_folder: str):
         grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
