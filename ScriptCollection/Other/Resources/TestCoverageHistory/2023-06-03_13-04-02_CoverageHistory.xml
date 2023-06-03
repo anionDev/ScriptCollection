@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<coverage version="1.0" date="2023-06-03_13-04-02" tag="v3.3.96">
+  <assembly name="ScriptCollection">
+    <class name="Executables.py" coveredlines="0" coverablelines="234" totallines="336" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="GeneralUtilities.py" coveredlines="434" coverablelines="693" totallines="825" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerBase.py" coveredlines="22" coverablelines="28" totallines="42" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerEpew.py" coveredlines="40" coverablelines="103" totallines="122" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerPopen.py" coveredlines="25" coverablelines="37" totallines="50" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ScriptCollectionCore.py" coveredlines="522" coverablelines="1248" totallines="1631" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="TasksForCommonProjectStructure.py" coveredlines="317" coverablelines="1349" totallines="1915" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="UpdateCertificates.py" coveredlines="0" coverablelines="105" totallines="128" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+  </assembly>
+</coverage>

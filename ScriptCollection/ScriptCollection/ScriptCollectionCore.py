@@ -14,8 +14,8 @@ import shutil
 import traceback
 import uuid
 import io
-import ntplib
 import requests
+import ntplib
 import qrcode
 import pycdlib
 import send2trash
@@ -26,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.95"
+version = "3.3.96"
 __version__ = version
 
 
@@ -1029,6 +1029,26 @@ class ScriptCollectionCore:
             self.SCFilenameObfuscator(inputfolder, printtableheadline, namemappingfile, extensions)
         else:
             raise ValueError(f"Directory not found: '{inputfolder}'")
+
+    @GeneralUtilities.check_arguments
+    def get_docker_debian_version(self, image_tag: str) -> str:
+        result = ScriptCollectionCore().run_program_argsasarray(
+            "docker", ['run', f'debian:{image_tag}', 'bash', '-c', 'apt-get -y update && apt-get -y install lsb-release && lsb_release -cs'])
+        result_line = GeneralUtilities.string_to_lines(result[1])[-2]
+        return result_line
+
+    @GeneralUtilities.check_arguments
+    def get_latest_tor_version_of_debian_repository(self, debian_version: str) -> str:
+        package_url: str = f"https://deb.torproject.org/torproject.org/dists/{debian_version}/main/binary-amd64/Packages"
+        r = requests.get(package_url, timeout=5)
+        if r.status_code != 200:
+            raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
+        lines = GeneralUtilities.string_to_lines(GeneralUtilities.bytes_to_string(r.content))
+        version_line_prefix = "Version: "
+        version_content_line = [line for line in lines if line.startswith(version_line_prefix)][1]
+        version_with_overhead = version_content_line[len(version_line_prefix):]
+        tor_version = version_with_overhead.split("~")[0]
+        return tor_version
 
     @GeneralUtilities.check_arguments
     def upload_file_to_file_host(self, file: str, host: str) -> int:
