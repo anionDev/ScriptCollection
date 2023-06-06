@@ -26,7 +26,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.96"
+version = "3.3.97"
 __version__ = version
 
 
@@ -514,7 +514,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_current_branch_has_tag(self, repository_folder: str) -> str:
-        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
+        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         return result[0] == 0
 
     @GeneralUtilities.check_arguments
