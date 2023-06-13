@@ -19,14 +19,15 @@ import ntplib
 import qrcode
 import pycdlib
 import send2trash
-from PyPDF2 import PdfFileMerger
+import fitz
+import PyPDF2
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.3.97"
+version = "3.3.98"
 __version__ = version
 
 
@@ -660,17 +661,35 @@ class ScriptCollectionCore:
                 os.remove(file)
 
     @GeneralUtilities.check_arguments
-    def merge_pdf_files(self, files, outputfile: str) -> None:
+    def extract_pdf_pages(self, file: str, from_page: int, to_page: int, outputfile: str) -> None:
+        pdf_reader = PyPDF2.PdfReader(file)
+        pdf_writer = PyPDF2.PdfWriter()
+        start = from_page
+        end = to_page
+        while start <= end:
+            pdf_writer.add_page(pdf_reader.pages[start-1])
+            start += 1
+        with open(outputfile, 'wb') as out:
+            pdf_writer.write(out)
+
+    @GeneralUtilities.check_arguments
+    def merge_pdf_files(self, files: list[str], outputfile: str) -> None:
         # TODO add wildcard-option
-        pdfFileMerger = PdfFileMerger()
+        pdfFileMerger = PyPDF2.PdfFileMerger()
         for file in files:
             pdfFileMerger.append(file.strip())
         pdfFileMerger.write(outputfile)
         pdfFileMerger.close()
-        return 0
 
     @GeneralUtilities.check_arguments
-    def SCShowMissingFiles(self, folderA: str, folderB: str):
+    def pdf_to_image(self, file: str, outputfile: str) -> None:
+        doc = fitz.open(file)  # open document
+        for i, page in enumerate(doc):
+            pix = page.get_pixmap()  # render page to an image
+            pix.save(f"{outputfile}_{i}.png")
+
+    @GeneralUtilities.check_arguments
+    def show_missing_files(self, folderA: str, folderB: str):
         for file in GeneralUtilities.get_missing_files(folderA, folderB):
             GeneralUtilities.write_message_to_stdout(file)
 
