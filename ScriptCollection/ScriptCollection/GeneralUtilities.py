@@ -823,3 +823,8 @@ class GeneralUtilities:
         except:
             pass
         return False
+
+    @staticmethod
+    @check_arguments
+    def replace_variable_in_string(input_string: str, variable_name: str, variable_value: str) -> None:
+        return input_string.replace(f"__[{variable_name}]__", variable_value)

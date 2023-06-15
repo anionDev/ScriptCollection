@@ -13,6 +13,7 @@ import re
 import shutil
 import traceback
 import uuid
+import tempfile
 import io
 import requests
 import ntplib
@@ -1629,3 +1630,81 @@ DNS                 = {domain}
                 package_name = line.replace(">", "").strip().split(" ")[0]
                 GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
                 self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)
+
+    @GeneralUtilities.check_arguments
+    def create_deb_package(self, codeunit_name: str, binary_folder: str, control_file_content: str,
+                           deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
+
+        # prepare
+        GeneralUtilities.ensure_directory_exists(deb_output_folder)
+        toolname = codeunit_name
+        temp_folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        GeneralUtilities.ensure_directory_exists(temp_folder)
+        bin_folder = binary_folder
+        tool_content_folder_name = toolname+"Content"
+
+        # create folder
+        GeneralUtilities.ensure_directory_exists(temp_folder)
+        control_content_folder_name = "controlcontent"
+        packagecontent_control_folder = os.path.join(temp_folder, control_content_folder_name)
+        GeneralUtilities.ensure_directory_exists(packagecontent_control_folder)
+        data_content_folder_name = "datacontent"
+        packagecontent_data_folder = os.path.join(temp_folder, data_content_folder_name)
+        GeneralUtilities.ensure_directory_exists(packagecontent_data_folder)
+        entireresult_content_folder_name = "entireresultcontent"
+        packagecontent_entireresult_folder = os.path.join(temp_folder, entireresult_content_folder_name)
+        GeneralUtilities.ensure_directory_exists(packagecontent_entireresult_folder)
+
+        # create "debian-binary"-file
+        debianbinary_file = os.path.join(packagecontent_entireresult_folder, "debian-binary")
+        GeneralUtilities.ensure_file_exists(debianbinary_file)
+        GeneralUtilities.write_text_to_file(debianbinary_file, "2.0\n")
+
+        # create control-content
+
+        #  conffiles
+        conffiles_file = os.path.join(packagecontent_control_folder, "conffiles")
+        GeneralUtilities.ensure_file_exists(conffiles_file)
+
+        #  postinst-script
+        postinst_file = os.path.join(packagecontent_control_folder, "postinst")
+        GeneralUtilities.ensure_file_exists(postinst_file)
+        exe_file = f"/usr/bin/{tool_content_folder_name}/{toolname}"
+        link_file = f"/usr/bin/{toolname.lower()}"
+        permission = str(permission_of_executable_file_as_octet_triple)
+        GeneralUtilities.write_text_to_file(postinst_file, f"""#!/bin/sh
+    ln -s {exe_file} {link_file}
+    chmod {permission} {exe_file}
+    chmod {permission} {link_file}
+    """)
+
+        #  control
+        control_file = os.path.join(packagecontent_control_folder, "control")
+        GeneralUtilities.ensure_file_exists(control_file)
+        GeneralUtilities.write_text_to_file(control_file, control_file_content)
+
+        #  md5sums
+        md5sums_file = os.path.join(packagecontent_control_folder, "md5sums")
+        GeneralUtilities.ensure_file_exists(md5sums_file)
+
+        # create data-content
+
+        #  copy binaries
+        usr_bin_folder = os.path.join(packagecontent_data_folder, "usr/bin")
+        GeneralUtilities.ensure_directory_exists(usr_bin_folder)
+        usr_bin_content_folder = os.path.join(usr_bin_folder, tool_content_folder_name)
+        GeneralUtilities.copy_content_of_folder(bin_folder, usr_bin_content_folder)
+
+        # create debfile
+        deb_filename = f"{toolname}.deb"
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"],
+                                     packagecontent_control_folder, verbosity=verbosity)
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"],
+                                     packagecontent_data_folder, verbosity=verbosity)
+        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz", "data.tar.gz"],
+                                     packagecontent_entireresult_folder, verbosity=verbosity)
+        result_file = os.path.join(packagecontent_entireresult_folder, deb_filename)
+        shutil.copy(result_file, os.path.join(deb_output_folder, deb_filename))
+
+        # cleanup
+        GeneralUtilities.ensure_directory_does_not_exist(temp_folder)

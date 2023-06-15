@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from functools import cmp_to_key
 import shutil
+import math
 import re
 import urllib.request
 import zipfile
@@ -1779,6 +1780,41 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary due to missing internet-connection.")
             else:
                 raise ValueError("Can not download GRYLibrary.")
+
+    @GeneralUtilities.check_arguments
+    def load_deb_control_file_content(self, file: str,
+                                      codeunitname: str, codeunitversion: str, installedsize: int,
+                                      maintainername: str, maintaineremail: str, description: str,) -> str:
+        content = GeneralUtilities.read_text_from_file(file)
+        content = GeneralUtilities.replace_variable_in_string(content, "codeunitname", codeunitname)
+        content = GeneralUtilities.replace_variable_in_string(content, "codeunitversion", codeunitversion)
+        content = GeneralUtilities.replace_variable_in_string(content, "installedsize", str(installedsize))
+        content = GeneralUtilities.replace_variable_in_string(content, "maintainername", maintainername)
+        content = GeneralUtilities.replace_variable_in_string(content, "maintaineremail", maintaineremail)
+        content = GeneralUtilities.replace_variable_in_string(content, "description", description)
+        return content
+
+    @GeneralUtilities.check_arguments
+    def calculate_deb_package_size(self, binary_folder: str) -> int:
+        size_in_bytes = 0
+        for file in GeneralUtilities.get_all_files_of_folder(binary_folder):
+            size_in_bytes = size_in_bytes+os.path.getsize(file)
+        result = math.ceil(size_in_bytes/1024)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def create_deb_package_for_artifact(self, codeunit_folder: str,
+                                        maintainername: str, maintaineremail: str, description: str,
+                                        verbosity: int, cmd_arguments: list[str]) -> None:
+        verbosity = self.get_verbosity_from_commandline_arguments(cmd_arguments, verbosity)
+        codeunit_name = os.path.basename(codeunit_folder)
+        binary_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_DotNet_linux-x64", codeunit_folder)
+        deb_output_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_Deb", codeunit_folder)
+        control_file = GeneralUtilities.resolve_relative_path("Other/Build/DebControlFile.txt", codeunit_folder)
+        installedsize = self.calculate_deb_package_size(binary_folder)
+        control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit_folder(codeunit_folder),
+                                                                  installedsize, maintainername, maintaineremail, description)
+        self.__sc.create_deb_package(ScriptCollectionCore(), codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
