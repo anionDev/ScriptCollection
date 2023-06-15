@@ -10,10 +10,6 @@
 [![Downloads](https://pepy.tech/badge/scriptcollection)](https://pepy.tech/project/scriptcollection)
 ![Coverage](https://raw.githubusercontent.com/anionDev/ScriptCollection/main/ScriptCollection/Other/Resources/TestCoverageBadges/badge_shieldsio_linecoverage_blue.svg)
 
-![License](https://img.shields.io/badge/license-MIT-blue)
-![GitHub last commit](https://img.shields.io/github/last-commit/anionDev/ScriptCollection)
-![GitHub issues](https://img.shields.io/github/issues-raw/anionDev/ScriptCollection)
-
 The ScriptCollection is the place for reusable scripts.
 
 ## Reference
@@ -26,7 +22,7 @@ Most of the scripts are written in [python](https://www.python.org) 3.
 
 Caution: Before executing **any** script of this repository read the sourcecode of the script (and the sourcecode of all functions called by this function directly or transitively) carefully and verify that the script does exactly what you want to do and nothing else.
 
-Some functions are not entirely available on windows or require common third-party tools. See the [Runtime dependencies](#Runtime-dependencies)-section for more information.
+Some functions are not entirely available on windows or require common third-party tools. See the [Runtime dependencies](#runtime-dependencies)-section for more information.
 
 When using ScriptCollection it is not required but recommended for better usability to have [epew](https://github.com/anionDev/Epew) installed.
 
