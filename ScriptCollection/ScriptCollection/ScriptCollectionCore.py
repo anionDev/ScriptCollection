@@ -18,6 +18,7 @@ import requests
 import ntplib
 import qrcode
 import pycdlib
+from PIL import Image
 import send2trash
 import fitz
 import PyPDF2
@@ -682,11 +683,12 @@ class ScriptCollectionCore:
         pdfFileMerger.close()
 
     @GeneralUtilities.check_arguments
-    def pdf_to_image(self, file: str, outputfile: str) -> None:
-        doc = fitz.open(file)  # open document
+    def pdf_to_image(self, file: str, outputfilename_without_extension: str) -> None:
+        doc = fitz.open(file)
         for i, page in enumerate(doc):
-            pix = page.get_pixmap()  # render page to an image
-            pix.save(f"{outputfile}_{i}.png")
+            pix = page.get_pixmap()
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            img.save(f"{outputfilename_without_extension}_{i}.png", "PNG")
 
     @GeneralUtilities.check_arguments
     def show_missing_files(self, folderA: str, folderB: str):
