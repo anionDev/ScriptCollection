@@ -150,14 +150,21 @@ class TasksForCommonProjectStructure:
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def codeunit_hast_testable_sourcecode(self, codeunit_file) -> bool:
+    def codeunit_has_testable_sourcecode(self, codeunit_file) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithastestablesourcecode', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def codeunit_hast_updatable_dependencies(self, codeunit_file) -> bool:
+    def codeunit_throws_exception_if_codeunitfile_is_not_validatable(self, codeunit_file) -> bool:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@throwexceptionifcodeunitfilecannotbevalidated', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0]))
+
+    @GeneralUtilities.check_arguments
+    def codeunit_has_updatable_dependencies(self, codeunit_file) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithasupdatabledependencies', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
@@ -796,7 +803,7 @@ class TasksForCommonProjectStructure:
                                                                     codeunit_version: str, public_repository_url: str, branch: str) -> None:
         codeunit_folder = os.path.join(repository, codeunitname)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
-        codeunit_has_testcases = self.codeunit_hast_testable_sourcecode(codeunit_file)
+        codeunit_has_testcases = self.codeunit_has_testable_sourcecode(codeunit_file)
         target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
         if os.path.isdir(target_folder) and not replace_existing_content:
             raise ValueError(f"Folder '{target_folder}' already exists.")
@@ -1252,12 +1259,19 @@ class TasksForCommonProjectStructure:
         root: etree._ElementTree = etree.parse(codeunit_file)
 
         # Check codeunit-spcecification-version
-        codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
-        supported_codeunitspecificationversion = "2.7.1"  # must always be the latest version of the ProjectTemplates-repository
-        if codeunit_file_version != supported_codeunitspecificationversion:
-            raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
-        schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
-        xmlschema.validate(codeunit_file, schemaLocation)
+        try:
+            codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
+            supported_codeunitspecificationversion = "2.7.2"  # should always be the latest version of the ProjectTemplates-repository
+            if codeunit_file_version != supported_codeunitspecificationversion:
+                raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
+            schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
+            xmlschema.validate(codeunit_file, schemaLocation)
+        except Exception as exception:
+            if self.codeunit_throws_exception_if_codeunitfile_is_not_validatable(codeunit_file):
+                raise exception
+            else:
+                GeneralUtilities.write_message_to_stderr(f'Warning: Codeunitfile "{codeunit_file}" can not be validated due to the following exception:')
+                GeneralUtilities.write_exception_to_stderr(exception)
 
         # Check codeunit-name
         codeunit_name_in_codeunit_file = root.xpath('//cps:codeunit/cps:name/text()', namespaces=namespaces)[0]
@@ -1266,9 +1280,9 @@ class TasksForCommonProjectStructure:
 
         # Check for mandatory files
         files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
-        if self.codeunit_hast_testable_sourcecode(codeunit_file):
+        if self.codeunit_has_testable_sourcecode(codeunit_file):
             files.append("Other/QualityCheck/RunTestcases.py")
-        if self.codeunit_hast_updatable_dependencies(codeunit_file):
+        if self.codeunit_has_updatable_dependencies(codeunit_file):
             files.append("Other/UpdateDependencies.py")
         for file in files:
             combined_file = os.path.join(codeunit_folder, file)
@@ -1867,7 +1881,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Build.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
 
-        codeunit_hast_testable_sourcecode = self.codeunit_hast_testable_sourcecode(codeunit_file)
+        codeunit_hast_testable_sourcecode = self.codeunit_has_testable_sourcecode(codeunit_file)
         if codeunit_hast_testable_sourcecode:
             GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
             execution_result = self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}",
