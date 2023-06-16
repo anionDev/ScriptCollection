@@ -8,6 +8,12 @@ For typically used tools the [Tools](#tools)-section contains a short descriptio
 
 ## Tools
 
+### ar
+
+`ar` is an archive-program.
+It can be installed with `apt-get install binutils` on a Debian- or Ubuntu-system.
+It can be installed using MinGW on a Windows-system.
+
 ### coverage
 
 [coverage](https://github.com/nedbat/coveragepy) is required to create test-coverage-reports for [python](https://www.python.org)-projects.
@@ -63,21 +69,39 @@ Further installation-instructions are on the [official website](https://cli.gith
 [gitversion](https://gitversion.net) is a tool to calculate the project-version based on the git-history.
 The commandline-tool can be installed using `choco install gitversion.portable` in a shell with elevated privileges.
 
+### ng
+
+[ng](https://github.com/angular/angular-cli) is a CLI-tool to manage angular-projects.
+The commandline-tool can be installed using `npm i @angular/cli`.
+
+### npm
+
+[npm](https://www.npmjs.com) is the package-manager of [node](https://nodejs.org/en).
+The command `npm` is usually be available after you have installed node.
+
 ### nuget
 
 [NuGet](https://www.nuget.org/) is required to create [NuGet-packages](https://www.nuget.org/packages).
 The commandline-tool can be installed using `choco install nuget.commandline`.
+
+### python
+
+[Python](https://www.python.org) is a common script-language.
+
+### reportgenerator
+
+[ReportGenerator](https://reportgenerator.io/) is required to generate HTML-reports from test-coverage-reports.
+The commandline-tool can be installed using `choco install reportgenerator.portable`.
 
 ### scriptcollection
 
 [ScriptCollection](https://github.com/anionDev/ScriptCollection) is required to run the scripts (`Build.py`, etc.).
 The package can be installed using `pip install ScriptCollection`.
 
-
 ### sh
 
 The shell `sh` is already pre-installed on most linux-systems.
-On Windows a windows-port called `sh.exe` is contained in [git for windows](https://git-scm.com/download/win) and can be found usually in `C:\Program Files\Git\usr\bin`. 
+On Windows a windows-port called `sh.exe` is contained in [git for windows](https://git-scm.com/download/win) and can be found usually in `C:\Program Files\Git\usr\bin`.
 
 ### sn
 
@@ -89,30 +113,17 @@ It is contained the [Windows SDK](https://developer.microsoft.com/en-us/windows/
 [Swagger](https://swagger.io) is required to generate the `APISpecification`-artifact for .NET-WebAPI-Projects.
 The commandline-tool can be installed using `dotnet tool install --global swashbuckle.aspnetcore.cli`.
 
-### python
-
-[Python](https://www.python.org) is a common script-language.
-
-### ng
-
-[ng](https://github.com/angular/angular-cli) is a CLI-tool to manage angular-projects.
-The commandline-tool can be installed using `npm i @angular/cli`.
-
-### npm
-
-[npm](https://www.npmjs.com) is the package-manager of [node](https://nodejs.org/en).
-The command `npm` is usually be available after you have installed node.
-
-### reportgenerator
-
-[ReportGenerator](https://reportgenerator.io/) is required to generate HTML-reports from test-coverage-reports.
-The commandline-tool can be installed using `choco install reportgenerator.portable`.
-
 ### t4
 
 [t4](https://github.com/mono/t4) is a tool to generate C#-files from [T4](https://learn.microsoft.com/en-us/visualstudio/modeling/code-generation-and-t4-text-templates)-templates.
 It can be installed using `dotnet tool install --global dotnet-t4`.
 It is an alternative implementation for [TextTransform](https://learn.microsoft.com/en-us/visualstudio/modeling/generating-files-with-the-texttransform-utility).
+
+### tar
+
+`tar` is an archive-program.
+It can be installed with `apt-get install tar` on a Debian- or Ubuntu-system.
+It can be installed using MinGW on a Windows-system.
 
 ### twine
 
