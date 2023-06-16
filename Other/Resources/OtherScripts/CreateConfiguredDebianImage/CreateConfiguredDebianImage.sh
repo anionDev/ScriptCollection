@@ -16,11 +16,12 @@ keymap=$9
 # Prepare
 echo "Start"
 script_directory="$( dirname -- "${BASH_SOURCE[0]}"; )";
-preseed_template_file="$script_directory/preseed_template.cfg"
+preseed_template_file="$script_directory/PreseedTemplate.cfg"
 temp_folder="$(mktemp -d)"
 
 isofile_without_extension=${isofile::-4}
-preseed_target_file="$outputfolder/$isofile_without_extension-preseeded.iso"
+isofile_without_folder=$(basename ${isofile_without_extension})
+preseed_target_file="$outputfolder/$hostname-$isofile_without_folder.iso"
 preseed_file="$temp_folder/preseed.cfg"
 
 cp $preseed_template_file $temp_folder/preseed.cfg
@@ -62,4 +63,3 @@ rm -rf $temp_folder
 # Test image
 # (Manual task; May require "sudo apt install -y qemu-system-x86")
 #qemu-system-i386 -net user -cdrom "$preseed_target_file"
-
