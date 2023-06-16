@@ -34,6 +34,11 @@ sed -i "s/__\[locale\]__/$locale/g" $preseed_file
 sed -i "s/__\[keymap\]__/$keymap/g" $preseed_file
 
 
+echo "The following preseed-file will be used:"
+echo "<file>"
+cat $preseed_file
+echo "</file>"
+
 temp_folder_img=$temp_folder/img
 mkdir $temp_folder_img
 # Extracting the Initrd from an ISO Image
