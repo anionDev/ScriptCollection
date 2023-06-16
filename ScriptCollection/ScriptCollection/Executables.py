@@ -224,9 +224,9 @@ def MergePDFs() -> int:
 def PDFToImage() -> int:
     parser = argparse.ArgumentParser(description='Converts a PDF-document to an image')
     parser.add_argument('file', help='Input-file')
-    parser.add_argument('outputfile', help='File for the resulting image')
+    parser.add_argument('outputfilename_without_extension', help='File for the resulting image')
     args = parser.parse_args()
-    ScriptCollectionCore().pdf_to_image(args.file, args.outputfile)
+    ScriptCollectionCore().pdf_to_image(args.file, args.outputfilename_without_extension)
     return 0
 
 
