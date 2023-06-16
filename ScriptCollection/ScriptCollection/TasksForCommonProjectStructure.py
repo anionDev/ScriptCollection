@@ -1814,7 +1814,7 @@ class TasksForCommonProjectStructure:
         installedsize = self.calculate_deb_package_size(binary_folder)
         control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit_folder(codeunit_folder),
                                                                   installedsize, maintainername, maintaineremail, description)
-        self.__sc.create_deb_package(ScriptCollectionCore(), codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
+        self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
