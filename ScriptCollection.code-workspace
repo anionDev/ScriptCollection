@@ -41,11 +41,18 @@
 		"version": "0.2.0",
 		"configurations": [
 			{
-				"name": "Debug current file",
+				"name": "Debug current python-file",
 				"type": "python",
 				"request": "launch",
 				"program": "${file}",
 				"console": "integratedTerminal"
+			},
+			{
+				"name": "Debug current bash-script",
+				"type": "bashdb",
+				"request": "launch",
+				"program": "${file}",
+				"cwd": "${workspaceFolder}"
 			}
 		]
 	},

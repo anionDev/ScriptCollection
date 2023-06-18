@@ -1,31 +1,40 @@
 #!/bin/bash
+set -e
+set -o pipefail
 
 # Source https://wiki.debian.org/DebianInstaller/Preseed/EditIso
 
-# Variables
-isofile=$1
-architecture=$2
-outputfolder=$3
-hostname=$4
-ssh_public_key=$5
-user_password=$6
-root_password=$7
-locale=$8
-keymap=$9
-
-# Prepare
-echo "Start"
-script_directory="$( dirname -- "${BASH_SOURCE[0]}"; )";
-preseed_template_file="$script_directory/PreseedTemplate.cfg"
+scriptfolder="$( dirname -- "$0"; )"
+cd $scriptfolder
 temp_folder="$(mktemp -d)"
+preseed_template_file="preseedTemplate.cfg"
+preseed_file="preseed.cfg"
 
+isofile=$1
+hostname=$2
+ssh_public_key=$3
+user_password=$4
+root_password=$5
+locale=$6
+keymap=$7
+architecture=$8
+result_folder=$9
+
+echo "Step 1: Prepare"
 isofile_without_extension=${isofile::-4}
-isofile_without_folder=$(basename ${isofile_without_extension})
-preseed_target_file="$outputfolder/$hostname-$isofile_without_folder.iso"
-preseed_file="$temp_folder/preseed.cfg"
+preseed_target_file="$result_folder/$hostname-Installer.iso"
+if [ -f "$preseed_target_file" ] ; then
+  rm -f "$preseed_target_file"
+fi
+if [ -d "$temp_folder" ] ; then
+  rm -rf "$temp_folder"
+fi
+if [ -d "$preseed_file" ] ; then
+  rm -rf "$preseed_file"
+fi
 
-cp $preseed_template_file $temp_folder/preseed.cfg
-
+echo "Step 2: Generate preseed-file"
+cp $preseed_template_file $preseed_file
 sed -i "s/__\[hostname\]__/$hostname/g" $preseed_file
 sed -i "s/__\[ssh_public_key\]__/$ssh_public_key/g" $preseed_file
 sed -i "s/__\[user_password\]__/$user_password/g" $preseed_file
@@ -33,38 +42,31 @@ sed -i "s/__\[root_password\]__/$root_password/g" $preseed_file
 sed -i "s/__\[locale\]__/$locale/g" $preseed_file
 sed -i "s/__\[keymap\]__/$keymap/g" $preseed_file
 
+echo "Step 3: Adding preseed-file to the Initrd"
+7z x -o$temp_folder $isofile
+chmod +w -R $temp_folder/install.$architecture/
+gunzip $temp_folder/install.$architecture/initrd.gz
+echo $preseed_file | cpio -H newc -o -A -F $temp_folder/install.$architecture/initrd
+gzip $temp_folder/install.$architecture/initrd
+chmod -w -R $temp_folder/install.$architecture/
 
-echo "The following preseed-file will be used:"
-echo "<file>"
-cat $preseed_file
-echo "</file>"
+echo "Step 4: Regenerating md5sum.txt"
+cd $temp_folder
+chmod +w md5sum.txt
+find -follow -type f ! -name md5sum.txt -print0 | xargs -0 md5sum > md5sum.txt
+chmod -w md5sum.txt
+cd -
 
-temp_folder_img=$temp_folder/img
-mkdir $temp_folder_img
-# Extracting the Initrd from an ISO Image
-7z x -o$temp_folder_img $isofile
-
-# Adding a Preseed File to the Initrd
-chmod +w -R $temp_folder_img/install.$architecture/
-gunzip $temp_folder_img/install.$architecture/initrd.gz
-echo $preseed_file | cpio -H newc -o -A -F $temp_folder_img/install.$architecture/initrd
-gzip $temp_folder_img/install.$architecture/initrd
-chmod -w -R $temp_folder_img/install.$architecture/
-
-
-# Regenerating md5sum.txt
-chmod +w $temp_folder_img/md5sum.txt
-find $temp_folder_img -follow -type f ! -name md5sum.txt -print0 | xargs -0 md5sum > $temp_folder_img/md5sum.txt
-chmod -w $temp_folder_img/md5sum.txt
-
-# Creating a New Bootable ISO Image
+echo "Step 5: Creating a New Bootable ISO Image"
 # (May require "sudo apt install -y genisoimage")
-genisoimage -r -J -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $preseed_target_file $temp_folder_img
+output_file="$preseed_target_file"
+genisoimage -r -J -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $output_file $temp_folder
 
-# Remove temp-files
-chmod 700 -R $temp_folder
+cd -
+
+echo "Step 6: Remove temp-files"
 rm -rf $temp_folder
 
-# Test image
+#echo "Step 7: Test image"
 # (Manual task; May require "sudo apt install -y qemu-system-x86")
-#qemu-system-i386 -net user -cdrom "$preseed_target_file"
+#qemu-system-i386 -net user -cdrom $output_file
