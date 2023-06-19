@@ -66,6 +66,7 @@ cd -
 
 echo "Step 6: Remove temp-files"
 rm -rf $temp_folder
+rm $preseed_file
 
 #echo "Step 7: Test image"
 # (Manual task; May require "sudo apt install -y qemu-system-x86")
