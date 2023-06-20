@@ -24,7 +24,8 @@ ssh_port="${10}"
 
 echo "Step 1: Prepare"
 isofile_without_extension=${isofile::-4}
-preseed_target_file="$result_folder/$hostname-Installer.iso"
+iso_filename="$hostname-installer"
+preseed_target_file="$result_folder/$iso_filename.iso"
 if [ -f "$preseed_target_file" ] ; then
   rm -f "$preseed_target_file"
 fi
@@ -58,24 +59,22 @@ gzip $temp_folder/install.$architecture/initrd
 chmod -w -R $temp_folder/install.$architecture/
 
 echo "Step 4  Update boot-configuration"
-config_file="$temp_folder/isolinux/menu.cfg"
-sed -i "s/include gtk.cfg/#include gtk.cfg/g" $config_file
-##truncate -s 0 $gtk_file
-##sed -i "$ a\default auto" $gtk_file
-##echo "default auto" >> $gtk_file
-##sed -i "$ a\label auto" $gtk_file
-##sed -i '/        menu default/d' $gtk_file
-##sed -i "s/default installgui/default auto/g" $gtk_file
-#
-##echo "label auto" >> $gtk_file
-#sed -i "$ a\label auto" $gtk_file
-#sed -i "$ a\        menu label ^Automated install" $gtk_file
-#sed -i "$ a\        menu default" $gtk_file
-#sed -i "$ a\        kernel /install.$architecture/vmlinuz" $gtk_file
-#sed -i "$ a\        append auto=true priority=critical vga=788 initrd=/install.$architecture/initrd.gz --- quiet" $gtk_file
+
+menu_config_file="$temp_folder/isolinux/menu.cfg"
+sed -i "s/include gtk.cfg/#include gtk.cfg/g" $menu_config_file
+sed -i "s/include adgtk.cfg/#include adgtk.cfg/g" $menu_config_file
+sed -i "s/include adspkgtk.cfg/#include adspkgtk.cfg/g" $menu_config_file
+sed -i "s/include adspk.cfg/#include adspk.cfg/g" $menu_config_file
+sed -i "s/include spkgtk.cfg/#include spkgtk.cfg/g" $menu_config_file
+sed -i "s/include spk.cfg/#include spk.cfg/g" $menu_config_file
+sed -i "/menu title.*Debian.*GNU/c\\menu title $iso_filename" $menu_config_file
+
+txt_config_file="$temp_folder/isolinux/txt.cfg"
+sed -i "$ a\timeout 100" $txt_config_file
+sed -i "$ a\ontimeout install" $txt_config_file
 
 echo $temp_folder
-sleep 30000
+#sleep 30000
 
 echo "Step 5: Regenerating md5sum.txt"
 cd $temp_folder
