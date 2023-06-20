@@ -10,6 +10,7 @@ import urllib.request
 import zipfile
 import json
 import configparser
+import requests
 from packaging import version
 import xmlschema
 from OpenSSL import crypto
@@ -396,6 +397,7 @@ class TasksForCommonProjectStructure:
     def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int):
         sc = ScriptCollectionCore()
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", commontasks_script_file_of_current_file)
+        self.__ensure_grylibrary_is_available(codeunit_folder)
         repository_folder: str = os.path.dirname(codeunit_folder)
         codeunitname: str = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
@@ -1765,7 +1767,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_text_to_file(version_file, latest_version_function)
 
     @GeneralUtilities.check_arguments
-    def ensure_grylibrary_is_available(self, codeunit_folder: str):
+    def __ensure_grylibrary_is_available(self, codeunit_folder: str):
         grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
@@ -1794,6 +1796,36 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary due to missing internet-connection.")
             else:
                 raise ValueError("Can not download GRYLibrary.")
+
+    @GeneralUtilities.check_arguments
+    def __ensure_plant_uml_is_available(self, codeunit_folder: str) -> None:
+        plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        jar_file = f"{plant_uml_folder}/plantuml.jar"
+        plantuml_jar_file_exists = os.path.isfile(jar_file)
+        if internet_connection_is_available:  # Load/Update PlantUML
+            GeneralUtilities.ensure_directory_does_not_exist(plant_uml_folder)
+            GeneralUtilities.ensure_directory_exists(plant_uml_folder)
+            response = requests.get("https://api.github.com/repos/plantuml/plantuml/releases/latest", timeout=5)
+            latest_version = response.json()["name"]
+            jar_link = f"https://github.com/plantuml/plantuml/releases/download/{latest_version}/plantuml.jar"
+            urllib.request.urlretrieve(jar_link, jar_file)
+        else:
+            if plantuml_jar_file_exists:
+                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of PlantUML due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download PlantUML.")
+
+    @GeneralUtilities.check_arguments
+    def generate_svg_files_from_plantuml_files(self, codeunit_folder: str) -> None:
+        self.__ensure_plant_uml_is_available(codeunit_folder)
+        plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
+        files_folder = os.path.join(codeunit_folder, "Other/Reference")
+        sc = ScriptCollectionCore()
+        for file in GeneralUtilities.get_all_files_of_folder(files_folder):
+            if file.endswith(".plantuml"):
+                argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', os.path.basename(file).replace("\\", "/"), '-tsvg']
+                sc.run_program_argsasarray("java", argument, os.path.dirname(file))
 
     @GeneralUtilities.check_arguments
     def load_deb_control_file_content(self, file: str,

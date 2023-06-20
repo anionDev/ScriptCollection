@@ -63,6 +63,10 @@ Further installation-instructions are on the [official website](https://cli.gith
 [gitversion](https://gitversion.net) is a tool to calculate the project-version based on the git-history.
 The commandline-tool can be installed using `choco install gitversion.portable` in a shell with elevated privileges.
 
+### java
+
+[java](https://openjdk.org/) is the commandline-tool for running [Java](https://docs.oracle.com/en/java)-programs.
+
 ### nuget
 
 [NuGet](https://www.nuget.org/) is required to create [NuGet-packages](https://www.nuget.org/packages).
@@ -73,11 +77,10 @@ The commandline-tool can be installed using `choco install nuget.commandline`.
 [ScriptCollection](https://github.com/anionDev/ScriptCollection) is required to run the scripts (`Build.py`, etc.).
 The package can be installed using `pip install ScriptCollection`.
 
-
 ### sh
 
 The shell `sh` is already pre-installed on most linux-systems.
-On Windows a windows-port called `sh.exe` is contained in [git for windows](https://git-scm.com/download/win) and can be found usually in `C:\Program Files\Git\usr\bin`. 
+On Windows a windows-port called `sh.exe` is contained in [git for windows](https://git-scm.com/download/win) and can be found usually in `C:\Program Files\Git\usr\bin`.
 
 ### sn
 
