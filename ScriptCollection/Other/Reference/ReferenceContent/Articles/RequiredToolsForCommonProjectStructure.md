@@ -69,6 +69,10 @@ Further installation-instructions are on the [official website](https://cli.gith
 [gitversion](https://gitversion.net) is a tool to calculate the project-version based on the git-history.
 The commandline-tool can be installed using `choco install gitversion.portable` in a shell with elevated privileges.
 
+### java
+
+[java](https://openjdk.org/) is the commandline-tool for running [Java](https://docs.oracle.com/en/java)-programs.
+
 ### ng
 
 [ng](https://github.com/angular/angular-cli) is a CLI-tool to manage angular-projects.
