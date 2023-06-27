@@ -197,18 +197,36 @@ def ShowMissingFiles() -> int:
     parser.add_argument('folderA')
     parser.add_argument('folderB')
     args = parser.parse_args()
-    ScriptCollectionCore().SCShowMissingFiles(args.folderA, args.folderB)
+    ScriptCollectionCore().show_missing_files(args.folderA, args.folderB)
+    return 0
+
+
+def ExtractPDFPages() -> int:
+    parser = argparse.ArgumentParser(description='Extract pages from PDF-file')
+    parser.add_argument('file', help='Input file')
+    parser.add_argument('frompage', help='First page')
+    parser.add_argument('topage', help='Last page')
+    parser.add_argument('outputfile', help='File for the resulting PDF-document')
+    args = parser.parse_args()
+    ScriptCollectionCore().extract_pdf_pages(args.file, int(args.frompage), int(args.topage), args.outputfile)
     return 0
 
 
 def MergePDFs() -> int:
-    parser = argparse.ArgumentParser(description='merges pdf-files')
+    parser = argparse.ArgumentParser(description='Merges PDF-files')
     parser.add_argument('files', help='Comma-separated filenames')
-    parser = argparse.ArgumentParser(description='''Takes some pdf-files and merge them to one single pdf-file.
-Usage: "python MergePDFs.py myfile1.pdf,myfile2.pdf,myfile3.pdf result.pdf"''')
-    parser.add_argument('outputfile', help='File for the resulting pdf-document')
+    parser.add_argument('outputfile', help='File for the resulting PDF-document')
     args = parser.parse_args()
     ScriptCollectionCore().merge_pdf_files(args.files.split(','), args.outputfile)
+    return 0
+
+
+def PDFToImage() -> int:
+    parser = argparse.ArgumentParser(description='Converts a PDF-document to an image')
+    parser.add_argument('file', help='Input-file')
+    parser.add_argument('outputfilename_without_extension', help='File for the resulting image')
+    args = parser.parse_args()
+    ScriptCollectionCore().pdf_to_image(args.file, args.outputfilename_without_extension)
     return 0
 
 

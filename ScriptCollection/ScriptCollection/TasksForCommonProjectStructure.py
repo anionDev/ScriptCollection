@@ -4,11 +4,13 @@ import os
 from pathlib import Path
 from functools import cmp_to_key
 import shutil
+import math
 import re
 import urllib.request
 import zipfile
 import json
 import configparser
+import requests
 from packaging import version
 import xmlschema
 from OpenSSL import crypto
@@ -150,14 +152,21 @@ class TasksForCommonProjectStructure:
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def codeunit_hast_testable_sourcecode(self, codeunit_file) -> bool:
+    def codeunit_has_testable_sourcecode(self, codeunit_file) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithastestablesourcecode', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def codeunit_hast_updatable_dependencies(self, codeunit_file) -> bool:
+    def codeunit_throws_exception_if_codeunitfile_is_not_validatable(self, codeunit_file) -> bool:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@throwexceptionifcodeunitfilecannotbevalidated', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0]))
+
+    @GeneralUtilities.check_arguments
+    def codeunit_has_updatable_dependencies(self, codeunit_file) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithasupdatabledependencies', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
@@ -388,6 +397,7 @@ class TasksForCommonProjectStructure:
     def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int):
         sc = ScriptCollectionCore()
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", commontasks_script_file_of_current_file)
+        self.__ensure_grylibrary_is_available(codeunit_folder)
         repository_folder: str = os.path.dirname(codeunit_folder)
         codeunitname: str = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
@@ -796,7 +806,7 @@ class TasksForCommonProjectStructure:
                                                                     codeunit_version: str, public_repository_url: str, branch: str) -> None:
         codeunit_folder = os.path.join(repository, codeunitname)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
-        codeunit_has_testcases = self.codeunit_hast_testable_sourcecode(codeunit_file)
+        codeunit_has_testcases = self.codeunit_has_testable_sourcecode(codeunit_file)
         target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
         if os.path.isdir(target_folder) and not replace_existing_content:
             raise ValueError(f"Folder '{target_folder}' already exists.")
@@ -1252,12 +1262,19 @@ class TasksForCommonProjectStructure:
         root: etree._ElementTree = etree.parse(codeunit_file)
 
         # Check codeunit-spcecification-version
-        codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
-        supported_codeunitspecificationversion = "2.7.1"  # must always be the latest version of the ProjectTemplates-repository
-        if codeunit_file_version != supported_codeunitspecificationversion:
-            raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
-        schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
-        xmlschema.validate(codeunit_file, schemaLocation)
+        try:
+            codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
+            supported_codeunitspecificationversion = "2.7.2"  # should always be the latest version of the ProjectTemplates-repository
+            if codeunit_file_version != supported_codeunitspecificationversion:
+                raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
+            schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
+            xmlschema.validate(codeunit_file, schemaLocation)
+        except Exception as exception:
+            if self.codeunit_throws_exception_if_codeunitfile_is_not_validatable(codeunit_file):
+                raise exception
+            else:
+                GeneralUtilities.write_message_to_stderr(f'Warning: Codeunitfile "{codeunit_file}" can not be validated due to the following exception:')
+                GeneralUtilities.write_exception_to_stderr(exception)
 
         # Check codeunit-name
         codeunit_name_in_codeunit_file = root.xpath('//cps:codeunit/cps:name/text()', namespaces=namespaces)[0]
@@ -1266,9 +1283,9 @@ class TasksForCommonProjectStructure:
 
         # Check for mandatory files
         files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
-        if self.codeunit_hast_testable_sourcecode(codeunit_file):
+        if self.codeunit_has_testable_sourcecode(codeunit_file):
             files.append("Other/QualityCheck/RunTestcases.py")
-        if self.codeunit_hast_updatable_dependencies(codeunit_file):
+        if self.codeunit_has_updatable_dependencies(codeunit_file):
             files.append("Other/UpdateDependencies.py")
         for file in files:
             combined_file = os.path.join(codeunit_folder, file)
@@ -1750,7 +1767,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_text_to_file(version_file, latest_version_function)
 
     @GeneralUtilities.check_arguments
-    def ensure_grylibrary_is_available(self, codeunit_folder: str):
+    def __ensure_grylibrary_is_available(self, codeunit_folder: str):
         grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
@@ -1779,6 +1796,71 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary due to missing internet-connection.")
             else:
                 raise ValueError("Can not download GRYLibrary.")
+
+    @GeneralUtilities.check_arguments
+    def __ensure_plant_uml_is_available(self, codeunit_folder: str) -> None:
+        plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        jar_file = f"{plant_uml_folder}/plantuml.jar"
+        plantuml_jar_file_exists = os.path.isfile(jar_file)
+        if internet_connection_is_available:  # Load/Update PlantUML
+            GeneralUtilities.ensure_directory_does_not_exist(plant_uml_folder)
+            GeneralUtilities.ensure_directory_exists(plant_uml_folder)
+            response = requests.get("https://api.github.com/repos/plantuml/plantuml/releases/latest", timeout=5)
+            latest_version = response.json()["name"]
+            jar_link = f"https://github.com/plantuml/plantuml/releases/download/{latest_version}/plantuml.jar"
+            urllib.request.urlretrieve(jar_link, jar_file)
+        else:
+            if plantuml_jar_file_exists:
+                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of PlantUML due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download PlantUML.")
+
+    @GeneralUtilities.check_arguments
+    def generate_svg_files_from_plantuml_files(self, codeunit_folder: str) -> None:
+        self.__ensure_plant_uml_is_available(codeunit_folder)
+        plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
+        files_folder = os.path.join(codeunit_folder, "Other/Reference")
+        sc = ScriptCollectionCore()
+        for file in GeneralUtilities.get_all_files_of_folder(files_folder):
+            if file.endswith(".plantuml"):
+                argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', os.path.basename(file).replace("\\", "/"), '-tsvg']
+                sc.run_program_argsasarray("java", argument, os.path.dirname(file))
+
+    @GeneralUtilities.check_arguments
+    def load_deb_control_file_content(self, file: str,
+                                      codeunitname: str, codeunitversion: str, installedsize: int,
+                                      maintainername: str, maintaineremail: str, description: str,) -> str:
+        content = GeneralUtilities.read_text_from_file(file)
+        content = GeneralUtilities.replace_variable_in_string(content, "codeunitname", codeunitname)
+        content = GeneralUtilities.replace_variable_in_string(content, "codeunitversion", codeunitversion)
+        content = GeneralUtilities.replace_variable_in_string(content, "installedsize", str(installedsize))
+        content = GeneralUtilities.replace_variable_in_string(content, "maintainername", maintainername)
+        content = GeneralUtilities.replace_variable_in_string(content, "maintaineremail", maintaineremail)
+        content = GeneralUtilities.replace_variable_in_string(content, "description", description)
+        return content
+
+    @GeneralUtilities.check_arguments
+    def calculate_deb_package_size(self, binary_folder: str) -> int:
+        size_in_bytes = 0
+        for file in GeneralUtilities.get_all_files_of_folder(binary_folder):
+            size_in_bytes = size_in_bytes+os.path.getsize(file)
+        result = math.ceil(size_in_bytes/1024)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def create_deb_package_for_artifact(self, codeunit_folder: str,
+                                        maintainername: str, maintaineremail: str, description: str,
+                                        verbosity: int, cmd_arguments: list[str]) -> None:
+        verbosity = self.get_verbosity_from_commandline_arguments(cmd_arguments, verbosity)
+        codeunit_name = os.path.basename(codeunit_folder)
+        binary_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_DotNet_linux-x64", codeunit_folder)
+        deb_output_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_Deb", codeunit_folder)
+        control_file = GeneralUtilities.resolve_relative_path("Other/Build/DebControlFile.txt", codeunit_folder)
+        installedsize = self.calculate_deb_package_size(binary_folder)
+        control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit_folder(codeunit_folder),
+                                                                  installedsize, maintainername, maintaineremail, description)
+        self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
@@ -1867,7 +1949,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Build.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
 
-        codeunit_hast_testable_sourcecode = self.codeunit_hast_testable_sourcecode(codeunit_file)
+        codeunit_hast_testable_sourcecode = self.codeunit_has_testable_sourcecode(codeunit_file)
         if codeunit_hast_testable_sourcecode:
             GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
             execution_result = self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}",
