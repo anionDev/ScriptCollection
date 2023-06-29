@@ -1798,6 +1798,33 @@ class TasksForCommonProjectStructure:
                 raise ValueError("Can not download GRYLibrary.")
 
     @GeneralUtilities.check_arguments
+    def ensure_ffmpeg_is_available(self, codeunit_folder: str) -> None:
+        ffmpeg_folder = os.path.join(codeunit_folder, "Other", "Resources", "FFMPEG")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        exe_file = f"{ffmpeg_folder}/ffmpeg.exe"
+        exe_file_exists = os.path.isfile(exe_file)
+        if internet_connection_is_available:  # Load/Update
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_folder)
+            GeneralUtilities.ensure_directory_exists(ffmpeg_folder)
+            ffmpeg_temp_folder = ffmpeg_folder+"Temp"
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
+            GeneralUtilities.ensure_directory_exists(ffmpeg_temp_folder)
+            zip_file_on_disk = os.path.join(ffmpeg_temp_folder, "ffmpeg.zip")
+            original_zip_filename = "ffmpeg-master-latest-win64-gpl-shared"
+            zip_link = f"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{original_zip_filename}.zip"
+            urllib.request.urlretrieve(zip_link, zip_file_on_disk)
+            shutil.unpack_archive(zip_file_on_disk, ffmpeg_temp_folder)
+            bin_folder_source = os.path.join(ffmpeg_temp_folder, "ffmpeg-master-latest-win64-gpl-shared/bin")
+            bin_folder_target = ffmpeg_folder
+            GeneralUtilities.copy_content_of_folder(bin_folder_source, bin_folder_target)
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
+        else:
+            if exe_file_exists:
+                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of FFMPEG due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download FFMPEG.")
+
+    @GeneralUtilities.check_arguments
     def __ensure_plant_uml_is_available(self, codeunit_folder: str) -> None:
         plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
