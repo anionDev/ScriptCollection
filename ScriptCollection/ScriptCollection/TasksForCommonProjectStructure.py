@@ -1,3 +1,4 @@
+from ScriptCollection.ProgramRunnerEpew import ProgramRunnerEpew
 from datetime import datetime
 from graphlib import TopologicalSorter
 import os
@@ -1378,16 +1379,13 @@ class TasksForCommonProjectStructure:
         self.__sc.replace_version_in_nuspec_file(nuspec_file, codeunit_version)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_node_project(self, build_script_file: str, build_environment_target_type: str,
-                                                  verbosity: int, commandline_arguments: list[str]):
-        # TODO use unused parameter
+    def standardized_tasks_build_for_angular_codeunit(self, build_script_file: str, build_environment_target_type: str,
+                                                      verbosity: int, commandline_arguments: list[str]):
         self.copy_source_files_to_output_directory(build_script_file)
-        sc = ScriptCollectionCore()
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.program_runner = ProgramRunnerEpew()
         build_script_folder = os.path.dirname(build_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        sc.run_program("npm", "run build", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("ng", f"build --configuration {build_environment_target_type}", codeunit_folder, verbosity=verbosity)
         self.standardized_tasks_build_bom_for_node_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -1396,40 +1394,39 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_node_project(self, linting_script_file: str, verbosity: int,
-                                                    target_environmenttype: str, commandline_arguments: list[str]):
-        # TODO use unused parameter
-        sc = ScriptCollectionCore()
+    def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int,
+                                                        build_environment_target_type: str, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.program_runner = ProgramRunnerEpew()
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        sc.run_program("npm", "run lint", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("ng", f"lint --configuration {build_environment_target_type}", codeunit_folder, verbosity=verbosity)
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_node_project(self, runtestcases_script_file: str,
-                                                          targetenvironmenttype: str, generate_badges: bool, verbosity: int,
-                                                          commandline_arguments: list[str]):
-        # TODO use targetenvironmenttype etc.
-        sc = ScriptCollectionCore()
+    def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str,
+                                                              build_environment_target_type: str, generate_badges: bool, verbosity: int,
+                                                              commandline_arguments: list[str]):
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.program_runner = ProgramRunnerEpew()
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
-        sc.run_program("npm", "run test", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew(
+            "ng", f"test --watch=false --configuration {build_environment_target_type} --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
         target_file = os.path.join(coverage_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
-        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, verbosity: int):
-        sc = ScriptCollectionCore()
+        self.run_with_epew("npm", "install", package_json_folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def run_with_epew(self, program: str, argument: str, working_directory: str, verbosity: int):
+        sc: ScriptCollectionCore = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
-        sc.run_program("npm", "install", package_json_folder, verbosity=verbosity)
+        sc.run_program(program, argument, working_directory, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def set_default_constants(self, codeunit_folder: str):
@@ -1584,9 +1581,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def copy_artifacts_from_dependent_code_units(self, repo_folder: str, codeunit_name: str) -> None:
-        GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+        if len(dependent_codeunits) > 0:
+            GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
         for dependent_codeunit in dependent_codeunits:
