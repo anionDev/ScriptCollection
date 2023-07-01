@@ -1398,7 +1398,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        self.run_with_epew("ng", f"lint --configuration {build_environment_target_type}", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("ng", f"lint", codeunit_folder, verbosity=verbosity)
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
@@ -1409,7 +1409,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
         self.run_with_epew(
-            "ng", f"test --watch=false --configuration {build_environment_target_type} --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
+            "ng", f"test --watch=false --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
         target_file = os.path.join(coverage_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
@@ -1624,6 +1624,10 @@ class TasksForCommonProjectStructure:
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity)
         test_csproj_file = os.path.join(codeunit_folder, f"{codeunit_name}Tests", f"{codeunit_name}Tests.csproj")
         self.__sc.update_dependencies_of_dotnet_project(test_csproj_file, verbosity)
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
