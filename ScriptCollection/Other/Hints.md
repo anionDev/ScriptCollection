@@ -2,7 +2,7 @@
 
 ## Requirements
 
-The following tools from the [tools-list](https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/RequiredToolsForCommonProjectStructure.md#Tools) are required to build this code-unit:
+The following requirements from the [tools-list](https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/RequirementsForCommonProjectStructure.md#Tools) are required to build and run this code-unit:
 
 - `coverage`
 - `docfx`

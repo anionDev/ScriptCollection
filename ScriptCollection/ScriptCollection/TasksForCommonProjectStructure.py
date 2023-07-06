@@ -470,7 +470,7 @@ class TasksForCommonProjectStructure:
         <Prefer32Bit>false<\\/Prefer32Bit>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
         <OutputType>([^<]+)<\\/OutputType>
         <DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>(\\n|.)*
     <\\/PropertyGroup>
@@ -531,7 +531,7 @@ class TasksForCommonProjectStructure:
         <Prefer32Bit>false<\\/Prefer32Bit>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
         <OutputType>Library<\\/OutputType>(\\n|.)*
     <\\/PropertyGroup>
     <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
@@ -594,7 +594,7 @@ class TasksForCommonProjectStructure:
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
             sarif_filename = f"{csproj_file_name_without_extension}.sarif"
-            sarif_source_file = os.path.join(codeunit_folder, "Other", "Resources", sarif_filename)
+            sarif_source_file = os.path.join(codeunit_folder, "Other", "Resources", "CodeAnalysisResult", sarif_filename)
             if os.path.exists(sarif_source_file):
                 sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
                 GeneralUtilities.ensure_directory_exists(sarif_folder)
@@ -1011,7 +1011,7 @@ class TasksForCommonProjectStructure:
                                                         resource_name: str = "DevelopmentCertificate"):
         target_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
         codeunit_name = os.path.basename(codeunit_folder)
-        domain = f"{codeunit_name}.localtest.private"
+        domain = f"{codeunit_name.lower()}.localtest.me"
         certificate_file = os.path.join(target_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
         if certificate_exists:
