@@ -1008,8 +1008,10 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str, domain: str,
                                                         subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
-                                                        resource_name: str = "NonProductiveCertificate"):
+                                                        resource_name: str = "DevelopmentCertificate"):
         target_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
+        codeunit_name = os.path.basename(codeunit_folder)
+        domain = f"{codeunit_name}.localtest.private"
         certificate_file = os.path.join(target_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
         if certificate_exists:
@@ -1398,7 +1400,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        self.run_with_epew("ng", f"lint", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("ng", "lint", codeunit_folder, verbosity=verbosity)
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
@@ -1409,7 +1411,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
         self.run_with_epew(
-            "ng", f"test --watch=false --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
+            "ng", "test --watch=false --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
         target_file = os.path.join(coverage_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
@@ -1506,7 +1508,7 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, source_constant_name: str = "NonProductiveCertificate"):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, source_constant_name: str = "DevelopmentCertificate"):
         """Expects a certificate-resource and generates a constant for its public information"""
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.unsigned.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
@@ -1515,7 +1517,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "NonProductiveCertificate"):
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate"):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "password", "Password")
         self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "pfx", "PFX")
@@ -1676,11 +1678,12 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
-                       is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+                       is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = False) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
-        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
+        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file,
+                                      is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built)
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
@@ -1691,7 +1694,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck",
-                                 additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+                                 additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None,
+                                 assume_dependent_codeunits_are_already_built: bool = True) -> None:
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
         if is_pre_merge and contains_uncommitted_changes:
@@ -1720,7 +1724,8 @@ class TasksForCommonProjectStructure:
             line = "----------"
             for codeunit in sorted_codeunits:
                 GeneralUtilities.write_message_to_stdout(line)
-                self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
+                self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype,
+                                      additional_arguments_file, is_pre_merge, assume_dependent_codeunits_are_already_built)
             GeneralUtilities.write_message_to_stdout(line)
         if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder) and not is_pre_merge:
             message = f'Due to the build-process the repository "{repository_folder}" has new uncommitted changes.'
