@@ -577,6 +577,8 @@ class TasksForCommonProjectStructure:
         csproj_file_folder = os.path.dirname(csproj_file)
         csproj_file_name = os.path.basename(csproj_file)
         csproj_file_name_without_extension = csproj_file_name.split(".")[0]
+        sarif_folder = os.path.join(codeunit_folder, "Other", "Resources", "CodeAnalysisResult")
+        GeneralUtilities.ensure_directory_exists(sarif_folder)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
@@ -594,7 +596,7 @@ class TasksForCommonProjectStructure:
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
             sarif_filename = f"{csproj_file_name_without_extension}.sarif"
-            sarif_source_file = os.path.join(codeunit_folder, "Other", "Resources", "CodeAnalysisResult", sarif_filename)
+            sarif_source_file = os.path.join(sarif_folder, sarif_filename)
             if os.path.exists(sarif_source_file):
                 sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
                 GeneralUtilities.ensure_directory_exists(sarif_folder)
@@ -1006,13 +1008,15 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str, domain: str,
-                                                        subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
+    def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str,
                                                         resource_name: str = "DevelopmentCertificate"):
-        target_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
+        resources_folder = os.path.join(codeunit_folder, "Other", "Resources")
+        certificate_folder = os.path.join(resources_folder, resource_name)
+        dev_ca_name = "DevelopmentCertificateAuthority"
+        ca_folder = os.path.join(resources_folder, dev_ca_name)
         codeunit_name = os.path.basename(codeunit_folder)
-        domain = f"{codeunit_name.lower()}.localtest.me"
-        certificate_file = os.path.join(target_folder, f"{domain}.unsigned.crt")
+        domain = f"{codeunit_name.lower()}.test.local"
+        certificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
         if certificate_exists:
             certificate_expired = GeneralUtilities.certificate_is_expired(certificate_file)
@@ -1020,10 +1024,15 @@ class TasksForCommonProjectStructure:
         else:
             generate_new_certificate = True
         if generate_new_certificate:
-            GeneralUtilities.ensure_directory_does_not_exist(target_folder)
-            GeneralUtilities.ensure_directory_exists(target_folder)
-            GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for non-productive purposes.")
-            self.__sc.generate_certificate(target_folder, domain, subj_c, subj_st, subj_l, subj_o, subj_ou)
+            GeneralUtilities.ensure_directory_does_not_exist(certificate_folder)
+            GeneralUtilities.ensure_directory_exists(certificate_folder)
+            GeneralUtilities.ensure_directory_does_not_exist(ca_folder)
+            GeneralUtilities.ensure_directory_exists(ca_folder)
+            GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for development-purposes.")
+            self.__sc.generate_certificate_authority(ca_folder, dev_ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.generate_certificate(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.generate_certificate_sign_request(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.sign_certificate(certificate_folder, ca_folder, dev_ca_name, domain)
 
     @GeneralUtilities.check_arguments
     def get_codeunits(self, repository_folder: str) -> list[str]:
@@ -1508,9 +1517,11 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, source_constant_name: str = "DevelopmentCertificate"):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate"):
         """Expects a certificate-resource and generates a constant for its public information"""
-        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.unsigned.crt")
+        codeunit_name = os.path.basename(codeunit_folder)
+        domain = f"{codeunit_name}.test.local"
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
@@ -1520,7 +1531,7 @@ class TasksForCommonProjectStructure:
     def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate"):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "password", "Password")
-        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "pfx", "PFX")
+        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "crt", "PFX")
 
     @GeneralUtilities.check_arguments
     def __generate_constant_from_resource(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
