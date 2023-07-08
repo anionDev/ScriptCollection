@@ -1016,7 +1016,8 @@ class TasksForCommonProjectStructure:
         ca_folder = os.path.join(resources_folder, dev_ca_name)
         codeunit_name = os.path.basename(codeunit_folder)
         domain = f"{codeunit_name.lower()}.test.local"
-        certificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
+        certificate_file = os.path.join(certificate_folder, f"{domain}.crt")
+        unsignedcertificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
         if certificate_exists:
             certificate_expired = GeneralUtilities.certificate_is_expired(certificate_file)
@@ -1033,6 +1034,7 @@ class TasksForCommonProjectStructure:
             self.__sc.generate_certificate(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             self.__sc.generate_certificate_sign_request(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             self.__sc.sign_certificate(certificate_folder, ca_folder, dev_ca_name, domain)
+            GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
     @GeneralUtilities.check_arguments
     def get_codeunits(self, repository_folder: str) -> list[str]:
@@ -1530,11 +1532,20 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate"):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
-        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "password", "Password")
-        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "crt", "PFX")
+        codeunit_name = os.path.basename(codeunit_folder)
+        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{codeunit_name}.test.local.pfx", "PFX")
+        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{codeunit_name}.test.local.password", "Password")
 
     @GeneralUtilities.check_arguments
-    def __generate_constant_from_resource(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
+    def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str):
+        certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
+        resource_file = os.path.join(certificate_resource_folder, filename)
+        resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
+        resource_file_as_hex = resource_file_content.hex()
+        self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
+
+    @GeneralUtilities.check_arguments
+    def generate_constant_from_resource_by_extension(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
         certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         resource_file = self.__sc.find_file_by_extension(certificate_resource_folder, extension)
         resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
