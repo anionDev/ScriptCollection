@@ -21,6 +21,8 @@ keymap=$7
 architecture=$8
 result_folder=$9
 ssh_port="${10}"
+disk_size="${11}"
+# allowed values/formats for disk_size are: "max", "75%" and "250GB"
 
 echo "Step 1: Prepare"
 isofile_without_extension=${isofile::-4}
@@ -45,10 +47,10 @@ sed -i "s/__\[root_password\]__/$root_password/g" $preseed_file
 sed -i "s/__\[locale\]__/$locale/g" $preseed_file
 sed -i "s/__\[keymap\]__/$keymap/g" $preseed_file
 sed -i "s/__\[ssh_port\]__/$ssh_port/g" $preseed_file
+sed -i "s/__\[disk_size\]__/$disk_size/g" $preseed_file
 
 echo "Preseed-file:"
 cat $preseed_file
-sleep 5
 
 echo "Step 3: Adding preseed-file to the Initrd"
 7z x -o$temp_folder $isofile
@@ -72,9 +74,6 @@ sed -i "/menu title.*Debian.*GNU/c\\menu title $iso_filename" $menu_config_file
 txt_config_file="$temp_folder/isolinux/txt.cfg"
 sed -i "$ a\timeout 100" $txt_config_file
 sed -i "$ a\ontimeout install" $txt_config_file
-
-echo $temp_folder
-#sleep 30000
 
 echo "Step 5: Regenerating md5sum.txt"
 cd $temp_folder
