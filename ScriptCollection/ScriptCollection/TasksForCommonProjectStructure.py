@@ -1530,11 +1530,13 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate"):
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate", domain: str = None):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
-        codeunit_name = os.path.basename(codeunit_folder)
-        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{codeunit_name}.test.local.pfx", "PFX")
-        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{codeunit_name}.test.local.password", "Password")
+        if domain is None:
+            codeunit_name = os.path.basename(codeunit_folder)
+            domain=codeunit_name
+        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.pfx", "PFX")
+        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.password", "Password")
 
     @GeneralUtilities.check_arguments
     def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str):
