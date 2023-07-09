@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.0"
+version = "3.4.1"
 __version__ = version
 
 
@@ -1556,7 +1556,7 @@ class ScriptCollectionCore:
         self.run_program("openssl", f'genrsa -out {domain}.key {rsa_key_length}', folder)
         self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -x509 ' +
                          f'-key {domain}.key -out {domain}.unsigned.crt -days {days_until_expire}', folder)
-        self.run_program("openssl", f'pkcs12 -export -out {domain}.pfx -password pass:{password} -inkey {domain}.key -in {domain}.unsigned.crt', folder)
+        self.run_program("openssl", f'pkcs12 -export -out {domain}.selfsigned.pfx -password pass:{password} -inkey {domain}.key -in {domain}.unsigned.crt', folder)
         GeneralUtilities.write_text_to_file(os.path.join(folder, f"{domain}.password"), password)
         GeneralUtilities.write_text_to_file(os.path.join(folder, f"{domain}.san.conf"), f"""[ req ]
 default_bits        = {rsa_key_length}
@@ -1591,8 +1591,11 @@ DNS                 = {domain}
         if days_until_expire is None:
             days_until_expire = 397
         ca = os.path.join(ca_folder, ca_name)
-        self.run_program("openssl", f'x509 -req -in {domain}.csr -CA {ca}.crt -CAkey {ca}.key -CAserial {ca}.srl ' +
+        password_file = os.path.join(folder, f"{domain}.password")
+        password = GeneralUtilities.read_text_from_file(password_file)
+        self.run_program("openssl", f'x509 -req -in {domain}.csr -CA {ca}.crt -CAkey {ca}.key -CAcreateserial -CAserial {ca}.srl ' +
                          f'-out {domain}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {domain}.san.conf', folder)
+        self.run_program("openssl", f'pkcs12 -export -out {domain}.pfx -inkey {domain}.key -in {domain}.crt -password pass:{password}', folder)
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_python_in_requirementstxt_file(self, file: str, verbosity: int):

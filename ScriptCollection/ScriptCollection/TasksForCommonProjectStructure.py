@@ -470,7 +470,7 @@ class TasksForCommonProjectStructure:
         <Prefer32Bit>false<\\/Prefer32Bit>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
         <OutputType>([^<]+)<\\/OutputType>
         <DocumentationFile>\\.\\.\\\\Other\\\\Artifacts\\\\MetaInformation\\\\{codeunit_name_regex}\\.xml<\\/DocumentationFile>(\\n|.)*
     <\\/PropertyGroup>
@@ -531,7 +531,7 @@ class TasksForCommonProjectStructure:
         <Prefer32Bit>false<\\/Prefer32Bit>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
-        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
+        <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
         <OutputType>Library<\\/OutputType>(\\n|.)*
     <\\/PropertyGroup>
     <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Development'\\\">
@@ -577,6 +577,8 @@ class TasksForCommonProjectStructure:
         csproj_file_folder = os.path.dirname(csproj_file)
         csproj_file_name = os.path.basename(csproj_file)
         csproj_file_name_without_extension = csproj_file_name.split(".")[0]
+        sarif_folder = os.path.join(codeunit_folder, "Other", "Resources", "CodeAnalysisResult")
+        GeneralUtilities.ensure_directory_exists(sarif_folder)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
@@ -594,7 +596,7 @@ class TasksForCommonProjectStructure:
                 self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
 
             sarif_filename = f"{csproj_file_name_without_extension}.sarif"
-            sarif_source_file = os.path.join(codeunit_folder, "Other", "Resources", sarif_filename)
+            sarif_source_file = os.path.join(sarif_folder, sarif_filename)
             if os.path.exists(sarif_source_file):
                 sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
                 GeneralUtilities.ensure_directory_exists(sarif_folder)
@@ -1006,11 +1008,16 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str, domain: str,
-                                                        subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
-                                                        resource_name: str = "NonProductiveCertificate"):
-        target_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
-        certificate_file = os.path.join(target_folder, f"{domain}.unsigned.crt")
+    def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str,
+                                                        resource_name: str = "DevelopmentCertificate"):
+        resources_folder = os.path.join(codeunit_folder, "Other", "Resources")
+        certificate_folder = os.path.join(resources_folder, resource_name)
+        dev_ca_name = "DevelopmentCertificateAuthority"
+        ca_folder = os.path.join(resources_folder, dev_ca_name)
+        codeunit_name = os.path.basename(codeunit_folder)
+        domain = f"{codeunit_name.lower()}.test.local"
+        certificate_file = os.path.join(certificate_folder, f"{domain}.crt")
+        unsignedcertificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
         if certificate_exists:
             certificate_expired = GeneralUtilities.certificate_is_expired(certificate_file)
@@ -1018,10 +1025,16 @@ class TasksForCommonProjectStructure:
         else:
             generate_new_certificate = True
         if generate_new_certificate:
-            GeneralUtilities.ensure_directory_does_not_exist(target_folder)
-            GeneralUtilities.ensure_directory_exists(target_folder)
-            GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for non-productive purposes.")
-            self.__sc.generate_certificate(target_folder, domain, subj_c, subj_st, subj_l, subj_o, subj_ou)
+            GeneralUtilities.ensure_directory_does_not_exist(certificate_folder)
+            GeneralUtilities.ensure_directory_exists(certificate_folder)
+            GeneralUtilities.ensure_directory_does_not_exist(ca_folder)
+            GeneralUtilities.ensure_directory_exists(ca_folder)
+            GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for development-purposes.")
+            self.__sc.generate_certificate_authority(ca_folder, dev_ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.generate_certificate(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.generate_certificate_sign_request(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.sign_certificate(certificate_folder, ca_folder, dev_ca_name, domain)
+            GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
     @GeneralUtilities.check_arguments
     def get_codeunits(self, repository_folder: str) -> list[str]:
@@ -1378,16 +1391,13 @@ class TasksForCommonProjectStructure:
         self.__sc.replace_version_in_nuspec_file(nuspec_file, codeunit_version)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_node_project(self, build_script_file: str, build_environment_target_type: str,
-                                                  verbosity: int, commandline_arguments: list[str]):
-        # TODO use unused parameter
+    def standardized_tasks_build_for_angular_codeunit(self, build_script_file: str, build_environment_target_type: str,
+                                                      verbosity: int, commandline_arguments: list[str]):
         self.copy_source_files_to_output_directory(build_script_file)
-        sc = ScriptCollectionCore()
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.program_runner = ProgramRunnerEpew()
         build_script_folder = os.path.dirname(build_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        sc.run_program("npm", "run build", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("ng", f"build --configuration {build_environment_target_type}", codeunit_folder, verbosity=verbosity)
         self.standardized_tasks_build_bom_for_node_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -1396,40 +1406,39 @@ class TasksForCommonProjectStructure:
         # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_node_project(self, linting_script_file: str, verbosity: int,
-                                                    target_environmenttype: str, commandline_arguments: list[str]):
-        # TODO use unused parameter
-        sc = ScriptCollectionCore()
+    def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int,
+                                                        build_environment_target_type: str, commandline_arguments: list[str]):
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.program_runner = ProgramRunnerEpew()
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        sc.run_program("npm", "run lint", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("ng", "lint", codeunit_folder, verbosity=verbosity)
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_node_project(self, runtestcases_script_file: str,
-                                                          targetenvironmenttype: str, generate_badges: bool, verbosity: int,
-                                                          commandline_arguments: list[str]):
-        # TODO use targetenvironmenttype etc.
-        sc = ScriptCollectionCore()
+    def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str,
+                                                              build_environment_target_type: str, generate_badges: bool, verbosity: int,
+                                                              commandline_arguments: list[str]):
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.program_runner = ProgramRunnerEpew()
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
-        sc.run_program("npm", "run test", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew(
+            "ng", "test --watch=false --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
         target_file = os.path.join(coverage_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
-        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, verbosity: int):
-        sc = ScriptCollectionCore()
+        self.run_with_epew("npm", "install", package_json_folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def run_with_epew(self, program: str, argument: str, working_directory: str, verbosity: int):
+        sc: ScriptCollectionCore = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
-        sc.run_program("npm", "install", package_json_folder, verbosity=verbosity)
+        sc.run_program(program, argument, working_directory, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def set_default_constants(self, codeunit_folder: str):
@@ -1510,22 +1519,33 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, domain: str, source_constant_name: str = "NonProductiveCertificate"):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate"):
         """Expects a certificate-resource and generates a constant for its public information"""
-        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.unsigned.crt")
+        codeunit_name = os.path.basename(codeunit_folder)
+        domain = f"{codeunit_name}.test.local"
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "NonProductiveCertificate"):
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate"):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
-        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "password", "Password")
-        self.__generate_constant_from_resource(codeunit_folder, certificate_resource_name, "pfx", "PFX")
+        codeunit_name = os.path.basename(codeunit_folder)
+        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{codeunit_name}.test.local.pfx", "PFX")
+        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{codeunit_name}.test.local.password", "Password")
 
     @GeneralUtilities.check_arguments
-    def __generate_constant_from_resource(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
+    def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str):
+        certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
+        resource_file = os.path.join(certificate_resource_folder, filename)
+        resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
+        resource_file_as_hex = resource_file_content.hex()
+        self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
+
+    @GeneralUtilities.check_arguments
+    def generate_constant_from_resource_by_extension(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
         certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         resource_file = self.__sc.find_file_by_extension(certificate_resource_folder, extension)
         resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
@@ -1584,9 +1604,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def copy_artifacts_from_dependent_code_units(self, repo_folder: str, codeunit_name: str) -> None:
-        GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+        if len(dependent_codeunits) > 0:
+            GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
         for dependent_codeunit in dependent_codeunits:
@@ -1627,6 +1648,10 @@ class TasksForCommonProjectStructure:
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity)
         test_csproj_file = os.path.join(codeunit_folder, f"{codeunit_name}Tests", f"{codeunit_name}Tests.csproj")
         self.__sc.update_dependencies_of_dotnet_project(test_csproj_file, verbosity)
+
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
@@ -1675,11 +1700,12 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
-                       is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+                       is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = False) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
-        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
+        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file,
+                                      is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built)
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
@@ -1690,7 +1716,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck",
-                                 additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None) -> None:
+                                 additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None,
+                                 assume_dependent_codeunits_are_already_built: bool = True) -> None:
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
         if is_pre_merge and contains_uncommitted_changes:
@@ -1719,7 +1746,8 @@ class TasksForCommonProjectStructure:
             line = "----------"
             for codeunit in sorted_codeunits:
                 GeneralUtilities.write_message_to_stdout(line)
-                self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, True)
+                self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype,
+                                      additional_arguments_file, is_pre_merge, assume_dependent_codeunits_are_already_built)
             GeneralUtilities.write_message_to_stdout(line)
         if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder) and not is_pre_merge:
             message = f'Due to the build-process the repository "{repository_folder}" has new uncommitted changes.'
@@ -1796,6 +1824,33 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary due to missing internet-connection.")
             else:
                 raise ValueError("Can not download GRYLibrary.")
+
+    @GeneralUtilities.check_arguments
+    def ensure_ffmpeg_is_available(self, codeunit_folder: str) -> None:
+        ffmpeg_folder = os.path.join(codeunit_folder, "Other", "Resources", "FFMPEG")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        exe_file = f"{ffmpeg_folder}/ffmpeg.exe"
+        exe_file_exists = os.path.isfile(exe_file)
+        if internet_connection_is_available:  # Load/Update
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_folder)
+            GeneralUtilities.ensure_directory_exists(ffmpeg_folder)
+            ffmpeg_temp_folder = ffmpeg_folder+"Temp"
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
+            GeneralUtilities.ensure_directory_exists(ffmpeg_temp_folder)
+            zip_file_on_disk = os.path.join(ffmpeg_temp_folder, "ffmpeg.zip")
+            original_zip_filename = "ffmpeg-master-latest-win64-gpl-shared"
+            zip_link = f"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{original_zip_filename}.zip"
+            urllib.request.urlretrieve(zip_link, zip_file_on_disk)
+            shutil.unpack_archive(zip_file_on_disk, ffmpeg_temp_folder)
+            bin_folder_source = os.path.join(ffmpeg_temp_folder, "ffmpeg-master-latest-win64-gpl-shared/bin")
+            bin_folder_target = ffmpeg_folder
+            GeneralUtilities.copy_content_of_folder(bin_folder_source, bin_folder_target)
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
+        else:
+            if exe_file_exists:
+                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of FFMPEG due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download FFMPEG.")
 
     @GeneralUtilities.check_arguments
     def __ensure_plant_uml_is_available(self, codeunit_folder: str) -> None:
