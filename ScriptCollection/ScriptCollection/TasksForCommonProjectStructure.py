@@ -272,7 +272,8 @@ class TasksForCommonProjectStructure:
         if gpg_identity is None:
             gpg_identity_argument = ""
         else:
-            gpg_identity_argument = f" --sign --identity {gpg_identity}"
+            pass#gpg_identity_argument = f" --sign --identity {gpg_identity}"
+            #disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
 
         if verbosity > 2:
             verbose_argument = " --verbose"
