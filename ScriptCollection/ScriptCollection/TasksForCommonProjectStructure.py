@@ -272,8 +272,8 @@ class TasksForCommonProjectStructure:
         if gpg_identity is None:
             gpg_identity_argument = ""
         else:
-            pass#gpg_identity_argument = f" --sign --identity {gpg_identity}"
-            #disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
+            pass  # gpg_identity_argument = f" --sign --identity {gpg_identity}"
+            # disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
 
         if verbosity > 2:
             verbose_argument = " --verbose"
@@ -1109,7 +1109,7 @@ class TasksForCommonProjectStructure:
                                createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name,
                                verbosity=createRelease_configuration.verbosity)
         self.__sc.git_commit(build_repository_folder, f"Added {createRelease_configuration.projectname} release v{new_project_version}")
-        GeneralUtilities.write_message_to_stdout(f"Finished release for project {createRelease_configuration.projectname} successfully.")
+        GeneralUtilities.write_message_to_stdout(f"Finished release for project {createRelease_configuration.projectname} v{new_project_version} successfully.")
         return new_project_version
 
     @GeneralUtilities.check_arguments
@@ -1535,7 +1535,7 @@ class TasksForCommonProjectStructure:
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         if domain is None:
             codeunit_name = os.path.basename(codeunit_folder)
-            domain=codeunit_name
+            domain = codeunit_name
         self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.pfx", "PFX")
         self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.password", "Password")
 
