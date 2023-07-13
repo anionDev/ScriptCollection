@@ -1009,16 +1009,18 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_for_development_purposes(self, codeunit_folder: str, resource_name: str = "DevelopmentCertificate", domain:str=None):
+    def generate_certificate_for_development_purposes(self, codeunit_folder: str, domain: str = None):
         codeunit_name = os.path.basename(codeunit_folder)
         if domain is None:
             domain = f"{codeunit_name}.test.local"
-        domain=domain.lower()
-        resources_folder = os.path.join(codeunit_folder, "Other", "Resources")
-        certificate_folder = os.path.join(resources_folder, resource_name)
-        resource_name = "DevelopmentCertificateAuthority"
-        dev_ca_name = f"{codeunit_name}DevelopmentCertificateAuthority"
-        ca_folder = os.path.join(resources_folder, resource_name)
+        domain = domain.lower()
+        resources_folder: str = os.path.join(codeunit_folder, "Other", "Resources")
+        resource_name: str = "DevelopmentCertificate"
+        certificate_folder: str = os.path.join(resources_folder, resource_name)
+        resource_content_filename: str = codeunit_name+resource_name
+        ca_resource_name: str = f"{resource_name}Authority"
+        dev_ca_name = codeunit_name+ca_resource_name
+        ca_folder = os.path.join(resources_folder, ca_resource_name)
         certificate_file = os.path.join(certificate_folder, f"{domain}.crt")
         unsignedcertificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
@@ -1034,9 +1036,9 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_exists(ca_folder)
             GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for development-purposes.")
             self.__sc.generate_certificate_authority(ca_folder, dev_ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-            self.__sc.generate_certificate(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-            self.__sc.generate_certificate_sign_request(certificate_folder, domain, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-            self.__sc.sign_certificate(certificate_folder, ca_folder, dev_ca_name, domain)
+            self.__sc.generate_certificate(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.generate_certificate_sign_request(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.sign_certificate(certificate_folder, ca_folder, dev_ca_name, domain, resource_content_filename)
             GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
     @GeneralUtilities.check_arguments
@@ -1522,12 +1524,12 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain:str=None):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None):
         """Expects a certificate-resource and generates a constant for its public information"""
         codeunit_name = os.path.basename(codeunit_folder)
         if domain is None:
             domain = f"{codeunit_name}.test.local"
-        domain=domain.lower()
+        domain = domain.lower()
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())

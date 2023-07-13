@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.3"
+version = "3.4.4"
 __version__ = version
 
 
@@ -1546,19 +1546,19 @@ class ScriptCollectionCore:
                          f'-keyout {name}.key -out {name}.crt', folder)
 
     @GeneralUtilities.check_arguments
-    def generate_certificate(self, folder: str, domain: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
+    def generate_certificate(self, folder: str,  domain: str,filename:str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
                              days_until_expire: int = None, password: str = None) -> None:
         if days_until_expire is None:
             days_until_expire = 397
         if password is None:
             password = GeneralUtilities.generate_password()
         rsa_key_length = 4096
-        self.run_program("openssl", f'genrsa -out {domain}.key {rsa_key_length}', folder)
+        self.run_program("openssl", f'genrsa -out {filename}.key {rsa_key_length}', folder)
         self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -x509 ' +
-                         f'-key {domain}.key -out {domain}.unsigned.crt -days {days_until_expire}', folder)
-        self.run_program("openssl", f'pkcs12 -export -out {domain}.selfsigned.pfx -password pass:{password} -inkey {domain}.key -in {domain}.unsigned.crt', folder)
-        GeneralUtilities.write_text_to_file(os.path.join(folder, f"{domain}.password"), password)
-        GeneralUtilities.write_text_to_file(os.path.join(folder, f"{domain}.san.conf"), f"""[ req ]
+                         f'-key {filename}.key -out {filename}.unsigned.crt -days {days_until_expire}', folder)
+        self.run_program("openssl", f'pkcs12 -export -out {filename}.selfsigned.pfx -password pass:{password} -inkey {filename}.key -in {filename}.unsigned.crt', folder)
+        GeneralUtilities.write_text_to_file(os.path.join(folder, f"{filename}.password"), password)
+        GeneralUtilities.write_text_to_file(os.path.join(folder, f"{filename}.san.conf"), f"""[ req ]
 default_bits        = {rsa_key_length}
 distinguished_name  = req_distinguished_name
 req_extensions      = v3_req
@@ -1582,20 +1582,20 @@ DNS                 = {domain}
 """)
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_sign_request(self, folder: str, domain: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str) -> None:
+    def generate_certificate_sign_request(self, folder: str, domain: str,filename:str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str) -> None:
         self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} ' +
-                         f'-key {domain}.key -out {domain}.csr -config {domain}.san.conf', folder)
+                         f'-key {filename}.key -out {filename}.csr -config {filename}.san.conf', folder)
 
     @GeneralUtilities.check_arguments
-    def sign_certificate(self, folder: str, ca_folder: str, ca_name: str, domain: str, days_until_expire: int = None) -> None:
+    def sign_certificate(self, folder: str, ca_folder: str, ca_name: str, domain: str,filename:str, days_until_expire: int = None) -> None:
         if days_until_expire is None:
             days_until_expire = 397
         ca = os.path.join(ca_folder, ca_name)
-        password_file = os.path.join(folder, f"{domain}.password")
+        password_file = os.path.join(folder, f"{filename}.password")
         password = GeneralUtilities.read_text_from_file(password_file)
-        self.run_program("openssl", f'x509 -req -in {domain}.csr -CA {ca}.crt -CAkey {ca}.key -CAcreateserial -CAserial {ca}.srl ' +
-                         f'-out {domain}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {domain}.san.conf', folder)
-        self.run_program("openssl", f'pkcs12 -export -out {domain}.pfx -inkey {domain}.key -in {domain}.crt -password pass:{password}', folder)
+        self.run_program("openssl", f'x509 -req -in {filename}.csr -CA {ca}.crt -CAkey {ca}.key -CAcreateserial -CAserial {ca}.srl ' +
+                         f'-out {filename}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {filename}.san.conf', folder)
+        self.run_program("openssl", f'pkcs12 -export -out {filename}.pfx -inkey {filename}.key -in {filename}.crt -password pass:{password}', folder)
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_python_in_requirementstxt_file(self, file: str, verbosity: int):
