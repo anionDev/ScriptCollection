@@ -1009,14 +1009,16 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_for_nonproductive_purposes(self, codeunit_folder: str,
-                                                        resource_name: str = "DevelopmentCertificate"):
+    def generate_certificate_for_development_purposes(self, codeunit_folder: str, resource_name: str = "DevelopmentCertificate", domain:str=None):
+        codeunit_name = os.path.basename(codeunit_folder)
+        if domain is None:
+            domain = f"{codeunit_name}.test.local"
+        domain=domain.lower()
         resources_folder = os.path.join(codeunit_folder, "Other", "Resources")
         certificate_folder = os.path.join(resources_folder, resource_name)
-        dev_ca_name = "DevelopmentCertificateAuthority"
-        ca_folder = os.path.join(resources_folder, dev_ca_name)
-        codeunit_name = os.path.basename(codeunit_folder)
-        domain = f"{codeunit_name.lower()}.test.local"
+        resource_name = "DevelopmentCertificateAuthority"
+        dev_ca_name = f"{codeunit_name}DevelopmentCertificateAuthority"
+        ca_folder = os.path.join(resources_folder, resource_name)
         certificate_file = os.path.join(certificate_folder, f"{domain}.crt")
         unsignedcertificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
         certificate_exists = os.path.exists(certificate_file)
@@ -1520,10 +1522,12 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate"):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain:str=None):
         """Expects a certificate-resource and generates a constant for its public information"""
         codeunit_name = os.path.basename(codeunit_folder)
-        domain = f"{codeunit_name}.test.local"
+        if domain is None:
+            domain = f"{codeunit_name}.test.local"
+        domain=domain.lower()
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
@@ -1533,9 +1537,10 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate", domain: str = None):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
+        codeunit_name = os.path.basename(codeunit_folder)
         if domain is None:
-            codeunit_name = os.path.basename(codeunit_folder)
-            domain = codeunit_name
+            domain = f"{codeunit_name}.test.local"
+        domain = domain.lower()
         self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.pfx", "PFX")
         self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.password", "Password")
 
