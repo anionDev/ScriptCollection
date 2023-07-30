@@ -763,8 +763,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
-                                                            target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]):
-        dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
+                                                            commandline_arguments: list[str]):
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
@@ -774,7 +773,7 @@ class TasksForCommonProjectStructure:
         runsettings_file = self.dotnet_runsettings_file
         if os.path.isfile(os.path.join(working_directory, runsettings_file)):
             runsettings_argument = f"--settings {runsettings_file} "
-        arg = f"collect dotnet test {runsettings_argument}-c {dotnet_build_configuration} --output-format cobertura --output Other\\Artifacts\\TestCoverage\\Testcoverage"
+        arg = f"collect dotnet test {runsettings_argument} --no-build --output-format cobertura --output Other\\Artifacts\\TestCoverage\\Testcoverage"
         self.__sc.run_program("dotnet-coverage", arg, working_directory, verbosity=verbosity)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
@@ -1970,6 +1969,7 @@ class TasksForCommonProjectStructure:
         additional_arguments_r: str = ""
         additional_arguments_l: str = ""
         additional_arguments_g: str = ""
+        additional_arguments_f: str = ""
         general_argument = f' --overwrite_verbosity={str(verbosity)} --overwrite_targetenvironmenttype={target_environmenttype}'
 
         c_additionalargumentsfile_argument = ""
@@ -1989,15 +1989,17 @@ class TasksForCommonProjectStructure:
             config.read(additional_arguments_file)
             section_name = f"{codeunit_name}_Configuration"
             if config.has_option(section_name, "ArgumentsForCommonTasks"):
-                additional_arguments_c = " "+config.get(section_name, "ArgumentsForCommonTasks")
+                additional_arguments_c = " " + config.get(section_name, "ArgumentsForCommonTasks")
             if config.has_option(section_name, "ArgumentsForBuild"):
-                additional_arguments_b = " "+config.get(section_name, "ArgumentsForBuild")
+                additional_arguments_b = " " + config.get(section_name, "ArgumentsForBuild")
             if config.has_option(section_name, "ArgumentsForRunTestcases"):
-                additional_arguments_r = " "+config.get(section_name, "ArgumentsForRunTestcases")
+                additional_arguments_r = " " + config.get(section_name, "ArgumentsForRunTestcases")
             if config.has_option(section_name, "ArgumentsForLinting"):
-                additional_arguments_l = " "+config.get(section_name, "ArgumentsForLinting")
+                additional_arguments_l = " " + config.get(section_name, "ArgumentsForLinting")
             if config.has_option(section_name, "ArgumentsForGenerateReference"):
-                additional_arguments_g = " "+config.get(section_name, "ArgumentsForGenerateReference")
+                additional_arguments_g = " " + config.get(section_name, "ArgumentsForGenerateReference")
+            if config.has_option(section_name, "ArgumentsForOnFinish"):
+                additional_arguments_f = " " + config.get(section_name, "ArgumentsForOnFinish")
             c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile="{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
@@ -2036,6 +2038,13 @@ class TasksForCommonProjectStructure:
         if execution_result[0] != 0:
             raise ValueError(f"GenerateReference.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
+
+        if os.path.isfile(os.path.join(other_folder, "OnBuildingFinished.py")):
+            GeneralUtilities.write_message_to_stdout('Run "OnBuildingFinished.py"...')
+            execution_result = self.__sc.run_program(
+                "python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
+            if execution_result[0] != 0:
+                raise ValueError(f"OnBuildingFinished.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         codeunit_version = self.get_version_of_codeunit(codeunit_file)
