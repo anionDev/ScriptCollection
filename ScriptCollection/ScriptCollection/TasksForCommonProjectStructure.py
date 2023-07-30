@@ -272,7 +272,7 @@ class TasksForCommonProjectStructure:
         if gpg_identity is None:
             gpg_identity_argument = ""
         else:
-            pass  # gpg_identity_argument = f" --sign --identity {gpg_identity}"
+            gpg_identity_argument = ""  # f" --sign --identity {gpg_identity}"
             # disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
 
         if verbosity > 2:
@@ -1651,7 +1651,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
-        #TODO generalize and add option to ignore certain dependencies
+        # TODO generalize and add option to ignore certain dependencies
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         codeunit_name = os.path.basename(codeunit_folder)
@@ -1662,7 +1662,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
-        pass #TODO generalize and add option to ignore certain dependencies
+        pass  # TODO generalize and add option to ignore certain dependencies
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
