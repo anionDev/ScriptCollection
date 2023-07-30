@@ -1641,6 +1641,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+        # TODO generalize and add option to ignore certain dependencies
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         self.__sc.update_dependencies_of_python_in_setupcfg_file(os.path.join(codeunit_folder, "setup.cfg"), verbosity)
@@ -1650,6 +1651,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+        #TODO generalize and add option to ignore certain dependencies
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         codeunit_name = os.path.basename(codeunit_folder)
@@ -1660,7 +1662,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
-        pass  # TODO
+        pass #TODO generalize and add option to ignore certain dependencies
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):

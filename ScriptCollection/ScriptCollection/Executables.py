@@ -72,17 +72,6 @@ def CalculateBitcoinBlockHash() -> int:
     return 0
 
 
-def UpdateNugetpackagesInCsharpProject() -> int:
-
-    parser = argparse.ArgumentParser(description="""TODO""")
-    parser.add_argument('csprojfile')
-    args = parser.parse_args()
-    if ScriptCollectionCore().SCUpdateNugetpackagesInCsharpProject(args.csprojfile):
-        return 1
-    else:
-        return 0
-
-
 def Show2FAAsQRCode():
 
     parser = argparse.ArgumentParser(description="""Always when you use 2-factor-authentication you have the problem:
