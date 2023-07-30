@@ -123,7 +123,7 @@ class ScriptCollectionCore:
         self.run_program("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}", repository_folder)
 
     @GeneralUtilities.check_arguments
-    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int, current_release_information: dict[str, str]) -> None:
+    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int) -> None:
         dllOrExeFile = GeneralUtilities.resolve_relative_path_from_current_working_directory(dllOrExefile)
         snkfile = GeneralUtilities.resolve_relative_path_from_current_working_directory(snkfile)
         directory = os.path.dirname(dllOrExeFile)
