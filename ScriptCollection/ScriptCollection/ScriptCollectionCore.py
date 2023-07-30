@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.7"
+version = "3.4.8"
 __version__ = version
 
 
@@ -121,29 +121,6 @@ class ScriptCollectionCore:
     def dotnet_build(self, repository_folder: str, projectname: str, configuration: str):
         self.run_program("dotnet", f"clean -c {configuration}", repository_folder)
         self.run_program("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}", repository_folder)
-
-    @GeneralUtilities.check_arguments
-    def dotnet_sign(self, dllOrExefile: str, snkfile: str, verbosity: int) -> None:
-        dllOrExeFile = GeneralUtilities.resolve_relative_path_from_current_working_directory(dllOrExefile)
-        snkfile = GeneralUtilities.resolve_relative_path_from_current_working_directory(snkfile)
-        directory = os.path.dirname(dllOrExeFile)
-        filename = os.path.basename(dllOrExeFile)
-        if filename.lower().endswith(".dll"):
-            filename = filename[:-4]
-            extension = "dll"
-        elif filename.lower().endswith(".exe"):
-            filename = filename[:-4]
-            extension = "exe"
-        else:
-            raise ValueError("Only .dll-files and .exe-files can be signed")
-        self.run_program("ildasm",
-                         f'/all /typelist /text /out="{filename}.il" "{filename}.{extension}"',
-                         directory,  verbosity, False, "Sign: ildasm")
-        self.run_program("ilasm",
-                         f'/{extension} /res:"{filename}.res" /optimize /key="{snkfile}" "{filename}.il"',
-                         directory,  verbosity, False, "Sign: ilasm")
-        os.remove(directory+os.path.sep+filename+".il")
-        os.remove(directory+os.path.sep+filename+".res")
 
     @GeneralUtilities.check_arguments
     def find_file_by_extension(self, folder: str, extension: str):
