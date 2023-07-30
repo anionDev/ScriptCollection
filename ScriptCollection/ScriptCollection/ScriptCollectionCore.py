@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.4"
+version = "3.4.5"
 __version__ = version
 
 
@@ -880,16 +880,6 @@ class ScriptCollectionCore:
         GeneralUtilities.write_message_to_stdout(separator_line)
 
     @GeneralUtilities.check_arguments
-    def SCUpdateNugetpackagesInCsharpProject(self, csprojfile: str) -> int:
-        outdated_packages = self.get_nuget_packages_of_csproj_file(csprojfile, True)
-        GeneralUtilities.write_message_to_stdout("The following packages will be updated:")
-        for outdated_package in outdated_packages:
-            GeneralUtilities.write_message_to_stdout(outdated_package)
-            self.update_nuget_package(csprojfile, outdated_package)
-        GeneralUtilities.write_message_to_stdout(f"{len(outdated_packages)} package(s) were updated")
-        return len(outdated_packages) > 0
-
-    @GeneralUtilities.check_arguments
     def SCUploadFileToFileHost(self, file: str, host: str) -> int:
         try:
             GeneralUtilities.write_message_to_stdout(self.upload_file_to_file_host(file, host))
@@ -1117,25 +1107,6 @@ class ScriptCollectionCore:
         coveragefile = os.path.join(repository_folder, "Other/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, "coverage.xml"), coveragefile)
-
-    @GeneralUtilities.check_arguments
-    def get_nuget_packages_of_csproj_file(self, csproj_file: str, only_outdated_packages: bool) -> bool:
-        self.run_program("dotnet", f'restore --disable-parallel --force --force-evaluate "{csproj_file}"')
-        if only_outdated_packages:
-            only_outdated_packages_argument = " --outdated"
-        else:
-            only_outdated_packages_argument = ""
-        stdout = self.run_program("dotnet", f'list "{csproj_file}" package{only_outdated_packages_argument}')[1]
-        result = []
-        for line in stdout.splitlines():
-            trimmed_line = line.replace("\t", "").strip()
-            if trimmed_line.startswith(">"):
-                result.append(trimmed_line[2:].split(" ")[0])
-        return result
-
-    @GeneralUtilities.check_arguments
-    def update_nuget_package(self, csproj_file: str, name: str) -> None:
-        self.run_program("dotnet", f'add "{csproj_file}" package {name}')
 
     @GeneralUtilities.check_arguments
     def get_file_permission(self, file: str) -> str:
@@ -1546,7 +1517,7 @@ class ScriptCollectionCore:
                          f'-keyout {name}.key -out {name}.crt', folder)
 
     @GeneralUtilities.check_arguments
-    def generate_certificate(self, folder: str,  domain: str,filename:str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
+    def generate_certificate(self, folder: str,  domain: str, filename: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
                              days_until_expire: int = None, password: str = None) -> None:
         if days_until_expire is None:
             days_until_expire = 397
@@ -1582,12 +1553,12 @@ DNS                 = {domain}
 """)
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_sign_request(self, folder: str, domain: str,filename:str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str) -> None:
+    def generate_certificate_sign_request(self, folder: str, domain: str, filename: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str) -> None:
         self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} ' +
                          f'-key {filename}.key -out {filename}.csr -config {filename}.san.conf', folder)
 
     @GeneralUtilities.check_arguments
-    def sign_certificate(self, folder: str, ca_folder: str, ca_name: str, domain: str,filename:str, days_until_expire: int = None) -> None:
+    def sign_certificate(self, folder: str, ca_folder: str, ca_name: str, domain: str, filename: str, days_until_expire: int = None) -> None:
         if days_until_expire is None:
             days_until_expire = 397
         ca = os.path.join(ca_folder, ca_name)
