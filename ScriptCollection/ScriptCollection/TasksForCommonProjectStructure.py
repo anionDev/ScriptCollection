@@ -455,7 +455,7 @@ class TasksForCommonProjectStructure:
         <Copyright>([^<]+)<\\/Copyright>
         <Description>([^<]+)<\\/Description>
         <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-        <RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)<\\/RepositoryUrl>
         <RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
         <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
         <Nullable>disable<\\/Nullable>
@@ -516,7 +516,7 @@ class TasksForCommonProjectStructure:
         <Copyright>([^<]+)<\\/Copyright>
         <Description>{codeunit_name_regex}Tests is the test-project for {codeunit_name_regex}\\.<\\/Description>
         <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-        <RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)</RepositoryUrl>
         <RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
         <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
         <Nullable>disable<\\/Nullable>
