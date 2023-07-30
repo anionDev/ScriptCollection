@@ -14,7 +14,8 @@ def DotNetsign() -> int:
     parser.add_argument("snkfile")
     parser.add_argument("verbose", action='store_true')
     args = parser.parse_args()
-    return ScriptCollectionCore().dotnet_sign(args.dllOrExefile, args.snkfile, args.verbose, {})
+    ScriptCollectionCore().dotnet_sign(args.dllOrExefile, args.snkfile, args.verbose)
+    return 0
 
 
 def FilenameObfuscator() -> int:
