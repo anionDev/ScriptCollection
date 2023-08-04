@@ -11,7 +11,7 @@ import secrets
 import string as strin
 import sys
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from os import listdir
 from os.path import isfile, join, isdir
 from pathlib import Path
@@ -23,7 +23,8 @@ from OpenSSL import crypto
 
 class GeneralUtilities:
 
-    __date_format: str = "%Y-%m-%dT%H:%M:%S"
+    __datetime_format: str = "%Y-%m-%dT%H:%M:%S"
+    __date_format: str = "%Y-%m-%d"
 
     @staticmethod
     def get_modest_dark_url() -> str:
@@ -95,13 +96,24 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def datetime_to_string(value: datetime) -> str:
-        return value.strftime(GeneralUtilities.__date_format)  # returns "2022-10-06T19:26:01" for example
+    def string_to_datetime(value: str) -> datetime:
+        return datetime.strptime(value, GeneralUtilities.__datetime_format)  # value ="2022-10-06T19:26:01" for example
 
     @staticmethod
     @check_arguments
-    def string_to_datetime(value: str) -> datetime:
-        return datetime.strptime(value, GeneralUtilities.__date_format)  # value ="2022-10-06T19:26:01" for example
+    def datetime_to_string(value: datetime) -> str:
+        return value.strftime(GeneralUtilities.__datetime_format)  # returns "2022-10-06T19:26:01" for example
+
+    @staticmethod
+    @check_arguments
+    def string_to_date(value: str) -> date:
+        splitted = value.split("-")
+        return date(int(splitted[0]), int(splitted[1]), int(splitted[2]))  # value ="2022-10-06" for example
+
+    @staticmethod
+    @check_arguments
+    def date_to_string(value: date) -> str:
+        return value.strftime(GeneralUtilities.__date_format)  # returns "2022-10-06" for example
 
     @staticmethod
     @check_arguments
