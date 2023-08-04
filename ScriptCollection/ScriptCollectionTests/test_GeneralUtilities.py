@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, date
 import unittest
 from ..ScriptCollection.GeneralUtilities import GeneralUtilities
 
@@ -56,6 +56,48 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
         # act
         actual = GeneralUtilities.string_to_datetime(test_input)
+
+        # assert
+        assert actual == expected
+
+    def test_date_to_string_to_date(self) -> None:
+        # arrange
+        expected = date(2022, 10, 6)
+
+        # act
+        actual = GeneralUtilities.string_to_date(GeneralUtilities.date_to_string(expected))
+
+        # assert
+        assert actual == expected
+
+    def test_string_to_date_to_string(self) -> None:
+        # arrange
+        expected = "2022-10-06"
+
+        # act
+        actual = GeneralUtilities.date_to_string(GeneralUtilities.string_to_date(expected))
+
+        # assert
+        assert actual == expected
+
+    def test_date_to_string(self) -> None:
+        # arrange
+        expected = "2022-10-06"
+        test_input = date(2022, 10, 6)
+
+        # act
+        actual = GeneralUtilities.date_to_string(test_input)
+
+        # assert
+        assert actual == expected
+
+    def test_string_to_date(self) -> None:
+        # arrange
+        expected = date(2022, 10, 6)
+        test_input = "2022-10-06"
+
+        # act
+        actual = GeneralUtilities.string_to_date(test_input)
 
         # assert
         assert actual == expected
