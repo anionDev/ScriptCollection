@@ -10,9 +10,9 @@ import urllib.request
 import zipfile
 import json
 import configparser
-import requests
 import tempfile
 import uuid
+import requests
 from packaging import version
 import xmlschema
 from OpenSSL import crypto
