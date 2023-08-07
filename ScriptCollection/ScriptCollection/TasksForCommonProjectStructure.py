@@ -10,6 +10,8 @@ import urllib.request
 import zipfile
 import json
 import configparser
+import tempfile
+import uuid
 import requests
 from packaging import version
 import xmlschema
@@ -175,15 +177,20 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
-        # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
+        if len(root.xpath('//coverage/packages/package')) != 1:
+            raise ValueError(f"'{testcoverage_file_in_cobertura_format}' must contain exactly 1 package.")
+        if root.xpath('//coverage/packages/package[1]/@name')[0] != codeunitname:
+            raise ValueError(f"The package name of the tested package in '{testcoverage_file_in_cobertura_format}' must be '{codeunitname}'.")
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
+        technicalminimalrequiredtestcoverageinpercent = 0
+        if not technicalminimalrequiredtestcoverageinpercent < coverage_in_percent:
+            raise ValueError(f"The test-coverage of package '{codeunitname}' must be greater than {technicalminimalrequiredtestcoverageinpercent}%.")
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         minimalrequiredtestcoverageinpercent = self.get_testcoverage_threshold_from_codeunit_file(codeunit_file)
         minimalrecommendedcoverage = 80
         if minimalrequiredtestcoverageinpercent < minimalrecommendedcoverage:
             GeneralUtilities.write_message_to_stderr(f"Warning: The minimal required testcoverage is {minimalrequiredtestcoverageinpercent}% " +
                                                      f"but should be at least {minimalrecommendedcoverage}%.")
-        # TODO check that testcoverage_file_in_cobertura_format contains at least one package with at least one line of code
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
@@ -221,7 +228,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.update_path_of_source(repository_folder, codeunitname)
-        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, True, targetenvironmenttype, commandline_arguments)
+        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     def copy_source_files_to_output_directory(self, buildscript_file: str):
         sc = ScriptCollectionCore()
@@ -763,21 +770,25 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
-                                                            commandline_arguments: list[str]):
+                                                            target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]):
+        dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
-        working_directory = os.path.join(repository_folder, codeunit_name)
-        runsettings_argument = ""
+        temp_folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        GeneralUtilities.ensure_directory_exists(temp_folder)
         runsettings_file = self.dotnet_runsettings_file
-        if os.path.isfile(os.path.join(working_directory, runsettings_file)):
-            runsettings_argument = f"--settings {runsettings_file} "
-        arg = f"collect dotnet test {runsettings_argument} --no-build --output-format cobertura --output Other\\Artifacts\\TestCoverage\\Testcoverage"
-        self.__sc.run_program("dotnet-coverage", arg, working_directory, verbosity=verbosity)
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        arg = f"collect dotnet test . -c {dotnet_build_configuration} -o {temp_folder}"
+        if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
+            arg = f"{arg} --settings {runsettings_file}"
+        arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
+        self.__sc.run_program("dotnet-coverage", arg, codeunit_folder, verbosity=verbosity)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
+    @GeneralUtilities.check_arguments
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
                                        targetenvironmenttype: str, commandline_arguments: list[str]):
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
@@ -1655,6 +1666,10 @@ class TasksForCommonProjectStructure:
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         codeunit_name = os.path.basename(codeunit_folder)
+
+        build_folder = os.path.join(codeunit_folder, "Other", "Build")
+        self.__sc.run_program("python", "Build.py", build_folder)
+
         csproj_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.csproj")
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity)
         test_csproj_file = os.path.join(codeunit_folder, f"{codeunit_name}Tests", f"{codeunit_name}Tests.csproj")
