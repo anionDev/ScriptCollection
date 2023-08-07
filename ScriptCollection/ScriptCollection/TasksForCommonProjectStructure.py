@@ -175,15 +175,20 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
-        # TODO check if there is at least one package in testcoverage_file_in_cobertura_format
+        if len(root.xpath('//coverage/packages/package')) != 1:
+            raise ValueError(f"'{testcoverage_file_in_cobertura_format}' must contain exactly 1 package.")
+        if root.xpath('//coverage/packages/package[1]/@name')[0] != codeunitname:
+            raise ValueError(f"The package name of the tested package in '{testcoverage_file_in_cobertura_format}' must be '{codeunitname}'.")
         coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
+        technicalminimalrequiredtestcoverageinpercent = 0
+        if not technicalminimalrequiredtestcoverageinpercent < coverage_in_percent:
+            raise ValueError(f"The test-coverage of package '{codeunitname}' must be greater than {technicalminimalrequiredtestcoverageinpercent}%.")
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         minimalrequiredtestcoverageinpercent = self.get_testcoverage_threshold_from_codeunit_file(codeunit_file)
         minimalrecommendedcoverage = 80
         if minimalrequiredtestcoverageinpercent < minimalrecommendedcoverage:
             GeneralUtilities.write_message_to_stderr(f"Warning: The minimal required testcoverage is {minimalrequiredtestcoverageinpercent}% " +
                                                      f"but should be at least {minimalrecommendedcoverage}%.")
-        # TODO check that testcoverage_file_in_cobertura_format contains at least one package with at least one line of code
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
@@ -221,7 +226,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.update_path_of_source(repository_folder, codeunitname)
-        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, True, targetenvironmenttype, commandline_arguments)
+        self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     def copy_source_files_to_output_directory(self, buildscript_file: str):
         sc = ScriptCollectionCore()
@@ -775,7 +780,9 @@ class TasksForCommonProjectStructure:
             runsettings_argument = f"--settings {runsettings_file} "
         arg = f"collect dotnet test {runsettings_argument} --no-build --output-format cobertura --output Other\\Artifacts\\TestCoverage\\Testcoverage"
         self.__sc.run_program("dotnet-coverage", arg, working_directory, verbosity=verbosity)
-        os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
+        target = os.path.join(coverage_file_folder,  "TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(target)
+        os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
@@ -784,7 +791,6 @@ class TasksForCommonProjectStructure:
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
-        # TODO throw exception if TestCoverage.xml does not contain exactly 1 package whose name is equal to the codeunit-name
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
 
     @GeneralUtilities.check_arguments
