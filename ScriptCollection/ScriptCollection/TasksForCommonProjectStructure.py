@@ -784,6 +784,7 @@ class TasksForCommonProjectStructure:
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+        # TODO throw exception if TestCoverage.xml does not contain exactly 1 package whose name is equal to the codeunit-name
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
 
     @GeneralUtilities.check_arguments
@@ -1656,8 +1657,8 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         codeunit_name = os.path.basename(codeunit_folder)
 
-        build_folder=os.path.join(codeunit_folder,codeunit_name,"Other","Build")
-        self.__sc.run_program("python","Build.py",build_folder)
+        build_folder = os.path.join(codeunit_folder, "Other", "Build")
+        self.__sc.run_program("python", "Build.py", build_folder)
 
         csproj_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.csproj")
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity)
