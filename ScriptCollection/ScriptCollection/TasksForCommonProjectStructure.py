@@ -11,6 +11,8 @@ import zipfile
 import json
 import configparser
 import requests
+import tempfile
+import uuid
 from packaging import version
 import xmlschema
 from OpenSSL import crypto
@@ -767,23 +769,28 @@ class TasksForCommonProjectStructure:
                                   verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
-                                                            commandline_arguments: list[str]):
+    def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, target_environmenttype: str, verbosity: int, generate_badges: bool,
+                                                            target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]):
+        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, target_environmenttype)
+        dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
-        working_directory = os.path.join(repository_folder, codeunit_name)
-        runsettings_argument = ""
+        codeunit_folder = os.path.join(repository_folder, codeunit_name)
         runsettings_file = self.dotnet_runsettings_file
-        if os.path.isfile(os.path.join(working_directory, runsettings_file)):
-            runsettings_argument = f"--settings {runsettings_file} "
-        arg = f"collect dotnet test {runsettings_argument} --no-build --output-format cobertura --output Other\\Artifacts\\TestCoverage\\Testcoverage"
-        self.__sc.run_program("dotnet-coverage", arg, working_directory, verbosity=verbosity)
+        temp_folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        GeneralUtilities.ensure_directory_exists(temp_folder)
+        arg = f"test . -c {dotnet_build_configuration} -o {temp_folder}"
+        if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
+            arg = f"{arg} --settings {runsettings_file}"
+        arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=..\\Other\\Artifacts\\TestCoverage\\Testcoverage /p:CoverletOutputFormat=cobertura"
+        self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity)
         target = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target)
-        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+        self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, target_environmenttype, commandline_arguments)
+        GeneralUtilities.ensure_directory_does_not_exist(temp_folder)
 
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
                                        targetenvironmenttype: str, commandline_arguments: list[str]):
