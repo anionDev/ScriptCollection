@@ -1,3 +1,4 @@
+
 from datetime import datetime
 from graphlib import TopologicalSorter
 import os
@@ -606,9 +607,9 @@ class TasksForCommonProjectStructure:
             sarif_filename = f"{csproj_file_name_without_extension}.sarif"
             sarif_source_file = os.path.join(sarif_folder, sarif_filename)
             if os.path.exists(sarif_source_file):
-                sarif_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
-                GeneralUtilities.ensure_directory_exists(sarif_folder)
-                sarif_target_file = os.path.join(sarif_folder, sarif_filename)
+                sarif_folder_target = os.path.join(codeunit_folder, "Other", "Artifacts", "CodeAnalysisResult")
+                GeneralUtilities.ensure_directory_exists(sarif_folder_target)
+                sarif_target_file = os.path.join(sarif_folder_target, sarif_filename)
                 GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
                 shutil.copyfile(sarif_source_file, sarif_target_file)
                 GeneralUtilities.ensure_file_does_not_exist(sarif_source_file)
