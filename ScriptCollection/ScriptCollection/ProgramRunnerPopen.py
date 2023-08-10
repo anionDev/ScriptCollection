@@ -17,6 +17,8 @@ class ProgramRunnerPopen(ProgramRunnerBase):
         try:
             os.chdir(working_directory)
             result = Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, shell=False)  # pylint: disable=consider-using-with
+        except FileNotFoundError as fileNotFoundError:
+            raise FileNotFoundError(f"Starting '{program}' in '{working_directory}' resulted in a FileNotFoundError: '{fileNotFoundError.filename}'")
         finally:
             os.chdir(cwd)
         return result
