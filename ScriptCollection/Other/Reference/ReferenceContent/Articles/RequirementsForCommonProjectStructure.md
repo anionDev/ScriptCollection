@@ -56,11 +56,6 @@ Install-instructions for the commandline-tool can be found [here](https://dotnet
 [CycloneDX for .NET-projects](https://github.com/CycloneDX/cyclonedx-dotnet) is a tool to generate `sbom.xml` in the `BOM`-artifact for .NET-projects.
 The commandline-tool can be installed using `dotnet tool install --global CycloneDX`.
 
-#### dotnet-coverage
-
-[dotnet-coverage](https://learn.microsoft.com/en-us/dotnet/core/additional-tools/dotnet-coverage) is a tool to run testcases and generate a coverage-report for .NET-projects.
-The commandline-tool can be installed using `dotnet tool install --global dotnet-coverage`.
-
 #### epew
 
 TODO
