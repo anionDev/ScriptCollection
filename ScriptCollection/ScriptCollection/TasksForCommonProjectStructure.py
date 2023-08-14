@@ -781,11 +781,11 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(temp_folder)
         runsettings_file = self.dotnet_runsettings_file
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
-        arg = f"collect dotnet test . -c {dotnet_build_configuration} -o {temp_folder}"
+        arg = f"test . -c {dotnet_build_configuration} -o {temp_folder}"
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
-        self.__sc.run_program("dotnet-coverage", arg, codeunit_folder, verbosity=verbosity)
+        self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 

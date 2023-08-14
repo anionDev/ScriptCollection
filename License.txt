@@ -15,6 +15,7 @@ ScriptCollection uses dependencies which are released under their own license:
 -pycdlib is licensed under the terms of the LGPL-v2.1-license (see appendix 3)
 -qrcode is licensed under the terms of the BSD-license (see https://pypi.org/project/qrcode )
 -send2trash is licensed under the terms of the BSD-license (see https://pypi.org/project/Send2Trash )
+-wheel is licensed under the terms of the MIT-license (see appendix 1)
 
 ----------------------------------------------------------------------
 Appendix 1:
