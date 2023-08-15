@@ -811,6 +811,10 @@ class GeneralUtilities:
             raise ValueError("Condition failed. "+information)
 
     @staticmethod
+    def current_system_is_windows():
+        return os.name == "nt"
+
+    @staticmethod
     @check_arguments
     def get_certificate_expiry_date(certificate_file: str) -> datetime:
         with open(certificate_file, encoding="utf-8") as certificate_file_content:
