@@ -1547,7 +1547,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None):
         """Expects a certificate-resource and generates a constant for its public information"""
-        codeunit_name = os.path.basename(codeunit_folder)
+        # codeunit_name = os.path.basename(codeunit_folder)
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{source_constant_name}.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
