@@ -794,9 +794,19 @@ class TasksForCommonProjectStructure:
                                        targetenvironmenttype: str, commandline_arguments: list[str]):
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
+        self.__remove_unrelated_package_from_testcoverage_file(coveragefiletarget, codeunit_name)
         self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
+
+    def __remove_unrelated_package_from_testcoverage_file(self, file: str, codeunit_name:str):
+        root: etree._ElementTree = etree.parse(file)
+        packages=root.xpath('//coverage/packages/package')
+        for package in packages:
+            if package.attrib['name']!=codeunit_name:
+                package.getparent().remove(package)
+        result=etree.tostring(root).decode("utf-8")
+        GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
     def write_version_to_codeunit_file(self, codeunit_file: str, current_version: str) -> None:
@@ -1537,25 +1547,21 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None):
         """Expects a certificate-resource and generates a constant for its public information"""
-        codeunit_name = os.path.basename(codeunit_folder)
-        if domain is None:
-            domain = f"{codeunit_name}.test.local"
-        domain = domain.lower()
-        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{domain}.crt")
+        # codeunit_name = os.path.basename(codeunit_folder)
+        certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{source_constant_name}.crt")
         with open(certificate_file, encoding="utf-8") as text_wrapper:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = "DevelopmentCertificate", domain: str = None):
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         codeunit_name = os.path.basename(codeunit_folder)
-        if domain is None:
-            domain = f"{codeunit_name}.test.local"
-        domain = domain.lower()
-        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.pfx", "PFX")
-        self.generate_constant_from_resource_by_filename(codeunit_folder, certificate_resource_name, f"{domain}.test.local.password", "Password")
+        resource_name:str="DevelopmentCertificate"
+        filename:str=codeunit_name+"DevelopmentCertificate"
+        self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.pfx", "PFX")
+        self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.password", "Password")
 
     @GeneralUtilities.check_arguments
     def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str):
