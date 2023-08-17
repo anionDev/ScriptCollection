@@ -1822,9 +1822,19 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependency_in_resources_folder(self, update_dependencies_file, dependency_name: str, latest_version_function: str):
-        version_file = GeneralUtilities.resolve_relative_path(f"../Resources/Dependencies/{dependency_name}/Version.txt", update_dependencies_file)
-        current_version = GeneralUtilities.read_text_from_file(version_file)
-        if current_version != latest_version_function:
+        dependency_folder = GeneralUtilities.resolve_relative_path(f"../Resources/Dependencies/{dependency_name}", update_dependencies_file)
+        version_file = os.path.join(dependency_folder, "Version.txt")
+        version_file_exists = os.path.isfile(version_file)
+        write_to_file = False
+        if version_file_exists:
+            current_version = GeneralUtilities.read_text_from_file(version_file)
+            if current_version != latest_version_function:
+                write_to_file = True
+        else:
+            GeneralUtilities.ensure_directory_exists(dependency_folder)
+            GeneralUtilities.ensure_file_exists(version_file)
+            write_to_file = True
+        if write_to_file:
             GeneralUtilities.write_text_to_file(version_file, latest_version_function)
 
     @GeneralUtilities.check_arguments
