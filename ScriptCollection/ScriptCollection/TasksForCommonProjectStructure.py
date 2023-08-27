@@ -181,7 +181,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"'{testcoverage_file_in_cobertura_format}' must contain exactly 1 package.")
         if root.xpath('//coverage/packages/package[1]/@name')[0] != codeunitname:
             raise ValueError(f"The package name of the tested package in '{testcoverage_file_in_cobertura_format}' must be '{codeunitname}'.")
-        coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
+        coverage_in_percent = round(float(str(root.xpath('//coverage/packages/package[1]/@line-rate')[0]))*100, 2)
         technicalminimalrequiredtestcoverageinpercent = 0
         if not technicalminimalrequiredtestcoverageinpercent < coverage_in_percent:
             raise ValueError(f"The test-coverage of package '{codeunitname}' must be greater than {technicalminimalrequiredtestcoverageinpercent}%.")
@@ -202,7 +202,8 @@ class TasksForCommonProjectStructure:
     @staticmethod
     @GeneralUtilities.check_arguments
     def __adjust_source_in_testcoverage_file(testcoverage_file: str, codeunitname: str) -> None:
-        GeneralUtilities.write_text_to_file(testcoverage_file, re.sub("<source>.+<\\/source>", f"<source>{codeunitname}</source>",
+        #raise ValueError(f"test_<source>.+<\\/source>_<source>.\\{codeunitname}\\</source>")
+        GeneralUtilities.write_text_to_file(testcoverage_file, re.sub("<source>.+<\\/source>", f"<source>.\\\\{codeunitname}\\\\</source>",
                                                                       GeneralUtilities.read_text_from_file(testcoverage_file)))
 
     @staticmethod
@@ -227,7 +228,6 @@ class TasksForCommonProjectStructure:
         coveragefile = os.path.join(coveragefolder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
-        self.update_path_of_source(repository_folder, codeunitname)
         self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     def copy_source_files_to_output_directory(self, buildscript_file: str):
@@ -788,7 +788,23 @@ class TasksForCommonProjectStructure:
         target_file=os.path.join(coverage_file_folder,  "TestCoverage.xml")
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
         self.__remove_unrelated_package_from_testcoverage_file(target_file, codeunit_name)
+        self.__update_filepaths_in_testcoverage_file(target_file)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def __update_filepaths_in_testcoverage_file(self, testcoverage_file: str):
+        #match=re.search('filename="([^"]+)"', GeneralUtilities.read_text_from_file(testcoverage_file))
+        #print(f'He loves {match.group(1)}')
+        result=re.sub('filename="([^"]+)"',TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper, GeneralUtilities.read_text_from_file(testcoverage_file))
+        GeneralUtilities.write_text_to_file(testcoverage_file, result)
+
+    @staticmethod
+    def __update_filepaths_in_testcoverage_file_helper(matchobj):
+        filename=matchobj.group(1)
+        path=Path(filename)
+        correct_paths=path.parts[3:]
+        result_path="/".join(correct_paths)
+        return f'filename="{result_path}"'
 
     @GeneralUtilities.check_arguments
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
