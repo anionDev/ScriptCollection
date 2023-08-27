@@ -587,6 +587,8 @@ class TasksForCommonProjectStructure:
         csproj_file_name_without_extension = csproj_file_name.split(".")[0]
         sarif_folder = os.path.join(codeunit_folder, "Other", "Resources", "CodeAnalysisResult")
         GeneralUtilities.ensure_directory_exists(sarif_folder)
+        gitkeep_file=os.path.join(sarif_folder, ".gitkeep")
+        GeneralUtilities.ensure_file_exists(gitkeep_file)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
@@ -611,7 +613,6 @@ class TasksForCommonProjectStructure:
                 sarif_target_file = os.path.join(sarif_folder_target, sarif_filename)
                 GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
                 shutil.copyfile(sarif_source_file, sarif_target_file)
-                GeneralUtilities.ensure_file_does_not_exist(sarif_source_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str,
@@ -793,9 +794,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __update_filepaths_in_testcoverage_file(self, testcoverage_file: str):
-        #match=re.search('filename="([^"]+)"', GeneralUtilities.read_text_from_file(testcoverage_file))
-        #print(f'He loves {match.group(1)}')
-        result=re.sub('filename="([^"]+)"',TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper, GeneralUtilities.read_text_from_file(testcoverage_file))
+        result = re.sub('filename="([^"]+)"',TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper, GeneralUtilities.read_text_from_file(testcoverage_file))
         GeneralUtilities.write_text_to_file(testcoverage_file, result)
 
     @staticmethod
