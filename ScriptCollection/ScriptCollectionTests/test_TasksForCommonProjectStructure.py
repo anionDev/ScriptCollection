@@ -11,7 +11,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
         expected_result = []
 
         # act
-        actual_result = t._internal_sort_codenits(function_input)
+        actual_result = t.get_sorted_codeunits(function_input)
 
         # assert
         assert expected_result == actual_result
@@ -25,7 +25,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
         expected_result = ['codeunit_01']
 
         # act
-        actual_result = t._internal_sort_codenits(function_input)
+        actual_result = t.get_sorted_codeunits(function_input)
 
         # assert
         assert expected_result == actual_result
@@ -40,7 +40,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
         expected_result = ['codeunit_01', 'codeunit_02']
 
         # act
-        actual_result = t._internal_sort_codenits(function_input)
+        actual_result = t.get_sorted_codeunits(function_input)
 
         # assert
         assert expected_result == actual_result
@@ -57,7 +57,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
         expected_result = ['codeunit_01', 'codeunit_04', 'codeunit_03', 'codeunit_02']
 
         # act
-        actual_result = t._internal_sort_codenits(function_input)
+        actual_result = t.get_sorted_codeunits(function_input)
 
         # assert
         assert expected_result == actual_result
