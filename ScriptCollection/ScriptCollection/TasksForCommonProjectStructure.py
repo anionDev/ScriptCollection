@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from graphlib import TopologicalSorter
 import os
@@ -182,7 +181,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"'{testcoverage_file_in_cobertura_format}' must contain exactly 1 package.")
         if root.xpath('//coverage/packages/package[1]/@name')[0] != codeunitname:
             raise ValueError(f"The package name of the tested package in '{testcoverage_file_in_cobertura_format}' must be '{codeunitname}'.")
-        coverage_in_percent = round(float(str(root.xpath('//coverage/@line-rate')[0]))*100, 2)
+        coverage_in_percent = round(float(str(root.xpath('//coverage/packages/package[1]/@line-rate')[0]))*100, 2)
         technicalminimalrequiredtestcoverageinpercent = 0
         if not technicalminimalrequiredtestcoverageinpercent < coverage_in_percent:
             raise ValueError(f"The test-coverage of package '{codeunitname}' must be greater than {technicalminimalrequiredtestcoverageinpercent}%.")
@@ -203,7 +202,8 @@ class TasksForCommonProjectStructure:
     @staticmethod
     @GeneralUtilities.check_arguments
     def __adjust_source_in_testcoverage_file(testcoverage_file: str, codeunitname: str) -> None:
-        GeneralUtilities.write_text_to_file(testcoverage_file, re.sub("<source>.+<\\/source>", f"<source>{codeunitname}</source>",
+        #raise ValueError(f"test_<source>.+<\\/source>_<source>.\\{codeunitname}\\</source>")
+        GeneralUtilities.write_text_to_file(testcoverage_file, re.sub("<source>.+<\\/source>", f"<source>.\\\\{codeunitname}\\\\</source>",
                                                                       GeneralUtilities.read_text_from_file(testcoverage_file)))
 
     @staticmethod
@@ -228,7 +228,6 @@ class TasksForCommonProjectStructure:
         coveragefile = os.path.join(coveragefolder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
-        self.update_path_of_source(repository_folder, codeunitname)
         self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     def copy_source_files_to_output_directory(self, buildscript_file: str):
@@ -588,6 +587,8 @@ class TasksForCommonProjectStructure:
         csproj_file_name_without_extension = csproj_file_name.split(".")[0]
         sarif_folder = os.path.join(codeunit_folder, "Other", "Resources", "CodeAnalysisResult")
         GeneralUtilities.ensure_directory_exists(sarif_folder)
+        gitkeep_file=os.path.join(sarif_folder, ".gitkeep")
+        GeneralUtilities.ensure_file_exists(gitkeep_file)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
@@ -612,7 +613,6 @@ class TasksForCommonProjectStructure:
                 sarif_target_file = os.path.join(sarif_folder_target, sarif_filename)
                 GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
                 shutil.copyfile(sarif_source_file, sarif_target_file)
-                GeneralUtilities.ensure_file_does_not_exist(sarif_source_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str,
@@ -786,15 +786,30 @@ class TasksForCommonProjectStructure:
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
         self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity)
-        os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), os.path.join(coverage_file_folder,  "TestCoverage.xml"))
+        target_file=os.path.join(coverage_file_folder,  "TestCoverage.xml")
+        os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
+        self.__remove_unrelated_package_from_testcoverage_file(target_file, codeunit_name)
+        self.__update_filepaths_in_testcoverage_file(target_file)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def __update_filepaths_in_testcoverage_file(self, testcoverage_file: str):
+        result = re.sub('filename="([^"]+)"',TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper, GeneralUtilities.read_text_from_file(testcoverage_file))
+        GeneralUtilities.write_text_to_file(testcoverage_file, result)
+
+    @staticmethod
+    def __update_filepaths_in_testcoverage_file_helper(matchobj):
+        filename=matchobj.group(1)
+        path=Path(filename)
+        correct_paths=path.parts[3:]
+        result_path="/".join(correct_paths)
+        return f'filename="{result_path}"'
 
     @GeneralUtilities.check_arguments
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
                                        targetenvironmenttype: str, commandline_arguments: list[str]):
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
-        self.__remove_unrelated_package_from_testcoverage_file(coveragefiletarget, codeunit_name)
         self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
@@ -1453,8 +1468,18 @@ class TasksForCommonProjectStructure:
         target_file = os.path.join(coverage_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
+        self.__rename_packagename_in_coverage_file(target_file, codeunit_name)
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def __rename_packagename_in_coverage_file(self, file:str, codeunit_name:str):
+        root: etree._ElementTree = etree.parse(file)
+        packages=root.xpath('//coverage/packages/package')
+        for package in packages:
+            package.attrib['name']=codeunit_name
+        result=etree.tostring(root).decode("utf-8")
+        GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, verbosity: int):
