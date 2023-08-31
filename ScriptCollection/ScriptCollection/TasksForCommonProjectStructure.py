@@ -799,13 +799,13 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
 
-    def __remove_unrelated_package_from_testcoverage_file(self, file: str, codeunit_name:str):
+    def __remove_unrelated_package_from_testcoverage_file(self, file: str, codeunit_name: str):
         root: etree._ElementTree = etree.parse(file)
-        packages=root.xpath('//coverage/packages/package')
+        packages = root.xpath('//coverage/packages/package')
         for package in packages:
-            if package.attrib['name']!=codeunit_name:
+            if package.attrib['name'] != codeunit_name:
                 package.getparent().remove(package)
-        result=etree.tostring(root).decode("utf-8")
+        result = etree.tostring(root).decode("utf-8")
         GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
@@ -1558,8 +1558,8 @@ class TasksForCommonProjectStructure:
     def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None):
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         codeunit_name = os.path.basename(codeunit_folder)
-        resource_name:str="DevelopmentCertificate"
-        filename:str=codeunit_name+"DevelopmentCertificate"
+        resource_name: str = "DevelopmentCertificate"
+        filename: str = codeunit_name+"DevelopmentCertificate"
         self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.pfx", "PFX")
         self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.password", "Password")
 
@@ -1728,12 +1728,17 @@ class TasksForCommonProjectStructure:
         sc_epew.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def _internal_sort_codenits(self, codeunits=dict[str, set[str]]) -> list[str]:
-        return list(TopologicalSorter(codeunits).static_order())
+    def get_sorted_codeunits(self, codeunits=dict[str, set[str]]) -> list[str]:
+        result_typed = list(TopologicalSorter(codeunits).static_order())
+        result = list()
+        for item in result_typed:
+            result.append(str(item))
+        return result
 
     @GeneralUtilities.check_arguments
-    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
-                       is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = False) -> None:
+    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck",
+                        additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None,
+                        assume_dependent_codeunits_are_already_built: bool = False) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
@@ -1764,7 +1769,7 @@ class TasksForCommonProjectStructure:
                 codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
             else:
                 raise ValueError(f"{repository_folder} does not have a codeunit with name {codeunit_name}.")
-        sorted_codeunits = self._internal_sort_codenits(codeunits_with_dependent_codeunits)
+        sorted_codeunits = self.get_sorted_codeunits(codeunits_with_dependent_codeunits)
         project_version = self.get_version_of_project(repository_folder)
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
