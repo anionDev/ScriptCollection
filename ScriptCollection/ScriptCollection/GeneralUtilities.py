@@ -1,4 +1,5 @@
 import codecs
+import platform
 import inspect
 import ctypes
 import hashlib
@@ -766,11 +767,6 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def os_is_linux() -> bool:
-        return sys.platform in ('linux', 'linux2')
-
-    @staticmethod
-    @check_arguments
     def to_list(list_as_string: str, separator: str = ",") -> list[str]:
         result = list()
         if list_as_string is not None:
@@ -812,7 +808,11 @@ class GeneralUtilities:
 
     @staticmethod
     def current_system_is_windows():
-        return os.name == "nt"
+        return platform.system() == 'Windows'
+
+    @staticmethod
+    def current_system_is_linux():
+        return platform.system() == 'Linux'
 
     @staticmethod
     @check_arguments
