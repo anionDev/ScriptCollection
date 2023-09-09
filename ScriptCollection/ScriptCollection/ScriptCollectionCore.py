@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.19"
+version = "3.4.20"
 __version__ = version
 
 
@@ -456,6 +456,13 @@ class ScriptCollectionCore:
                 else:
                     # clone
                     self.git_clone(target_repository, source_repository, include_submodules=True, mirror=True)
+
+    def get_git_submodules(self, folder: str) -> list[str]:
+        e = self.run_program("git", "submodule status", folder)
+        result = []
+        for submodule_line in GeneralUtilities.string_to_lines(e[1], False, True):
+            result.append(submodule_line.split(' ')[1])
+        return result
 
     @GeneralUtilities.check_arguments
     def is_git_repository(self, folder: str) -> bool:
