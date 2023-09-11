@@ -1569,6 +1569,24 @@ class TasksForCommonProjectStructure:
         else:
             raise ValueError("Too many results found.")
 
+    def set_copy_development_certificate(self, codeunit_folder: str, build_environment: str, domain: str =None):
+        if build_environment == "Development":
+            codeunit_name: str = os.path.basename(codeunit_folder)
+            if domain is None:
+                domain=f"{codeunit_name}.test.local".lower()
+
+            src_folder=os.path.join(codeunit_folder,"Other","Resources","DevelopmentCertificate")
+            src_file_pfx=os.path.join(src_folder,f"{codeunit_name}DevelopmentCertificate.pfx")
+            src_file_psw=os.path.join(src_folder,f"{codeunit_name}DevelopmentCertificate.password")
+
+            trg_folder=os.path.join(codeunit_folder,"Other","Workspace","Configuration","Certificates")
+            trg_file_pfx=os.path.join(trg_folder,f"{domain}.pfx")
+            trg_file_psw=os.path.join(trg_folder,f"{domain}.password")
+
+            GeneralUtilities.ensure_directory_exists(trg_folder)
+            shutil.copyfile(src_file_pfx, trg_file_pfx)
+            shutil.copyfile(src_file_psw, trg_file_psw)
+
     @GeneralUtilities.check_arguments
     def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None):
         """Expects a certificate-resource and generates a constant for its public information"""
