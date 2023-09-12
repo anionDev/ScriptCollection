@@ -914,7 +914,7 @@ class TasksForCommonProjectStructure:
             shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_release_buildartifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
+    def __standardized_tasks_release_artifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
@@ -926,9 +926,9 @@ class TasksForCommonProjectStructure:
 
         for codeunitname in self.get_codeunits(information.repository):
             # Push artifacts to registry
+            push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
             if os.path.isfile(push_artifact_to_registry_script):
                 scriptfilename = f"PushArtifacts.{codeunitname}.py"
-                push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
                 GeneralUtilities.write_message_to_stdout(f"Push artifacts of codeunit {codeunitname}...")
                 self.__sc.run_program("python", push_artifact_to_registry_script, information.push_artifacts_scripts_folder,
                                       verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
@@ -1135,7 +1135,7 @@ class TasksForCommonProjectStructure:
                                                                                            mergeInformation.export_target,
                                                                                            createRelease_configuration.push_artifacts_scripts_folder)
         createReleaseInformation.verbosity = createRelease_configuration.verbosity
-        self.__standardized_tasks_release_buildartifact(createReleaseInformation)
+        self.__standardized_tasks_release_artifact(createReleaseInformation)
 
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
         if createRelease_configuration.reference_repository_remote_name is not None:
