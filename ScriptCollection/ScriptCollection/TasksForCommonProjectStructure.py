@@ -1569,15 +1569,15 @@ class TasksForCommonProjectStructure:
         else:
             raise ValueError("Too many results found.")
 
-    def set_copy_development_certificate(self, codeunit_folder: str, build_environment: str, domain: str =None):
+    def copy_development_certificate_to_default_development_directory(self, codeunit_folder: str, build_environment: str, domain: str = None, certificate_resource_name: str = "DevelopmentCertificate"):
         if build_environment == "Development":
             codeunit_name: str = os.path.basename(codeunit_folder)
             if domain is None:
                 domain=f"{codeunit_name}.test.local".lower()
 
-            src_folder=os.path.join(codeunit_folder,"Other","Resources","DevelopmentCertificate")
-            src_file_pfx=os.path.join(src_folder,f"{codeunit_name}DevelopmentCertificate.pfx")
-            src_file_psw=os.path.join(src_folder,f"{codeunit_name}DevelopmentCertificate.password")
+            src_folder=os.path.join(codeunit_folder,"Other","Resources",certificate_resource_name)
+            src_file_pfx=os.path.join(src_folder,f"{codeunit_name}{certificate_resource_name}.pfx")
+            src_file_psw=os.path.join(src_folder,f"{codeunit_name}{certificate_resource_name}.password")
 
             trg_folder=os.path.join(codeunit_folder,"Other","Workspace","Configuration","Certificates")
             trg_file_pfx=os.path.join(trg_folder,f"{domain}.pfx")
