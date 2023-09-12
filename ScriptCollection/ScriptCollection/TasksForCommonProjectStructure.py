@@ -33,11 +33,10 @@ class CreateReleaseConfiguration():
     build_repository_branch: str = "main"
     public_repository_url: str
     additional_arguments_file: str = None
-    artifacts_which_have_artifacts_to_push: list[str] = None
     repository_folder_name: str = None
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str,
-                 verbosity: int, public_repository_url: str, additional_arguments_file: str, artifacts_which_have_artifacts_to_push: list[str],
+                 verbosity: int, public_repository_url: str, additional_arguments_file: str,
                  repository_folder_name: str):
 
         self.projectname = projectname
@@ -48,7 +47,6 @@ class CreateReleaseConfiguration():
         self.public_repository_url = public_repository_url
         self.reference_repository_remote_name = self.remotename
         self.additional_arguments_file = additional_arguments_file
-        self.artifacts_which_have_artifacts_to_push = artifacts_which_have_artifacts_to_push
         self.repository_folder_name = repository_folder_name
 
 
@@ -65,10 +63,9 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     target_environmenttype_for_productive: str = "Productive"
     additional_arguments_file: str = None
     export_target: str = None
-    artifacts_which_have_artifacts_to_push: list[str] = None
 
     def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str,
-                 additional_arguments_file: str, export_target: str, push_artifacts_scripts_folder: str, artifacts_which_have_artifacts_to_push: list[str]):
+                 additional_arguments_file: str, export_target: str, push_artifacts_scripts_folder: str):
         self.repository = repository
         self.public_repository_url = public_repository_url
         self.target_branch_name = target_branch_name
@@ -81,7 +78,6 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
         else:
             self.projectname = projectname
         self.reference_repository = f"{repository}Reference"
-        self.artifacts_which_have_artifacts_to_push = artifacts_which_have_artifacts_to_push
 
 
 class MergeToStableBranchInformationForProjectInCommonProjectFormat:
@@ -202,7 +198,7 @@ class TasksForCommonProjectStructure:
     @staticmethod
     @GeneralUtilities.check_arguments
     def __adjust_source_in_testcoverage_file(testcoverage_file: str, codeunitname: str) -> None:
-        #raise ValueError(f"test_<source>.+<\\/source>_<source>.\\{codeunitname}\\</source>")
+        # raise ValueError(f"test_<source>.+<\\/source>_<source>.\\{codeunitname}\\</source>")
         GeneralUtilities.write_text_to_file(testcoverage_file, re.sub("<source>.+<\\/source>", f"<source>.\\\\{codeunitname}\\\\</source>",
                                                                       GeneralUtilities.read_text_from_file(testcoverage_file)))
 
@@ -587,7 +583,7 @@ class TasksForCommonProjectStructure:
         csproj_file_name_without_extension = csproj_file_name.split(".")[0]
         sarif_folder = os.path.join(codeunit_folder, "Other", "Resources", "CodeAnalysisResult")
         GeneralUtilities.ensure_directory_exists(sarif_folder)
-        gitkeep_file=os.path.join(sarif_folder, ".gitkeep")
+        gitkeep_file = os.path.join(sarif_folder, ".gitkeep")
         GeneralUtilities.ensure_file_exists(gitkeep_file)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
@@ -786,7 +782,7 @@ class TasksForCommonProjectStructure:
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
         self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity)
-        target_file=os.path.join(coverage_file_folder,  "TestCoverage.xml")
+        target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
         self.__remove_unrelated_package_from_testcoverage_file(target_file, codeunit_name)
         self.__update_filepaths_in_testcoverage_file(target_file)
@@ -794,15 +790,16 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __update_filepaths_in_testcoverage_file(self, testcoverage_file: str):
-        result = re.sub('filename="([^"]+)"',TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper, GeneralUtilities.read_text_from_file(testcoverage_file))
+        result = re.sub('filename="([^"]+)"', TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper,
+                        GeneralUtilities.read_text_from_file(testcoverage_file))
         GeneralUtilities.write_text_to_file(testcoverage_file, result)
 
     @staticmethod
     def __update_filepaths_in_testcoverage_file_helper(matchobj):
-        filename=matchobj.group(1)
-        path=Path(filename)
-        correct_paths=path.parts[3:]
-        result_path="/".join(correct_paths)
+        filename = matchobj.group(1)
+        path = Path(filename)
+        correct_paths = path.parts[3:]
+        result_path = "/".join(correct_paths)
         return f'filename="{result_path}"'
 
     @GeneralUtilities.check_arguments
@@ -929,12 +926,10 @@ class TasksForCommonProjectStructure:
 
         for codeunitname in self.get_codeunits(information.repository):
             # Push artifacts to registry
-            if codeunitname in information.artifacts_which_have_artifacts_to_push:
+            if os.path.isfile(push_artifact_to_registry_script):
                 scriptfilename = f"PushArtifacts.{codeunitname}.py"
                 push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
-                if not os.path.isfile(push_artifact_to_registry_script):
-                    raise ValueError(f"Script '{push_artifact_to_registry_script}' does not exist.")
-                GeneralUtilities.write_message_to_stdout(f"Push artifacts of codeunit {codeunitname}.")
+                GeneralUtilities.write_message_to_stdout(f"Push artifacts of codeunit {codeunitname}...")
                 self.__sc.run_program("python", push_artifact_to_registry_script, information.push_artifacts_scripts_folder,
                                       verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
@@ -1138,8 +1133,7 @@ class TasksForCommonProjectStructure:
                                                                                            mergeInformation.targetbranch,
                                                                                            mergeInformation.additional_arguments_file,
                                                                                            mergeInformation.export_target,
-                                                                                           createRelease_configuration.push_artifacts_scripts_folder,
-                                                                                           createRelease_configuration.artifacts_which_have_artifacts_to_push)
+                                                                                           createRelease_configuration.push_artifacts_scripts_folder)
         createReleaseInformation.verbosity = createRelease_configuration.verbosity
         self.__standardized_tasks_release_buildartifact(createReleaseInformation)
 
@@ -1473,12 +1467,12 @@ class TasksForCommonProjectStructure:
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def __rename_packagename_in_coverage_file(self, file:str, codeunit_name:str):
+    def __rename_packagename_in_coverage_file(self, file: str, codeunit_name: str):
         root: etree._ElementTree = etree.parse(file)
-        packages=root.xpath('//coverage/packages/package')
+        packages = root.xpath('//coverage/packages/package')
         for package in packages:
-            package.attrib['name']=codeunit_name
-        result=etree.tostring(root).decode("utf-8")
+            package.attrib['name'] = codeunit_name
+        result = etree.tostring(root).decode("utf-8")
         GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
@@ -1762,8 +1756,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck",
-                        additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None,
-                        assume_dependent_codeunits_are_already_built: bool = False) -> None:
+                       additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None,
+                       assume_dependent_codeunits_are_already_built: bool = False) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
