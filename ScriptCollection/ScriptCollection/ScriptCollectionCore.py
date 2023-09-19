@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.24"
+version = "3.4.25"
 __version__ = version
 
 
@@ -324,9 +324,15 @@ class ScriptCollectionCore:
             self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_get_all_remote_names(self, directory) -> list[str]:
+    def git_get_all_remote_names(self, directory: str) -> list[str]:
         result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result
+
+    @GeneralUtilities.check_arguments
+    def git_get_remote_url(self, directory: str, remote_name: str) -> str:
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray(
+            "git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
