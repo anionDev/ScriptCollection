@@ -1103,6 +1103,7 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(repository_folder, source_branch)
         self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None)
         self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
+        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder,".VersionIncrement.txt"))
         self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
         if fast_forward_source_branch:
@@ -2009,6 +2010,19 @@ class TasksForCommonProjectStructure:
         control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit_folder(codeunit_folder),
                                                                   installedsize, maintainername, maintaineremail, description)
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
+
+    @GeneralUtilities.check_arguments
+    def get_version_for_repository_in_commpon_projects_structure(self, repository_folder: str) -> str:
+       semver_version = self.__sc.get_semver_version_from_gitversion(repository_folder)
+       version_increment_file=os.path.join(repository_folder,".VersionIncrement.txt")
+       if os.path.isfile(version_increment_file):
+           pass # TODO implement parsing of next_version_file-file
+       return semver_version
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def is_patch_version(version_string: str) -> bool:
+        return not version_string.endswith(".0")
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
