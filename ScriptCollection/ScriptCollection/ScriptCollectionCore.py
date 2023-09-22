@@ -1496,18 +1496,20 @@ class ScriptCollectionCore:
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
         result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
 
-        try:
-            if self.git_repository_has_uncommitted_changes(repository_folder):
-                if self.get_current_branch_has_tag(repository_folder):
-                    id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
-                    current_commit = self.git_get_commit_id(repository_folder)
-                    current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
-                    if current_commit_is_on_latest_tag:
-                        result = self.increment_version(result, False, False, True)
-        except:  # Exceptions are thrown for example when no tags are available. but these cases should be ignored.
-            pass
+        if self.git_repository_has_uncommitted_changes(repository_folder):
+            if self.get_current_branch_has_tag(repository_folder):
+                id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
+                current_commit = self.git_get_commit_id(repository_folder)
+                current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
+                if current_commit_is_on_latest_tag:
+                    result = self.increment_version(result, False, False, True)
 
         return result
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def is_patch_version(version_string: str) -> bool:
+        return not version_string.endswith(".0")
 
     @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:

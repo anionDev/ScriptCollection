@@ -1103,15 +1103,10 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(repository_folder, source_branch)
         self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None)
         self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
-        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder,self.get_version_increment_filename()))
         self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
         if fast_forward_source_branch:
             self.__sc.git_merge(repository_folder, target_branch, source_branch, True, True)
-
-    @GeneralUtilities.check_arguments
-    def get_version_increment_filename(self)->str:
-        return "VersionIncrement.txt"
 
     @GeneralUtilities.check_arguments
     def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfiguration):
@@ -1576,7 +1571,7 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     def copy_development_certificate_to_default_development_directory(self, codeunit_folder: str, build_environment: str, domain: str = None,
-                                                                      certificate_resource_name: str = "DevelopmentCertificate")->None:
+                                                                      certificate_resource_name: str = "DevelopmentCertificate") -> None:
         if build_environment == "Development":
             codeunit_name: str = os.path.basename(codeunit_folder)
             if domain is None:
@@ -1595,7 +1590,7 @@ class TasksForCommonProjectStructure:
             shutil.copyfile(src_file_psw, trg_file_psw)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None)->None:
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None) -> None:
         """Expects a certificate-resource and generates a constant for its public information"""
         # codeunit_name = os.path.basename(codeunit_folder)
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{source_constant_name}.crt")
@@ -1605,7 +1600,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None)->None:
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None) -> None:
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         codeunit_name = os.path.basename(codeunit_folder)
         resource_name: str = "DevelopmentCertificate"
@@ -1622,7 +1617,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
 
     @GeneralUtilities.check_arguments
-    def generate_constant_from_resource_by_extension(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str)->None:
+    def generate_constant_from_resource_by_extension(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str) -> None:
         certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         resource_file = self.__sc.find_file_by_extension(certificate_resource_folder, extension)
         resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
@@ -2014,42 +2009,6 @@ class TasksForCommonProjectStructure:
         control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit_folder(codeunit_folder),
                                                                   installedsize, maintainername, maintaineremail, description)
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
-
-    @GeneralUtilities.check_arguments
-    def get_version_for_repository_in_commpon_projects_structure(self, repository_folder: str) -> str:
-       semver_version = self.__sc.get_semver_version_from_gitversion(repository_folder)
-       #if no tags available: return 0.1.0
-
-       try:#TODO refactor this
-           if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
-               if self.__sc.get_current_branch_has_tag(repository_folder):
-                   id_of_latest_tag = self.__sc.git_get_commitid_of_tag(repository_folder, self.__sc.get_latest_tag(repository_folder))
-                   current_commit = self.__sc.git_get_commit_id(repository_folder)
-                   current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
-                   if current_commit_is_on_latest_tag:
-                       result = self.__sc.increment_version(result, False, False, True)
-       except:  # Exceptions are thrown for example when no tags are available. but these cases should be ignored.
-           pass
-
-       version_increment_file=os.path.join(repository_folder,self.get_version_increment_filename())
-       update_kind="minor"
-       if os.path.isfile(version_increment_file):
-           file_content=GeneralUtilities.read_text_from_file(version_increment_file)
-           if file_content=="major":
-               update_kind==file_content
-           elif file_content=="minor":
-               update_kind==file_content
-           elif file_content=="patch":
-               update_kind==file_content
-           else:
-               raise ValueError(f'Unexpected content of {version_increment_file}. Only "major", "minor" and "patch" are allowed.')
-           # TODO implement using update_kind
-       return semver_version
-
-    @staticmethod
-    @GeneralUtilities.check_arguments
-    def is_patch_version(version_string: str) -> bool:
-        return not version_string.endswith(".0")
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
