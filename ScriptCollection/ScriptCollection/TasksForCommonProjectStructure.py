@@ -1103,11 +1103,15 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(repository_folder, source_branch)
         self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None)
         self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
-        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder,".VersionIncrement.txt"))
+        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder,self.get_version_increment_filename()))
         self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
         if fast_forward_source_branch:
             self.__sc.git_merge(repository_folder, target_branch, source_branch, True, True)
+
+    @GeneralUtilities.check_arguments
+    def get_version_increment_filename(self)->str:
+        return "VersionIncrement.txt"
 
     @GeneralUtilities.check_arguments
     def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfiguration):
@@ -2014,9 +2018,32 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_version_for_repository_in_commpon_projects_structure(self, repository_folder: str) -> str:
        semver_version = self.__sc.get_semver_version_from_gitversion(repository_folder)
-       version_increment_file=os.path.join(repository_folder,".VersionIncrement.txt")
+       #if no tags available: return 0.1.0
+
+       try:#TODO refactor this
+           if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+               if self.__sc.get_current_branch_has_tag(repository_folder):
+                   id_of_latest_tag = self.__sc.git_get_commitid_of_tag(repository_folder, self.__sc.get_latest_tag(repository_folder))
+                   current_commit = self.__sc.git_get_commit_id(repository_folder)
+                   current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
+                   if current_commit_is_on_latest_tag:
+                       result = self.__sc.increment_version(result, False, False, True)
+       except:  # Exceptions are thrown for example when no tags are available. but these cases should be ignored.
+           pass
+
+       version_increment_file=os.path.join(repository_folder,self.get_version_increment_filename())
+       update_kind="minor"
        if os.path.isfile(version_increment_file):
-           pass # TODO implement parsing of next_version_file-file
+           file_content=GeneralUtilities.read_text_from_file(version_increment_file)
+           if file_content=="major":
+               update_kind==file_content
+           elif file_content=="minor":
+               update_kind==file_content
+           elif file_content=="patch":
+               update_kind==file_content
+           else:
+               raise ValueError(f'Unexpected content of {version_increment_file}. Only "major", "minor" and "patch" are allowed.')
+           # TODO implement using update_kind
        return semver_version
 
     @staticmethod
