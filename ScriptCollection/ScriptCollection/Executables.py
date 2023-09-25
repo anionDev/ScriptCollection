@@ -287,6 +287,7 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--verbosity', required=False, default=1)
     parser.add_argument('--targetenvironment', required=False, default="Development")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
+    # TODO add option to not fail the pipeline due to runtestcases and linting if it's a patch (=if currentversion.patchnumber!=0)
     args = parser.parse_args()
     TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
     return 0

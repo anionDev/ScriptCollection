@@ -1703,6 +1703,10 @@ class TasksForCommonProjectStructure:
                                                  "--title", f"Release v{projectversion}"]+artifact_files, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
+    def update_dependencies_of_typical_flutter_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
+        pass#TODO
+
+    @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
         # TODO generalize and add option to ignore certain dependencies
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
@@ -1946,27 +1950,38 @@ class TasksForCommonProjectStructure:
                 raise ValueError("Can not download FFMPEG.")
 
     @GeneralUtilities.check_arguments
-    def __ensure_plant_uml_is_available(self, codeunit_folder: str) -> None:
-        plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
+    def ensure_plantuml_is_available(self, codeunit_folder: str) -> None:
+        self.ensure_file_from_github_assets_is_available(codeunit_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar",
+                                                  lambda latest_version: "plantuml.jar")
+
+    @GeneralUtilities.check_arguments
+    def ensure_androidappbundletool_is_available(self, codeunit_folder: str) -> None:
+        self.ensure_file_from_github_assets_is_available(codeunit_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar",
+                                                  lambda latest_version: f"bundletool-all-{latest_version}.jar")
+
+    @GeneralUtilities.check_arguments
+    def ensure_file_from_github_assets_is_available(self, codeunit_folder: str,githubuser:str,githubprojectname:str,resource_name:str,local_filename:str,get_filename_on_github) -> None:
+        resource_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
-        jar_file = f"{plant_uml_folder}/plantuml.jar"
-        plantuml_jar_file_exists = os.path.isfile(jar_file)
-        if internet_connection_is_available:  # Load/Update PlantUML
-            GeneralUtilities.ensure_directory_does_not_exist(plant_uml_folder)
-            GeneralUtilities.ensure_directory_exists(plant_uml_folder)
-            response = requests.get("https://api.github.com/repos/plantuml/plantuml/releases/latest", timeout=5)
+        file = f"{resource_folder}/{local_filename}"
+        file_exists = os.path.isfile(file)
+        if internet_connection_is_available:  # Load/Update
+            GeneralUtilities.ensure_directory_does_not_exist(resource_folder)
+            GeneralUtilities.ensure_directory_exists(resource_folder)
+            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest", timeout=5)
             latest_version = response.json()["name"]
-            jar_link = f"https://github.com/plantuml/plantuml/releases/download/{latest_version}/plantuml.jar"
-            urllib.request.urlretrieve(jar_link, jar_file)
+            filename_on_github=get_filename_on_github(latest_version)
+            jar_link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
+            urllib.request.urlretrieve(jar_link, file)
         else:
-            if plantuml_jar_file_exists:
-                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of PlantUML due to missing internet-connection.")
+            if file_exists:
+                GeneralUtilities.write_message_to_stdout(f"Warning: Can not check for updates of {resource_name} due to missing internet-connection.")
             else:
-                raise ValueError("Can not download PlantUML.")
+                raise ValueError(f"Can not download {resource_name}.")
 
     @GeneralUtilities.check_arguments
     def generate_svg_files_from_plantuml_files(self, codeunit_folder: str) -> None:
-        self.__ensure_plant_uml_is_available(codeunit_folder)
+        self.ensure_plantuml_is_available(codeunit_folder)
         plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
         files_folder = os.path.join(codeunit_folder, "Other/Reference")
         sc = ScriptCollectionCore()
