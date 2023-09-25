@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.24"
+version = "3.4.25"
 __version__ = version
 
 
@@ -324,9 +324,15 @@ class ScriptCollectionCore:
             self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_get_all_remote_names(self, directory) -> list[str]:
+    def git_get_all_remote_names(self, directory: str) -> list[str]:
         result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result
+
+    @GeneralUtilities.check_arguments
+    def git_get_remote_url(self, directory: str, remote_name: str) -> str:
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray(
+            "git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        return result[0].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
@@ -1490,18 +1496,20 @@ class ScriptCollectionCore:
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
         result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
 
-        try:
-            if self.git_repository_has_uncommitted_changes(repository_folder):
-                if self.get_current_branch_has_tag(repository_folder):
-                    id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
-                    current_commit = self.git_get_commit_id(repository_folder)
-                    current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
-                    if current_commit_is_on_latest_tag:
-                        result = self.increment_version(result, False, False, True)
-        except:  # Exceptions are thrown for example when no tags are available. but these cases should be ignored.
-            pass
+        if self.git_repository_has_uncommitted_changes(repository_folder):
+            if self.get_current_branch_has_tag(repository_folder):
+                id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
+                current_commit = self.git_get_commit_id(repository_folder)
+                current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
+                if current_commit_is_on_latest_tag:
+                    result = self.increment_version(result, False, False, True)
 
         return result
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def is_patch_version(version_string: str) -> bool:
+        return not version_string.endswith(".0")
 
     @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:

@@ -34,17 +34,22 @@ class CreateReleaseConfiguration():
     public_repository_url: str
     additional_arguments_file: str = None
     repository_folder_name: str = None
+    __sc: ScriptCollectionCore = None
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str,
-                 verbosity: int, public_repository_url: str, additional_arguments_file: str,
+                 verbosity: int, repository_folder: str, additional_arguments_file: str,
                  repository_folder_name: str):
 
+        self.__sc = ScriptCollectionCore()
         self.projectname = projectname
         self.remotename = remotename
         self.artifacts_folder = build_artifacts_target_folder
         self.push_artifacts_scripts_folder = push_artifacts_scripts_folder
         self.verbosity = verbosity
-        self.public_repository_url = public_repository_url
+        if self.remotename is None:
+            self.public_repository_url = None
+        else:
+            self.public_repository_url = self.__sc.git_get_remote_url(repository_folder, remotename)
         self.reference_repository_remote_name = self.remotename
         self.additional_arguments_file = additional_arguments_file
         self.repository_folder_name = repository_folder_name
@@ -171,7 +176,7 @@ class TasksForCommonProjectStructure:
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str):
+    def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str) -> None:
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         if len(root.xpath('//coverage/packages/package')) != 1:
             raise ValueError(f"'{testcoverage_file_in_cobertura_format}' must contain exactly 1 package.")
@@ -191,7 +196,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
     @GeneralUtilities.check_arguments
-    def replace_version_in_python_file(self, file: str, new_version_value: str):
+    def replace_version_in_python_file(self, file: str, new_version_value: str) -> None:
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
@@ -212,7 +217,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_python_codeunit(self, run_testcases_file: str, generate_badges: bool, verbosity: int,
-                                                             targetenvironmenttype: str, commandline_arguments: list[str]):
+                                                             targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         codeunitname: str = Path(os.path.dirname(run_testcases_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
@@ -226,7 +231,7 @@ class TasksForCommonProjectStructure:
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
-    def copy_source_files_to_output_directory(self, buildscript_file: str):
+    def copy_source_files_to_output_directory(self, buildscript_file: str) -> None:
         sc = ScriptCollectionCore()
         folder = os.path.dirname(os.path.realpath(buildscript_file))
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", folder)
@@ -244,7 +249,7 @@ class TasksForCommonProjectStructure:
                 shutil.copyfile(full_source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
+    def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         self.copy_source_files_to_output_directory(buildscript_file)
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -257,7 +262,7 @@ class TasksForCommonProjectStructure:
         self.generate_bom_for_python_project(verbosity, codeunit_folder, codeunitname, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def generate_bom_for_python_project(self, verbosity: int, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]):
+    def generate_bom_for_python_project(self, verbosity: int, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         codeunitversion = self.get_version_of_codeunit_folder(codeunit_folder)
         bom_folder = "Other/Artifacts/BOM"
@@ -368,7 +373,7 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],  default_value: dict[str, str]) -> dict[str, str]():
+    def get_filestosign_from_commandline_arguments(commandline_arguments: list[str],  default_value: dict[str, str]) -> dict[str, str]:
         result_plain = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "sign")
         if result_plain is None:
             return default_value
@@ -574,7 +579,8 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str,
                                                     verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str],
-                                                    copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]):
+                                                    copy_license_file_to_target_folder: bool, repository_folder: str,
+                                                    codeunit_name: str, commandline_arguments: list[str]) -> None:
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
@@ -612,7 +618,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str,
-                                                    target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]):
+                                                    target_environmenttype_mapping:  dict[str, str], runtimes: list[str],
+                                                    verbosity: int, commandline_arguments: list[str]) -> None:
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
@@ -623,7 +630,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_library_project(self, buildscript_file: str, default_target_environmenttype: str,
                                                             target_environmenttype_mapping:  dict[str, str], runtimes: list[str],
-                                                            verbosity: int, commandline_arguments: list[str]):
+                                                            verbosity: int, commandline_arguments: list[str]) -> None:
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe or dll and converts it to a nupkg-file
 
@@ -665,7 +672,7 @@ class TasksForCommonProjectStructure:
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]):
+    def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]) -> None:
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
@@ -695,7 +702,7 @@ class TasksForCommonProjectStructure:
         os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_python_codeunit(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
+    def standardized_tasks_linting_for_python_codeunit(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
@@ -720,7 +727,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str,
-                                                    commandline_arguments: list[str], add_testcoverage_history_entry: bool = None):
+                                                    commandline_arguments: list[str], add_testcoverage_history_entry: bool = None) -> None:
         """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverageReport'.
@@ -767,7 +774,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
-                                                            target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]):
+                                                            target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]) -> None:
         dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -789,13 +796,13 @@ class TasksForCommonProjectStructure:
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def __update_filepaths_in_testcoverage_file(self, testcoverage_file: str):
+    def __update_filepaths_in_testcoverage_file(self, testcoverage_file: str) -> None:
         result = re.sub('filename="([^"]+)"', TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper,
                         GeneralUtilities.read_text_from_file(testcoverage_file))
         GeneralUtilities.write_text_to_file(testcoverage_file, result)
 
     @staticmethod
-    def __update_filepaths_in_testcoverage_file_helper(matchobj):
+    def __update_filepaths_in_testcoverage_file_helper(matchobj) -> None:
         filename = matchobj.group(1)
         path = Path(filename)
         correct_paths = path.parts[3:]
@@ -804,14 +811,14 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
-                                       targetenvironmenttype: str, commandline_arguments: list[str]):
+                                       targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         self.update_path_of_source(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
 
-    def __remove_unrelated_package_from_testcoverage_file(self, file: str, codeunit_name: str):
+    def __remove_unrelated_package_from_testcoverage_file(self, file: str, codeunit_name: str) -> None:
         root: etree._ElementTree = etree.parse(file)
         packages = root.xpath('//coverage/packages/package')
         for package in packages:
@@ -832,7 +839,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'.")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_dotnet_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]):
+    def standardized_tasks_linting_for_dotnet_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO check if there are errors in sarif-file
 
@@ -1190,7 +1197,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str,
-                                                    verbosity: int, commandline_arguments: list[str]):
+                                                    verbosity: int, commandline_arguments: list[str]) -> None:
         self.copy_source_files_to_output_directory(build_script_file)
         use_cache: bool = target_environment_type != "Productive"
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -1229,7 +1236,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, project_name: str, codeunitname: str,
-                                   verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str):
+                                   verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
@@ -1267,14 +1274,14 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO check if there are errors in sarif-file
 
-    def copy_licence_file(self, common_tasks_scripts_file: str):
+    def copy_licence_file(self, common_tasks_scripts_file: str) -> None:
         folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
         license_file = GeneralUtilities.resolve_relative_path("../../License.txt", folder_of_current_file)
         target_folder = GeneralUtilities.resolve_relative_path("Artifacts/License", folder_of_current_file)
         GeneralUtilities.ensure_directory_exists(target_folder)
         shutil.copy(license_file, target_folder)
 
-    def take_readmefile_from_main_readmefile_of_repository(self, common_tasks_scripts_file: str):
+    def take_readmefile_from_main_readmefile_of_repository(self, common_tasks_scripts_file: str) -> None:
         folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
         source_file = GeneralUtilities.resolve_relative_path("../../ReadMe.md", folder_of_current_file)
         target_file = GeneralUtilities.resolve_relative_path("../ReadMe.md", folder_of_current_file)
@@ -1396,7 +1403,7 @@ class TasksForCommonProjectStructure:
         self.generate_diff_report(repository_folder, codeunit_name, codeunit_version)
 
     @GeneralUtilities.check_arguments
-    def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str):
+    def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str) -> None:
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DiffReport", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
@@ -1415,11 +1422,11 @@ class TasksForCommonProjectStructure:
                    f'pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark'], repository_folder)
 
     @GeneralUtilities.check_arguments
-    def get_version_of_project(self, repository_folder: str):
+    def get_version_of_project(self, repository_folder: str) -> str:
         return ScriptCollectionCore().get_semver_version_from_gitversion(repository_folder)
 
     @GeneralUtilities.check_arguments
-    def replace_common_variables_in_nuspec_file(self, codeunit_folder: str):
+    def replace_common_variables_in_nuspec_file(self, codeunit_folder: str) -> None:
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         nuspec_file = os.path.join(codeunit_folder, "Other", "Build", f"{codeunit_name}.nuspec")
@@ -1427,7 +1434,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_angular_codeunit(self, build_script_file: str, build_environment_target_type: str,
-                                                      verbosity: int, commandline_arguments: list[str]):
+                                                      verbosity: int, commandline_arguments: list[str]) -> None:
         self.copy_source_files_to_output_directory(build_script_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(build_script_file)
@@ -1436,13 +1443,13 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_build_bom_for_node_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]):
+    def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         # TODO
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int,
-                                                        build_environment_target_type: str, commandline_arguments: list[str]):
+                                                        build_environment_target_type: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
@@ -1452,7 +1459,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str,
                                                               build_environment_target_type: str, generate_badges: bool, verbosity: int,
-                                                              commandline_arguments: list[str]):
+                                                              commandline_arguments: list[str]) -> None:
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
@@ -1467,7 +1474,7 @@ class TasksForCommonProjectStructure:
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def __rename_packagename_in_coverage_file(self, file: str, codeunit_name: str):
+    def __rename_packagename_in_coverage_file(self, file: str, codeunit_name: str) -> None:
         root: etree._ElementTree = etree.parse(file)
         packages = root.xpath('//coverage/packages/package')
         for package in packages:
@@ -1476,44 +1483,44 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str, verbosity: int):
+    def do_npm_install(self, package_json_folder: str, verbosity: int) -> None:
         self.run_with_epew("npm", "install", package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def run_with_epew(self, program: str, argument: str, working_directory: str, verbosity: int):
+    def run_with_epew(self, program: str, argument: str, working_directory: str, verbosity: int) -> None:
         sc: ScriptCollectionCore = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
         sc.run_program(program, argument, working_directory, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def set_default_constants(self, codeunit_folder: str):
+    def set_default_constants(self, codeunit_folder: str) -> None:
         self.set_constant_for_commitid(codeunit_folder)
         self.set_constant_for_commitdate(codeunit_folder)
         self.set_constant_for_commitname(codeunit_folder)
         self.set_constant_for_commitversion(codeunit_folder)
 
     @GeneralUtilities.check_arguments
-    def set_constant_for_commitid(self, codeunit_folder: str):
+    def set_constant_for_commitid(self, codeunit_folder: str) -> None:
         commit_id = self.__sc.git_get_commit_id(codeunit_folder)
         self.set_constant(codeunit_folder, "CommitId", commit_id)
 
     @GeneralUtilities.check_arguments
-    def set_constant_for_commitdate(self, codeunit_folder: str):
+    def set_constant_for_commitdate(self, codeunit_folder: str) -> None:
         commit_date: datetime = self.__sc.git_get_commit_date(codeunit_folder)
         self.set_constant(codeunit_folder, "CommitDate", GeneralUtilities.datetime_to_string(commit_date))
 
     @GeneralUtilities.check_arguments
-    def set_constant_for_commitname(self, codeunit_folder: str):
+    def set_constant_for_commitname(self, codeunit_folder: str) -> None:
         codeunit_name: str = os.path.basename(codeunit_folder)
         self.set_constant(codeunit_folder, "CodeUnitName", codeunit_name)
 
     @GeneralUtilities.check_arguments
-    def set_constant_for_commitversion(self, codeunit_folder: str):
+    def set_constant_for_commitversion(self, codeunit_folder: str) -> None:
         codeunit_version: str = self.get_version_of_codeunit_folder(codeunit_folder)
         self.set_constant(codeunit_folder, "CodeUnitVersion", codeunit_version)
 
     @GeneralUtilities.check_arguments
-    def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None):
+    def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None) -> None:
         if documentationsummary is None:
             documentationsummary = ""
         constants_folder = os.path.join(codeunit_folder, "Other", "Resources", "Constants")
@@ -1564,7 +1571,7 @@ class TasksForCommonProjectStructure:
             raise ValueError("Too many results found.")
 
     def copy_development_certificate_to_default_development_directory(self, codeunit_folder: str, build_environment: str, domain: str = None,
-                                                                      certificate_resource_name: str = "DevelopmentCertificate"):
+                                                                      certificate_resource_name: str = "DevelopmentCertificate") -> None:
         if build_environment == "Development":
             codeunit_name: str = os.path.basename(codeunit_folder)
             if domain is None:
@@ -1583,7 +1590,7 @@ class TasksForCommonProjectStructure:
             shutil.copyfile(src_file_psw, trg_file_psw)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None):
+    def set_constants_for_certificate_public_information(self, codeunit_folder: str, source_constant_name: str = "DevelopmentCertificate", domain: str = None) -> None:
         """Expects a certificate-resource and generates a constant for its public information"""
         # codeunit_name = os.path.basename(codeunit_folder)
         certificate_file = os.path.join(codeunit_folder, "Other", "Resources", source_constant_name, f"{source_constant_name}.crt")
@@ -1593,7 +1600,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None):
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None) -> None:
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         codeunit_name = os.path.basename(codeunit_folder)
         resource_name: str = "DevelopmentCertificate"
@@ -1602,7 +1609,7 @@ class TasksForCommonProjectStructure:
         self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.password", "Password")
 
     @GeneralUtilities.check_arguments
-    def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str):
+    def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str) -> None:
         certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         resource_file = os.path.join(certificate_resource_folder, filename)
         resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
@@ -1610,7 +1617,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
 
     @GeneralUtilities.check_arguments
-    def generate_constant_from_resource_by_extension(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str):
+    def generate_constant_from_resource_by_extension(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str) -> None:
         certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         resource_file = self.__sc.find_file_by_extension(certificate_resource_folder, extension)
         resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
@@ -1618,14 +1625,14 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
 
     @GeneralUtilities.check_arguments
-    def copy_constant_from_dependent_codeunit(self, codeunit_folder: str, constant_name: str, source_codeunit_name: str):
+    def copy_constant_from_dependent_codeunit(self, codeunit_folder: str, constant_name: str, source_codeunit_name: str) -> None:
         source_codeunit_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}", codeunit_folder)
         value = self.get_constant_value(source_codeunit_folder, constant_name)
         documentation = self.get_constant_documentation(source_codeunit_folder, constant_name)
         self.set_constant(codeunit_folder, constant_name, value, documentation)
 
     @GeneralUtilities.check_arguments
-    def copy_resources_from_dependent_codeunit(self, codeunit_folder: str, resource_name: str, source_codeunit_name: str):
+    def copy_resources_from_dependent_codeunit(self, codeunit_folder: str, resource_name: str, source_codeunit_name: str) -> None:
         source_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}/Other/Resources/{resource_name}", codeunit_folder)
         target_folder: str = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
@@ -1645,7 +1652,7 @@ class TasksForCommonProjectStructure:
                               artifacts_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str):
+    def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str) -> None:
         encoding = "utf-8"
         with open(packagejson_file, encoding=encoding) as f:
             data = json.load(f)
@@ -1684,7 +1691,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str,
-                           verbosity: int, commandline_arguments: list[str]):
+                           verbosity: int, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         github_repo = f"{github_username}/{productname}"
         artifact_files = []
@@ -1696,7 +1703,7 @@ class TasksForCommonProjectStructure:
                                                  "--title", f"Release v{projectversion}"]+artifact_files, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+    def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
         # TODO generalize and add option to ignore certain dependencies
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
@@ -1706,7 +1713,7 @@ class TasksForCommonProjectStructure:
             self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file, verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+    def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
         # TODO generalize and add option to ignore certain dependencies
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
@@ -1721,11 +1728,11 @@ class TasksForCommonProjectStructure:
         self.__sc.update_dependencies_of_dotnet_project(test_csproj_file, verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]):
+    def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
         pass  # TODO generalize and add option to ignore certain dependencies
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version):
+    def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version) -> None:
         folder_of_current_file = os.path.dirname(file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", folder_of_current_file)
         codeunit_name = os.path.basename(codeunit_folder)
@@ -1739,7 +1746,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
-    def run_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]):
+    def run_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         folder = os.path.dirname(current_file)
         example_name = os.path.basename(folder)
@@ -1845,26 +1852,26 @@ class TasksForCommonProjectStructure:
                 shutil.move(archive_file, target_folder)
 
     @GeneralUtilities.check_arguments
-    def __do_repository_checks(self, repository_folder: str, project_version: str):
+    def __do_repository_checks(self, repository_folder: str, project_version: str) -> None:
         self.__check_if_changelog_exists(repository_folder, project_version)
         self.__check_whether_security_txt_exists(repository_folder)
 
     @GeneralUtilities.check_arguments
-    def __check_whether_security_txt_exists(self, repository_folder: str):
+    def __check_whether_security_txt_exists(self, repository_folder: str) -> None:
         security_txt_file_relative = ".well-known/security.txt"
         security_txt_file = GeneralUtilities.resolve_relative_path(security_txt_file_relative, repository_folder)
         if not os.path.isfile(security_txt_file):
             raise ValueError(f"The repository does not contain a '{security_txt_file_relative}'-file. See https://securitytxt.org/ for more information.")
 
     @GeneralUtilities.check_arguments
-    def __check_if_changelog_exists(self, repository_folder: str, project_version: str):
+    def __check_if_changelog_exists(self, repository_folder: str, project_version: str) -> None:
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
         changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
         if not os.path.isfile(changelog_file):
             raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
 
     @GeneralUtilities.check_arguments
-    def update_dependency_in_resources_folder(self, update_dependencies_file, dependency_name: str, latest_version_function: str):
+    def update_dependency_in_resources_folder(self, update_dependencies_file, dependency_name: str, latest_version_function: str) -> None:
         dependency_folder = GeneralUtilities.resolve_relative_path(f"../Resources/Dependencies/{dependency_name}", update_dependencies_file)
         version_file = os.path.join(dependency_folder, "Version.txt")
         version_file_exists = os.path.isfile(version_file)
@@ -1881,7 +1888,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_text_to_file(version_file, latest_version_function)
 
     @GeneralUtilities.check_arguments
-    def __ensure_grylibrary_is_available(self, codeunit_folder: str):
+    def __ensure_grylibrary_is_available(self, codeunit_folder: str) -> None:
         grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
