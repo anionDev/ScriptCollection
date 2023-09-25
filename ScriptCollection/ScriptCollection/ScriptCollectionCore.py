@@ -332,7 +332,7 @@ class ScriptCollectionCore:
     def git_get_remote_url(self, directory: str, remote_name: str) -> str:
         result = GeneralUtilities.string_to_lines(self.run_program_argsasarray(
             "git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
-        return result[1].replace('\n', '')
+        return result[0].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
