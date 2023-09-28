@@ -231,6 +231,7 @@ class TasksForCommonProjectStructure:
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.run_testcases_common_post_task(repository_folder, codeunitname, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
+    @GeneralUtilities.check_arguments
     def copy_source_files_to_output_directory(self, buildscript_file: str) -> None:
         sc = ScriptCollectionCore()
         folder = os.path.dirname(os.path.realpath(buildscript_file))
@@ -247,6 +248,50 @@ class TasksForCommonProjectStructure:
                 target_folder = os.path.dirname(target_file)
                 GeneralUtilities.ensure_directory_exists(target_folder)
                 shutil.copyfile(full_source_file, target_file)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_dart_project_in_common_project_structure(self,script_file: str, default_verbosity: int, targets: list[str], args: list[str]):
+        codeunit_folder=GeneralUtilities.resolve_relative_path("../../..",script_file)
+        codeunit_name = os.path.basename(codeunit_folder)
+        src_folder=GeneralUtilities.resolve_relative_path("sce_client",codeunit_folder)#TODO replace packagename
+        artifacts_folder=os.path.join(codeunit_folder,"Other","Artifacts")
+        for target in targets:
+            self.__sc.run_program("flutter", f"build {target}", src_folder)
+            if target == "web":
+                web_relase_folder=os.path.join(src_folder,"build/web")
+                web_folder= os.path.join( artifacts_folder,"BuildResult_WebApplication")
+                GeneralUtilities.ensure_directory_does_not_exist(web_folder)
+                GeneralUtilities.ensure_directory_exists(web_folder)
+                GeneralUtilities.copy_content_of_folder(web_relase_folder, web_folder)
+            elif target == "windows":
+                windows_relase_folder=os.path.join(src_folder,"build/windows/runner/Release")
+                windows_folder= os.path.join( artifacts_folder,"BuildResult_Windows")
+                GeneralUtilities.ensure_directory_does_not_exist(windows_folder)
+                GeneralUtilities.ensure_directory_exists(windows_folder)
+                GeneralUtilities.copy_content_of_folder(windows_relase_folder, windows_folder)
+            elif target == "ios":
+                pass  # TODO copy to targetfolder
+            elif target == "appbundle":
+                aab_folder= os.path.join( artifacts_folder,"BuildResult_AAB")
+                GeneralUtilities.ensure_directory_does_not_exist(aab_folder)
+                GeneralUtilities.ensure_directory_exists(aab_folder)
+                aab_relase_folder=os.path.join(src_folder,"build/app/outputs/bundle/release")
+                aab_file_original=self.__sc.find_file_by_extension(aab_relase_folder,"aab")
+                aab_file=os.path.join(aab_folder,f"{codeunit_name}.aab")
+                shutil.copyfile(aab_file_original, aab_file)
+                bundletool=os.path.join(codeunit_folder,"Other/Resources/AndroidAppBundleTool/bundletool.jar")
+                apk_folder= os.path.join( artifacts_folder,"BuildResult_APK")
+                GeneralUtilities.ensure_directory_does_not_exist(apk_folder)
+                GeneralUtilities.ensure_directory_exists(apk_folder)
+                apks_file=f"{apk_folder}/{codeunit_name}.apks"
+                self.__sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder)
+                with zipfile.ZipFile(apks_file, "r") as zip_ref:
+                    zip_ref.extract("universal.apk", apk_folder)
+                GeneralUtilities.ensure_file_does_not_exist(apks_file)
+                os.rename(f"{apk_folder}/universal.apk", f"{apk_folder}/{codeunit_name}.apk")
+            else:
+                raise ValueError(f"Not supported target: {target}")
+
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -700,6 +745,10 @@ class TasksForCommonProjectStructure:
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
         os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self,script_file: str, default_verbosity: int, args: list[str]):
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_python_codeunit(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -1457,6 +1506,12 @@ class TasksForCommonProjectStructure:
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
+    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self,script_file: str, default_verbosity: int, args: list[str]):
+        src_folder=GeneralUtilities.resolve_relative_path("../../sce_client",script_file)
+        ScriptCollectionCore().run_program("flutter", "test", src_folder)
+
+
+    @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str,
                                                               build_environment_target_type: str, generate_badges: bool, verbosity: int,
                                                               commandline_arguments: list[str]) -> None:
@@ -1708,7 +1763,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
-        # TODO generalize and add option to ignore certain dependencies
+        # TODO generalize and add option to ignore certain dependencies and to only update patch-versions
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         self.__sc.update_dependencies_of_python_in_setupcfg_file(os.path.join(codeunit_folder, "setup.cfg"), verbosity)
