@@ -2011,6 +2011,15 @@ class TasksForCommonProjectStructure:
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
 
     @GeneralUtilities.check_arguments
+    def repository_has_codeunits(self, repository: str) -> bool:
+        for subfolder in GeneralUtilities.get_direct_folders_of_folder(repository):
+            codeunit_name = os.path.basename(subfolder)
+            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
+            if os.path.isfile(codeunit_file):
+                return True
+        return False
+
+    @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
         codeunit_name: str = os.path.basename(codeunit_folder)
         artifacts_folder = os.path.join(codeunit_folder, "Other/Artifacts")
