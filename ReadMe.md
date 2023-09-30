@@ -7,7 +7,7 @@
 
 ## General
 
-The ScriptCollection is the place for reusable scripts.
+ScriptCollection is the place for reusable scripts.
 The details can be found [here](https://github.com/anionDev/ScriptCollection/tree/main/ScriptCollection).
 
 ## License
