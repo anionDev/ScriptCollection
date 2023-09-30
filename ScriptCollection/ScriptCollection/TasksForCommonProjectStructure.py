@@ -148,32 +148,39 @@ class TasksForCommonProjectStructure:
                                                              "BuildResult_Wheel"), "whl")
 
     @GeneralUtilities.check_arguments
-    def get_testcoverage_threshold_from_codeunit_file(self, codeunit_file):
+    def get_testcoverage_threshold_from_codeunit_file(self, codeunit_file: str):
         root: etree._ElementTree = etree.parse(codeunit_file)
         return float(str(root.xpath('//cps:minimalcodecoverageinpercent/text()', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def codeunit_has_testable_sourcecode(self, codeunit_file) -> bool:
+    def codeunit_has_testable_sourcecode(self, codeunit_file: str) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithastestablesourcecode', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def codeunit_throws_exception_if_codeunitfile_is_not_validatable(self, codeunit_file) -> bool:
+    def codeunit_throws_exception_if_codeunitfile_is_not_validatable(self, codeunit_file: str) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@throwexceptionifcodeunitfilecannotbevalidated', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def codeunit_has_updatable_dependencies(self, codeunit_file) -> bool:
+    def codeunit_has_updatable_dependencies(self, codeunit_file: str) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithasupdatabledependencies', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
+
+    @GeneralUtilities.check_arguments
+    def get_codeunit_description(self, codeunit_file:str) -> bool:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return str(root.xpath('//cps:properties/@description', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0])
 
     @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str) -> None:
@@ -483,7 +490,7 @@ class TasksForCommonProjectStructure:
 
         project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_name, codeunit_version):
+        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file,codeunit_folder, codeunit_name, codeunit_version):
             raise ValueError(csproj_file+message)
 
         testproject_name = project_name+"Tests"
@@ -491,9 +498,12 @@ class TasksForCommonProjectStructure:
         if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version):
             raise ValueError(test_csproj_file+message)
 
-    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder:str, codeunit_name: str, codeunit_version: str) -> bool:
         codeunit_name_regex = re.escape(codeunit_name)
+        codeunit_file=os.path.join(codeunit_folder,codeunit_name,f"{codeunit_name}.codeunit.xml")
+        codeunit_description=self.get_codeunit_description(codeunit_file)
         codeunit_version_regex = re.escape(codeunit_version)
+        codeunit_description_regex = re.escape(codeunit_description)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
     <PropertyGroup>
         <TargetFramework>([^<]+)<\\/TargetFramework>
@@ -506,7 +516,7 @@ class TasksForCommonProjectStructure:
         <PreserveCompilationContext>false<\\/PreserveCompilationContext>
         <GenerateRuntimeConfigurationFiles>true<\\/GenerateRuntimeConfigurationFiles>
         <Copyright>([^<]+)<\\/Copyright>
-        <Description>([^<]+)<\\/Description>
+        <Description>{codeunit_description_regex}<\\/Description>
         <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
         <RepositoryUrl>https:\\/\\/([^<]+)<\\/RepositoryUrl>
         <RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
@@ -747,7 +757,7 @@ class TasksForCommonProjectStructure:
         os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self,script_file: str, default_verbosity: int, args: list[str]):
+    def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: int, args: list[str]):
         pass  # TODO
 
     @GeneralUtilities.check_arguments
@@ -867,6 +877,7 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
 
+    @GeneralUtilities.check_arguments
     def __remove_unrelated_package_from_testcoverage_file(self, file: str, codeunit_name: str) -> None:
         root: etree._ElementTree = etree.parse(file)
         packages = root.xpath('//coverage/packages/package')
@@ -1129,13 +1140,25 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
     @GeneralUtilities.check_arguments
-    def get_codeunits(self, repository_folder: str) -> list[str]:
+    def get_codeunits(self, repository_folder: str,ignore_disabled_codeunits:bool=True) -> list[str]:
         result: list[str] = []
         for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
             subfoldername = os.path.basename(direct_subfolder)
-            if os.path.isfile(os.path.join(direct_subfolder, f"{subfoldername}.codeunit.xml")):
-                result.append(subfoldername)
+            codeunit_file = os.path.join(direct_subfolder, f"{subfoldername}.codeunit.xml")
+            if os.path.isfile(codeunit_file):
+                if (ignore_disabled_codeunits):
+                    if(self.codeunit_is_enabled(codeunit_file)):
+                        result.append(subfoldername)
+                else:
+                    result.append(subfoldername)
         return result
+
+    @GeneralUtilities.check_arguments
+    def codeunit_is_enabled(self, codeunit_file: str) -> bool:
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//@enabled', namespaces={
+            'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
+        })[0]))
 
     @GeneralUtilities.check_arguments
     def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release",
@@ -1323,6 +1346,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO check if there are errors in sarif-file
 
+    @GeneralUtilities.check_arguments
     def copy_licence_file(self, common_tasks_scripts_file: str) -> None:
         folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
         license_file = GeneralUtilities.resolve_relative_path("../../License.txt", folder_of_current_file)
@@ -1330,6 +1354,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_folder)
         shutil.copy(license_file, target_folder)
 
+    @GeneralUtilities.check_arguments
     def take_readmefile_from_main_readmefile_of_repository(self, common_tasks_scripts_file: str) -> None:
         folder_of_current_file = os.path.dirname(common_tasks_scripts_file)
         source_file = GeneralUtilities.resolve_relative_path("../../ReadMe.md", folder_of_current_file)
@@ -1625,6 +1650,7 @@ class TasksForCommonProjectStructure:
         else:
             raise ValueError("Too many results found.")
 
+    @GeneralUtilities.check_arguments
     def copy_development_certificate_to_default_development_directory(self, codeunit_folder: str, build_environment: str, domain: str = None,
                                                                       certificate_resource_name: str = "DevelopmentCertificate") -> None:
         if build_environment == "Development":
@@ -1853,7 +1879,7 @@ class TasksForCommonProjectStructure:
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                         is_pre_merge: bool = False, export_target_directory: str = None) -> None:
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
-        codeunits = self.get_codeunits(repository_folder)
+        codeunits = self.get_codeunits(repository_folder, False)
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
 
     @GeneralUtilities.check_arguments
@@ -2081,13 +2107,8 @@ class TasksForCommonProjectStructure:
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
 
     @GeneralUtilities.check_arguments
-    def repository_has_codeunits(self, repository: str) -> bool:
-        for subfolder in GeneralUtilities.get_direct_folders_of_folder(repository):
-            codeunit_name = os.path.basename(subfolder)
-            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
-            if os.path.isfile(codeunit_file):
-                return True
-        return False
+    def repository_has_codeunits(self, repository: str,ignore_disabled_codeunits:bool=True) -> bool:
+        return len(self.get_codeunits(repository,ignore_disabled_codeunits))
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
@@ -2114,8 +2135,14 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
+
         if (not os.path.isfile(codeunit_file)):
             raise ValueError(f'"{codeunit_folder}" is no codeunit-folder.')
+
+        if not self.codeunit_is_enabled(codeunit_file):
+            GeneralUtilities.write_message_to_stdout(f"Warning: Codeunit {codeunit_name} is disabled.")
+            return
+
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {target_environmenttype}")
