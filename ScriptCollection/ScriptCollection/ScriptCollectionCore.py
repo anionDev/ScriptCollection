@@ -1642,12 +1642,11 @@ DNS                 = {domain}
                 self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)
 
     @GeneralUtilities.check_arguments
-    def create_deb_package(self, codeunit_name: str, binary_folder: str, control_file_content: str,
+    def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str,
                            deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
 
         # prepare
         GeneralUtilities.ensure_directory_exists(deb_output_folder)
-        toolname = codeunit_name
         temp_folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
         GeneralUtilities.ensure_directory_exists(temp_folder)
         bin_folder = binary_folder
