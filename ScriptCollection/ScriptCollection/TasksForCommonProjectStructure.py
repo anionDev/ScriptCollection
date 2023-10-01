@@ -499,7 +499,7 @@ class TasksForCommonProjectStructure:
 
     def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> bool:
         codeunit_name_regex = re.escape(codeunit_name)
-        codeunit_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.codeunit.xml")
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         codeunit_description = self.get_codeunit_description(codeunit_file)
         codeunit_version_regex = re.escape(codeunit_version)
         codeunit_description_regex = re.escape(codeunit_description)
