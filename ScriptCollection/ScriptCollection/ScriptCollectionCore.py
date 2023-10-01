@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.29"
+version = "3.4.30"
 __version__ = version
 
 
@@ -124,7 +124,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def dotnet_sign(self, dll_or_exe_file: str, snk_file: str, verbosity: int) -> None:
-        enabled=False
+        enabled = False
         if not enabled:
             GeneralUtilities.write_message_to_stderr("Warning: Signing .NET-files is currently disabled.")
             return

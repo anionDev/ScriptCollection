@@ -176,7 +176,7 @@ class TasksForCommonProjectStructure:
         })[0]))
 
     @GeneralUtilities.check_arguments
-    def get_codeunit_description(self, codeunit_file:str) -> bool:
+    def get_codeunit_description(self, codeunit_file: str) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
         return str(root.xpath('//cps:properties/@description', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
@@ -489,7 +489,7 @@ class TasksForCommonProjectStructure:
 
         project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file,codeunit_folder, codeunit_name, codeunit_version):
+        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version):
             raise ValueError(csproj_file+message)
 
         testproject_name = project_name+"Tests"
@@ -497,10 +497,10 @@ class TasksForCommonProjectStructure:
         if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version):
             raise ValueError(test_csproj_file+message)
 
-    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder:str, codeunit_name: str, codeunit_version: str) -> bool:
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> bool:
         codeunit_name_regex = re.escape(codeunit_name)
-        codeunit_file=os.path.join(codeunit_folder,codeunit_name,f"{codeunit_name}.codeunit.xml")
-        codeunit_description=self.get_codeunit_description(codeunit_file)
+        codeunit_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.codeunit.xml")
+        codeunit_description = self.get_codeunit_description(codeunit_file)
         codeunit_version_regex = re.escape(codeunit_version)
         codeunit_description_regex = re.escape(codeunit_description)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
@@ -1139,14 +1139,14 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
     @GeneralUtilities.check_arguments
-    def get_codeunits(self, repository_folder: str,ignore_disabled_codeunits:bool=True) -> list[str]:
+    def get_codeunits(self, repository_folder: str, ignore_disabled_codeunits: bool = True) -> list[str]:
         result: list[str] = []
         for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
             subfoldername = os.path.basename(direct_subfolder)
             codeunit_file = os.path.join(direct_subfolder, f"{subfoldername}.codeunit.xml")
             if os.path.isfile(codeunit_file):
                 if (ignore_disabled_codeunits):
-                    if(self.codeunit_is_enabled(codeunit_file)):
+                    if (self.codeunit_is_enabled(codeunit_file)):
                         result.append(subfoldername)
                 else:
                     result.append(subfoldername)
@@ -1155,7 +1155,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def codeunit_is_enabled(self, codeunit_file: str) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return GeneralUtilities.string_to_boolean(str(root.xpath('//@enabled', namespaces={
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:codeunit/@enabled', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
@@ -2105,8 +2105,8 @@ class TasksForCommonProjectStructure:
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
 
     @GeneralUtilities.check_arguments
-    def repository_has_codeunits(self, repository: str,ignore_disabled_codeunits:bool=True) -> bool:
-        return len(self.get_codeunits(repository,ignore_disabled_codeunits))
+    def repository_has_codeunits(self, repository: str, ignore_disabled_codeunits: bool = True) -> bool:
+        return len(self.get_codeunits(repository, ignore_disabled_codeunits))
 
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
