@@ -150,7 +150,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_testcoverage_threshold_from_codeunit_file(self, codeunit_file: str):
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return float(str(root.xpath('//cps:minimalcodecoverageinpercent/text()', namespaces={
+        return float(str(root.xpath('//cps:properties/cps:testsettings/@minimalcodecoverageinpercent', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         })[0]))
 
@@ -257,40 +257,40 @@ class TasksForCommonProjectStructure:
                 shutil.copyfile(full_source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dart_project_in_common_project_structure(self,script_file: str, default_verbosity: int, targets: list[str], args: list[str]):
-        codeunit_folder=GeneralUtilities.resolve_relative_path("../../..",script_file)
+    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, script_file: str, default_verbosity: int, targets: list[str], args: list[str]):
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", script_file)
         codeunit_name = os.path.basename(codeunit_folder)
-        src_folder=GeneralUtilities.resolve_relative_path("sce_client",codeunit_folder)#TODO replace packagename
-        artifacts_folder=os.path.join(codeunit_folder,"Other","Artifacts")
+        src_folder = GeneralUtilities.resolve_relative_path("sce_client", codeunit_folder)  # TODO replace packagename
+        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         for target in targets:
             self.__sc.run_program("flutter", f"build {target}", src_folder)
             if target == "web":
-                web_relase_folder=os.path.join(src_folder,"build/web")
-                web_folder= os.path.join( artifacts_folder,"BuildResult_WebApplication")
+                web_relase_folder = os.path.join(src_folder, "build/web")
+                web_folder = os.path.join(artifacts_folder, "BuildResult_WebApplication")
                 GeneralUtilities.ensure_directory_does_not_exist(web_folder)
                 GeneralUtilities.ensure_directory_exists(web_folder)
                 GeneralUtilities.copy_content_of_folder(web_relase_folder, web_folder)
             elif target == "windows":
-                windows_relase_folder=os.path.join(src_folder,"build/windows/runner/Release")
-                windows_folder= os.path.join( artifacts_folder,"BuildResult_Windows")
+                windows_relase_folder = os.path.join(src_folder, "build/windows/runner/Release")
+                windows_folder = os.path.join(artifacts_folder, "BuildResult_Windows")
                 GeneralUtilities.ensure_directory_does_not_exist(windows_folder)
                 GeneralUtilities.ensure_directory_exists(windows_folder)
                 GeneralUtilities.copy_content_of_folder(windows_relase_folder, windows_folder)
             elif target == "ios":
                 pass  # TODO copy to targetfolder
             elif target == "appbundle":
-                aab_folder= os.path.join( artifacts_folder,"BuildResult_AAB")
+                aab_folder = os.path.join(artifacts_folder, "BuildResult_AAB")
                 GeneralUtilities.ensure_directory_does_not_exist(aab_folder)
                 GeneralUtilities.ensure_directory_exists(aab_folder)
-                aab_relase_folder=os.path.join(src_folder,"build/app/outputs/bundle/release")
-                aab_file_original=self.__sc.find_file_by_extension(aab_relase_folder,"aab")
-                aab_file=os.path.join(aab_folder,f"{codeunit_name}.aab")
+                aab_relase_folder = os.path.join(src_folder, "build/app/outputs/bundle/release")
+                aab_file_original = self.__sc.find_file_by_extension(aab_relase_folder, "aab")
+                aab_file = os.path.join(aab_folder, f"{codeunit_name}.aab")
                 shutil.copyfile(aab_file_original, aab_file)
-                bundletool=os.path.join(codeunit_folder,"Other/Resources/AndroidAppBundleTool/bundletool.jar")
-                apk_folder= os.path.join( artifacts_folder,"BuildResult_APK")
+                bundletool = os.path.join(codeunit_folder, "Other/Resources/AndroidAppBundleTool/bundletool.jar")
+                apk_folder = os.path.join(artifacts_folder, "BuildResult_APK")
                 GeneralUtilities.ensure_directory_does_not_exist(apk_folder)
                 GeneralUtilities.ensure_directory_exists(apk_folder)
-                apks_file=f"{apk_folder}/{codeunit_name}.apks"
+                apks_file = f"{apk_folder}/{codeunit_name}.apks"
                 self.__sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder)
                 with zipfile.ZipFile(apks_file, "r") as zip_ref:
                     zip_ref.extract("universal.apk", apk_folder)
@@ -298,7 +298,6 @@ class TasksForCommonProjectStructure:
                 os.rename(f"{apk_folder}/universal.apk", f"{apk_folder}/{codeunit_name}.apk")
             else:
                 raise ValueError(f"Not supported target: {target}")
-
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -1382,6 +1381,7 @@ class TasksForCommonProjectStructure:
 
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]" == <codeunitname> in file
+        supported_codeunitspecificationversion = "2.7.10"  # should always be the latest version of the ProjectTemplates-repository
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if not os.path.isfile(codeunit_file):
             raise ValueError(f'Codeunitfile "{codeunit_file}" does not exist.')
@@ -1393,7 +1393,6 @@ class TasksForCommonProjectStructure:
         # Check codeunit-spcecification-version
         try:
             codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
-            supported_codeunitspecificationversion = "2.7.2"  # should always be the latest version of the ProjectTemplates-repository
             if codeunit_file_version != supported_codeunitspecificationversion:
                 raise ValueError(f"ScriptCollection only supports processing codeunits with codeunit-specification-version={supported_codeunitspecificationversion}.")
             schemaLocation = root.xpath('//cps:codeunit/@xsi:schemaLocation', namespaces=namespaces)[0]
@@ -1531,10 +1530,9 @@ class TasksForCommonProjectStructure:
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self,script_file: str, default_verbosity: int, args: list[str]):
-        src_folder=GeneralUtilities.resolve_relative_path("../../sce_client",script_file)
+    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: int, args: list[str]):
+        src_folder = GeneralUtilities.resolve_relative_path("../../sce_client", script_file)
         ScriptCollectionCore().run_program("flutter", "test", src_folder)
-
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str,
@@ -1785,7 +1783,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_flutter_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
-        pass#TODO
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
@@ -2033,15 +2031,15 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def ensure_plantuml_is_available(self, codeunit_folder: str) -> None:
         self.ensure_file_from_github_assets_is_available(codeunit_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar",
-                                                  lambda latest_version: "plantuml.jar")
+                                                         lambda latest_version: "plantuml.jar")
 
     @GeneralUtilities.check_arguments
     def ensure_androidappbundletool_is_available(self, codeunit_folder: str) -> None:
         self.ensure_file_from_github_assets_is_available(codeunit_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar",
-                                                  lambda latest_version: f"bundletool-all-{latest_version}.jar")
+                                                         lambda latest_version: f"bundletool-all-{latest_version}.jar")
 
     @GeneralUtilities.check_arguments
-    def ensure_file_from_github_assets_is_available(self, codeunit_folder: str,githubuser:str,githubprojectname:str,resource_name:str,local_filename:str,get_filename_on_github) -> None:
+    def ensure_file_from_github_assets_is_available(self, codeunit_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github) -> None:
         resource_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         file = f"{resource_folder}/{local_filename}"
@@ -2051,7 +2049,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_exists(resource_folder)
             response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest", timeout=5)
             latest_version = response.json()["name"]
-            filename_on_github=get_filename_on_github(latest_version)
+            filename_on_github = get_filename_on_github(latest_version)
             jar_link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
             urllib.request.urlretrieve(jar_link, file)
         else:
