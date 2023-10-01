@@ -124,6 +124,10 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def dotnet_sign(self, dll_or_exe_file: str, snk_file: str, verbosity: int) -> None:
+        enabled=False
+        if not enabled:
+            GeneralUtilities.write_message_to_stderr("Warning: Signing .NET-files is currently disabled.")
+            return
         dll_or_exe_file = GeneralUtilities.resolve_relative_path_from_current_working_directory(dll_or_exe_file)
         snk_file = GeneralUtilities.resolve_relative_path_from_current_working_directory(snk_file)
         directory = os.path.dirname(dll_or_exe_file)
