@@ -29,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.31"
+version = "3.4.32"
 __version__ = version
 
 
@@ -123,33 +123,6 @@ class ScriptCollectionCore:
         self.run_program("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}", repository_folder)
 
     @GeneralUtilities.check_arguments
-    def dotnet_sign(self, dll_or_exe_file: str, snk_file: str, verbosity: int) -> None:
-        enabled = False
-        if not enabled:
-            GeneralUtilities.write_message_to_stderr("Warning: Signing .NET-files is currently disabled.")
-            return
-        dll_or_exe_file = GeneralUtilities.resolve_relative_path_from_current_working_directory(dll_or_exe_file)
-        snk_file = GeneralUtilities.resolve_relative_path_from_current_working_directory(snk_file)
-        directory = os.path.dirname(dll_or_exe_file)
-        filename = os.path.basename(dll_or_exe_file)
-        if filename.lower().endswith(".dll"):
-            filename = filename[:-4]
-            extension = "dll"
-        elif filename.lower().endswith(".exe"):
-            filename = filename[:-4]
-            extension = "exe"
-        else:
-            raise ValueError("Only .dll-files and .exe-files can be signed")
-        self.run_program("ildasm",
-                         f"/all /typelist /text /out={filename}.il {filename}.{extension}",
-                         directory, verbosity)
-        self.run_program("ilasm",
-                         f"/{extension} /res:{filename}.res /optimize /key={snk_file} {filename}.il",
-                         directory, verbosity)
-        os.remove(directory+os.path.sep+filename + ".il")
-        os.remove(directory+os.path.sep+filename + ".res")
-
-    @GeneralUtilities.check_arguments
     def find_file_by_extension(self, folder: str, extension: str):
         result = [file for file in GeneralUtilities.get_direct_files_of_folder(folder) if file.endswith(f".{extension}")]
         result_length = len(result)
@@ -162,6 +135,10 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def dotnet_sign_file(self, file: str, keyfile: str, verbosity: int):
+        enabled = False
+        if not enabled:
+            GeneralUtilities.write_message_to_stderr("Warning: Signing .NET-files is currently disabled.")
+            return
         directory = os.path.dirname(file)
         filename = os.path.basename(file)
         if filename.lower().endswith(".dll"):
