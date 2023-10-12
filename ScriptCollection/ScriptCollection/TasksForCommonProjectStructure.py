@@ -485,19 +485,21 @@ class TasksForCommonProjectStructure:
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
-        message = " does not match the standardized .csproj-file-format."
+        message = " does not match the standardized .csproj-file-format which is defined by the regex "
 
         project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version):
-            raise ValueError(csproj_file+message)
+        result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version)
+        if not result1[0]:
+            raise ValueError(csproj_file+message+f'"{result1[1]}".')
 
         testproject_name = project_name+"Tests"
         test_csproj_file = os.path.join(codeunit_folder, testproject_name, testproject_name+".csproj")
-        if not self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version):
-            raise ValueError(test_csproj_file+message)
+        result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version)
+        if not result2[0]:
+            raise ValueError(test_csproj_file+message+f'"{result2[1]}".')
 
-    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> bool:
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         codeunit_description = self.get_codeunit_description(codeunit_file)
@@ -517,7 +519,7 @@ class TasksForCommonProjectStructure:
         <Copyright>([^<]+)<\\/Copyright>
         <Description>{codeunit_description_regex}<\\/Description>
         <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-        <RepositoryUrl>https:\\/\\/([^<]+)<\\/RepositoryUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
         <RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
         <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
         <Nullable>disable<\\/Nullable>
@@ -559,9 +561,9 @@ class TasksForCommonProjectStructure:
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
 <\\/Project>$"""
-        return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+        return (self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file), regex)
 
-    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> bool:
+    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
@@ -578,7 +580,7 @@ class TasksForCommonProjectStructure:
         <Copyright>([^<]+)<\\/Copyright>
         <Description>{codeunit_name_regex}Tests is the test-project for {codeunit_name_regex}\\.<\\/Description>
         <PackageProjectUrl>https:\\/\\/([^<]+)<\\/PackageProjectUrl>
-        <RepositoryUrl>https:\\/\\/([^<]+)</RepositoryUrl>
+        <RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
         <RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
         <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
         <Nullable>disable<\\/Nullable>
@@ -619,7 +621,7 @@ class TasksForCommonProjectStructure:
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
 <\\/Project>$"""
-        return self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+        return (self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file), regex)
 
     def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> bool:
         filename = os.path.basename(csproj_file)
