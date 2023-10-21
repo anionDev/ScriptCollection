@@ -1842,8 +1842,15 @@ class TasksForCommonProjectStructure:
         codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
         codeunit_name_lower = codeunit_name.lower()
         if remove_old_container:
-            GeneralUtilities.write_message_to_stdout(f"Ensure container {codeunit_name_lower} does not exist...")
-            sc.run_program("docker", f"container rm -f {codeunit_name_lower}", oci_image_artifacts_folder, verbosity=verbosity)
+            docker_compose_file=f"{folder}/docker-compose.yml"
+            container_names=[]
+            for line in GeneralUtilities.read_lines_from_file(docker_compose_file):
+                if match := re.search("container_name:\\s*'?([^']+)'?", line):
+                    container_names.append(match.group(1))
+            GeneralUtilities.write_message_to_stdout(f"Ensure container of {docker_compose_file} do not exist...")
+            for container_name in container_names:
+                GeneralUtilities.write_message_to_stdout(f"Ensure container of {container_name} does not exist")
+                sc.run_program("docker", f"container rm -f {codeunit_name_lower}", oci_image_artifacts_folder, verbosity=verbosity,throw_exception_if_exitcode_is_not_zero=False)
         if remove_volumes_folder:
             volumes_folder = os.path.join(folder, "Volumes")
             GeneralUtilities.write_message_to_stdout(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
