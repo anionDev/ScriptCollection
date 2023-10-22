@@ -1681,7 +1681,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None) -> None:
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str) -> None:
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         codeunit_name = os.path.basename(codeunit_folder)
         resource_name: str = "DevelopmentCertificate"
@@ -1863,6 +1863,56 @@ class TasksForCommonProjectStructure:
         sc_epew.program_runner = ProgramRunnerEpew()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
         sc_epew.run_program("docker-compose", f"--project-name {project_name} up --abort-on-container-exit", folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def reset_for_certain_containerized_codeunit_development_example(self, scriptfile: str, user: str, password: str):
+        folder_of_file = os.path.dirname(scriptfile)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../../../../..", folder_of_file)
+        codeunit_name_c = os.path.basename(codeunit_folder)
+        codenut_name = codeunit_name_c[:-1]
+        domain = f"{codenut_name}.test.local"
+        self.__rfcccde_helper_copy_certificates(scriptfile, codenut_name, domain)
+        self.__rfcccde_helper_update_configuration_file(scriptfile, codenut_name, domain,user,password)
+        self.__rfcccde_helper_clear_certain_folder(scriptfile)
+
+    @GeneralUtilities.check_arguments
+    def __rfcccde_helper_copy_certificates(self, scriptfile: str, codeunit_name: str, domain: str):
+        folder_of_file = os.path.dirname(scriptfile)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../../../../..", folder_of_file)
+        certificates_source_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/DependentCodeUnits/{codeunit_name}/DevelopmentCertificate", codeunit_folder)
+        certificates_target_folder = GeneralUtilities.resolve_relative_path("Volumes/Configuration/Certificates", folder_of_file)
+        GeneralUtilities.ensure_directory_exists(certificates_target_folder)
+        shutil.copyfile(f"{certificates_source_folder}/{codeunit_name}DevelopmentCertificate.pfx", f"{certificates_target_folder}/{domain}.pfx")
+        shutil.copyfile(f"{certificates_source_folder}/{codeunit_name}DevelopmentCertificate.password", f"{certificates_target_folder}/{domain}.password")
+
+    @GeneralUtilities.check_arguments
+    def __rfcccde_helper_update_configuration_file(self,scriptfile: str, codeunit_name: str, domain: str, user: str, password: str):
+        folder_of_file = os.path.dirname(scriptfile)
+        configuration_file = GeneralUtilities.resolve_relative_path("Volumes/Configuration/Configuration.xml", folder_of_file)
+        config = GeneralUtilities.read_text_from_file(configuration_file)
+        config = config.replace("InsertValueForDomainHere", domain)
+        config = config.replace("[Insert value for DatabaseConnectionString here]",
+                                f"Server={codeunit_name.lower()}c_database;Port=3306;Database={codeunit_name}Database;UID={user};PWD={password};")
+        GeneralUtilities.write_text_to_file(configuration_file, config)
+
+    @GeneralUtilities.check_arguments
+    def __rfcccde_helper_clear_certain_folder(self, scriptfile: str):
+        folder_of_file = os.path.dirname(scriptfile)
+        GeneralUtilities.ensure_directory_does_not_exist(GeneralUtilities.resolve_relative_path("Volumes/Data", folder_of_file))
+        GeneralUtilities.ensure_directory_does_not_exist(GeneralUtilities.resolve_relative_path("Volumes/Logs", folder_of_file))
+
+
+    @GeneralUtilities.check_arguments
+    def create_artifact_for_development_certificate(self, codeunit_folder: str):
+        ce_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/DevelopmentCertificate", codeunit_folder)
+        ca_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/DevelopmentCertificateAuthority", codeunit_folder)
+        ce_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DevelopmentCertificate", codeunit_folder)
+        ca_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DevelopmentCertificateAuthority", codeunit_folder)
+
+        GeneralUtilities.ensure_directory_exists(ce_target_folder)
+        GeneralUtilities.copy_content_of_folder(ce_source_folder, ce_target_folder)
+        GeneralUtilities.ensure_directory_exists(ca_target_folder)
+        GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
     @GeneralUtilities.check_arguments
     def get_sorted_codeunits(self, codeunits=dict[str, set[str]]) -> list[str]:
