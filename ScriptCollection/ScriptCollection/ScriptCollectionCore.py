@@ -21,7 +21,6 @@ import qrcode
 import pycdlib
 from PIL import Image
 import send2trash
-import fitz
 import PyPDF2
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
@@ -679,7 +678,8 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def pdf_to_image(self, file: str, outputfilename_without_extension: str) -> None:
-        doc = fitz.open(file)
+        raise ValueError("Function currently not available")
+        doc = None  # fitz.open(file) # PyMuPDF can be used for that but it throws "ImportError: DLL load failed while importing _fitz: Das angegebene Modul wurde nicht gefunden."
         for i, page in enumerate(doc):
             pix = page.get_pixmap()
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)

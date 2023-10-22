@@ -9,7 +9,6 @@ ScriptCollection uses dependencies which are released under their own license:
 -ntplib is licensed under the terms of the MIT-license (see appendix 1)
 -Pillow is licensed under the terms of the HPND-license (see appendix 8)
 -Pygments is licensed under the terms of the BSD 2-Clause "Simplified" license (see appendix 5)
--PyMuPDF is licensed under the terms of the AGPL-v3-license (see appendix 7)
 -pyOpenSSL is licensed under the terms of the Apache License, Version 2.0-license (see https://raw.githubusercontent.com/pyca/pyopenssl/main/LICENSE )
 -PyPDF2 is licensed under the terms of its own license (see appendix 2)
 -pycdlib is licensed under the terms of the LGPL-v2.1-license (see appendix 3)
