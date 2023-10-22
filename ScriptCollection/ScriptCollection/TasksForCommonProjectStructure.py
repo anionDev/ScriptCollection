@@ -1925,7 +1925,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
             if verbosity > 1:
-                GeneralUtilities.write_message_to_stdout("Attempt to build codeunits in the following order:")
+                GeneralUtilities.write_message_to_stdout(f"Attempt to build codeunits for version {project_version} in the following order:")
                 i = 0
                 for codeunit in sorted_codeunits:
                     i = i+1
