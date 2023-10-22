@@ -1272,7 +1272,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str,
                                                     verbosity: int, commandline_arguments: list[str]) -> None:
         self.copy_source_files_to_output_directory(build_script_file)
-        use_cache: bool = target_environment_type != "Productive"
+        use_cache: bool = False
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
@@ -1681,7 +1681,7 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
 
     @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str, certificate_resource_name: str = None, domain: str = None) -> None:
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str) -> None:
         """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
         codeunit_name = os.path.basename(codeunit_folder)
         resource_name: str = "DevelopmentCertificate"
@@ -1840,10 +1840,17 @@ class TasksForCommonProjectStructure:
         oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder)
         image_filename = os.path.basename(sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
         codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
-        codeunit_name_lower = codeunit_name.lower()
         if remove_old_container:
-            GeneralUtilities.write_message_to_stdout(f"Ensure container {codeunit_name_lower} does not exist...")
-            sc.run_program("docker", f"container rm -f {codeunit_name_lower}", oci_image_artifacts_folder, verbosity=verbosity)
+            docker_compose_file=f"{folder}/docker-compose.yml"
+            container_names=[]
+            lines=GeneralUtilities.read_lines_from_file(docker_compose_file)
+            for line in lines:
+                if match := re.search("container_name:\\s*'?([^']+)'?", line):
+                    container_names.append(match.group(1))
+            GeneralUtilities.write_message_to_stdout(f"Ensure container of {docker_compose_file} do not exist...")
+            for container_name in container_names:
+                GeneralUtilities.write_message_to_stdout(f"Ensure container of {container_name} does not exist")
+                sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         if remove_volumes_folder:
             volumes_folder = os.path.join(folder, "Volumes")
             GeneralUtilities.write_message_to_stdout(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
@@ -1855,7 +1862,20 @@ class TasksForCommonProjectStructure:
         sc_epew = ScriptCollectionCore()
         sc_epew.program_runner = ProgramRunnerEpew()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
-        sc_epew.run_program("docker-compose", f"--project-name {project_name} up", folder, verbosity=verbosity)
+        sc_epew.run_program("docker-compose", f"--project-name {project_name} up --abort-on-container-exit", folder, verbosity=verbosity)
+
+
+    @GeneralUtilities.check_arguments
+    def create_artifact_for_development_certificate(self, codeunit_folder: str):
+        ce_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/DevelopmentCertificate", codeunit_folder)
+        ca_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/DevelopmentCertificateAuthority", codeunit_folder)
+        ce_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DevelopmentCertificate", codeunit_folder)
+        ca_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DevelopmentCertificateAuthority", codeunit_folder)
+
+        GeneralUtilities.ensure_directory_exists(ce_target_folder)
+        GeneralUtilities.copy_content_of_folder(ce_source_folder, ce_target_folder)
+        GeneralUtilities.ensure_directory_exists(ca_target_folder)
+        GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
     @GeneralUtilities.check_arguments
     def get_sorted_codeunits(self, codeunits=dict[str, set[str]]) -> list[str]:
@@ -1905,7 +1925,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
             if verbosity > 1:
-                GeneralUtilities.write_message_to_stdout("Attempt to build codeunits in the following order:")
+                GeneralUtilities.write_message_to_stdout(f"Attempt to build codeunits for version {project_version} in the following order:")
                 i = 0
                 for codeunit in sorted_codeunits:
                     i = i+1
