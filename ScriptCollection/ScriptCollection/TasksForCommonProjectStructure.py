@@ -1272,7 +1272,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str,
                                                     verbosity: int, commandline_arguments: list[str]) -> None:
         self.copy_source_files_to_output_directory(build_script_file)
-        use_cache: bool = target_environment_type != "Productive"
+        use_cache: bool = False
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
