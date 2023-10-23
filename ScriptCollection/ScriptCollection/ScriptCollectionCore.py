@@ -19,9 +19,7 @@ import requests
 import ntplib
 import qrcode
 import pycdlib
-from PIL import Image
 import send2trash
-import fitz
 import PyPDF2
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
@@ -29,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.37"
+version = "3.4.38"
 __version__ = version
 
 
@@ -679,11 +677,15 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def pdf_to_image(self, file: str, outputfilename_without_extension: str) -> None:
-        doc = fitz.open(file)
-        for i, page in enumerate(doc):
-            pix = page.get_pixmap()
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            img.save(f"{outputfilename_without_extension}_{i}.png", "PNG")
+        raise ValueError("Function currently not available")
+        # PyMuPDF can be used for that but sometimes it throws
+        # "ImportError: DLL load failed while importing _fitz: Das angegebene Modul wurde nicht gefunden."
+
+        # doc = None  # fitz.open(file)
+        # for i, page in enumerate(doc):
+        #     pix = page.get_pixmap()
+        #     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        #     img.save(f"{outputfilename_without_extension}_{i}.png", "PNG")
 
     @GeneralUtilities.check_arguments
     def show_missing_files(self, folderA: str, folderB: str):
