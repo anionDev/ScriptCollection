@@ -5,6 +5,7 @@ Reference/obj
 Reference/ReferenceContent/API/**
 !Reference/ReferenceContent/API/index.md
 Resources/DependentCodeUnits
+Resources/Constants/CodeUnitDescription.*
 Resources/Constants/CodeUnitName.*
 Resources/Constants/CodeUnitVersion.*
 Resources/Constants/CommitDate.*
