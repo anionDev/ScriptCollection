@@ -1578,6 +1578,7 @@ class TasksForCommonProjectStructure:
         self.set_constant_for_commitdate(codeunit_folder)
         self.set_constant_for_commitname(codeunit_folder)
         self.set_constant_for_commitversion(codeunit_folder)
+        self.set_constant_for_description(codeunit_folder)
 
     @GeneralUtilities.check_arguments
     def set_constant_for_commitid(self, codeunit_folder: str) -> None:
@@ -1598,6 +1599,12 @@ class TasksForCommonProjectStructure:
     def set_constant_for_commitversion(self, codeunit_folder: str) -> None:
         codeunit_version: str = self.get_version_of_codeunit_folder(codeunit_folder)
         self.set_constant(codeunit_folder, "CodeUnitVersion", codeunit_version)
+
+    @GeneralUtilities.check_arguments
+    def set_constant_for_description(self, codeunit_folder: str) -> None:
+        codeunit_name: str = os.path.basename(codeunit_folder)
+        codeunit_description: str = self.get_codeunit_description(f"{codeunit_folder}/{codeunit_name}.codeunit.xml")
+        self.set_constant(codeunit_folder, "CodeUnitDescription", codeunit_description)
 
     @GeneralUtilities.check_arguments
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None) -> None:
