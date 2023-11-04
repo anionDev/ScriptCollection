@@ -1,7 +1,7 @@
 autopep8>=2.0.4
 build>=1.0.3
 coverage>=7.3.2
-cyclonedx-bom>=3.11.5
+cyclonedx-bom>=3.11.7
 defusedxml>=0.7.1
 keyboard>=0.13.5
 lxml>=4.9.3
