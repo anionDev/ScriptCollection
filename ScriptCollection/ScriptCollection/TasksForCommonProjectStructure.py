@@ -533,6 +533,9 @@ class TasksForCommonProjectStructure:
         <PlatformTarget>([^<]+)<\\/PlatformTarget>
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
+        <SignAssembly>True<\\/SignAssembly>
+        <AssemblyOriginatorKeyFile>\\.\\.\\\\Other\\\\Resources\\\\PublicKey\\\\{codeunit_name_regex}PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
+        <DelaySign>True<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
         <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>
@@ -594,6 +597,9 @@ class TasksForCommonProjectStructure:
         <PlatformTarget>([^<]+)<\\/PlatformTarget>
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
+        <SignAssembly>True<\\/SignAssembly>
+        <AssemblyOriginatorKeyFile>\\.\\.\\\\Other\\\\Resources\\\\PublicKey\\\\{codeunit_name_regex}PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
+        <DelaySign>True<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
         <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
@@ -660,9 +666,17 @@ class TasksForCommonProjectStructure:
                 license_file = os.path.join(repository_folder, "License.txt")
                 target = os.path.join(outputfolder, f"{codeunit_name}.License.txt")
                 shutil.copyfile(license_file, target)
-            for file, keyfile in files_to_sign.items():
-                self.__sc.dotnet_sign_file(os.path.join(outputfolder, file), keyfile, verbosity)
-
+            if 0<len(files_to_sign):
+                for key, value in files_to_sign.items():
+                    dll_file=key
+                    snk_file=value
+                    dll_file_full=os.path.join(outputfolder,dll_file)
+                    if os.path.isfile(dll_file_full):
+                        GeneralUtilities.assert_condition(self.__sc.run_program("sn",f"-vf {dll_file}", outputfolder,throw_exception_if_exitcode_is_not_zero=False)[0]==1,
+                                                          f"Pre-verifying of {dll_file} failed.")
+                        self.__sc.run_program("sn",f"-R {dll_file} {snk_file}", outputfolder)
+                        GeneralUtilities.assert_condition(self.__sc.run_program("sn",f"-vf {dll_file}", outputfolder,throw_exception_if_exitcode_is_not_zero=False)[0]==0,
+                                                          f"Verifying of {dll_file} failed.")
             sarif_filename = f"{csproj_file_name_without_extension}.sarif"
             sarif_source_file = os.path.join(sarif_folder, sarif_filename)
             if os.path.exists(sarif_source_file):
@@ -677,7 +691,7 @@ class TasksForCommonProjectStructure:
                                                     target_environmenttype_mapping:  dict[str, str], runtimes: list[str],
                                                     verbosity: int, commandline_arguments: list[str]) -> None:
         # hint: arguments can be overwritten by commandline_arguments
-        # this function builds an exe or dll
+        # this function builds an exe
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project(
             buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype,
@@ -688,7 +702,7 @@ class TasksForCommonProjectStructure:
                                                             target_environmenttype_mapping:  dict[str, str], runtimes: list[str],
                                                             verbosity: int, commandline_arguments: list[str]) -> None:
         # hint: arguments can be overwritten by commandline_arguments
-        # this function builds an exe or dll and converts it to a nupkg-file
+        # this function builds a dll and converts it to a nupkg-file
 
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project(buildscript_file, target_environmenttype_mapping, default_target_environmenttype,
@@ -724,7 +738,6 @@ class TasksForCommonProjectStructure:
         self.__standardized_tasks_build_for_dotnet_build(csproj_test_file,  os.path.join(outputfolder, "BuildResultTests_DotNet_"), files_to_sign, commitid,
                                                          verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
                                                          copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
-
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments

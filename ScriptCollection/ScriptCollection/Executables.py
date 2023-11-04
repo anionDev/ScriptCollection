@@ -8,16 +8,6 @@ from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 
 
-def DotNetsign() -> int:
-    parser = argparse.ArgumentParser(description='Signs a dll- or exe-file with a snk-file. Requires ilasm and ildasm as available commandline-commands.')
-    parser.add_argument("dllOrExefile")
-    parser.add_argument("snkfile")
-    parser.add_argument("verbose", action='store_true')
-    args = parser.parse_args()
-    ScriptCollectionCore().dotnet_sign_file(args.dllOrExefile, args.snkfile, args.verbose)
-    return 0
-
-
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
 Caution: This script can cause harm if you pass a wrong inputfolder-argument.''')
