@@ -195,10 +195,6 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"The test-coverage of package '{codeunitname}' must be greater than {technicalminimalrequiredtestcoverageinpercent}%.")
         codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         minimalrequiredtestcoverageinpercent = self.get_testcoverage_threshold_from_codeunit_file(codeunit_file)
-        minimalrecommendedcoverage = 80
-        if minimalrequiredtestcoverageinpercent < minimalrecommendedcoverage:
-            GeneralUtilities.write_message_to_stderr(f"Warning: The minimal required testcoverage is {minimalrequiredtestcoverageinpercent}% " +
-                                                     f"but should be at least {minimalrecommendedcoverage}%.")
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
 
@@ -482,24 +478,26 @@ class TasksForCommonProjectStructure:
 
     def standardized_task_verify_standard_format_csproj_files(self, codeunit_folder: str) -> bool:
         repository_folder = os.path.dirname(codeunit_folder)
+        project_name=os.path.basename(repository_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         message = " does not match the standardized .csproj-file-format which is defined by the regex "
 
-        project_name = codeunit_name
-        csproj_file = os.path.join(codeunit_folder, project_name, project_name+".csproj")
-        result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version)
+        csproj_project_name = codeunit_name
+        csproj_file = os.path.join(codeunit_folder, csproj_project_name, csproj_project_name+".csproj")
+        result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version,project_name)
         if not result1[0]:
             raise ValueError(csproj_file+message+f'"{result1[1]}".')
 
-        testproject_name = project_name+"Tests"
-        test_csproj_file = os.path.join(codeunit_folder, testproject_name, testproject_name+".csproj")
-        result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version)
+        test_csproj_project_name = csproj_project_name+"Tests"
+        test_csproj_file = os.path.join(codeunit_folder, test_csproj_project_name, test_csproj_project_name+".csproj")
+        result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version,project_name)
         if not result2[0]:
             raise ValueError(test_csproj_file+message+f'"{result2[1]}".')
 
-    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str,
+                                                                           codeunit_version: str,project_name:str) -> tuple[bool, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         codeunit_description = self.get_codeunit_description(codeunit_file)
@@ -534,7 +532,7 @@ class TasksForCommonProjectStructure:
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
         <SignAssembly>True<\\/SignAssembly>
-        <AssemblyOriginatorKeyFile>\\.\\.\\\\Other\\\\Resources\\\\PublicKey\\\\{codeunit_name_regex}PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
+        <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\([^<]+)PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
         <DelaySign>True<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
@@ -566,7 +564,8 @@ class TasksForCommonProjectStructure:
 <\\/Project>$"""
         return (self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file), regex)
 
-    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
+    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str,
+                                                                        codeunit_version: str,project_name:str) -> tuple[bool, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
@@ -598,7 +597,7 @@ class TasksForCommonProjectStructure:
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
         <SignAssembly>True<\\/SignAssembly>
-        <AssemblyOriginatorKeyFile>\\.\\.\\\\Other\\\\Resources\\\\PublicKey\\\\{codeunit_name_regex}PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
+        <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\([^<]+)PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
         <DelaySign>True<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
