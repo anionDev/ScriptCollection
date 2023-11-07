@@ -503,7 +503,6 @@ class TasksForCommonProjectStructure:
         codeunit_description = self.get_codeunit_description(codeunit_file)
         codeunit_version_regex = re.escape(codeunit_version)
         codeunit_description_regex = re.escape(codeunit_description)
-        project_name_regex = re.escape(project_name)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
     <PropertyGroup>
         <TargetFramework>([^<]+)<\\/TargetFramework>
@@ -533,7 +532,7 @@ class TasksForCommonProjectStructure:
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
         <SignAssembly>True<\\/SignAssembly>
-        <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\{project_name_regex}PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
+        <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\([^<]+)PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
         <DelaySign>True<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
@@ -569,7 +568,6 @@ class TasksForCommonProjectStructure:
                                                                         codeunit_version: str,project_name:str) -> tuple[bool, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
-        project_name_regex = re.escape(project_name)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
     <PropertyGroup>
         <TargetFramework>([^<]+)<\\/TargetFramework>
@@ -599,7 +597,7 @@ class TasksForCommonProjectStructure:
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
         <SignAssembly>True<\\/SignAssembly>
-        <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\{project_name_regex}PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
+        <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\([^<]+)PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
         <DelaySign>True<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
