@@ -478,7 +478,6 @@ class TasksForCommonProjectStructure:
 
     def standardized_task_verify_standard_format_csproj_files(self, codeunit_folder: str) -> bool:
         repository_folder = os.path.dirname(codeunit_folder)
-        project_name=os.path.basename(repository_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
@@ -486,18 +485,18 @@ class TasksForCommonProjectStructure:
 
         csproj_project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, csproj_project_name, csproj_project_name+".csproj")
-        result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version,project_name)
+        result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version)
         if not result1[0]:
             raise ValueError(csproj_file+message+f'"{result1[1]}".')
 
         test_csproj_project_name = csproj_project_name+"Tests"
         test_csproj_file = os.path.join(codeunit_folder, test_csproj_project_name, test_csproj_project_name+".csproj")
-        result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version,project_name)
+        result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version)
         if not result2[0]:
             raise ValueError(test_csproj_file+message+f'"{result2[1]}".')
 
     def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str,
-                                                                           codeunit_version: str,project_name:str) -> tuple[bool, str]:
+                                                                           codeunit_version: str) -> tuple[bool, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         codeunit_description = self.get_codeunit_description(codeunit_file)
@@ -565,7 +564,7 @@ class TasksForCommonProjectStructure:
         return (self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file), regex)
 
     def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str,
-                                                                        codeunit_version: str,project_name:str) -> tuple[bool, str]:
+                                                                        codeunit_version: str) -> tuple[bool, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
@@ -1320,7 +1319,7 @@ class TasksForCommonProjectStructure:
                                                      "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, project_name: str, codeunitname: str,
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, codeunitname: str,
                                    verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -1877,11 +1876,11 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_exists(volumes_folder)
         GeneralUtilities.write_message_to_stdout("Load docker-image...")
         sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
-        project_name = f"{codeunit_name}_{example_name}".lower()
+        docker_project_name = f"{codeunit_name}_{example_name}".lower()
         sc_epew = ScriptCollectionCore()
         sc_epew.program_runner = ProgramRunnerEpew()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
-        sc_epew.run_program("docker-compose", f"--project-name {project_name} up --abort-on-container-exit", folder, verbosity=verbosity)
+        sc_epew.run_program("docker-compose", f"--project-name {docker_project_name} up --abort-on-container-exit", folder, verbosity=verbosity)
 
 
     @GeneralUtilities.check_arguments
@@ -1920,6 +1919,13 @@ class TasksForCommonProjectStructure:
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         codeunits = self.get_codeunits(repository_folder, False)
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory)
+
+    @GeneralUtilities.check_arguments
+    def get_project_name(self, repository_folder:str) -> str:
+        for file in GeneralUtilities.get_direct_files_of_folder(repository_folder):
+            if file.endswith(".code-workspace"):
+                return Path(file).stem
+        raise ValueError(f'Project-name can not be calculated for repository "{repository_folder}"')
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck",
@@ -1963,7 +1969,7 @@ class TasksForCommonProjectStructure:
             else:
                 raise ValueError(message)
         if export_target_directory is not None:
-            project_name = os.path.basename(repository_folder)
+            project_name = self.get_project_name(repository_folder)
             for codeunit in sorted_codeunits:
                 codeunit_version = self.get_version_of_codeunit_folder(os.path.join(repository_folder,  codeunit))
                 artifacts_folder = os.path.join(repository_folder,  codeunit, "Other", "Artifacts")
@@ -1979,6 +1985,14 @@ class TasksForCommonProjectStructure:
     def __do_repository_checks(self, repository_folder: str, project_version: str) -> None:
         self.__check_if_changelog_exists(repository_folder, project_version)
         self.__check_whether_security_txt_exists(repository_folder)
+        self.__check_whether_workspace_file_exists(repository_folder)
+
+    @GeneralUtilities.check_arguments
+    def __check_if_changelog_exists(self, repository_folder: str, project_version: str) -> None:
+        changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
+        changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
+        if not os.path.isfile(changelog_file):
+            raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
 
     @GeneralUtilities.check_arguments
     def __check_whether_security_txt_exists(self, repository_folder: str) -> None:
@@ -1988,11 +2002,14 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"The repository does not contain a '{security_txt_file_relative}'-file. See https://securitytxt.org/ for more information.")
 
     @GeneralUtilities.check_arguments
-    def __check_if_changelog_exists(self, repository_folder: str, project_version: str) -> None:
-        changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
-        changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
-        if not os.path.isfile(changelog_file):
-            raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+    def __check_whether_workspace_file_exists(self, repository_folder: str) -> None:
+        count=0
+        for file in GeneralUtilities.get_direct_files_of_folder(repository_folder):
+            if file.endswith(".code-workspace"):
+                count=count+1
+        if count!=1:
+            raise ValueError('The repository must contain exactly one ".code-workspace"-file on the top-level.')
+
 
     @GeneralUtilities.check_arguments
     def update_dependency_in_resources_folder(self, update_dependencies_file, dependency_name: str, latest_version_function: str) -> None:
