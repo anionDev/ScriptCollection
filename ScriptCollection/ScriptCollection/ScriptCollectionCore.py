@@ -27,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.46"
+version = "3.4.47"
 __version__ = version
 
 
@@ -338,7 +338,7 @@ class ScriptCollectionCore:
         # no_changes_behavior=2 => Exception
         author_name = GeneralUtilities.str_none_safe(author_name).strip()
         author_email = GeneralUtilities.str_none_safe(author_email).strip()
-        argument = ['commit', '--quiet', '--message', message]
+        argument = ['commit', '--quiet', '--allow-empty', '--message', message]
         if (GeneralUtilities.string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
@@ -354,7 +354,6 @@ class ScriptCollectionCore:
             if no_changes_behavior == 1:
                 GeneralUtilities.write_message_to_stdout(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will be done anyway.")
                 do_commit = True
-                argument.append('--allow-empty')
             if no_changes_behavior == 2:
                 raise RuntimeError(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will not be done.")
 
