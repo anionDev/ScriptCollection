@@ -277,9 +277,21 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--verbosity', required=False, default=1)
     parser.add_argument('--targetenvironment', required=False, default="Development")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
-    # TODO add option to not fail the pipeline due to runtestcases and linting if it's a patch (=if currentversion.patchnumber!=0)
     args = parser.parse_args()
     TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
+    return 0
+
+
+def BuildCodeUnitsC() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--repositoryfolder', required=False, default=".")
+    parser.add_argument('--verbosity', required=False, default=1)
+    parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
+    parser.add_argument('--additionalargumentsfile', required=False, default=None)
+    parser.add_argument('--image', required=False, default="scbuilder:3.5.0")  # TODO set deafault to aniondev/scbuilder:latest
+    args = parser.parse_args()
+    GeneralUtilities.reconfigure_standrd_input_and_outputs()
+    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
     return 0
 
 

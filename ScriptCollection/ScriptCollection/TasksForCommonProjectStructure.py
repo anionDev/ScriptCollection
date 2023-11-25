@@ -203,20 +203,15 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"",
                                                          GeneralUtilities.read_text_from_file(file)))
 
-    @staticmethod
-    @GeneralUtilities.check_arguments
-    def __adjust_source_in_testcoverage_file(testcoverage_file: str, codeunitname: str) -> None:
-        # raise ValueError(f"test_<source>.+<\\/source>_<source>.\\{codeunitname}\\</source>")
-        GeneralUtilities.write_text_to_file(testcoverage_file, re.sub("<source>.+<\\/source>", f"<source>.\\\\{codeunitname}\\\\</source>",
-                                                                      GeneralUtilities.read_text_from_file(testcoverage_file)))
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def update_path_of_source(repository_folder: str, codeunitname: str) -> None:
+    def update_path_of_source_in_testcoverage_file(repository_folder: str, codeunitname: str) -> None:
         folder = f"{repository_folder}/{codeunitname}/Other/Artifacts/TestCoverage"
         filename = "TestCoverage.xml"
         full_file = os.path.join(folder, filename)
-        TasksForCommonProjectStructure.__adjust_source_in_testcoverage_file(full_file, codeunitname)
+        GeneralUtilities.write_text_to_file(full_file, re.sub("<source>.+<\\/source>", f"<source>./{codeunitname}/</source>",
+                                                                      GeneralUtilities.read_text_from_file(full_file)))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_python_codeunit(self, run_testcases_file: str, generate_badges: bool, verbosity: int,
@@ -253,13 +248,17 @@ class TasksForCommonProjectStructure:
                 shutil.copyfile(full_source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, script_file: str, default_verbosity: int, targets: list[str], args: list[str]):
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", script_file)
+    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, build_script_file: str, verbosity: int, targets: list[str], args: list[str], package_name: str):
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", build_script_file)
         codeunit_name = os.path.basename(codeunit_folder)
-        src_folder = GeneralUtilities.resolve_relative_path("sce_client", codeunit_folder)  # TODO replace packagename
+        src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
+        verbosity=self.get_verbosity_from_commandline_arguments(args,verbosity)
         for target in targets:
-            self.__sc.run_program("flutter", f"build {target}", src_folder)
+            GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target}...")
+            sc=ScriptCollectionCore()
+            sc.program_runner=ProgramRunnerEpew()
+            sc.run_program("flutter", f"build {target}", src_folder, verbosity)
             if target == "web":
                 web_relase_folder = os.path.join(src_folder, "build/web")
                 web_folder = os.path.join(artifacts_folder, "BuildResult_WebApplication")
@@ -273,7 +272,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_directory_exists(windows_folder)
                 GeneralUtilities.copy_content_of_folder(windows_relase_folder, windows_folder)
             elif target == "ios":
-                pass  # TODO copy to targetfolder
+                raise ValueError("building for ios is not implemented yet")
             elif target == "appbundle":
                 aab_folder = os.path.join(artifacts_folder, "BuildResult_AAB")
                 GeneralUtilities.ensure_directory_does_not_exist(aab_folder)
@@ -287,17 +286,17 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_directory_does_not_exist(apk_folder)
                 GeneralUtilities.ensure_directory_exists(apk_folder)
                 apks_file = f"{apk_folder}/{codeunit_name}.apks"
-                self.__sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder)
+                sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder, verbosity)
                 with zipfile.ZipFile(apks_file, "r") as zip_ref:
                     zip_ref.extract("universal.apk", apk_folder)
                 GeneralUtilities.ensure_file_does_not_exist(apks_file)
                 os.rename(f"{apk_folder}/universal.apk", f"{apk_folder}/{codeunit_name}.apk")
             else:
                 raise ValueError(f"Not supported target: {target}")
+        self.copy_source_files_to_output_directory(build_script_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
-        self.copy_source_files_to_output_directory(buildscript_file)
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         codeunit_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute())
@@ -307,6 +306,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(target_directory)
         self.__sc.run_program("python", f"-m build --wheel --outdir {target_directory}", codeunit_folder, verbosity=verbosity)
         self.generate_bom_for_python_project(verbosity, codeunit_folder, codeunitname, commandline_arguments)
+        self.copy_source_files_to_output_directory(buildscript_file)
 
     @GeneralUtilities.check_arguments
     def generate_bom_for_python_project(self, verbosity: int, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]) -> None:
@@ -720,7 +720,6 @@ class TasksForCommonProjectStructure:
     def __standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str],
                                                       target_environment_type: str,  verbosity: int, target_environmenttype: str,
                                                       runtimes: list[str], copy_license_file_to_target_folder: bool, commandline_arguments: list[str]) -> None:
-        self.copy_source_files_to_output_directory(buildscript_file)
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments,  dict())
@@ -737,6 +736,7 @@ class TasksForCommonProjectStructure:
                                                          verbosity, runtimes, target_environment_type, target_environmenttype_mapping,
                                                          copy_license_file_to_target_folder, repository_folder, codeunitname, commandline_arguments)
         self.generate_sbom_for_dotnet_project(codeunit_folder, verbosity, commandline_arguments)
+        self.copy_source_files_to_output_directory(buildscript_file)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]) -> None:
@@ -863,29 +863,18 @@ class TasksForCommonProjectStructure:
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
         self.__remove_unrelated_package_from_testcoverage_file(target_file, codeunit_name)
-        self.__update_filepaths_in_testcoverage_file(target_file)
+        content=GeneralUtilities.read_text_from_file(target_file)
+        content = re.sub('\\\\', '/', content)
+        content = re.sub('\\ filename=\\"', f' filename="{codeunit_name}/', content)
+        GeneralUtilities.write_text_to_file(target_file, content)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
-
-    @GeneralUtilities.check_arguments
-    def __update_filepaths_in_testcoverage_file(self, testcoverage_file: str) -> None:
-        result = re.sub('filename="([^"]+)"', TasksForCommonProjectStructure.__update_filepaths_in_testcoverage_file_helper,
-                        GeneralUtilities.read_text_from_file(testcoverage_file))
-        GeneralUtilities.write_text_to_file(testcoverage_file, result)
-
-    @staticmethod
-    def __update_filepaths_in_testcoverage_file_helper(matchobj) -> None:
-        filename = matchobj.group(1)
-        path = Path(filename)
-        correct_paths = path.parts[3:]
-        result_path = "/".join(correct_paths)
-        return f'filename="{result_path}"'
 
     @GeneralUtilities.check_arguments
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool,
                                        targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
-        self.update_path_of_source(repository_folder, codeunit_name)
+        self.update_path_of_source_in_testcoverage_file(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
 
@@ -1282,7 +1271,6 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str,
                                                     verbosity: int, commandline_arguments: list[str]) -> None:
-        self.copy_source_files_to_output_directory(build_script_file)
         use_cache: bool = False
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
@@ -1304,6 +1292,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{codeunitversion}.tar",
                                                      f"{codeunitname_lower}:{codeunitversion}"], app_artifacts_folder,
                                           verbosity=verbosity, print_errors_as_information=True)
+        self.copy_source_files_to_output_directory(build_script_file)
 
     @GeneralUtilities.check_arguments
     def generate_sbom_for_docker_image(self, build_script_file: str, verbosity: int, commandline_arguments: list[str]) -> None:
@@ -1352,6 +1341,11 @@ class TasksForCommonProjectStructure:
         return set(root.xpath('//cps:dependentcodeunit/text()', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
         }))
+
+    @GeneralUtilities.check_arguments
+    def dependent_codeunit_exists(self, repository:str,codeunit:str) -> None:
+        codeunit_file=f"{repository}/{codeunit}/{codeunit}.codeunit.xml"
+        return os.path.isfile(codeunit_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_docker_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -1450,6 +1444,11 @@ class TasksForCommonProjectStructure:
                                      + '.mailmap-file (see https://git-scm.com/docs/gitmailmap). The developer-team-check can also be disabled using '
                                      + 'the property validate_developers_of_repository.')
 
+        dependent_codeunits=self.get_dependent_code_units(codeunit_file)
+        for dependent_codeunit in dependent_codeunits:
+            if not self.dependent_codeunit_exists(repository_folder, dependent_codeunit):
+                raise ValueError(f"Codeunit {codeunit_name} does have dependent codeunit {dependent_codeunit} which does not exist.")
+
         # TODO implement cycle-check for dependent codeunits
 
         # Clear previously builded artifacts if desired:
@@ -1459,8 +1458,6 @@ class TasksForCommonProjectStructure:
 
         # Get artifacts from dependent codeunits
         if assume_dependent_codeunits_are_already_built:
-            pass  # TODO do basic checks to verify dependent codeunits are really there and raise exception if not
-        else:
             self.build_dependent_code_units(repository_folder, codeunit_name, verbosity, target_environmenttype, additional_arguments_file)
         self.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
@@ -1521,12 +1518,12 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_angular_codeunit(self, build_script_file: str, build_environment_target_type: str,
                                                       verbosity: int, commandline_arguments: list[str]) -> None:
-        self.copy_source_files_to_output_directory(build_script_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(build_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
         self.run_with_epew("ng", f"build --configuration {build_environment_target_type}", codeunit_folder, verbosity=verbosity)
         self.standardized_tasks_build_bom_for_node_project(codeunit_folder, verbosity, commandline_arguments)
+        self.copy_source_files_to_output_directory(build_script_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
@@ -1543,9 +1540,30 @@ class TasksForCommonProjectStructure:
         # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: int, args: list[str]):
-        src_folder = GeneralUtilities.resolve_relative_path("../../sce_client", script_file)
-        ScriptCollectionCore().run_program("flutter", "test", src_folder)
+    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, verbosity: int,
+                                                                                         args: list[str], package_name: str,build_environment_target_type: str, generate_badges: bool):
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", script_file)
+        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        codeunit_name=os.path.basename(codeunit_folder)
+        src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)
+        verbosity=self.get_verbosity_from_commandline_arguments(args,verbosity)
+        sc=ScriptCollectionCore()
+        sc.program_runner=ProgramRunnerEpew()
+        sc.run_program("flutter", "test --coverage", src_folder, verbosity)
+        test_coverage_folder_relative="Other/Artifacts/TestCoverage"
+        test_coverage_folder=GeneralUtilities.resolve_relative_path(test_coverage_folder_relative, codeunit_folder)
+        GeneralUtilities.ensure_directory_exists(test_coverage_folder)
+        coverage_file_relative=f"{test_coverage_folder_relative}/TestCoverage.xml"
+        coverage_file=GeneralUtilities.resolve_relative_path(coverage_file_relative, codeunit_folder)
+        sc.run_program("lcov_cobertura", f"coverage/lcov.info --base-dir . --excludes test --output ../{coverage_file_relative} --demangle", src_folder, verbosity)
+        content=GeneralUtilities.read_text_from_file(coverage_file)
+        content = re.sub('<![^<]+>', '', content)
+        content = re.sub('\\\\', '/', content)
+        content = re.sub('\\ name=\\"lib\\"', '', content)
+        content = re.sub('<package ', f'<package name="{codeunit_name}" ', content)
+        content = re.sub('\\ filename=\\"lib/', f' filename="{package_name}/lib/', content)
+        GeneralUtilities.write_text_to_file(coverage_file,content)
+        self.run_testcases_common_post_task(repository_folder,codeunit_name,verbosity,generate_badges,build_environment_target_type,args)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str,
@@ -1554,6 +1572,7 @@ class TasksForCommonProjectStructure:
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
+        repository_folder=os.path.dirname(codeunit_folder)
         self.run_with_epew(
             "ng", "test --watch=false --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
@@ -1561,7 +1580,8 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
         self.__rename_packagename_in_coverage_file(target_file, codeunit_name)
-        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        content=GeneralUtilities.read_text_from_file(target_file)
+        content = re.sub('\\\\', '/', content)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
@@ -1914,6 +1934,18 @@ class TasksForCommonProjectStructure:
                                       is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built)
 
     @GeneralUtilities.check_arguments
+    def build_codeunitsC(self, repository_folder: str, image:str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+        if target_environmenttype == "Development":
+            raise ValueError(f"build_codeunitsC is not available for target_environmenttype {target_environmenttype}.")
+        # TODO handle additional_arguments_file
+        # TODO add option to allow building different codeunits in same project with different images due to their demands
+        # TODO check if image provides all demands of codeunit
+        self.__sc.run_program(
+            "docker", f"run --volume {repository_folder}:/Workspace/Repository " +
+            f"-e repositoryfolder=/Workspace/Repository -e verbosity={verbosity} -e targetenvironment={target_environmenttype} {image}",
+            repository_folder)
+
+    @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None,
                         is_pre_merge: bool = False, export_target_directory: str = None) -> None:
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
@@ -2249,48 +2281,36 @@ class TasksForCommonProjectStructure:
             c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile="{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
-        execution_result = self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}",
-                                                 other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
-        if execution_result[0] != 0:
-            raise ValueError(f"CommonTasks.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
+        self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder,
+                               verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
-        execution_result = self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}",
-                                                 build_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
-        if execution_result[0] != 0:
-            raise ValueError(f"Build.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
+        self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}", build_folder,
+                               verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
 
         codeunit_hast_testable_sourcecode = self.codeunit_has_testable_sourcecode(codeunit_file)
         if codeunit_hast_testable_sourcecode:
             GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
-            execution_result = self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}",
-                                                     quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
-            if execution_result[0] != 0:
-                raise ValueError(f"RunTestcases.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
+            self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}",quality_folder,
+                                  verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
             self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
-        execution_result = self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}",
-                                                 quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
-        if execution_result[0] != 0:
-            raise ValueError(f"Linting.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
+        self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder,
+                              verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]())
 
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
-        execution_result = self.__sc.run_program(
-            "python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
-        if execution_result[0] != 0:
-            raise ValueError(f"GenerateReference.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
+        self.__sc.run_program("python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder,
+                              verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         if os.path.isfile(os.path.join(other_folder, "OnBuildingFinished.py")):
             GeneralUtilities.write_message_to_stdout('Run "OnBuildingFinished.py"...')
-            execution_result = self.__sc.run_program(
-                "python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=False)
-            if execution_result[0] != 0:
-                raise ValueError(f"OnBuildingFinished.py resulted in exitcode {execution_result[0]}. StdOut: '{execution_result[1]}' StdOut: '{execution_result[2]}'")
+            self.__sc.run_program("python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder,
+                                  verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         codeunit_version = self.get_version_of_codeunit(codeunit_file)

@@ -4,6 +4,7 @@ coverage>=7.3.2
 cyclonedx-bom>=3.11.7
 defusedxml>=0.7.1
 keyboard>=0.13.5
+lcov-cobertura>=2.0.2
 lxml>=4.9.3
 ntplib>=0.4.0
 Pillow>=10.1.0
