@@ -5,6 +5,10 @@
 			"name": "Entire repository",
 		},
 		{
+			"path": "./SCBuilder",
+			"name": "SCBuilder",
+		},
+		{
 			"path": "./ScriptCollection",
 			"name": "ScriptCollection",
 		}

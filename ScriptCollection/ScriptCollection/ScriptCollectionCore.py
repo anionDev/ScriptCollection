@@ -27,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.45"
+version = "3.4.46"
 __version__ = version
 
 
@@ -1322,7 +1322,7 @@ class ScriptCollectionCore:
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
 
     @GeneralUtilities.check_arguments
-    def __write_error_output(self, print_errors_as_information, stderr):
+    def __write_error_output(self, print_errors_as_information: bool, stderr: str):
         if print_errors_as_information:
             GeneralUtilities.write_message_to_stdout(stderr)
         else:

@@ -213,9 +213,17 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def reconfigure_standrd_input_and_outputs():
+        sys.stdin.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8')
+
+    @staticmethod
+    @check_arguments
     def write_message_to_stdout(message: str):
-        sys.stdout.write(GeneralUtilities.str_none_safe(message)+"\n")
-        sys.stdout.flush()
+        for line in GeneralUtilities.string_to_lines(message):
+            sys.stdout.write(GeneralUtilities.str_none_safe(line)+"\n")
+            sys.stdout.flush()
 
     @staticmethod
     @check_arguments
@@ -463,11 +471,11 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def write_text_to_file(file: str, content: str, encoding="utf-8") -> None:
-        GeneralUtilities.write_binary_to_file(file, bytearray(content, encoding))
+        GeneralUtilities.write_binary_to_file(file, bytes(bytearray(content, encoding)))
 
     @staticmethod
     @check_arguments
-    def write_binary_to_file(file: str, content: bytearray) -> None:
+    def write_binary_to_file(file: str, content: bytes) -> None:
         with open(file, "wb") as file_object:
             file_object.write(content)
 
