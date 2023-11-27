@@ -877,7 +877,7 @@ class TasksForCommonProjectStructure:
         root: etree._ElementTree = etree.parse(target_file)
         source_base_path_in_coverage_file :str= root.xpath("//coverage/sources/source/text()")[0].replace("\\","/")
         content=GeneralUtilities.read_text_from_file(target_file)
-        GeneralUtilities.assert_condition(source_base_path_in_coverage_file.startswith(repository_folder),
+        GeneralUtilities.assert_condition(source_base_path_in_coverage_file.startswith(repository_folder) or repository_folder.startswith(source_base_path_in_coverage_file),
                                           f"Unexpected path for coverage. Sourcepath: \"{source_base_path_in_coverage_file}\"; repository: \"{repository_folder}\"")
         content = re.sub('\\\\', '/', content)
         content= re.sub("filename=\"([^\"]+)\"",lambda match: self.__standardized_tasks_run_testcases_for_dotnet_project_helper(source_base_path_in_coverage_file,codeunit_folder,match), content)
