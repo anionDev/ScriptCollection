@@ -210,7 +210,7 @@ class TasksForCommonProjectStructure:
         folder = f"{repository_folder}/{codeunitname}/Other/Artifacts/TestCoverage"
         filename = "TestCoverage.xml"
         full_file = os.path.join(folder, filename)
-        GeneralUtilities.write_text_to_file(full_file, re.sub("<source>.+<\\/source>", f"<source>./{codeunitname}/</source>",
+        GeneralUtilities.write_text_to_file(full_file, re.sub("<source>.+<\\/source>", f"<source><!--[repository]/-->./{codeunitname}/</source>",
                                                                       GeneralUtilities.read_text_from_file(full_file)))
 
     @GeneralUtilities.check_arguments
@@ -844,28 +844,43 @@ class TasksForCommonProjectStructure:
                                   verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
+    def __standardized_tasks_run_testcases_for_dotnet_project_helper(self,source:str,codeunit_folder:str,match:re.Match)->str:
+        filename=match.group(1)
+        file=os.path.join(source,filename)
+        GeneralUtilities.assert_condition( os.path.isfile(file),f"File \"{file}\" does not exist.")
+        GeneralUtilities.assert_condition( file.startswith(codeunit_folder),
+                                           f"Unexpected path for coverage-file. File: \"{file}\"; codeunitfolder: \"{codeunit_folder}\"")
+        filename_relative= f".{file[len(codeunit_folder):]}"
+        return f'filename="{filename_relative}"'
+
+    @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
                                                             target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]) -> None:
         dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
-        repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute())
+        repository_folder: str = str(Path(os.path.dirname(runtestcases_file)).parent.parent.parent.absolute()).replace("\\","/")
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         temp_folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
         GeneralUtilities.ensure_directory_exists(temp_folder)
         runsettings_file = self.dotnet_runsettings_file
-        codeunit_folder = os.path.join(repository_folder, codeunit_name)
+        codeunit_folder = f"{repository_folder}/{codeunit_name}"
         arg = f"test . -c {dotnet_build_configuration} -o {temp_folder}"
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
         self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity)
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
+        GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
         self.__remove_unrelated_package_from_testcoverage_file(target_file, codeunit_name)
+        root: etree._ElementTree = etree.parse(target_file)
+        source_base_path_in_coverage_file :str= root.xpath("//coverage/sources/source/text()")[0].replace("\\","/")
         content=GeneralUtilities.read_text_from_file(target_file)
+        GeneralUtilities.assert_condition(source_base_path_in_coverage_file.startswith(repository_folder) or repository_folder.startswith(source_base_path_in_coverage_file),
+                                          f"Unexpected path for coverage. Sourcepath: \"{source_base_path_in_coverage_file}\"; repository: \"{repository_folder}\"")
         content = re.sub('\\\\', '/', content)
-        content = re.sub('\\ filename=\\"', f' filename="{codeunit_name}/', content)
+        content= re.sub("filename=\"([^\"]+)\"",lambda match: self.__standardized_tasks_run_testcases_for_dotnet_project_helper(source_base_path_in_coverage_file,codeunit_folder,match), content)
         GeneralUtilities.write_text_to_file(target_file, content)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
 
