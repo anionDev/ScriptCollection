@@ -1323,9 +1323,15 @@ class TasksForCommonProjectStructure:
                                                      "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, codeunitname: str,
-                                   verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
+        filename=os.path.basename(push_artifacts_file)
+        codeunitname_regex:str="([a-zA-Z0-9]+)"
+        filename_regex:str=f"PushArtifacts\\.{codeunitname_regex}\\.py"
+        if match := re.search(filename_regex, filename, re.IGNORECASE):
+            codeunitname = match.group(1)
+        else:
+            raise ValueError(f"Expected push-artifacts-file to match the regex \"{filename_regex}\" where \"{codeunitname_regex}\" represents the codeunit-name.")
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
