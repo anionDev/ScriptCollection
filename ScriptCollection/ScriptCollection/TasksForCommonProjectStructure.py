@@ -653,9 +653,9 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_exists(gitkeep_file)
         for runtime in runtimes:
             outputfolder = originaloutputfolder+runtime
-            self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
             GeneralUtilities.ensure_directory_does_not_exist(os.path.join(csproj_file_folder, "obj"))
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
+            self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
             GeneralUtilities.ensure_directory_exists(outputfolder)
             self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
             self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {dotnet_build_configuration} -o {outputfolder} --runtime {runtime}",
