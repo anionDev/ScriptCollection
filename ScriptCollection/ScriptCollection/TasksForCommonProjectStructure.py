@@ -204,14 +204,6 @@ class TasksForCommonProjectStructure:
                                                          GeneralUtilities.read_text_from_file(file)))
 
 
-    @staticmethod
-    @GeneralUtilities.check_arguments
-    def update_path_of_source_in_testcoverage_file(repository_folder: str, codeunitname: str) -> None:
-        folder = f"{repository_folder}/{codeunitname}/Other/Artifacts/TestCoverage"
-        filename = "TestCoverage.xml"
-        full_file = os.path.join(folder, filename)
-        GeneralUtilities.write_text_to_file(full_file, re.sub("<source>.+<\\/source>", f"<source><!--[repository]/-->./{codeunitname}/</source>",
-                                                                      GeneralUtilities.read_text_from_file(full_file)))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_python_codeunit(self, run_testcases_file: str, generate_badges: bool, verbosity: int,
@@ -825,9 +817,10 @@ class TasksForCommonProjectStructure:
         history_folder_full = os.path.join(repository_folder, history_folder)
         GeneralUtilities.ensure_directory_exists(history_folder_full)
         history_argument = f" -historydir:{history_folder}"
-        self.__sc.run_program("reportgenerator", f"-reports:{codeunitname}/Other/Artifacts/TestCoverage/TestCoverage.xml " +
+        argument=(f"-reports:{codeunitname}/Other/Artifacts/TestCoverage/TestCoverage.xml " +
                               f"-targetdir:{codeunitname}/Other/Artifacts/TestCoverageReport --verbosity:{verbose_argument_for_reportgenerator}{history_argument} " +
-                              f"-title:{codeunitname} -tag:v{codeunit_version}",
+                              f"-title:{codeunitname} -tag:v{codeunit_version}")
+        self.__sc.run_program("reportgenerator", argument,
                               repository_folder, verbosity=verbosity)
         if not add_testcoverage_history_entry:
             os.remove(GeneralUtilities.get_direct_files_of_folder(history_folder_full)[-1])
@@ -843,15 +836,6 @@ class TasksForCommonProjectStructure:
                                   f"--verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname),
                                   verbosity=verbosity)
 
-    @GeneralUtilities.check_arguments
-    def __standardized_tasks_run_testcases_for_dotnet_project_helper(self,source:str,codeunit_folder:str,match:re.Match)->str:
-        filename=match.group(1)
-        file=os.path.join(source,filename)
-        GeneralUtilities.assert_condition( os.path.isfile(file),f"File \"{file}\" does not exist.")
-        GeneralUtilities.assert_condition( file.startswith(codeunit_folder),
-                                           f"Unexpected path for coverage-file. File: \"{file}\"; codeunitfolder: \"{codeunit_folder}\"")
-        filename_relative= f".{file[len(codeunit_folder):]}"
-        return f'filename="{filename_relative}"'
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool,
@@ -892,6 +876,45 @@ class TasksForCommonProjectStructure:
         self.update_path_of_source_in_testcoverage_file(repository_folder, codeunit_name)
         self.standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
         self.check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def update_path_of_source_in_testcoverage_file(repository_folder: str, codeunitname: str) -> None:
+        folder = f"{repository_folder}/{codeunitname}/Other/Artifacts/TestCoverage"
+        filename = "TestCoverage.xml"
+        full_file = os.path.join(folder, filename)
+        GeneralUtilities.write_text_to_file(full_file, re.sub("<source>.+<\\/source>", f"<source><!--[repository]/-->./{codeunitname}/</source>",
+                                                                      GeneralUtilities.read_text_from_file(full_file)))
+        TasksForCommonProjectStructure.__remove_not_existing_files_from_testcoverage_file(full_file,repository_folder, codeunitname)
+
+    @GeneralUtilities.check_arguments
+    def __standardized_tasks_run_testcases_for_dotnet_project_helper(self,source:str,codeunit_folder:str,match:re.Match)->str:
+        filename=match.group(1)
+        file=os.path.join(source,filename)
+        #GeneralUtilities.assert_condition(os.path.isfile(file),f"File \"{file}\" does not exist.")
+        GeneralUtilities.assert_condition(file.startswith(codeunit_folder),
+                                        f"Unexpected path for coverage-file. File: \"{file}\"; codeunitfolder: \"{codeunit_folder}\"")
+        filename_relative= f".{file[len(codeunit_folder):]}"
+        return f'filename="{filename_relative}"'
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def __remove_not_existing_files_from_testcoverage_file(testcoveragefile: str,repository_folder:str, codeunit_name: str) -> None:
+        root: etree._ElementTree = etree.parse(testcoveragefile)
+        codeunit_folder=os.path.join(repository_folder,codeunit_name)
+        xpath=f"//coverage/packages/package[@name='{codeunit_name}']/classes/class"
+        classes = root.xpath(xpath)
+        found_existing_files=False
+        for clas in classes:
+            filename=clas.attrib['filename']
+            file=os.path.join(codeunit_folder,filename)
+            if os.path.isfile(file):
+                found_existing_files=True
+            else:
+                clas.getparent().remove(clas)
+        GeneralUtilities.assert_condition(found_existing_files,f"No existing files in testcoderage-report-file \"{testcoveragefile}\".")
+        result = etree.tostring(root).decode("utf-8")
+        GeneralUtilities.write_text_to_file(testcoveragefile, result)
 
     @GeneralUtilities.check_arguments
     def __remove_unrelated_package_from_testcoverage_file(self, file: str, codeunit_name: str) -> None:
