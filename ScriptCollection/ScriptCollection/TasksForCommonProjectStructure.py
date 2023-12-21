@@ -1208,7 +1208,7 @@ class TasksForCommonProjectStructure:
 
         src_branch_commit_id = self.__sc.git_get_commit_id(repository_folder,  source_branch)
         if (src_branch_commit_id == self.__sc.git_get_commit_id(repository_folder,  target_branch)):
-            GeneralUtilities.write_message_to_stderr(
+            raise ValueError(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
         self.__sc.git_checkout(repository_folder, source_branch)
@@ -1278,7 +1278,7 @@ class TasksForCommonProjectStructure:
 
         src_branch_commit_id = self.__sc.git_get_commit_id(information.repository,  information.sourcebranch)
         if (src_branch_commit_id == self.__sc.git_get_commit_id(information.repository,  information.targetbranch)):
-            GeneralUtilities.write_message_to_stderr(
+            raise ValueError(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
         self.assert_no_uncommitted_changes(information.repository)
