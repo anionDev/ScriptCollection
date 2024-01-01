@@ -2259,7 +2259,7 @@ class TasksForCommonProjectStructure:
         codeunit_name=os.path.basename(codeunit_folder)
         csproj_file=os.path.join(codeunit_folder,codeunit_name,f"{codeunit_name}.csproj")
         self.__sc.update_year_in_copyright_tags(csproj_file)
-        csprojtests_file=os.path.join(codeunit_folder,codeunit_name,f"{codeunit_name}Tests.csproj")
+        csprojtests_file=os.path.join(codeunit_folder,f"{codeunit_name}Tests",f"{codeunit_name}Tests.csproj")
         self.__sc.update_year_in_copyright_tags(csprojtests_file)
         nuspec_file=os.path.join(codeunit_folder,"Other","Build",f"{codeunit_name}.nuspec")
         if os.path.isfile(nuspec_file):
