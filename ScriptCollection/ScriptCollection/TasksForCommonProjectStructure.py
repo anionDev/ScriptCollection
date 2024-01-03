@@ -1978,9 +1978,9 @@ class TasksForCommonProjectStructure:
                                       is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built)
 
     @GeneralUtilities.check_arguments
-    def build_codeunitsC(self, repository_folder: str, image:str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+    def build_codeunits_containerized(self, repository_folder: str, image:str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         if target_environmenttype == "Development":
-            raise ValueError(f"build_codeunitsC is not available for target_environmenttype {target_environmenttype}.")
+            raise ValueError(f"build_codeunits_containerized is not available for target_environmenttype {target_environmenttype}.")
         # TODO handle additional_arguments_file
         # TODO add option to allow building different codeunits in same project with different images due to their demands
         # TODO check if image provides all demands of codeunit
