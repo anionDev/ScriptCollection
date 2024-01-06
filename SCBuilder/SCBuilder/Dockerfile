@@ -1,7 +1,7 @@
 FROM debian:stable-slim
 
 ARG TargetEnvironmentType
-ARG Version="3.5.0"
+ARG Version="3.4.51"
 LABEL maintainer="marius.goecke@gmail.com"
 LABEL description="SCBuilder is a container-image with a build-framework for software-projects."
 LABEL targetEnvironmentType="$TargetEnvironmentType"
@@ -10,7 +10,7 @@ LABEL de.aniondev.projects.image-provides-tool-python="v3.11"
 LABEL de.aniondev.projects.image-provides-tool-pip3="v22"
 LABEL de.aniondev.projects.image-provides-tool-git="v2.39"
 LABEL de.aniondev.projects.image-provides-tool-gitversion="v5"
-LABEL de.aniondev.projects.image-provides-tool-dotnet="v7"
+LABEL de.aniondev.projects.image-provides-tool-dotnet="v8"
 LABEL de.aniondev.projects.image-provides-tool-nodejs="v20"
 LABEL de.aniondev.projects.image-provides-tool-docfx="v2"
 LABEL de.aniondev.projects.image-provides-tool-dotnetcoverage="v17"
@@ -22,14 +22,14 @@ RUN mkdir /Workspace \
     && mkdir /Workspace/Scripts \
     && mkdir /Workspace/Tools \
     && apt update \
-    && apt install -y sudo iputils-ping curl wget \
-    && adduser user \
-    && echo "user:pass" | chpasswd \
-    && usermod -aG sudo user \
-    && echo "user ALL=(ALL:ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/user
+    && apt install -y sudo iputils-ping curl wget
+#&& adduser user \
+#&& echo "user:pass" | chpasswd \
+#&& usermod -aG sudo user \
+#&& echo "user ALL=(ALL:ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/user
 COPY ./SCBuilder/EntryPointScript.sh /Workspace/Scripts/EntryPointScript.sh
 WORKDIR /Workspace/Scripts
-USER user
+#USER user
 
 ADD ./Other/Resources/DependentCodeUnits/ScriptCollection/BuildResult_Wheel /Workspace/Tools/ScriptCollectionArtifacts
 
@@ -40,11 +40,11 @@ RUN sudo wget https://packages.microsoft.com/config/debian/11/packages-microsoft
     && sudo dpkg -i packages-microsoft-prod.deb \
     && sudo rm packages-microsoft-prod.deb \
     && sudo apt-get update \
-    && sudo apt-get install -y dotnet-sdk-7.0
+    && sudo apt-get install -y dotnet-sdk-8.0
 ENV PATH="${PATH}:/opt/gtk/bin"
 
 RUN dotnet tool install --global GitVersion.Tool
-RUN sudo ln -s /home/user/.dotnet/tools/dotnet-gitversion /usr/bin/gitversion
+RUN sudo ln -s $HOME/.dotnet/tools/dotnet-gitversion /usr/bin/gitversion
 
 #TODO install required tools which should be definable by specific demands passed as argument
 

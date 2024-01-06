@@ -27,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.50"
+version = "3.4.51"
 __version__ = version
 
 
@@ -1678,3 +1678,26 @@ DNS                 = {domain}
 
         # cleanup
         GeneralUtilities.ensure_directory_does_not_exist(temp_folder)
+
+
+    @GeneralUtilities.check_arguments
+    def update_year_in_copyright_tags(self, file: str) -> None:
+        current_year=str(datetime.now().year)
+        lines=GeneralUtilities.read_lines_from_file(file)
+        lines_result=[]
+        for line in lines:
+            if match := re.search("(.*<[Cc]opyright>.*)\\d\\d\\d\\d(.*<\\/[Cc]opyright>.*)", line):
+                part1 = match.group(1)
+                part2 = match.group(2)
+                adapted=part1+current_year+part2
+            else:
+                adapted=line
+            lines_result.append(adapted)
+        GeneralUtilities.write_lines_to_file(file,lines_result)
+
+    @GeneralUtilities.check_arguments
+    def update_year_in_first_line_of_file(self, file: str) -> None:
+        current_year=str(datetime.now().year)
+        lines=GeneralUtilities.read_lines_from_file(file)
+        lines[0]=re.sub("\\d\\d\\d\\d",current_year,lines[0])
+        GeneralUtilities.write_lines_to_file(file,lines)

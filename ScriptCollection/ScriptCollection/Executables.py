@@ -288,10 +288,10 @@ def BuildCodeUnitsC() -> int:
     parser.add_argument('--verbosity', required=False, default=1)
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
-    parser.add_argument('--image', required=False, default="scbuilder:3.5.0")  # TODO set deafault to aniondev/scbuilder:latest
+    parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
+    TasksForCommonProjectStructure().build_codeunits_containerized(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
     return 0
 
 

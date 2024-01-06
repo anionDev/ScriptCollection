@@ -1208,7 +1208,7 @@ class TasksForCommonProjectStructure:
 
         src_branch_commit_id = self.__sc.git_get_commit_id(repository_folder,  source_branch)
         if (src_branch_commit_id == self.__sc.git_get_commit_id(repository_folder,  target_branch)):
-            GeneralUtilities.write_message_to_stderr(
+            raise ValueError(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
         self.__sc.git_checkout(repository_folder, source_branch)
@@ -1278,7 +1278,7 @@ class TasksForCommonProjectStructure:
 
         src_branch_commit_id = self.__sc.git_get_commit_id(information.repository,  information.sourcebranch)
         if (src_branch_commit_id == self.__sc.git_get_commit_id(information.repository,  information.targetbranch)):
-            GeneralUtilities.write_message_to_stderr(
+            raise ValueError(
                 f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
         self.assert_no_uncommitted_changes(information.repository)
@@ -1978,9 +1978,9 @@ class TasksForCommonProjectStructure:
                                       is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built)
 
     @GeneralUtilities.check_arguments
-    def build_codeunitsC(self, repository_folder: str, image:str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+    def build_codeunits_containerized(self, repository_folder: str, image:str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         if target_environmenttype == "Development":
-            raise ValueError(f"build_codeunitsC is not available for target_environmenttype {target_environmenttype}.")
+            raise ValueError(f"build_codeunits_containerized is not available for target_environmenttype {target_environmenttype}.")
         # TODO handle additional_arguments_file
         # TODO add option to allow building different codeunits in same project with different images due to their demands
         # TODO check if image provides all demands of codeunit
@@ -2237,6 +2237,34 @@ class TasksForCommonProjectStructure:
         control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit_folder(codeunit_folder),
                                                                   installedsize, maintainername, maintaineremail, description)
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
+
+
+    @GeneralUtilities.check_arguments
+    def update_year_in_license_file_in_common_scripts_file(self, common_tasks_scripts_file: str) -> None:
+        self.update_year_in_license_file(GeneralUtilities.resolve_relative_path("../../..",common_tasks_scripts_file))
+
+
+    @GeneralUtilities.check_arguments
+    def update_year_in_license_file(self, repository_folder: str) -> None:
+        self.__sc.update_year_in_first_line_of_file(os.path.join(repository_folder,"License.txt"))
+
+
+    @GeneralUtilities.check_arguments
+    def update_year_for_dotnet_codeunit_in_common_scripts_file(self, common_tasks_scripts_file: str) -> None:
+        self.update_year_for_dotnet_codeunit(GeneralUtilities.resolve_relative_path("../..",common_tasks_scripts_file))
+
+
+    @GeneralUtilities.check_arguments
+    def update_year_for_dotnet_codeunit(self, codeunit_folder: str) -> None:
+        codeunit_name=os.path.basename(codeunit_folder)
+        csproj_file=os.path.join(codeunit_folder,codeunit_name,f"{codeunit_name}.csproj")
+        self.__sc.update_year_in_copyright_tags(csproj_file)
+        csprojtests_file=os.path.join(codeunit_folder,f"{codeunit_name}Tests",f"{codeunit_name}Tests.csproj")
+        self.__sc.update_year_in_copyright_tags(csprojtests_file)
+        nuspec_file=os.path.join(codeunit_folder,"Other","Build",f"{codeunit_name}.nuspec")
+        if os.path.isfile(nuspec_file):
+            self.__sc.update_year_in_copyright_tags(nuspec_file)
+
 
     @GeneralUtilities.check_arguments
     def repository_has_codeunits(self, repository: str, ignore_disabled_codeunits: bool = True) -> bool:
