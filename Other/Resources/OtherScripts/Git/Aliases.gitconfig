@@ -17,6 +17,7 @@
     showcommitfull = show --format=fuller
     showdanglingobjects = fsck --lost-found
     showfirstcommits = rev-list --max-parents=0 HEAD
+    showlastcommit = show --summary
     showconfig = config --list --show-origin
     showtrackedignored = ls-files -i --exclude-standard
     tree = log --graph --decorate --pretty=oneline --abbrev-commit
