@@ -1,0 +1,71 @@
+[color]
+    branch = auto
+    diff = auto
+    interactive = true
+    status = auto
+    ui = true
+[core]
+    autocrlf = false
+    bare = false
+    compression = 0
+    filemode = false
+    fscache = true
+    ignorecase = false
+    logallrefupdates = true
+    longpaths = true
+    pager = cat
+    packedGitLimit = 2000m
+    packedGitWindowSize = 2000m
+    protectNTFS = false
+    quotePath = false
+    repositoryformatversion = 0
+    symlinks = true
+    trustctime = false
+    warnAmbiguousRefs = true
+    whitespace = trailing-space
+[fetch]
+    prune = true
+[filter "lfs"]
+    clean = git-lfs clean -- %f
+    process = git-lfs filter-process
+    required = true
+    smudge = git-lfs smudge -- %f
+[gc]
+    auto = 0
+[gui]
+    encoding = utf-8
+[http]
+    lowSpeedLimit = 100
+    lowSpeedTime = 20
+    maxRequestBuffer = 1000m
+    postBuffer = 2048576000
+    sslVerify = true
+[i18n]
+    commitEncoding = utf-8
+    logOutputEncoding = utf-8
+[init]
+    defaultBranch = main
+[log]
+    date = iso
+    mailmap = true
+[pack]
+    deltaCacheSize = 1024m
+    packSizeLimit = 1024m
+    threads = 1
+    window = 1
+    windowMemory = 4000000000
+[pull]
+    rebase = false
+[push]
+    followTags = true
+[rebase]
+    autosquash = false
+[receive]
+    denyCurrentBranch = ignore
+    denyNonFastForwards = false
+    fsckObjects = true
+[ssh]
+    maxRequestBuffer = 4096m
+    postBuffer = 4096m
+[submodule]
+    recurse = true
