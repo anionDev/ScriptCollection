@@ -428,11 +428,17 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_property_from_commandline_arguments(commandline_arguments: list[str], property_name: str) -> str:
         result: str = None
-        for commandline_argument in commandline_arguments[1:]:
-            prefix = f"--overwrite_{property_name}"
-            if commandline_argument.startswith(prefix):
-                if m := re.match(f"^{re.escape(prefix)}=(.+)$", commandline_argument):
-                    result = m.group(1)
+        count=len(commandline_arguments)
+        i=-1
+        for commandline_argument in commandline_arguments:
+            i=i+1
+            if i<count-1:
+                prefix = f"--overwrite_{property_name}"
+                if commandline_argument==prefix:
+                    result= commandline_arguments[i+1]
+                    return result
+                else:
+                    i=3
         return result
 
     @GeneralUtilities.check_arguments
@@ -710,7 +716,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str],
-                                                      target_environment_type: str,  verbosity: int, target_environmenttype: str,
+                                                      default_target_environment_type: str,  verbosity: int, target_environment_type: str,
                                                       runtimes: list[str], copy_license_file_to_target_folder: bool, commandline_arguments: list[str]) -> None:
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -1270,7 +1276,7 @@ class TasksForCommonProjectStructure:
         # hint: arguments can be overwritten by commandline_arguments
         folder_of_this_file = os.path.dirname(create_release_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity={str(verbosity)}",
+        self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity {str(verbosity)}",
                               folder_of_this_file,  verbosity=verbosity, log_file=logfile, addLogOverhead=addLogOverhead)
 
     @GeneralUtilities.check_arguments
@@ -1978,9 +1984,9 @@ class TasksForCommonProjectStructure:
                                       is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built)
 
     @GeneralUtilities.check_arguments
-    def build_codeunits_containerized(self, repository_folder: str, image:str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
+    def build_codeunitsC(self, repository_folder: str, image:str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None) -> None:
         if target_environmenttype == "Development":
-            raise ValueError(f"build_codeunits_containerized is not available for target_environmenttype {target_environmenttype}.")
+            raise ValueError(f"build_codeunitsC is not available for target_environmenttype {target_environmenttype}.")
         # TODO handle additional_arguments_file
         # TODO add option to allow building different codeunits in same project with different images due to their demands
         # TODO check if image provides all demands of codeunit
@@ -2320,16 +2326,16 @@ class TasksForCommonProjectStructure:
         additional_arguments_l: str = ""
         additional_arguments_g: str = ""
         additional_arguments_f: str = ""
-        general_argument = f' --overwrite_verbosity={str(verbosity)} --overwrite_targetenvironmenttype={target_environmenttype}'
+        general_argument = f' --overwrite_verbosity {str(verbosity)} --overwrite_targetenvironmenttype {target_environmenttype}'
 
         c_additionalargumentsfile_argument = ""
 
         if is_pre_merge:
-            general_argument = general_argument+" --overwrite_is_pre_merge=true"
+            general_argument = general_argument+" --overwrite_is_pre_merge true"
             GeneralUtilities.write_message_to_stdout("This is a pre-merge-build")
 
         if assume_dependent_codeunits_are_already_built:
-            c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built=true"
+            c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built true"
             diagnostic = False
             if diagnostic:
                 GeneralUtilities.write_message_to_stdout("Assume dependent codeunits are already built")
@@ -2350,7 +2356,7 @@ class TasksForCommonProjectStructure:
                 additional_arguments_g = " " + config.get(section_name, "ArgumentsForGenerateReference")
             if config.has_option(section_name, "ArgumentsForOnFinish"):
                 additional_arguments_f = " " + config.get(section_name, "ArgumentsForOnFinish")
-            c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile="{additional_arguments_file}"'
+            c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile "{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
         self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder,

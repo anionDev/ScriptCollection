@@ -291,7 +291,7 @@ def BuildCodeUnitsC() -> int:
     parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    TasksForCommonProjectStructure().build_codeunits_containerized(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
+    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
     return 0
 
 
