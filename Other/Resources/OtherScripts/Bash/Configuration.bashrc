@@ -4,6 +4,9 @@ alias l='ls -la --color=auto --time-style=long-iso'
 # cd ..
 alias c='cd ..'
 
+# remove all content in current console-window ('cls'=>'clear screen')
+alias cls='printf "\033c"'
+
 # cat ('p'=> 'print')
 alias p='pygmentize -g -O linenos=1'
 
