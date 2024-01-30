@@ -429,16 +429,14 @@ class TasksForCommonProjectStructure:
     def get_property_from_commandline_arguments(commandline_arguments: list[str], property_name: str) -> str:
         result: str = None
         count=len(commandline_arguments)
-        i=-1
+        loop_index=-1
         for commandline_argument in commandline_arguments:
-            i=i+1
-            if i<count-1:
+            loop_index=loop_index+1
+            if loop_index<count-1:
                 prefix = f"--overwrite_{property_name}"
                 if commandline_argument==prefix:
-                    result= commandline_arguments[i+1]
+                    result= commandline_arguments[loop_index+1]
                     return result
-                else:
-                    i=3
         return result
 
     @GeneralUtilities.check_arguments
