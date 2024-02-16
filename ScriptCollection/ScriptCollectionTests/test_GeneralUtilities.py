@@ -8,6 +8,7 @@ class GeneralUtilitiesTests(unittest.TestCase):
     testfileprefix = "testfile_"
 
     def test_string_to_lines(self) -> None:
+
         # arrange
         test_string = "a\r\nb\n"
         expected = ["a", "b", ""]
