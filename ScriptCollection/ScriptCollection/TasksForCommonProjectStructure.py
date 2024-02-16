@@ -1542,8 +1542,8 @@ class TasksForCommonProjectStructure:
         target_file = os.path.join(target_folder, "DiffReport.html").replace("\\", "/")
         src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty git-tree
         src_prefix = "Begin"
-        if self.__sc.get_current_branch_has_tag(repository_folder):
-            latest_tag = self.__sc.get_latest_tag(repository_folder)
+        if self.__sc.get_current_git_branch_has_tag(repository_folder):
+            latest_tag = self.__sc.get_latest_git_tag(repository_folder)
             src = self.__sc.git_get_commitid_of_tag(repository_folder, latest_tag)
             src_prefix = latest_tag
         dst = "HEAD"
@@ -1656,7 +1656,8 @@ class TasksForCommonProjectStructure:
         self.set_constant_for_commitid(codeunit_folder)
         self.set_constant_for_commitdate(codeunit_folder)
         self.set_constant_for_commitname(codeunit_folder)
-        self.set_constant_for_commitversion(codeunit_folder)
+        self.set_constant_for_codeunitversion(codeunit_folder)
+        self.set_constant_for_codeunitmajorversion(codeunit_folder)
         self.set_constant_for_description(codeunit_folder)
 
     @GeneralUtilities.check_arguments
@@ -1675,9 +1676,15 @@ class TasksForCommonProjectStructure:
         self.set_constant(codeunit_folder, "CodeUnitName", codeunit_name)
 
     @GeneralUtilities.check_arguments
-    def set_constant_for_commitversion(self, codeunit_folder: str) -> None:
+    def set_constant_for_codeunitversion(self, codeunit_folder: str) -> None:
         codeunit_version: str = self.get_version_of_codeunit_folder(codeunit_folder)
         self.set_constant(codeunit_folder, "CodeUnitVersion", codeunit_version)
+
+    @GeneralUtilities.check_arguments
+    def set_constant_for_codeunitmajorversion(self, codeunit_folder: str) -> None:
+        codeunit_version: str = self.get_version_of_codeunit_folder(codeunit_folder)
+        major_version=int(codeunit_version.split(".")[0])
+        self.set_constant(codeunit_folder, "CodeUnitMajorVersion", str(major_version))
 
     @GeneralUtilities.check_arguments
     def set_constant_for_description(self, codeunit_folder: str) -> None:
@@ -2066,6 +2073,7 @@ class TasksForCommonProjectStructure:
         self.__check_if_changelog_exists(repository_folder, project_version)
         self.__check_whether_security_txt_exists(repository_folder)
         self.__check_whether_workspace_file_exists(repository_folder)
+        self.__check_for_staged_or_committed_ignored_files(repository_folder)
 
     @GeneralUtilities.check_arguments
     def __check_if_changelog_exists(self, repository_folder: str, project_version: str) -> None:
@@ -2082,12 +2090,17 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"The repository does not contain a '{security_txt_file_relative}'-file. See https://securitytxt.org/ for more information.")
 
     @GeneralUtilities.check_arguments
+    def __check_for_staged_or_committed_ignored_files(self, repository_folder: str) -> None:
+        for file in self.__sc.get_staged_or_committed_git_ignored_files(repository_folder):
+            GeneralUtilities.write_message_to_stderr(f'Warning: Repository contains staged or committed file "{file}" which is git-ignored.')
+
+    @GeneralUtilities.check_arguments
     def __check_whether_workspace_file_exists(self, repository_folder: str) -> None:
         count=0
         for file in GeneralUtilities.get_direct_files_of_folder(repository_folder):
             if file.endswith(".code-workspace"):
-                count=count+1
-        if count!=1:
+                count = count + 1
+        if count != 1:
             raise ValueError('The repository must contain exactly one ".code-workspace"-file on the top-level.')
 
 

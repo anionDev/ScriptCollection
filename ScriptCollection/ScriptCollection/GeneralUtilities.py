@@ -12,6 +12,8 @@ import secrets
 import string as strin
 import sys
 import traceback
+import warnings
+import functools
 from datetime import datetime, timedelta, date
 from os import listdir
 from os.path import isfile, join, isdir
@@ -61,6 +63,18 @@ class GeneralUtilities:
             return function(*args, **named_args)
         __check_function.__doc__ = function.__doc__
         return __check_function
+
+    @staticmethod
+    def deprecated(func):
+        @functools.wraps(func)
+        def new_func(*args, **kwargs):
+            warnings.simplefilter('always', DeprecationWarning)
+            warnings.warn(f"Call to deprecated function {func.__name__}",
+                        category=DeprecationWarning,
+                        stacklevel=2)
+            warnings.simplefilter('default', DeprecationWarning)
+            return func(*args, **kwargs)
+        return new_func
 
     @staticmethod
     @check_arguments
@@ -768,10 +782,9 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    @deprecated
     def absolute_file_paths(directory: str) -> list[str]:
-        for dirpath, _, filenames in os.walk(directory):
-            for filename in filenames:
-                yield os.path.abspath(os.path.join(dirpath, filename))
+        return GeneralUtilities.get_all_files_of_folder(directory)
 
     @staticmethod
     @check_arguments

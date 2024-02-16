@@ -27,7 +27,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.55"
+version = "3.4.56"
 __version__ = version
 
 
@@ -443,7 +443,7 @@ class ScriptCollectionCore:
         raise ValueError(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
     @GeneralUtilities.check_arguments
-    def discard_all_changes(self, repository: str) -> None:
+    def git_discard_all_changes(self, repository: str) -> None:
         self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
@@ -460,7 +460,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_tags(self, repository: str) -> list[str]:
-        tags = [line for line in self.run_program_argsasarray("git", ["tag"], repository)[1].split("\n") if len(line) > 0]
+        tags = [line.replace("\r", "") for line in self.run_program_argsasarray("git", ["tag"], repository)[1].split("\n") if len(line) > 0]
         return tags
 
     @GeneralUtilities.check_arguments
@@ -486,14 +486,21 @@ class ScriptCollectionCore:
                 self.git_create_tag(repository, commit_id_new, tag, sign, message)
 
     @GeneralUtilities.check_arguments
-    def get_current_branch_has_tag(self, repository_folder: str) -> str:
+    def get_current_git_branch_has_tag(self, repository_folder: str) -> bool:
         result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         return result[0] == 0
 
     @GeneralUtilities.check_arguments
-    def get_latest_tag(self, repository_folder: str) -> str:
+    def get_latest_git_tag(self, repository_folder: str) -> str:
         result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
         result = result[1].replace("\r", "").replace("\n", "")
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_staged_or_committed_git_ignored_files(self, repository_folder: str) -> list[str]:
+        tresult = self.run_program_argsasarray("git", ["ls-files", "-i", "-c", "--exclude-standard"], repository_folder, verbosity=0)
+        tresult = tresult[1].replace("\r", "")
+        result=[line for line in tresult.split("\n") if len(line)>0]
         return result
 
     @GeneralUtilities.check_arguments
@@ -937,7 +944,7 @@ class ScriptCollectionCore:
         if (os.path.isdir(inputfolder)):
             namemappingfile = "name_map.csv"
             files_directory = inputfolder
-            files_directory_obf = files_directory + "_Obfuscated"
+            files_directory_obf = f"{files_directory}_Obfuscated"
             self.SCObfuscateFilesFolder(inputfolder, printtableheadline, namemappingfile, extensions)
             os.rename(namemappingfile, os.path.join(files_directory_obf, namemappingfile))
             if createisofile:
@@ -1458,8 +1465,8 @@ class ScriptCollectionCore:
         result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
 
         if self.git_repository_has_uncommitted_changes(repository_folder):
-            if self.get_current_branch_has_tag(repository_folder):
-                id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_tag(repository_folder))
+            if self.get_current_git_branch_has_tag(repository_folder):
+                id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_git_tag(repository_folder))
                 current_commit = self.git_get_commit_id(repository_folder)
                 current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
                 if current_commit_is_on_latest_tag:
