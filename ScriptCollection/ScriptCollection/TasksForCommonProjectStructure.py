@@ -1955,7 +1955,7 @@ class TasksForCommonProjectStructure:
         sc_epew = ScriptCollectionCore()
         sc_epew.program_runner = ProgramRunnerEpew()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
-        sc_epew.run_program("docker-compose", f"--project-name {docker_project_name} up --abort-on-container-exit", folder, verbosity=verbosity)
+        sc_epew.run_program("docker", f"compose --project-name {docker_project_name} up --abort-on-container-exit", folder, verbosity=verbosity)
 
 
     @GeneralUtilities.check_arguments
