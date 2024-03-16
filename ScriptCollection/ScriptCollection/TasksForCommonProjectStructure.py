@@ -1910,6 +1910,13 @@ class TasksForCommonProjectStructure:
         pass  # TODO generalize and add option to ignore certain dependencies
 
     @GeneralUtilities.check_arguments
+    def run_local_test_service(self, file:str):
+        example_folder=os.path.dirname(file)
+        example_name=os.path.basename(example_folder)
+        title=f"Test{example_name}"
+        self.__sc.run_program("docker",f"compose -p {title.lower()} up",example_folder,title=title)
+
+    @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version) -> None:
         folder_of_current_file = os.path.dirname(file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", folder_of_current_file)
