@@ -12,8 +12,7 @@ def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
 Caution: This script can cause harm if you pass a wrong inputfolder-argument.''')
 
-    parser.add_argument('--printtableheadline', type=GeneralUtilities.string_to_boolean, const=True, default=True, nargs='?',
-                        help='Prints column-titles in the name-mapping-csv-file')
+    parser.add_argument('--printtableheadline', type=GeneralUtilities.string_to_boolean, const=True, default=True, nargs='?',                        help='Prints column-titles in the name-mapping-csv-file')
     parser.add_argument('--namemappingfile', default="NameMapping.csv", help='Specifies the file where the name-mapping will be written to')
     parser.add_argument('--extensions', default="exe,py,sh",
                         help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
@@ -58,8 +57,7 @@ def CalculateBitcoinBlockHash() -> int:
     args = parser.parse_args()
 
     args = parser.parse_args()
-    GeneralUtilities.write_message_to_stdout(ScriptCollectionCore().SCCalculateBitcoinBlockHash(args.version, args.previousblockhash,
-                                                                                                args.transactionsmerkleroot, args.timestamp, args.target, args.nonce))
+    GeneralUtilities.write_message_to_stdout(ScriptCollectionCore().SCCalculateBitcoinBlockHash(args.version, args.previousblockhash,                                                                                                args.transactionsmerkleroot, args.timestamp, args.target, args.nonce))
     return 0
 
 
@@ -137,9 +135,7 @@ def OrganizeLinesInFile() -> int:
     parser.add_argument('--ignored_start_character', default="", help='Characters which should not be considered at the begin of a line')
 
     args = parser.parse_args()
-    return ScriptCollectionCore().sc_organize_lines_in_file(args.file, args.encoding,
-                                                            args.sort, args.remove_duplicated_lines, args.ignore_first_line,
-                                                            args.remove_empty_lines, list(args.ignored_start_character))
+    return ScriptCollectionCore().sc_organize_lines_in_file(args.file, args.encoding,                                                            args.sort, args.remove_duplicated_lines, args.ignore_first_line,                                                            args.remove_empty_lines, list(args.ignored_start_character))
 
 
 def CreateHashOfAllFiles() -> int:
@@ -266,8 +262,7 @@ def BuildCodeUnit() -> int:
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,
-                                                    False, None, args.assume_dependent_codeunits_are_already_built)
+    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,                                                    False, None, args.assume_dependent_codeunits_are_already_built)
     return 0
 
 
@@ -322,8 +317,7 @@ def GenerateCertificate() -> int:
     parser.add_argument('--days_until_expire', required=False, default=None, type=int)
     parser.add_argument('--password', required=False, default=None)
     args = parser.parse_args()
-    ScriptCollectionCore().generate_certificate(os.getcwd(), args.domain, args.filename, args.subj_c, args.subj_st,
-                                                args.subj_l, args.subj_o, args.subj_ou, args.days_until_expire, args.password)
+    ScriptCollectionCore().generate_certificate(os.getcwd(), args.domain, args.filename, args.subj_c, args.subj_st,                                                args.subj_l, args.subj_o, args.subj_ou, args.days_until_expire, args.password)
     return 0
 
 

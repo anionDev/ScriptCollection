@@ -8,7 +8,7 @@ from .GeneralUtilities import GeneralUtilities
 
 class CertificateUpdater:
 
-    __domains: list(str)
+    __domains: list[str]
     __email: str
 
     __current_folder = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +20,7 @@ class CertificateUpdater:
     __sc = ScriptCollectionCore()
     __line = "___________________________________________________________________"
 
-    def __init__(self, domains: list(str), email: str):
+    def __init__(self, domains: list[str], email: str):
         self.__domains = domains
         self.__email = email
 
@@ -109,12 +109,10 @@ class CertificateUpdater:
                 dockerargument = dockerargument+f" --volume {self.__log_folder}:/var/log/letsencrypt -p 80:80 certbot/certbot:latest"
                 certbotargument = f"--standalone --email {self.__email} --agree-tos --force-renewal --rsa-key-size 4096 --non-interactive --no-eff-email --domain {domain}"
                 if(certificate_for_domain_already_exists):
-                    self.__sc.run_program("docker", f"{dockerargument} certonly --no-random-sleep-on-renew {certbotargument}",
-                                          self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
+                    self.__sc.run_program("docker", f"{dockerargument} certonly --no-random-sleep-on-renew {certbotargument}",                                          self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
                     self.__replace_symlinks_by_files(domain)
                 else:
-                    self.__sc.run_program("docker", f"{dockerargument} certonly --cert-name {domain} {certbotargument}",
-                                          self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
+                    self.__sc.run_program("docker", f"{dockerargument} certonly --cert-name {domain} {certbotargument}",                                          self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
             except Exception as exception:
                 GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, "Error while updating certificate")
             finally:
