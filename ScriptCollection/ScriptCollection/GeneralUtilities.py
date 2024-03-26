@@ -51,15 +51,13 @@ class GeneralUtilities:
                         # Check type of arguments if the type is a generic type seems to be impossible.
                         if not GeneralUtilities.is_generic(function.__annotations__[parameters[index]]):
                             if not isinstance(argument, function.__annotations__[parameters[index]]):
-                                raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type " +
-                                                f"{ function.__annotations__[parameters[index]]} but has type "+str(type(argument)))
+                                raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type { function.__annotations__[parameters[index]]} but has type "+str(type(argument)))
             for index, named_argument in enumerate(named_args):
                 if named_args[named_argument] is not None:
                     if parameters[index] in function.__annotations__:
                         if not GeneralUtilities.is_generic(function.__annotations__.get(named_argument)):
                             if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
-                                raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') " +
-                                                f"is not of type { function.__annotations__.get(named_argument)}")
+                                raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') is not of type { function.__annotations__.get(named_argument)}")
             return function(*args, **named_args)
         __check_function.__doc__ = function.__doc__
         return __check_function
@@ -69,9 +67,7 @@ class GeneralUtilities:
         @functools.wraps(func)
         def new_func(*args, **kwargs):
             warnings.simplefilter('always', DeprecationWarning)
-            warnings.warn(f"Call to deprecated function {func.__name__}",
-                        category=DeprecationWarning,
-                        stacklevel=2)
+            warnings.warn(f"Call to deprecated function {func.__name__}",                        category=DeprecationWarning,                        stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)
             return func(*args, **kwargs)
         return new_func
