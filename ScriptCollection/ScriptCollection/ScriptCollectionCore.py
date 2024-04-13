@@ -487,6 +487,10 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
+    def git_repository_has_commits(self,repository_folder: str) -> bool:
+        return self.run_program_argsasarray("git",["rev-parse","--verify","HEAD"],repository_folder,throw_exception_if_exitcode_is_not_zero=False)[0]==0
+
+    @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
         folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(folder)
         lines = list()
@@ -1426,16 +1430,17 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
-        result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
-
-        if self.git_repository_has_uncommitted_changes(repository_folder):
-            if self.get_current_git_branch_has_tag(repository_folder):
-                id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_git_tag(repository_folder))
-                current_commit = self.git_get_commit_id(repository_folder)
-                current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
-                if current_commit_is_on_latest_tag:
-                    result = self.increment_version(result, False, False, True)
-
+        if(self.git_repository_has_commits(repository_folder)):
+            result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
+            if self.git_repository_has_uncommitted_changes(repository_folder):
+                if self.get_current_git_branch_has_tag(repository_folder):
+                    id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_git_tag(repository_folder))
+                    current_commit = self.git_get_commit_id(repository_folder)
+                    current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
+                    if current_commit_is_on_latest_tag:
+                        result = self.increment_version(result, False, False, True)
+        else:
+            result="0.1.0"
         return result
 
     @staticmethod
@@ -1632,9 +1637,9 @@ DNS                 = {domain}
 
         # create debfile
         deb_filename = f"{toolname}.deb"
-        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"],                                     packagecontent_control_folder, verbosity=verbosity)
-        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"],                                     packagecontent_data_folder, verbosity=verbosity)
-        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz", "data.tar.gz"],                                     packagecontent_entireresult_folder, verbosity=verbosity)
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"], packagecontent_control_folder, verbosity=verbosity)
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"], packagecontent_data_folder, verbosity=verbosity)
+        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz", "data.tar.gz"], packagecontent_entireresult_folder, verbosity=verbosity)
         result_file = os.path.join(packagecontent_entireresult_folder, deb_filename)
         shutil.copy(result_file, os.path.join(deb_output_folder, deb_filename))
 
