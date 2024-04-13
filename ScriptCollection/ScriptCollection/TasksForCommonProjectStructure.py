@@ -501,7 +501,7 @@ class TasksForCommonProjectStructure:
         <RepositoryUrl>https:\\/\\/([^<]+)\\.git<\\/RepositoryUrl>
         <RootNamespace>([^<]+)\\.Core<\\/RootNamespace>
         <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
-        <Nullable>(disable|enable)<\\/Nullable>
+        <Nullable>(disable|enable|warnings|annotations)<\\/Nullable>
         <Configurations>Development;QualityCheck;Productive<\\/Configurations>
         <IsTestProject>false<\\/IsTestProject>
         <LangVersion>([^<]+)<\\/LangVersion>
@@ -565,7 +565,7 @@ class TasksForCommonProjectStructure:
         <RepositoryUrl>https:\\/\\/([^<]+)\\.git</RepositoryUrl>
         <RootNamespace>([^<]+)\\.Tests<\\/RootNamespace>
         <ProduceReferenceAssembly>false<\\/ProduceReferenceAssembly>
-        <Nullable>(disable|enable)<\\/Nullable>
+        <Nullable>(disable|enable|warnings|annotations)<\\/Nullable>
         <Configurations>Development;QualityCheck;Productive<\\/Configurations>
         <IsTestProject>true<\\/IsTestProject>
         <LangVersion>([^<]+)<\\/LangVersion>
