@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+import json
 import binascii
 import filecmp
 import hashlib
@@ -1667,3 +1668,25 @@ DNS                 = {domain}
         lines=GeneralUtilities.read_lines_from_file(file)
         lines[0]=re.sub("\\d\\d\\d\\d",current_year,lines[0])
         GeneralUtilities.write_lines_to_file(file,lines)
+
+    @GeneralUtilities.check_arguments
+    def get_external_ip(self, proxy: str) -> str:
+        information=self.get_externalnetworkinformation_as_json_string(proxy)
+        parsed=json.loads(information)
+        return parsed.ip
+
+    @GeneralUtilities.check_arguments
+    def get_country_of_external_ip(self, proxy: str) -> str:
+        information=self.get_externalnetworkinformation_as_json_string(proxy)
+        parsed=json.loads(information)
+        return parsed.country
+
+    @GeneralUtilities.check_arguments
+    def get_externalnetworkinformation_as_json_string(self, proxy: str) -> str:
+        proxies = None
+        if GeneralUtilities.string_has_content(proxy):
+            proxies = {"http": proxy}
+        response = requests.get('https://ipinfo.io', proxies=proxies, timeout=5)
+        network_information_as_json_string=GeneralUtilities.bytes_to_string(response.content)
+        return network_information_as_json_string
+    
