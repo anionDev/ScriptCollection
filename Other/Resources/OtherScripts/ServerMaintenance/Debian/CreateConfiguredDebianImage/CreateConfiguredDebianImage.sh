@@ -27,6 +27,7 @@ disk_size="${11}"
 echo "Step 1: Prepare"
 isofile_without_extension=${isofile::-4}
 iso_filename="$hostname-installer"
+hostname_lower="$hostname" | tr '[:upper:]' '[:lower:]'
 preseed_target_file="$result_folder/$iso_filename.iso"
 if [ -f "$preseed_target_file" ] ; then
   rm -f "$preseed_target_file"
@@ -40,7 +41,7 @@ fi
 
 echo "Step 2: Generate preseed-file"
 cp $preseed_template_file $preseed_file
-sed -i "s/__\[hostname\]__/$hostname/g" $preseed_file
+sed -i "s/__\[hostname\]__/$hostname_lower/g" $preseed_file
 sed -i "s/__\[ssh_public_key\]__/$ssh_public_key/g" $preseed_file
 sed -i "s/__\[user_password\]__/$user_password/g" $preseed_file
 sed -i "s/__\[root_password\]__/$root_password/g" $preseed_file
