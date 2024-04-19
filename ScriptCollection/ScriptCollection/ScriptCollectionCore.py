@@ -1196,34 +1196,36 @@ class ScriptCollectionCore:
             info_for_log = title
 
         epew_will_be_used = isinstance(self.program_runner, ProgramRunnerEpew)
-        program_manages_output_itself = epew_will_be_used and False  # TODO fix stdout-/stderr-reading-block below
+        program_manages_consoleoutput_itself = epew_will_be_used
         program_manages_logging_itself = epew_will_be_used
 
-        process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,                                                              timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
+        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         pid = process.pid
 
-        if program_manages_output_itself:
-            stdout_readable = process.stdout.readable()
-            stderr_readable = process.stderr.readable()
-            while stdout_readable or stderr_readable:
+        stdout, stderr = process.communicate()
+        stdout_lines=list[str]()
+        stderr_lines=list[str]()
 
-                if stdout_readable:
-                    stdout_line = GeneralUtilities.bytes_to_string(process.stdout.readline()).strip()
-                    if (len(stdout_line)) > 0:
-                        GeneralUtilities.write_message_to_stdout(stdout_line)
-
-                if stderr_readable:
-                    stderr_line = GeneralUtilities.bytes_to_string(process.stderr.readline()).strip()
-                    if (len(stderr_line)) > 0:
-                        GeneralUtilities.write_message_to_stderr(stderr_line)
+        if program_manages_consoleoutput_itself:
+            while process.poll() is None:
 
                 stdout_readable = process.stdout.readable()
-                stderr_readable = process.stderr.readable()
+                if stdout_readable:
+                    stdout_line = GeneralUtilities.bytes_to_string(process.stdout.readline()).strip().replace('\r', '')
+                    if (len(stdout_line)) > 0:
+                        GeneralUtilities.write_message_to_stdout(stdout_line)
+                        stdout_lines.append(stdout_line)
 
-        stdout, stderr = process.communicate()
-        exit_code = process.wait()
-        stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
-        stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
+                stderr_readable = process.stderr.readable()
+                if stderr_readable:
+                    stderr_line = GeneralUtilities.bytes_to_string(process.stderr.readline()).strip().replace('\r', '')
+                    if (len(stderr_line)) > 0:
+                        GeneralUtilities.write_message_to_stderr(stderr_line)
+                        stderr_lines.append(stderr_line)
+
+        exit_code = process.poll()
+        stdout = '\n'.join(stdout_lines)
+        stderr = '\n'.join(stderr_lines)
 
         if arguments_for_log_as_string is None:
             arguments_for_log_as_string = ' '.join(arguments_as_array)
@@ -1240,7 +1242,7 @@ class ScriptCollectionCore:
             GeneralUtilities.append_line_to_file(log_file, stdout)
             GeneralUtilities.append_line_to_file(log_file, stderr)
 
-        if not program_manages_output_itself:
+        if not program_manages_consoleoutput_itself:
             if verbosity == 1 and exit_code != 0:
                 self.__write_error_output(print_errors_as_information, stderr)
             if verbosity == 2:
