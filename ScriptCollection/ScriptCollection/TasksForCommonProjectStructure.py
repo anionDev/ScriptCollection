@@ -21,7 +21,6 @@ from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 from .ProgramRunnerEpew import ProgramRunnerEpew
 
-
 class CreateReleaseConfiguration():
     projectname: str
     remotename: str
@@ -194,7 +193,7 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
         codeunit_folder = os.path.join(repository_folder, codeunitname)
-        self.__sc.run_program("coverage", f"run -m pytest ./{codeunitname}Tests", codeunit_folder,  verbosity=verbosity)
+        self.__sc.run_program("coverage", f"run -m pytest -s ./{codeunitname}Tests", codeunit_folder,  verbosity=verbosity)
         self.__sc.run_program("coverage", "xml", codeunit_folder, verbosity=verbosity)
         coveragefolder = os.path.join(repository_folder, codeunitname, "Other/Artifacts/TestCoverage")
         GeneralUtilities.ensure_directory_exists(coveragefolder)
@@ -1806,7 +1805,7 @@ class TasksForCommonProjectStructure:
         codeunit_name = os.path.basename(codeunit_folder)
 
         build_folder = os.path.join(codeunit_folder, "Other", "Build")
-        self.__sc.run_program("python", "Build.py", build_folder)
+        self.__sc.run_program("python", "Build.py", build_folder, verbosity)
 
         csproj_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.csproj")
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity)
@@ -2133,7 +2132,7 @@ class TasksForCommonProjectStructure:
         for file in GeneralUtilities.get_all_files_of_folder(files_folder):
             if file.endswith(".plantuml"):
                 argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', os.path.basename(file).replace("\\", "/"), '-tsvg']
-                sc.run_program_argsasarray("java", argument, os.path.dirname(file))
+                sc.run_program_argsasarray("java", argument, os.path.dirname(file),verbosity=0)
 
     @GeneralUtilities.check_arguments
     def load_deb_control_file_content(self, file: str, codeunitname: str, codeunitversion: str, installedsize: int, maintainername: str, maintaineremail: str, description: str,) -> str:
@@ -2333,7 +2332,7 @@ class TasksForCommonProjectStructure:
             if codeunit_has_updatable_dependencies:
                 codeunit_folder = os.path.join(repository_folder, codeunit)
                 update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
-                self.__sc.run_program("python", "UpdateDependencies.py", update_dependencies_script_folder)
+                self.__sc.run_program("python", "UpdateDependencies.py", update_dependencies_script_folder)#TODO set verbosity
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     version_of_project = self.get_version_of_project(repository_folder)
                     changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
@@ -2349,7 +2348,7 @@ class TasksForCommonProjectStructure:
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
         if updated_dependencies:
-            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck", repository_folder)
+            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck", repository_folder)#TODO set verbosity
             self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
