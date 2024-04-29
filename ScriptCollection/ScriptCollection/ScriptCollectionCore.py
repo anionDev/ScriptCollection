@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta, datetime
 import json
 import binascii
@@ -28,7 +29,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.4.58"
+version = "3.5.0"
 __version__ = version
 
 
@@ -176,7 +177,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        exit_code = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant],                                                 repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0]
+        exit_code = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0]
         if exit_code == 0:
             return True
         elif exit_code == 1:
@@ -222,12 +223,12 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit],                                                                         repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit],                                                                         repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         date_as_string = result[1].replace('\n', '')
         result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
         return result
@@ -1150,7 +1151,7 @@ class ScriptCollectionCore:
     # <run programs>
 
     @GeneralUtilities.check_arguments
-    def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,                                               print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,                                               title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> Popen:
+    def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> Popen:
         # Verbosity:
         # 0=Quiet (No output will be printed.)
         # 1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
@@ -1180,105 +1181,94 @@ class ScriptCollectionCore:
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,                                print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,                                title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None,                                throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None) -> tuple[int, str, str, int]:
-        mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
-        if mock_loader_result[0]:
-            return mock_loader_result[1]
+    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None) -> tuple[int, str, str, int]:
+        try:
+            mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
+            if mock_loader_result[0]:
+                return mock_loader_result[1]
 
-        if arguments_for_log is None:
-            arguments_for_log = arguments_as_array
+            if arguments_for_log is None:
+                arguments_for_log = arguments_as_array
 
-        arguments_for_log_as_string = ' '.join(arguments_for_log)
-        cmd = f'{working_directory}>{program} {arguments_for_log_as_string}'
-        if GeneralUtilities.string_is_none_or_whitespace(title):
-            info_for_log = cmd
-        else:
-            info_for_log = title
+            arguments_for_exception_as_string = ' '.join(arguments_for_log)
 
-        epew_will_be_used = isinstance(self.program_runner, ProgramRunnerEpew)
-        program_manages_output_itself = epew_will_be_used and False  # TODO fix stdout-/stderr-reading-block below
-        program_manages_logging_itself = epew_will_be_used
+            process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
+            pid = process.pid
 
-        process = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file,                                                              timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
-        pid = process.pid
+            stdout_lines=list[str]()
+            stderr_lines=list[str]()
 
-        if program_manages_output_itself:
-            stdout_readable = process.stdout.readable()
-            stderr_readable = process.stderr.readable()
-            while stdout_readable or stderr_readable:
+            live_console_output_printing=1<verbosity
 
-                if stdout_readable:
-                    stdout_line = GeneralUtilities.bytes_to_string(process.stdout.readline()).strip()
-                    if (len(stdout_line)) > 0:
-                        GeneralUtilities.write_message_to_stdout(stdout_line)
+            log_to_file=log_file is not None
+            if log_to_file:
+                GeneralUtilities.ensure_file_exists(log_file)
+            def stream_process(process):
+                try:
 
-                if stderr_readable:
-                    stderr_line = GeneralUtilities.bytes_to_string(process.stderr.readline()).strip()
-                    if (len(stderr_line)) > 0:
-                        GeneralUtilities.write_message_to_stderr(stderr_line)
+                    go = process.poll() is None
+                    for line in process.stdout:
+                        line_str=GeneralUtilities.bytes_to_string(line).strip().replace('\r', '').replace('\n', '')
+                        stdout_lines.append(line_str)
+                        if live_console_output_printing:
+                            GeneralUtilities.write_message_to_stdout(line_str)
+                        if log_to_file:
+                            GeneralUtilities.append_line_to_file(log_file, line_str)
+                    for line in process.stderr:
+                        line_str=GeneralUtilities.bytes_to_string(line).strip().replace('\r', '').replace('\n', '')
+                        stderr_lines.append(line_str)
+                        if live_console_output_printing:
+                            if print_errors_as_information:
+                                GeneralUtilities.write_message_to_stdout(line_str)
+                            else:
+                                GeneralUtilities.write_message_to_stderr(line_str)
+                        if log_to_file:
+                            GeneralUtilities.append_line_to_file(log_file, line_str)
+                    return go
+                except Exception:
+                    return None
+            while stream_process(process):
+                time.sleep(0.1)
 
-                stdout_readable = process.stdout.readable()
-                stderr_readable = process.stderr.readable()
+            exit_code = process.poll()
+            stdout = '\n'.join(stdout_lines)
+            stderr = '\n'.join(stderr_lines)
 
-        stdout, stderr = process.communicate()
-        exit_code = process.wait()
-        stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
-        stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
+            if arguments_for_exception_as_string is None:
+                arguments_for_exception_as_string = ' '.join(arguments_as_array)
+            else:
+                arguments_for_exception_as_string = ' '.join(arguments_for_log)
 
-        if arguments_for_log_as_string is None:
-            arguments_for_log_as_string = ' '.join(arguments_as_array)
-        else:
-            arguments_for_log_as_string = ' '.join(arguments_for_log)
 
-        if GeneralUtilities.string_is_none_or_whitespace(title):
-            info_for_log = cmd
-        else:
-            info_for_log = title
+            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+                arguments_for_exception_as_string = ' '.join(arguments_for_log)
+                raise ValueError(f"Program '{working_directory}>{program} {arguments_for_exception_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
 
-        if not program_manages_logging_itself and log_file is not None:
-            GeneralUtilities.ensure_file_exists(log_file)
-            GeneralUtilities.append_line_to_file(log_file, stdout)
-            GeneralUtilities.append_line_to_file(log_file, stderr)
-
-        if not program_manages_output_itself:
-            if verbosity == 1 and exit_code != 0:
-                self.__write_error_output(print_errors_as_information, stderr)
-            if verbosity == 2:
-                GeneralUtilities.write_message_to_stdout(stdout)
-                self.__write_error_output(print_errors_as_information, stderr)
-            if verbosity == 3:
-                GeneralUtilities.write_message_to_stdout(stdout)
-                self.__write_error_output(print_errors_as_information, stderr)
-                formatted = self.__format_program_execution_information(title=info_for_log, program=program,                                                                        argument=arguments_for_log_as_string, workingdirectory=working_directory)
-                GeneralUtilities.write_message_to_stdout(f"Finished '{info_for_log}'. Details: '{formatted}")
-
-        if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-            arguments_for_log_as_string = ' '.join(arguments_for_log)
-            raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
-
-        result = (exit_code, stdout, stderr, pid)
-        return result
+            result = (exit_code, stdout, stderr, pid)
+            return result
+        except Exception as e:
+            raise e
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def run_program(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1,                    print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,                    title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True,                    custom_argument: object = None) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information,                                            log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument)
+    def run_program(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None) -> tuple[int, str, str, int]:
+        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument)
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1,                                      print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,                                      title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> int:
+    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> int:
         mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
 
-        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity,                                                                     print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
+        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
         return process.pid
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
     def run_program_async(self, program: str, arguments: str = "",  working_directory: str = None, verbosity: int = 1,
-                          print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False,                          title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> int:
-        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity,                                                  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
+                          print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None) -> int:
+        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
 
     @GeneralUtilities.check_arguments
     def __try_load_mock(self, program: str, arguments: str, working_directory: str) -> tuple[bool, tuple[int, str, str, int]]:
@@ -1296,28 +1286,6 @@ class ScriptCollectionCore:
             return os.getcwd()
         else:
             return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
-
-    @GeneralUtilities.check_arguments
-    def __write_error_output(self, print_errors_as_information: bool, stderr: str):
-        if print_errors_as_information:
-            GeneralUtilities.write_message_to_stdout(stderr)
-        else:
-            GeneralUtilities.write_message_to_stderr(stderr)
-
-    @GeneralUtilities.check_arguments
-    def __format_program_execution_information(self, exitcode: int = None,  stdout: str = None, stderr: str = None, program: str = None, argument: str = None,                                               workingdirectory: str = None, title: str = None, pid: int = None, execution_duration: timedelta = None):
-        result = ""
-        if (exitcode is not None and stdout is not None and stderr is not None):
-            result = f"{result} Exitcode: {exitcode}; StdOut: '{stdout}'; StdErr: '{stderr}'"
-        if (pid is not None):
-            result = f"Pid: '{pid}'; {result}"
-        if (program is not None and argument is not None and workingdirectory is not None):
-            result = f"Command: '{workingdirectory}> {program} {argument}'; {result}"
-        if (execution_duration is not None):
-            result = f"{result}; Duration: '{str(execution_duration)}'"
-        if (title is not None):
-            result = f"Title: '{title}'; {result}"
-        return result.strip()
 
     @GeneralUtilities.check_arguments
     def verify_no_pending_mock_program_calls(self):
@@ -1451,8 +1419,8 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for issue 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
-        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
+        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder,verbosity=0)
+        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder,verbosity=0)
         result = GeneralUtilities.strip_new_line_character(result[1])
 
         return result

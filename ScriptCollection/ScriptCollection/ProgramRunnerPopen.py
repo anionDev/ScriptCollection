@@ -1,4 +1,4 @@
-import os
+import sys
 from subprocess import PIPE, Popen
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
@@ -13,14 +13,10 @@ class ProgramRunnerPopen(ProgramRunnerBase):
         # "shell=True" is not allowed because it is not recommended and also something like
         # "ScriptCollectionCore().run_program('curl', 'https://example.com/dataset?id=1&format=json')"
         # would not be possible anymore because the ampersand will be treated as shell-command.
-        cwd = os.getcwd()
         try:
-            os.chdir(working_directory)
-            result = Popen(arguments_for_process, stdout=PIPE, stderr=PIPE, shell=False)  # pylint: disable=consider-using-with
+            result = Popen(arguments_for_process, cwd=working_directory, stdin=sys.stdin, stdout=PIPE, stderr=PIPE, shell=False)  # pylint: disable=consider-using-with
         except FileNotFoundError as fileNotFoundError:
             raise FileNotFoundError(f"Starting '{program}' in '{working_directory}' resulted in a FileNotFoundError: '{fileNotFoundError.filename}'")
-        finally:
-            os.chdir(cwd)
         return result
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
