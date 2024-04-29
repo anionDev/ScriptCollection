@@ -2375,7 +2375,8 @@ class TasksForCommonProjectStructure:
         # prepare
         self.assert_no_uncommitted_changes(repository_folder)
         self.__sc.git_checkout(repository_folder, merge_source_branch)
-        self.generic_update_dependencies(repository_folder)
+        if not "--prevent-dependency-update" in generic_prepare_new_release_arguments.commandline_arguments:
+            self.generic_update_dependencies(repository_folder)
         self.merge_to_main_branch(repository_folder, merge_source_branch, verbosity=verbosity, fast_forward_source_branch=True)
         self.__sc.git_commit(build_repository_folder, "Updated submodule due to merge to main-branch.")
 
