@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 import time
 from datetime import timedelta, datetime
 import json
@@ -23,13 +30,15 @@ import qrcode
 import pycdlib
 import send2trash
 import PyPDF2
-from .GeneralUtilities import GeneralUtilities
-from .ProgramRunnerBase import ProgramRunnerBase
-from .ProgramRunnerPopen import ProgramRunnerPopen
-from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
 
-version = "3.5.1"
+from ScriptCollection.GeneralUtilities import GeneralUtilities
+from ScriptCollection.ProgramRunnerBase import ProgramRunnerBase
+from ScriptCollection.ProgramRunnerPopen import ProgramRunnerPopen
+from ScriptCollection.ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
+
+
+version = "3.5.2"
 __version__ = version
 
 
@@ -1182,72 +1191,94 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None) -> tuple[int, str, str, int]:
-        try:
-            mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
-            if mock_loader_result[0]:
-                return mock_loader_result[1]
+            #verbosity 1: No output will be logged.
+            #verbosity 2: If the exitcode of the executed program is not 0 then the StdErr will be logged. This is supposed to be the default verbosity-level.
+            #verbosity 3: Logs and prints StdOut and StdErr of the executed program in realtime.
+            #verbosity 4: Same as loglevel 3 but with some more overhead-information.
+            try:
+                arguments_as_str=' '.join(arguments_as_array)
+                mock_loader_result = self.__try_load_mock(program, arguments_as_str, working_directory)
+                if mock_loader_result[0]:
+                    return mock_loader_result[1]
 
-            if arguments_for_log is None:
-                arguments_for_log = arguments_as_array
+                if arguments_for_log is None:
+                    arguments_for_log = arguments_as_array
 
-            arguments_for_exception_as_string = ' '.join(arguments_for_log)
-
-            process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument)
-            pid = process.pid
-
-            stdout_lines=list[str]()
-            stderr_lines=list[str]()
-
-            live_console_output_printing=1<verbosity
-
-            log_to_file=log_file is not None
-            if log_to_file:
-                GeneralUtilities.ensure_file_exists(log_file)
-            def stream_process(process):
-                try:
-
-                    go = process.poll() is None
-                    for line in process.stdout:
-                        line_str=GeneralUtilities.bytes_to_string(line).strip().replace('\r', '').replace('\n', '')
-                        stdout_lines.append(line_str)
-                        if live_console_output_printing:
-                            GeneralUtilities.write_message_to_stdout(line_str)
-                        if log_to_file:
-                            GeneralUtilities.append_line_to_file(log_file, line_str)
-                    for line in process.stderr:
-                        line_str=GeneralUtilities.bytes_to_string(line).strip().replace('\r', '').replace('\n', '')
-                        stderr_lines.append(line_str)
-                        if live_console_output_printing:
-                            if print_errors_as_information:
-                                GeneralUtilities.write_message_to_stdout(line_str)
-                            else:
-                                GeneralUtilities.write_message_to_stderr(line_str)
-                        if log_to_file:
-                            GeneralUtilities.append_line_to_file(log_file, line_str)
-                    return go
-                except Exception:
-                    return None
-            while stream_process(process):
-                time.sleep(0.1)
-
-            exit_code = process.poll()
-            stdout = '\n'.join(stdout_lines)
-            stderr = '\n'.join(stderr_lines)
-
-            if arguments_for_exception_as_string is None:
-                arguments_for_exception_as_string = ' '.join(arguments_as_array)
-            else:
                 arguments_for_exception_as_string = ' '.join(arguments_for_log)
 
+                with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument) as process:
+                    pid = process.pid
 
-            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                arguments_for_exception_as_string = ' '.join(arguments_for_log)
-                raise ValueError(f"Program '{working_directory}>{program} {arguments_for_exception_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
+                    stdout_lines=list[str]()
+                    stderr_lines=list[str]()
 
-            result = (exit_code, stdout, stderr, pid)
-            return result
-        except Exception as e:
-            raise e
+                    live_console_output_printing=2<verbosity
+
+                    log_to_file=log_file is not None
+                    if log_to_file:
+                        GeneralUtilities.ensure_file_exists(log_file)
+
+                    def stream_process(process)->bool:
+                        try:
+                            go: bool= process.poll() is None
+
+                            stdoutreader:BufferedReader=process.stdout
+                            if stdoutreader.readable():
+                                stdoutresultb:bytes=stdoutreader.read()
+                                stdoutresult=GeneralUtilities.bytes_to_string( stdoutresultb)
+                                stdoutlines=GeneralUtilities.string_to_lines(stdoutresult)
+                                for line in stdoutlines:
+                                    line_stripped=line.replace("\r","").strip()
+                                    if len(line_stripped)>0:
+                                        line_str=line_stripped
+                                        stdout_lines.append(line_str)
+                                        if live_console_output_printing:
+                                            GeneralUtilities.write_message_to_stdout(line_str)
+                                        if log_to_file:
+                                            GeneralUtilities.append_line_to_file(log_file, line_str)
+
+                            stderrreader:BufferedReader=process.stderr
+                            if stderrreader.readable():
+                                stderrresultb:bytes=stderrreader.read()
+                                stderrresult=GeneralUtilities.bytes_to_string( stderrresultb)
+                                stderrlines=GeneralUtilities.string_to_lines(stderrresult)                
+                                for line in stderrlines:
+                                    line_stripped=line.replace("\r","").strip()
+                                    if len(line_stripped)>0:
+                                        line_str=line_stripped
+                                        stderr_lines.append(line_str)
+                                        if live_console_output_printing:
+                                            if print_errors_as_information:
+                                                GeneralUtilities.write_message_to_stdout(line_str)
+                                            else:
+                                                GeneralUtilities.write_message_to_stderr(line_str)
+                                        if log_to_file:
+                                            GeneralUtilities.append_line_to_file(log_file, line_str)
+
+                            return go
+                        except Exception:
+                            return False
+                        
+                    while stream_process(process):
+                        time.sleep(0.1)
+
+                    exit_code = process.poll()
+                    stdout = '\n'.join(stdout_lines)
+                    stderr = '\n'.join(stderr_lines)
+
+                    if arguments_for_exception_as_string is None:
+                        arguments_for_exception_as_string = ' '.join(arguments_as_array)
+                    else:
+                        arguments_for_exception_as_string = ' '.join(arguments_for_log)
+
+                    if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+                        arguments_for_exception_as_string = ' '.join(arguments_for_log)
+                        raise ValueError(f"Program '{working_directory}>{program} {arguments_for_exception_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
+
+                    result = (exit_code, stdout, stderr, pid)
+                    return result
+            except Exception as e:
+                raise e
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
@@ -1658,3 +1689,5 @@ DNS                 = {domain}
         network_information_as_json_string=GeneralUtilities.bytes_to_string(response.content)
         return network_information_as_json_string
     
+
+
