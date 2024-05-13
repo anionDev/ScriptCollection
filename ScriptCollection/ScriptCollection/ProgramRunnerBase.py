@@ -9,6 +9,11 @@ class ProgramRunnerBase:
     @abstractmethod
     @GeneralUtilities.check_arguments
     def run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> Popen:
+        # Verbosity:
+        # 0=Quiet (No output will be printed.)
+        # 1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
+        # 2=Full (Prints StdOut and StdErr of the executed program.)
+        # 3=Verbose (Same as "Full" but with some more information.)
         raise NotImplementedError
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
