@@ -7,14 +7,17 @@ from .ProgramRunnerBase import ProgramRunnerBase
 class ProgramRunnerPopen(ProgramRunnerBase):
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> Popen:
+    def run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> Popen:
         arguments_for_process = [program]
         arguments_for_process.extend(arguments_as_array)
         # "shell=True" is not allowed because it is not recommended and also something like
         # "ScriptCollectionCore().run_program('curl', 'https://example.com/dataset?id=1&format=json')"
         # would not be possible anymore because the ampersand will be treated as shell-command.
         try:
-            result = Popen(arguments_for_process, cwd=working_directory, stdin=sys.stdin, stdout=PIPE, stderr=PIPE, shell=False)  # pylint: disable=consider-using-with
+            if interactive:
+                result = Popen(arguments_for_process, cwd=working_directory , stdout=PIPE, stderr=PIPE, shell=False, stdin = sys.stdin)  # pylint: disable=consider-using-with
+            else:
+                result = Popen(arguments_for_process, cwd=working_directory,  stdout=PIPE, stderr=PIPE, shell=False)  # pylint: disable=consider-using-with
         except FileNotFoundError as fileNotFoundError:
             raise FileNotFoundError(f"Starting '{program}' in '{working_directory}' resulted in a FileNotFoundError: '{fileNotFoundError.filename}'")
         return result
@@ -31,18 +34,18 @@ class ProgramRunnerPopen(ProgramRunnerBase):
         return result
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> tuple[int, str, str, int]:
-        process: Popen = self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument)
+    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> tuple[int, str, str, int]:
+        process: Popen = self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument,interactive)
         return self.wait(process, custom_argument)
 
     @GeneralUtilities.check_arguments
-    def run_program(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None) -> tuple[int, str, str, int]:
+    def run_program(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> tuple[int, str, str, int]:
         return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument)
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> int:
-        return self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument).pid
+    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> int:
+        return self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument,interactive).pid
 
     @GeneralUtilities.check_arguments
-    def run_program_async(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None) -> int:
-        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument)
+    def run_program_async(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> int:
+        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument,interactive)

@@ -39,7 +39,7 @@ class CustomEpewArgument:
 class ProgramRunnerEpew(ProgramRunnerBase):
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> Popen:
+    def run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> Popen:
         if GeneralUtilities.epew_is_available():
             custom_argument: CustomEpewArgument = custom_argument
             args = []
@@ -67,7 +67,7 @@ class ProgramRunnerEpew(ProgramRunnerBase):
             if custom_argument.addLogOverhead:
                 args.append("-g")
             args.append("-v "+str(custom_argument.verbosity))
-            return ProgramRunnerPopen().run_program_argsasarray_async_helper("epew", args, working_directory)
+            return ProgramRunnerPopen().run_program_argsasarray_async_helper("epew", args, working_directory,custom_argument,interactive)
         else:
             raise ValueError("Epew is not available.")
 
@@ -85,21 +85,21 @@ class ProgramRunnerEpew(ProgramRunnerBase):
         return result
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> tuple[int, str, str, int]:
-        process: Popen = self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument)
+    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> tuple[int, str, str, int]:
+        process: Popen = self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument,interactive)
         return self.wait(process, custom_argument)
 
     @GeneralUtilities.check_arguments
-    def run_program(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None) -> tuple[int, str, str, int]:
-        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument)
+    def run_program(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> tuple[int, str, str, int]:
+        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument,interactive)
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None) -> int:
-        return self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument).pid
+    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> int:
+        return self.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument,interactive).pid
 
     @GeneralUtilities.check_arguments
-    def run_program_async(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None) -> int:
-        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument)
+    def run_program_async(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None, interactive:bool=False) -> int:
+        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument,interactive)
 
     @GeneralUtilities.check_arguments
     def __get_number_from_filecontent(self, filecontent: str) -> int:
