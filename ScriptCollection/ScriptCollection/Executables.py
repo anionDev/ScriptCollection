@@ -2,6 +2,7 @@ import os
 import argparse
 import time
 import traceback
+import sys
 import keyboard
 from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
@@ -262,7 +263,7 @@ def BuildCodeUnit() -> int:
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,                                                    False, None, args.assume_dependent_codeunits_are_already_built)
+    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,False, None, args.assume_dependent_codeunits_are_already_built,sys.argv)
     return 0
 
 
@@ -273,7 +274,7 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--targetenvironment', required=False, default="Development")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
+    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,False,None,sys.argv)
     return 0
 
 
@@ -286,7 +287,7 @@ def BuildCodeUnitsC() -> int:
     parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile)
+    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,sys.argv)
     return 0
 
 
@@ -317,7 +318,7 @@ def GenerateCertificate() -> int:
     parser.add_argument('--days_until_expire', required=False, default=None, type=int)
     parser.add_argument('--password', required=False, default=None)
     args = parser.parse_args()
-    ScriptCollectionCore().generate_certificate(os.getcwd(), args.domain, args.filename, args.subj_c, args.subj_st,                                                args.subj_l, args.subj_o, args.subj_ou, args.days_until_expire, args.password)
+    ScriptCollectionCore().generate_certificate(os.getcwd(), args.domain, args.filename, args.subj_c, args.subj_st, args.subj_l, args.subj_o, args.subj_ou, args.days_until_expire, args.password)
     return 0
 
 
