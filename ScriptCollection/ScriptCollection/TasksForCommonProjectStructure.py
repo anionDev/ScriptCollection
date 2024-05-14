@@ -2358,7 +2358,7 @@ class TasksForCommonProjectStructure:
 - Updated dependencies.
 """)
                         GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
-                        updated_dependencies = True
+                    updated_dependencies = True
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
         if updated_dependencies:
