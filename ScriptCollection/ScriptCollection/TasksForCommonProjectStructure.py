@@ -2418,10 +2418,14 @@ class TasksForCommonProjectStructure:
         verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_create_release_arguments.commandline_arguments, 1)
         createReleaseConfiguration: CreateReleaseConfiguration = CreateReleaseConfiguration(
             generic_create_release_arguments.product_name, generic_create_release_arguments.common_remote_name, generic_create_release_arguments.artifacts_target_folder, folder_of_this_file, verbosity, repository_folder, additional_arguments_file, repository_folder_name)
+    
         self.__sc.git_commit(build_repository_folder, "Updated submodule")
 
         # create release
         new_version = self.merge_to_stable_branch(generic_create_release_arguments.current_file, createReleaseConfiguration)
+        merge_source_branch = "other/next-release"
+        self.__sc.git_checkout(repository_folder, merge_source_branch)
+        
         return new_version
 
     class UpdateHTTPDocumentationArguments:
