@@ -4,6 +4,6 @@
 pushd $(dirname $0)
 
 ./AptUpgrade.sh
-apt-get -y install gpg sudo wget python3-pip curl net-tools iputils-ping tree procps apt-utils apt-transport-https git lsb-release dnsutils bmon slurm tcptrack iftop gdb iproute2
+apt-get -y install curl fail2ban ca-certificates wget gpg htop iputils-ping jq libxslt-dev lsof ntfs-3g ntp net-tools python3-pip tcpdump tree unattended-upgrades hdparm lm-sensors mdadm smartmontools ifupdown gdisk rsync util-linux apt-file psmisc zip
 
 popd
