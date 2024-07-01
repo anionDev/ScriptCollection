@@ -1112,17 +1112,26 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_for_development_purposes(self, codeunit_folder: str, domain: str = None):
+    def generate_certificate_for_development_purposes_for_external_service(self, service_folder: str, domain: str = None):
+        testservice_name = os.path.basename(service_folder)
+        self.__generate_certificate_for_development_purposes(testservice_name, os.path.join(service_folder,  "Resources"), domain)
+
+    @GeneralUtilities.check_arguments
+    def generate_certificate_for_development_purposes_for_codeunit(self, codeunit_folder: str, domain: str = None):
         codeunit_name = os.path.basename(codeunit_folder)
+        self.__generate_certificate_for_development_purposes(codeunit_name, os.path.join(codeunit_folder, "Other", "Resources"), domain)
+
+    @GeneralUtilities.check_arguments
+    def __generate_certificate_for_development_purposes(self, service_name: str, resources_folder: str, domain: str = None):
         if domain is None:
-            domain = f"{codeunit_name}.test.local"
+            domain = f"{service_name}.test.local"
         domain = domain.lower()
-        resources_folder: str = os.path.join(codeunit_folder, "Other", "Resources")
         resource_name: str = "DevelopmentCertificate"
         certificate_folder: str = os.path.join(resources_folder, resource_name)
-        resource_content_filename: str = codeunit_name+resource_name
+
+        resource_content_filename: str = service_name+resource_name
         ca_resource_name: str = f"{resource_name}Authority"
-        dev_ca_name = codeunit_name+ca_resource_name
+        dev_ca_name = service_name+ca_resource_name
         ca_folder = os.path.join(resources_folder, ca_resource_name)
         certificate_file = os.path.join(certificate_folder, f"{domain}.crt")
         unsignedcertificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
