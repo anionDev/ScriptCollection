@@ -52,6 +52,13 @@ sed -i "s/__\[disk_size\]__/$disk_size/g" $preseed_file
 
 echo "Preseed-file:"
 cat $preseed_file
+debconf-set-selections -c preseed.cfg
+if [ $? -eq 0 ]; then
+    echo "Preseed is valid."
+else
+    echo "Preseed is invalid."
+    exit 1
+fi
 
 echo "Step 3: Adding preseed-file to the Initrd"
 7z x -o$temp_folder $isofile
@@ -77,11 +84,9 @@ sed -i "$ a\timeout 100" $txt_config_file
 sed -i "$ a\ontimeout install" $txt_config_file
 
 echo "Step 5: Regenerating md5sum.txt"
-cd $temp_folder
-chmod +w md5sum.txt
-find -follow -type f ! -name md5sum.txt -print0 | xargs -0 md5sum > md5sum.txt
-chmod -w md5sum.txt
-cd -
+chmod +w $temp_folder/md5sum.txt
+find -follow -type f ! -name $temp_folder/md5sum.txt -print0 | xargs -0 md5sum > $temp_folder/md5sum.txt
+chmod -w $temp_folder/md5sum.txt
 
 echo "Step 6: Creating a New Bootable ISO Image"
 # (May require "sudo apt install -y genisoimage")
@@ -91,7 +96,8 @@ genisoimage -r -J -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -b
 echo "Step 7: Clean-up"
 rm -f $preseed_file
 chmod -R 777 $temp_folder
-rm -rf $temp_folder
+#rm -rf $temp_folder
+echo $temp_folder
 cd $cwd
 
 
