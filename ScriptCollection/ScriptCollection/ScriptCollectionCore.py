@@ -19,6 +19,7 @@ import tempfile
 import io
 import requests
 import ntplib
+import yaml
 import qrcode
 import pycdlib
 import send2trash
@@ -1075,6 +1076,18 @@ class ScriptCollectionCore:
             self.SCFilenameObfuscator(inputfolder, printtableheadline, namemappingfile, extensions)
         else:
             raise ValueError(f"Directory not found: '{inputfolder}'")
+
+    @GeneralUtilities.check_arguments
+    def get_services_from_yaml_file(self, yaml_file: str) -> list[str]:
+        with open(yaml_file) as stream:
+            loaded = yaml.safe_load(stream)
+            services = loaded["services"]
+            result = [service for service in services.keys()]
+            return result
+
+    @GeneralUtilities.check_arguments
+    def kill_docker_container(self, container_name: str) -> None:
+        self.run_program("docker", f"container rm -f {container_name}")
 
     @GeneralUtilities.check_arguments
     def get_docker_debian_version(self, image_tag: str) -> str:

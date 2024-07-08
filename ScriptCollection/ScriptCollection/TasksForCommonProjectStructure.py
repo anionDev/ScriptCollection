@@ -1842,6 +1842,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def run_local_test_service(self, file: str):
         example_folder = os.path.dirname(file)
+        docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
+        for service in self.__sc.get_services_from_yaml_file(docker_compose_file):
+            self.__sc.kill_docker_container(service)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
         self.__sc.run_program("docker", f"compose -p {title.lower()} up", example_folder, title=title)
