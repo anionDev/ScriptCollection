@@ -775,11 +775,11 @@ class TasksForCommonProjectStructure:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         if verbosity == 0:
             verbose_argument_for_reportgenerator = "Off"
-        if verbosity == 1:
+        elif verbosity == 1:
             verbose_argument_for_reportgenerator = "Error"
-        if verbosity == 2:
+        elif verbosity == 2:
             verbose_argument_for_reportgenerator = "Info"
-        if verbosity == 3:
+        elif verbosity == 3:
             verbose_argument_for_reportgenerator = "Verbose"
         else:
             raise ValueError(f"Unknown value for verbosity: {GeneralUtilities.str_none_safe(verbosity)}")

@@ -1082,7 +1082,7 @@ class ScriptCollectionCore:
         with open(yaml_file, encoding="utf-8") as stream:
             loaded = yaml.safe_load(stream)
             services = loaded["services"]
-            result = [service for service in services.keys()]
+            result = list(services.keys())
             return result
 
     @GeneralUtilities.check_arguments
