@@ -38,8 +38,9 @@
     lowSpeedLimit = 100
     lowSpeedTime = 20
     maxRequestBuffer = 1000m
-    postBuffer = 2048576000
+    postBuffer = 524288000
     sslVerify = true
+    version = HTTP/1.1
 [i18n]
     commitEncoding = utf-8
     logOutputEncoding = utf-8
@@ -65,7 +66,7 @@
     denyNonFastForwards = false
     fsckObjects = true
 [ssh]
-    maxRequestBuffer = 4096m
-    postBuffer = 4096m
+    maxRequestBuffer = 524288000
+    postBuffer = 524288000
 [submodule]
     recurse = true

@@ -7,6 +7,12 @@ alias c='cd ..'
 # remove all content in current console-window ('cls'=>'clear screen')
 alias cls='printf "\033c"'
 
+# reboot ('creboot'=> 'custom reboot')
+alias creboot='sudo reboot -h now && exit'
+
+# shutdown ('cshutdown'=> 'custom shutdown')
+alias cshutdown='sudo shutdown -h now && exit'
+
 # docker list container ('dl'=>'docker list')
 alias dl='sudo docker container list --all'
 
@@ -28,11 +34,5 @@ alias nel='grep --color=auto "^[^#;]"'
 # cat ('p'=> 'print')
 alias p='pygmentize -g -O linenos=1'
 
-# restart
-alias restart='sudo reboot -h now && exit'
-
 # sudo ('s'=>'sudo')
 alias s='sudo '
-
-# shutdown
-alias shutdown='sudo shutdown -h now && exit'

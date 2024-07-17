@@ -19,6 +19,7 @@ import tempfile
 import io
 import requests
 import ntplib
+import yaml
 import qrcode
 import pycdlib
 import send2trash
@@ -183,7 +184,7 @@ class ScriptCollectionCore:
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program(
-            "git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch',                                         repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
+            "git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(
                 repository_folder, commit_id)]
@@ -316,45 +317,36 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address],
-                                         directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         else:
-            self.run_program_argsasarray("git", ['remote', 'add', remote_name, remote_address],
-                                         directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            self.run_program_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_stage_all_changes(self, directory: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     "add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_unstage_all_changes(self, directory: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     "reset"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_stage_file(self, directory: str, file: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     'stage', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['stage', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_unstage_file(self, directory: str, file: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     'reset', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
-        self.run_program_argsasarray("git", [
-                                     'checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
-        self.run_program_argsasarray("git", [
-                                     'clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", [
-                                     'checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
@@ -367,8 +359,7 @@ class ScriptCollectionCore:
         argument = ['commit', '--quiet', '--allow-empty', '--message', message]
         if (GeneralUtilities.string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
-        git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(
-            directory)
+        git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
 
         if git_repository_has_uncommitted_changes:
             do_commit = True
@@ -376,22 +367,19 @@ class ScriptCollectionCore:
                 self.git_stage_all_changes(directory)
         else:
             if no_changes_behavior == 0:
-                GeneralUtilities.write_message_to_stdout(
-                    f"Commit '{message}' will not be done because there are no changes to commit in repository '{directory}'")
+                GeneralUtilities.write_message_to_stdout(f"Commit '{message}' will not be done because there are no changes to commit in repository '{directory}'")
                 do_commit = False
-            if no_changes_behavior == 1:
-                GeneralUtilities.write_message_to_stdout(
-                    f"There are no changes to commit in repository '{directory}'. Commit '{message}' will be done anyway.")
+            elif no_changes_behavior == 1:
+                GeneralUtilities.write_message_to_stdout(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will be done anyway.")
                 do_commit = True
-            if no_changes_behavior == 2:
-                raise RuntimeError(
-                    f"There are no changes to commit in repository '{directory}'. Commit '{message}' will not be done.")
+            elif no_changes_behavior == 2:
+                raise RuntimeError(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will not be done.")
+            else:
+                raise ValueError(f"Unknown value for no_changes_behavior: {GeneralUtilities.str_none_safe(no_changes_behavior)}")
 
         if do_commit:
-            GeneralUtilities.write_message_to_stdout(
-                f"Commit changes in '{directory}'")
-            self.run_program_argsasarray(
-                "git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'")
+            self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
         return self.git_get_commit_id(directory)
 
@@ -407,20 +395,16 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_delete_tag(self, directory: str, tag: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     "tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     "checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", ["submodule", "update", "--recursive"],
-                                     directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["submodule", "update", "--recursive"],                                     directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     "merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True, commit_message: str = None) -> str:
@@ -456,8 +440,7 @@ class ScriptCollectionCore:
                     self.git_fetch(target_directory)
                 else:
                     # clone
-                    self.git_clone(target_repository, source_repository,
-                                   include_submodules=True, mirror=True)
+                    self.git_clone(target_repository, source_repository,                                   include_submodules=True, mirror=True)
 
     def get_git_submodules(self, folder: str) -> list[str]:
         e = self.run_program("git", "submodule status", folder)
@@ -474,8 +457,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
-        exit_code = self.run_program_argsasarray(
-            "git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False, verbosity=0)[0]
+        exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False, verbosity=0)[0]
         if (exit_code == 0):
             return True
         if (exit_code == 1):
@@ -485,21 +467,17 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_discard_all_changes(self, repository: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     "reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", [
-                                     "checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_get_current_branch_name(self, repository: str) -> str:
-        result = self.run_program_argsasarray(
-            "git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace("\r", "").replace("\n", "")
 
     @GeneralUtilities.check_arguments
     def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
-        stdout = self.run_program_argsasarray(
-            "git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
+        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
         result = stdout[1].replace("\r", "").replace("\n", "")
         return result
 
@@ -516,28 +494,22 @@ class ScriptCollectionCore:
         counter = 0
         for tag in tags:
             counter = counter+1
-            GeneralUtilities.write_message_to_stdout(
-                f"Process tag {counter}/{tags_count}.")
+            GeneralUtilities.write_message_to_stdout(f"Process tag {counter}/{tags_count}.")
             # tag is on source-branch
             if self.git_commit_is_ancestor(repository, tag, tag_source_branch):
                 commit_id_old = self.git_get_commitid_of_tag(repository, tag)
-                commit_date: datetime = self.git_get_commit_date(
-                    repository, commit_id_old)
+                commit_date: datetime = self.git_get_commit_date(repository, commit_id_old)
                 date_as_string = self.__datetime_to_string_for_git(commit_date)
-                search_commit_result = self.run_program_argsasarray("git", ["log", f'--after="{date_as_string}"', f'--before="{date_as_string}"',
-                                                                    "--pretty=format:%H", tag_target_branch], repository,                                                                    throw_exception_if_exitcode_is_not_zero=False)
+                search_commit_result = self.run_program_argsasarray("git", ["log", f'--after="{date_as_string}"', f'--before="{date_as_string}"', "--pretty=format:%H", tag_target_branch], repository, throw_exception_if_exitcode_is_not_zero=False)
                 if search_commit_result[0] != 0 or not GeneralUtilities.string_has_nonwhitespace_content(search_commit_result[1]):
-                    raise ValueError(
-                        f"Can not calculate corresponding commit for tag '{tag}'.")
+                    raise ValueError(f"Can not calculate corresponding commit for tag '{tag}'.")
                 commit_id_new = search_commit_result[1]
                 self.git_delete_tag(repository, tag)
-                self.git_create_tag(
-                    repository, commit_id_new, tag, sign, message)
+                self.git_create_tag(repository, commit_id_new, tag, sign, message)
 
     @GeneralUtilities.check_arguments
     def get_current_git_branch_has_tag(self, repository_folder: str) -> bool:
-        result = self.run_program_argsasarray(
-            "git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
+        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         return result[0] == 0
 
     @GeneralUtilities.check_arguments
@@ -549,8 +521,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_staged_or_committed_git_ignored_files(self, repository_folder: str) -> list[str]:
-        tresult = self.run_program_argsasarray(
-            "git", ["ls-files", "-i", "-c", "--exclude-standard"], repository_folder, verbosity=0)
+        tresult = self.run_program_argsasarray("git", ["ls-files", "-i", "-c", "--exclude-standard"], repository_folder, verbosity=0)
         tresult = tresult[1].replace("\r", "")
         result = [line for line in tresult.split("\n") if len(line) > 0]
         return result
@@ -561,8 +532,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
-        folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(
-            folder)
+        folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(folder)
         lines = list()
         path_prefix = len(folder)+1
         items = dict()
@@ -577,8 +547,7 @@ class ScriptCollectionCore:
                     file_or_folder)
                 user = owner_and_permisssion[0]
                 permissions = owner_and_permisssion[1]
-                lines.append(
-                    f"{truncated_file};{item_type};{user};{permissions}")
+                lines.append(f"{truncated_file};{item_type};{user};{permissions}")
         lines = sorted(lines, key=str.casefold)
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
@@ -604,8 +573,7 @@ class ScriptCollectionCore:
                 renamed_items[subfolder2] = subfolder
             else:
                 subfolder2 = subfolder
-            self.__escape_git_repositories_in_folder_internal(
-                subfolder2, renamed_items)
+            self.__escape_git_repositories_in_folder_internal(subfolder2, renamed_items)
         return renamed_items
 
     def deescape_git_repositories_in_folder(self, renamed_items: dict[str, str]):
@@ -627,48 +595,43 @@ class ScriptCollectionCore:
         lines.sort(key=self.__sort_fmd)
         for line in lines:
             splitted: list = line.split(";")
-            full_path_of_file_or_folder: str = os.path.join(
-                folder, splitted[0])
+            full_path_of_file_or_folder: str = os.path.join(folder, splitted[0])
             filetype: str = splitted[1]
             user: str = splitted[2]
             permissions: str = splitted[3]
             if filetype == "d" and create_folder_is_not_exist and not os.path.isdir(full_path_of_file_or_folder):
-                GeneralUtilities.ensure_directory_exists(
-                    full_path_of_file_or_folder)
+                GeneralUtilities.ensure_directory_exists(full_path_of_file_or_folder)
             if (filetype == "f" and os.path.isfile(full_path_of_file_or_folder)) or (filetype == "d" and os.path.isdir(full_path_of_file_or_folder)):
-                self.set_owner(full_path_of_file_or_folder,
-                               user, os.name != 'nt')
+                self.set_owner(full_path_of_file_or_folder, user, os.name != 'nt')
                 self.set_permission(full_path_of_file_or_folder, permissions)
             else:
                 if strict:
                     if filetype == "f":
                         filetype_full = "File"
-                    if filetype == "d":
+                    elif filetype == "d":
                         filetype_full = "Directory"
-                    raise ValueError(
-                        f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
+                    else:
+                        raise ValueError(f"Unknown filetype: {GeneralUtilities.str_none_safe(filetype)}")
+                    raise ValueError(f"{filetype_full} '{full_path_of_file_or_folder}' does not exist")
 
     @GeneralUtilities.check_arguments
     def __calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
         argument = ['-v', 'error', '-show_entries', 'format=duration',
                     '-of', 'default=noprint_wrappers=1:nokey=1', filename]
-        result = self.run_program_argsasarray(
-            "ffprobe", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+        result = self.run_program_argsasarray("ffprobe", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
         return float(result[1].replace('\n', ''))
 
     @GeneralUtilities.check_arguments
     def __create_thumbnails(self, filename: str, fps: str, folder: str, tempname_for_thumbnails: str) -> None:
         argument = ['-i', filename, '-r', str(fps), '-vf', 'scale=-1:120',
                     '-vcodec', 'png', f'{tempname_for_thumbnails}-%002d.png']
-        self.run_program_argsasarray(
-            "ffmpeg", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("ffmpeg", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def __create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails: str, amount_of_images: int) -> None:
         duration = timedelta(seconds=length_in_seconds)
         info = GeneralUtilities.timedelta_to_simple_string(duration)
-        next_square_number = str(
-            int(math.sqrt(GeneralUtilities.get_next_square_number(amount_of_images))))
+        next_square_number = str(int(math.sqrt(GeneralUtilities.get_next_square_number(amount_of_images))))
         argument = ['-title', f'"{outputfilename} ({info})"', '-tile', f'{next_square_number}x{next_square_number}',
                     f'{tempname_for_thumbnails}*.png', f'{outputfilename}.png']
         self.run_program_argsasarray(
@@ -687,15 +650,13 @@ class ScriptCollectionCore:
         if tempname_for_thumbnails is None:
             tempname_for_thumbnails = "t"+str(uuid.uuid4())
 
-        file = GeneralUtilities.resolve_relative_path_from_current_working_directory(
-            file)
+        file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         filename = os.path.basename(file)
         folder = os.path.dirname(file)
         filename_without_extension = Path(file).stem
 
         try:
-            length_in_seconds = self.__calculate_lengh_in_seconds(
-                filename, folder)
+            length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
             if (frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
                 x = self.roundup(float(frames_per_second[:-3]), 2)
@@ -706,10 +667,8 @@ class ScriptCollectionCore:
                 amounf_of_previewframes = int(float(frames_per_second))
                 # self.roundup((amounf_of_previewframes-2)/length_in_seconds, 2)
                 frames_per_secondx = f"{amounf_of_previewframes-2}/{length_in_seconds}"
-            self.__create_thumbnails(
-                filename, frames_per_secondx, folder, tempname_for_thumbnails)
-            self.__create_thumbnail(filename_without_extension, folder,
-                                    length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
+            self.__create_thumbnails(filename, frames_per_secondx, folder, tempname_for_thumbnails)
+            self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
         finally:
             for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
                 file = str(thumbnail_to_delete)
@@ -773,6 +732,7 @@ class ScriptCollectionCore:
                     size = int(size_string[:-3]) * pow(2, 30)
                 else:
                     GeneralUtilities.write_message_to_stderr("Wrong format")
+                    return 1
             else:
                 GeneralUtilities.write_message_to_stderr("Wrong format")
                 return 1
@@ -789,16 +749,13 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def SCCreateSimpleMergeWithoutRelease(self, repository: str, sourcebranch: str, targetbranch: str, remotename: str, remove_source_branch: bool) -> None:
-        commitid = self.git_merge(
-            repository, sourcebranch, targetbranch, False, True)
+        commitid = self.git_merge(repository, sourcebranch, targetbranch, False, True)
         self.git_merge(repository, targetbranch, sourcebranch, True, True)
         created_version = self.get_semver_version_from_gitversion(repository)
         self.git_create_tag(repository, commitid, f"v{created_version}", True)
-        self.git_push(repository, remotename, targetbranch,
-                      targetbranch, False, True)
+        self.git_push(repository, remotename, targetbranch, targetbranch, False, True)
         if (GeneralUtilities.string_has_nonwhitespace_content(remotename)):
-            self.git_push(repository, remotename, sourcebranch,
-                          sourcebranch, False, True)
+            self.git_push(repository, remotename, sourcebranch, sourcebranch, False, True)
         if (remove_source_branch):
             self.git_remove_branch(repository, sourcebranch)
 
@@ -830,8 +787,7 @@ class ScriptCollectionCore:
 
             # sort lines if desired
             if sort:
-                lines = sorted(lines, key=lambda singleline: self.__adapt_line_for_sorting(
-                    singleline, ignored_start_character))
+                lines = sorted(lines, key=lambda singleline: self.__adapt_line_for_sorting(singleline, ignored_start_character))
 
             # reinsert first line
             if ignore_first_line:
@@ -842,8 +798,7 @@ class ScriptCollectionCore:
 
             return 0
         else:
-            GeneralUtilities.write_message_to_stdout(
-                f"File '{file}' does not exist")
+            GeneralUtilities.write_message_to_stdout(f"File '{file}' does not exist")
             return 1
 
     @GeneralUtilities.check_arguments
@@ -872,8 +827,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __process_file(self, file: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
-        new_filename = os.path.join(os.path.dirname(file), os.path.basename(
-            file).replace(substringInFilename, newSubstringInFilename))
+        new_filename = os.path.join(os.path.dirname(file), os.path.basename(file).replace(substringInFilename, newSubstringInFilename))
         if file != new_filename:
             if os.path.isfile(new_filename):
                 if filecmp.cmp(file, new_filename):
@@ -898,8 +852,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def SCReplaceSubstringsInFilenames(self, folder: str, substringInFilename: str, newSubstringInFilename: str, conflictResolveMode: str) -> None:
         for file in GeneralUtilities.absolute_file_paths(folder):
-            self.__process_file(file, substringInFilename,
-                                newSubstringInFilename, conflictResolveMode)
+            self.__process_file(file, substringInFilename, newSubstringInFilename, conflictResolveMode)
 
     @GeneralUtilities.check_arguments
     def __check_file(self, file: str, searchstring: str) -> None:
@@ -952,24 +905,20 @@ class ScriptCollectionCore:
                 self.upload_file_to_file_host(file, host))
             return 0
         except Exception as exception:
-            GeneralUtilities.write_exception_to_stderr_with_traceback(
-                exception, traceback)
+            GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback)
             return 1
 
     @GeneralUtilities.check_arguments
     def SCFileIsAvailableOnFileHost(self, file: str) -> int:
         try:
             if self.file_is_available_on_file_host(file):
-                GeneralUtilities.write_message_to_stdout(
-                    f"'{file}' is available")
+                GeneralUtilities.write_message_to_stdout(f"'{file}' is available")
                 return 0
             else:
-                GeneralUtilities.write_message_to_stdout(
-                    f"'{file}' is not available")
+                GeneralUtilities.write_message_to_stdout(f"'{file}' is not available")
                 return 1
         except Exception as exception:
-            GeneralUtilities.write_exception_to_stderr_with_traceback(
-                exception, traceback)
+            GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback)
             return 2
 
     @GeneralUtilities.check_arguments
@@ -981,8 +930,7 @@ class ScriptCollectionCore:
         # timestamp: "51eb505a"
         # target: "c1910018"
         # nonce: "de19b302"
-        header = str(block_version_number + previousblockhash +
-                     transactionsmerkleroot + timestamp + target + nonce)
+        header = str(block_version_number + previousblockhash + transactionsmerkleroot + timestamp + target + nonce)
         return binascii.hexlify(hashlib.sha256(hashlib.sha256(binascii.unhexlify(header)).digest()).digest()[::-1]).decode('utf-8')
 
     @GeneralUtilities.check_arguments
@@ -1052,9 +1000,10 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def SCFilenameObfuscator(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
-        if (not obfuscate_all_files):
+        if (obfuscate_all_files):
+            obfuscate_file_extensions = None
+        else:
             obfuscate_file_extensions = extensions.split(",")
-
         if (os.path.isdir(inputfolder)):
             printtableheadline = GeneralUtilities.string_to_boolean(
                 printtableheadline)
@@ -1108,7 +1057,9 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def SCObfuscateFilesFolder(self, inputfolder: str, printtableheadline, namemappingfile: str, extensions: str) -> None:
         obfuscate_all_files = extensions == "*"
-        if (not obfuscate_all_files):
+        if (obfuscate_all_files):
+            obfuscate_file_extensions = None
+        else:
             if "," in extensions:
                 obfuscate_file_extensions = extensions.split(",")
             else:
@@ -1122,10 +1073,21 @@ class ScriptCollectionCore:
                     self.SCChangeHashOfProgram(file)
                     os.remove(file)
                     os.rename(file + ".modified", file)
-            self.SCFilenameObfuscator(
-                inputfolder, printtableheadline, namemappingfile, extensions)
+            self.SCFilenameObfuscator(inputfolder, printtableheadline, namemappingfile, extensions)
         else:
             raise ValueError(f"Directory not found: '{inputfolder}'")
+
+    @GeneralUtilities.check_arguments
+    def get_services_from_yaml_file(self, yaml_file: str) -> list[str]:
+        with open(yaml_file, encoding="utf-8") as stream:
+            loaded = yaml.safe_load(stream)
+            services = loaded["services"]
+            result = list(services.keys())
+            return result
+
+    @GeneralUtilities.check_arguments
+    def kill_docker_container(self, container_name: str) -> None:
+        self.run_program("docker", f"container rm -f {container_name}")
 
     @GeneralUtilities.check_arguments
     def get_docker_debian_version(self, image_tag: str) -> str:
@@ -1139,13 +1101,10 @@ class ScriptCollectionCore:
         package_url: str = f"https://deb.torproject.org/torproject.org/dists/{debian_version}/main/binary-amd64/Packages"
         r = requests.get(package_url, timeout=5)
         if r.status_code != 200:
-            raise ValueError(
-                f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
-        lines = GeneralUtilities.string_to_lines(
-            GeneralUtilities.bytes_to_string(r.content))
+            raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
+        lines = GeneralUtilities.string_to_lines(GeneralUtilities.bytes_to_string(r.content))
         version_line_prefix = "Version: "
-        version_content_line = [
-            line for line in lines if line.startswith(version_line_prefix)][1]
+        version_content_line = [line for line in lines if line.startswith(version_line_prefix)][1]
         version_with_overhead = version_content_line[len(version_line_prefix):]
         tor_version = version_with_overhead.split("~")[0]
         return tor_version
@@ -1191,13 +1150,10 @@ class ScriptCollectionCore:
     def run_testcases_for_python_project(self, repository_folder: str):
         self.run_program("coverage", "run -m pytest", repository_folder)
         self.run_program("coverage", "xml", repository_folder)
-        GeneralUtilities.ensure_directory_exists(
-            os.path.join(repository_folder, "Other/TestCoverage"))
-        coveragefile = os.path.join(
-            repository_folder, "Other/TestCoverage/TestCoverage.xml")
+        GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage"))
+        coveragefile = os.path.join(repository_folder, "Other/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
-        os.rename(os.path.join(repository_folder,
-                  "coverage.xml"), coveragefile)
+        os.rename(os.path.join(repository_folder,                "coverage.xml"), coveragefile)
 
     @GeneralUtilities.check_arguments
     def get_file_permission(self, file: str) -> str:
@@ -1247,8 +1203,7 @@ class ScriptCollectionCore:
         GeneralUtilities.assert_condition(os.path.isfile(file) or os.path.isdir(
             file), f"Can not execute 'ls' because '{file}' does not exist")
         result = self.run_program_argsasarray("ls", ["-ld", file])
-        GeneralUtilities.assert_condition(
-            result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
+        GeneralUtilities.assert_condition(result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
         GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(
             result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
@@ -1301,8 +1256,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
         if isinstance(self.program_runner, ProgramRunnerEpew):
-            custom_argument = CustomEpewArgument(
-                print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, verbosity, arguments_for_log)
+            custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, verbosity, arguments_for_log)
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(
             program, arguments_as_array, working_directory, custom_argument, interactive)
         return popen
@@ -1317,8 +1271,7 @@ class ScriptCollectionCore:
         # verbosity 4: Same as loglevel 3 but with some more overhead-information.
         try:
             arguments_as_str = ' '.join(arguments_as_array)
-            mock_loader_result = self.__try_load_mock(
-                program, arguments_as_str, working_directory)
+            mock_loader_result = self.__try_load_mock(program, arguments_as_str, working_directory)
             if mock_loader_result[0]:
                 return mock_loader_result[1]
 
@@ -1363,17 +1316,14 @@ class ScriptCollectionCore:
                                 stdoutresultb: bytes = stdoutreader.read()
                                 stdoutresult = GeneralUtilities.bytes_to_string(
                                     stdoutresultb)
-                                stdoutlines = GeneralUtilities.string_to_lines(
-                                    stdoutresult)
+                                stdoutlines = GeneralUtilities.string_to_lines(stdoutresult)
                                 for line in stdoutlines:
-                                    line_stripped = line.replace(
-                                        "\r", "").strip()
+                                    line_stripped = line.replace("\r", "").strip()
                                     if len(line_stripped) > 0:
                                         line_str = line_stripped
                                         stdout_lines.append(line_str)
                                         if live_console_output_printing:
-                                            GeneralUtilities.write_message_to_stdout(
-                                                line_str)
+                                            GeneralUtilities.write_message_to_stdout(line_str)
                                         if log_to_file:
                                             GeneralUtilities.append_line_to_file(
                                                 log_file, line_str)
@@ -1381,26 +1331,20 @@ class ScriptCollectionCore:
                             stderrreader: BufferedReader = process.stderr
                             if stderrreader.readable():
                                 stderrresultb: bytes = stderrreader.read()
-                                stderrresult = GeneralUtilities.bytes_to_string(
-                                    stderrresultb)
-                                stderrlines = GeneralUtilities.string_to_lines(
-                                    stderrresult)
+                                stderrresult = GeneralUtilities.bytes_to_string(stderrresultb)
+                                stderrlines = GeneralUtilities.string_to_lines(stderrresult)
                                 for line in stderrlines:
-                                    line_stripped = line.replace(
-                                        "\r", "").strip()
+                                    line_stripped = line.replace("\r", "").strip()
                                     if len(line_stripped) > 0:
                                         line_str = line_stripped
                                         stderr_lines.append(line_str)
                                         if live_console_output_printing:
                                             if print_errors_as_information:
-                                                GeneralUtilities.write_message_to_stdout(
-                                                    line_str)
+                                                GeneralUtilities.write_message_to_stdout(line_str)
                                             else:
-                                                GeneralUtilities.write_message_to_stderr(
-                                                    line_str)
+                                                GeneralUtilities.write_message_to_stderr(line_str)
                                         if log_to_file:
-                                            GeneralUtilities.append_line_to_file(
-                                                log_file, line_str)
+                                            GeneralUtilities.append_line_to_file(log_file, line_str)
 
                             return go
                         except Exception:
@@ -1415,23 +1359,17 @@ class ScriptCollectionCore:
                 else:
                     stdout, stderr = process.communicate()
                     exit_code = process.wait()
-                    stdout = GeneralUtilities.bytes_to_string(
-                        stdout).replace('\r', '')
-                    stderr = GeneralUtilities.bytes_to_string(
-                        stderr).replace('\r', '')
+                    stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
+                    stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
 
                 if arguments_for_exception_as_string is None:
-                    arguments_for_exception_as_string = ' '.join(
-                        arguments_as_array)
+                    arguments_for_exception_as_string = ' '.join(arguments_as_array)
                 else:
-                    arguments_for_exception_as_string = ' '.join(
-                        arguments_for_log)
+                    arguments_for_exception_as_string = ' '.join(arguments_for_log)
 
                 if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                    arguments_for_exception_as_string = ' '.join(
-                        arguments_for_log)
-                    raise ValueError(
-                        f"Program '{working_directory}>{program} {arguments_for_exception_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
+                    arguments_for_exception_as_string = ' '.join(arguments_for_log)
+                    raise ValueError(f"Program '{working_directory}>{program} {arguments_for_exception_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
 
                 result = (exit_code, stdout, stderr, pid)
                 return result
@@ -1446,12 +1384,10 @@ class ScriptCollectionCore:
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
     def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> int:
-        mock_loader_result = self.__try_load_mock(
-            program, ' '.join(arguments_as_array), working_directory)
+        mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
-        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information,
-                                                                     log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
+        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information,                                                                     log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
         return process.pid
 
     # Return-values program_runner: Pid
@@ -1575,8 +1511,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def increment_version(self, input_version: str, increment_major: bool, increment_minor: bool, increment_patch: bool) -> str:
         splitted = input_version.split(".")
-        GeneralUtilities.assert_condition(len(
-            splitted) == 3, f"Version '{input_version}' does not have the 'major.minor.patch'-pattern.")
+        GeneralUtilities.assert_condition(len(splitted) == 3, f"Version '{input_version}' does not have the 'major.minor.patch'-pattern.")
         major = int(splitted[0])
         minor = int(splitted[1])
         patch = int(splitted[2])
@@ -1591,8 +1526,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
         if (self.git_repository_has_commits(repository_folder)):
-            result = self.get_version_from_gitversion(
-                repository_folder, "MajorMinorPatch")
+            result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
             if self.git_repository_has_uncommitted_changes(repository_folder):
                 if self.get_current_git_branch_has_tag(repository_folder):
                     id_of_latest_tag = self.git_get_commitid_of_tag(
@@ -1614,17 +1548,14 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for issue 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self.run_program_argsasarray(
-            "gitversion", ["/showVariable", variable], folder, verbosity=0)
-        result = self.run_program_argsasarray(
-            "gitversion", ["/showVariable", variable], folder, verbosity=0)
+        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder, verbosity=0)
+        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder, verbosity=0)
         result = GeneralUtilities.strip_new_line_character(result[1])
 
         return result
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_authority(self, folder: str, name: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,
-                                       days_until_expire: int = None, password: str = None) -> None:
+    def generate_certificate_authority(self, folder: str, name: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,                                       days_until_expire: int = None, password: str = None) -> None:
         if days_until_expire is None:
             days_until_expire = 1825
         if password is None:
@@ -1639,12 +1570,9 @@ class ScriptCollectionCore:
         if password is None:
             password = GeneralUtilities.generate_password()
         rsa_key_length = 4096
-        self.run_program(
-            "openssl", f'genrsa -out {filename}.key {rsa_key_length}', folder)
-        self.run_program(
-            "openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -x509 -key {filename}.key -out {filename}.unsigned.crt -days {days_until_expire}', folder)
-        self.run_program(
-            "openssl", f'pkcs12 -export -out {filename}.selfsigned.pfx -password pass:{password} -inkey {filename}.key -in {filename}.unsigned.crt', folder)
+        self.run_program("openssl", f'genrsa -out {filename}.key {rsa_key_length}', folder)
+        self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -x509 -key {filename}.key -out {filename}.unsigned.crt -days {days_until_expire}', folder)
+        self.run_program("openssl", f'pkcs12 -export -out {filename}.selfsigned.pfx -password pass:{password} -inkey {filename}.key -in {filename}.unsigned.crt', folder)
         GeneralUtilities.write_text_to_file(
             os.path.join(folder, f"{filename}.password"), password)
         GeneralUtilities.write_text_to_file(os.path.join(folder, f"{filename}.san.conf"), f"""[ req ]
@@ -1692,8 +1620,7 @@ DNS                 = {domain}
         lines = GeneralUtilities.read_lines_from_file(file)
         new_lines = []
         for line in lines:
-            new_lines.append(
-                self.__get_updated_line_for_python_requirements(line.strip()))
+            new_lines.append(self.__get_updated_line_for_python_requirements(line.strip()))
         GeneralUtilities.write_lines_to_file(file, new_lines)
 
     @GeneralUtilities.check_arguments
@@ -1706,8 +1633,7 @@ DNS                 = {domain}
                 # (something like "cyclonedx-bom>=3.11.0" for example)
                 package = line.split(">")[0]
                 operator = ">=" if ">=" in line else ">"
-                response = requests.get(
-                    f'https://pypi.org/pypi/{package}/json', timeout=5)
+                response = requests.get(f'https://pypi.org/pypi/{package}/json', timeout=5)
                 latest_version = response.json()['info']['version']
                 return package+operator+latest_version
             except:
@@ -1738,22 +1664,18 @@ DNS                 = {domain}
     def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int):
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
-        GeneralUtilities.write_message_to_stderr(
-            f"Check for updates in {csproj_filename}")
-        result = self.run_program(
-            "dotnet", f"list {csproj_filename} package --outdated", folder)
+        GeneralUtilities.write_message_to_stderr(f"Check for updates in {csproj_filename}")
+        result = self.run_program("dotnet", f"list {csproj_filename} package --outdated", folder)
         for line in result[1].replace("\r", "").split("\n"):
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
                 package_name = line.replace(">", "").strip().split(" ")[0]
-                GeneralUtilities.write_message_to_stderr(
-                    f"Update package {package_name}")
+                GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
                 self.run_program(
                     "dotnet", f"add {csproj_filename} package {package_name}", folder)
 
     @GeneralUtilities.check_arguments
-    def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str,
-                           deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
+    def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str,                           deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
 
         # prepare
         GeneralUtilities.ensure_directory_exists(deb_output_folder)
@@ -1765,18 +1687,14 @@ DNS                 = {domain}
         # create folder
         GeneralUtilities.ensure_directory_exists(temp_folder)
         control_content_folder_name = "controlcontent"
-        packagecontent_control_folder = os.path.join(
-            temp_folder, control_content_folder_name)
+        packagecontent_control_folder = os.path.join(temp_folder, control_content_folder_name)
         GeneralUtilities.ensure_directory_exists(packagecontent_control_folder)
         data_content_folder_name = "datacontent"
-        packagecontent_data_folder = os.path.join(
-            temp_folder, data_content_folder_name)
+        packagecontent_data_folder = os.path.join(temp_folder, data_content_folder_name)
         GeneralUtilities.ensure_directory_exists(packagecontent_data_folder)
         entireresult_content_folder_name = "entireresultcontent"
-        packagecontent_entireresult_folder = os.path.join(
-            temp_folder, entireresult_content_folder_name)
-        GeneralUtilities.ensure_directory_exists(
-            packagecontent_entireresult_folder)
+        packagecontent_entireresult_folder = os.path.join(temp_folder, entireresult_content_folder_name)
+        GeneralUtilities.ensure_directory_exists(packagecontent_entireresult_folder)
 
         # create "debian-binary"-file
         debianbinary_file = os.path.join(
@@ -1787,8 +1705,7 @@ DNS                 = {domain}
         # create control-content
 
         #  conffiles
-        conffiles_file = os.path.join(
-            packagecontent_control_folder, "conffiles")
+        conffiles_file = os.path.join(packagecontent_control_folder, "conffiles")
         GeneralUtilities.ensure_file_exists(conffiles_file)
 
         #  postinst-script
@@ -1819,19 +1736,15 @@ DNS                 = {domain}
         GeneralUtilities.ensure_directory_exists(usr_bin_folder)
         usr_bin_content_folder = os.path.join(
             usr_bin_folder, tool_content_folder_name)
-        GeneralUtilities.copy_content_of_folder(
-            bin_folder, usr_bin_content_folder)
+        GeneralUtilities.copy_content_of_folder(bin_folder, usr_bin_content_folder)
 
         # create debfile
         deb_filename = f"{toolname}.deb"
-        self.run_program_argsasarray("tar", [
-                                     "czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"], packagecontent_control_folder, verbosity=verbosity)
-        self.run_program_argsasarray("tar", [
-                                     "czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"], packagecontent_data_folder, verbosity=verbosity)
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"], packagecontent_control_folder, verbosity=verbosity)
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"], packagecontent_data_folder, verbosity=verbosity)
         self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz",
                                      "data.tar.gz"], packagecontent_entireresult_folder, verbosity=verbosity)
-        result_file = os.path.join(
-            packagecontent_entireresult_folder, deb_filename)
+        result_file = os.path.join(packagecontent_entireresult_folder, deb_filename)
         shutil.copy(result_file, os.path.join(deb_output_folder, deb_filename))
 
         # cleanup
