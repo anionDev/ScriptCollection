@@ -40,7 +40,7 @@ class CertificateUpdater:
         print(filenames)
         numbers = [int(file[len("privkey"):]) for file in filenames]
         # numbers=[]
-        #print([os.path.basename(file) for file in filenames])
+        # print([os.path.basename(file) for file in filenames])
         result = max(numbers)
         return result
 
@@ -108,7 +108,7 @@ class CertificateUpdater:
                 dockerargument = f"run --name {certbot_container_name} --volume {self.__letsencrypt_folder}:/etc/letsencrypt"
                 dockerargument = dockerargument+f" --volume {self.__log_folder}:/var/log/letsencrypt -p 80:80 certbot/certbot:latest"
                 certbotargument = f"--standalone --email {self.__email} --agree-tos --force-renewal --rsa-key-size 4096 --non-interactive --no-eff-email --domain {domain}"
-                if(certificate_for_domain_already_exists):
+                if (certificate_for_domain_already_exists):
                     self.__sc.run_program("docker", f"{dockerargument} certonly --no-random-sleep-on-renew {certbotargument}",                                          self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
                     self.__replace_symlinks_by_files(domain)
                 else:

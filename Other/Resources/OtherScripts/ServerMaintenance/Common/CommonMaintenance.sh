@@ -5,4 +5,10 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-#TODO
+#TOOD check if docker is available
+
+#remove unused docker-container
+#docker volume prune --force
+
+#remove unused images
+#docker rmi $(docker images --filter "dangling=true" -q --no-trunc) # TODO issue: this line is not idempotent
