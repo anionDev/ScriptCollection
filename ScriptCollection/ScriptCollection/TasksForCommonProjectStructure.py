@@ -233,8 +233,7 @@ class TasksForCommonProjectStructure:
         for target in targets:
             GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target}...")
             sc = ScriptCollectionCore()
-            sc.program_runner = ProgramRunnerEpew()
-            sc.run_program("flutter", f"build {target}", src_folder, verbosity)
+            self.run_with_epew("flutter", f"build {target}", src_folder, verbosity)
             if target == "web":
                 web_relase_folder = os.path.join(src_folder, "build/web")
                 web_folder = os.path.join(artifacts_folder, "BuildResult_WebApplication")
@@ -1520,14 +1519,13 @@ class TasksForCommonProjectStructure:
         src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)
         verbosity = self.get_verbosity_from_commandline_arguments(args, verbosity)
         sc = ScriptCollectionCore()
-        sc.program_runner = ProgramRunnerEpew()
-        sc.run_program("flutter", "test --coverage", src_folder, verbosity)
+        self.run_with_epew("flutter", "test --coverage", src_folder, verbosity)
         test_coverage_folder_relative = "Other/Artifacts/TestCoverage"
         test_coverage_folder = GeneralUtilities.resolve_relative_path(test_coverage_folder_relative, codeunit_folder)
         GeneralUtilities.ensure_directory_exists(test_coverage_folder)
         coverage_file_relative = f"{test_coverage_folder_relative}/TestCoverage.xml"
         coverage_file = GeneralUtilities.resolve_relative_path(coverage_file_relative, codeunit_folder)
-        sc.run_program("lcov_cobertura", f"coverage/lcov.info --base-dir . --excludes test --output ../{coverage_file_relative} --demangle", src_folder, verbosity)
+        self.run_with_epew("lcov_cobertura", f"coverage/lcov.info --base-dir . --excludes test --output ../{coverage_file_relative} --demangle", src_folder, verbosity)
         content = GeneralUtilities.read_text_from_file(coverage_file)
         content = re.sub('<![^<]+>', '', content)
         content = re.sub('\\\\', '/', content)
@@ -1539,18 +1537,57 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool, verbosity: int, commandline_arguments: list[str]) -> None:
+        # prepare
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
         repository_folder = os.path.dirname(codeunit_folder)
+
+        # run testcases
         self.run_with_epew("ng", "test --watch=false --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
+
+        # rename file
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
         target_file = os.path.join(coverage_folder, "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
         self.__rename_packagename_in_coverage_file(target_file, codeunit_name)
+
+        # adapt backslashs to slashs
         content = GeneralUtilities.read_text_from_file(target_file)
         content = re.sub('\\\\', '/', content)
+        GeneralUtilities.write_text_to_file(target_file, content)
+
+        # aggregate packages in testcoverage-file
+        roottree: etree._ElementTree = etree.parse(target_file)
+        existing_classes = list(roottree.xpath('//coverage/packages/package/classes/class'))
+
+        old_packages_list = roottree.xpath('//coverage/packages/package')
+        for package in old_packages_list:
+            package.getparent().remove(package)
+
+        root = roottree.getroot()
+        packages_element = root.find("packages")
+        package_element = etree.SubElement(packages_element, "package")
+        package_element.attrib['name'] = codeunit_name
+        package_element.attrib['lines-valid'] = root.attrib["lines-valid"]
+        package_element.attrib['lines-covered'] = root.attrib["lines-covered"]
+        package_element.attrib['line-rate'] = root.attrib["line-rate"]
+        package_element.attrib['branches-valid'] = root.attrib["branches-valid"]
+        package_element.attrib['branches-covered'] = root.attrib["branches-covered"]
+        package_element.attrib['branch-rate'] = root.attrib["branch-rate"]
+        package_element.attrib['timestamp'] = root.attrib["timestamp"]
+        package_element.attrib['complexity'] = root.attrib["complexity"]
+
+        classes_element = etree.SubElement(package_element, "classes")
+
+        for existing_class in existing_classes:
+            classes_element.append(existing_class)
+
+        result = etree.tostring(roottree, pretty_print=True).decode("utf-8")
+        GeneralUtilities.write_text_to_file(target_file, result)
+
+        # post tasks
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
