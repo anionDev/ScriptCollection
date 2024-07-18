@@ -1518,7 +1518,6 @@ class TasksForCommonProjectStructure:
         codeunit_name = os.path.basename(codeunit_folder)
         src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)
         verbosity = self.get_verbosity_from_commandline_arguments(args, verbosity)
-        sc = ScriptCollectionCore()
         self.run_with_epew("flutter", "test --coverage", src_folder, verbosity)
         test_coverage_folder_relative = "Other/Artifacts/TestCoverage"
         test_coverage_folder = GeneralUtilities.resolve_relative_path(test_coverage_folder_relative, codeunit_folder)
