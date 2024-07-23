@@ -560,7 +560,7 @@ class GeneralUtilities:
     def ensure_elevated_privileges() -> None:
         if (not GeneralUtilities.current_user_has_elevated_privileges()):
             raise ValueError("Not enough privileges.")
-        
+
     @staticmethod
     @check_arguments
     def rename_names_of_all_files_and_folders(folder: str, replace_from: str, replace_to: str, replace_only_full_match=False):
