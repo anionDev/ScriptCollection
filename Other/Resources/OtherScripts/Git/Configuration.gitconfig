@@ -35,8 +35,8 @@
 [gui]
     encoding = utf-8
 [http]
-    lowSpeedLimit = 100
-    lowSpeedTime = 20
+    lowSpeedLimit = 2
+    lowSpeedTime = 120
     maxRequestBuffer = 1000m
     postBuffer = 524288000
     sslVerify = true

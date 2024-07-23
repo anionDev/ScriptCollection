@@ -259,11 +259,11 @@ def BuildCodeUnit() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--codeunitfolder', required=False, default=".")
     parser.add_argument('--verbosity', required=False, default=1)
-    parser.add_argument('--targetenvironment', required=False, default="Development")
+    parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,False, None, args.assume_dependent_codeunits_are_already_built,sys.argv)
+    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
     return 0
 
 
@@ -271,10 +271,10 @@ def BuildCodeUnits() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repositoryfolder', required=False, default=".")
     parser.add_argument('--verbosity', required=False, default=1)
-    parser.add_argument('--targetenvironment', required=False, default="Development")
+    parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,False,None,sys.argv)
+    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv)
     return 0
 
 
@@ -287,7 +287,7 @@ def BuildCodeUnitsC() -> int:
     parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile,sys.argv)
+    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, sys.argv)
     return 0
 
 
