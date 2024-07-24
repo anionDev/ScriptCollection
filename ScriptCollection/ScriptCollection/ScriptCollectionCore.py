@@ -1266,9 +1266,9 @@ class ScriptCollectionCore:
             else:
                 arguments_for_log = ' '.join(arguments_for_log)
 
-            arguments_for_exception_as_string = ' '.join(arguments_for_log)
+            arguments_for_exception_as_string = arguments_for_log
 
-            arguments_for_log_as_string = ' '.join(arguments_for_log)
+            arguments_for_log_as_string = arguments_for_log
             cmd = f'{working_directory}>{program} {arguments_for_log_as_string}'
 
             if GeneralUtilities.string_is_none_or_whitespace(title):
@@ -1375,7 +1375,7 @@ class ScriptCollectionCore:
         mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
-        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information,                                                                     log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
+        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
         return process.pid
 
     # Return-values program_runner: Pid
