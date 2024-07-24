@@ -765,7 +765,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str, commandline_arguments: list[str], add_testcoverage_history_entry: bool = None) -> None:
-        """This script expects that the file '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverage/TestCoverage.xml'
+        """This function expects that the file '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverageReport'.
         This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
@@ -1491,10 +1491,17 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_angular_codeunit(self, build_script_file: str, build_environment_target_type: str, verbosity: int, commandline_arguments: list[str]) -> None:
+        build_script_folder = os.path.dirname(build_script_file)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(f"{codeunit_folder}/.angular")
+        self.standardized_tasks_build_for_angular_codeunit(build_script_file, build_environment_target_type, verbosity, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_node_codeunit(self, build_script_file: str, build_environment_target_type: str, verbosity: int, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(build_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        self.run_with_epew("ng", f"build --configuration {build_environment_target_type}", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("npm", f"run build-{build_environment_target_type}", codeunit_folder, verbosity=verbosity)
         self.standardized_tasks_build_bom_for_node_project(codeunit_folder, verbosity, commandline_arguments)
         self.copy_source_files_to_output_directory(build_script_file)
 
@@ -1505,11 +1512,14 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
+        self.standardized_tasks_linting_for_node_codeunit(linting_script_file, verbosity, build_environment_target_type, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_linting_for_node_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
         self.run_with_epew("ng", "lint", codeunit_folder, verbosity=verbosity)
-        # TODO check if there are errors in sarif-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, verbosity: int, args: list[str], package_name: str, build_environment_target_type: str, generate_badges: bool):
@@ -1543,7 +1553,7 @@ class TasksForCommonProjectStructure:
         repository_folder = os.path.dirname(codeunit_folder)
 
         # run testcases
-        self.run_with_epew("ng", "test --watch=false --browsers ChromeHeadless --code-coverage", codeunit_folder, verbosity=verbosity)
+        self.standardized_tasks_run_testcases_for_node_codeunit(runtestcases_script_file, build_environment_target_type, generate_badges, verbosity, commandline_arguments)
 
         # rename file
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
@@ -1590,6 +1600,12 @@ class TasksForCommonProjectStructure:
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
+    def standardized_tasks_run_testcases_for_node_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool, verbosity: int, commandline_arguments: list[str]) -> None:
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
+        self.run_with_epew("npm", f"run test-{build_environment_target_type}", codeunit_folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
     def __rename_packagename_in_coverage_file(self, file: str, codeunit_name: str) -> None:
         root: etree._ElementTree = etree.parse(file)
         packages = root.xpath('//coverage/packages/package')
@@ -1600,13 +1616,13 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, verbosity: int) -> None:
-        self.run_with_epew("npm", "install", package_json_folder, verbosity=verbosity)
+        self.run_with_epew("npm", "clean-install", package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def run_with_epew(self, program: str, argument: str, working_directory: str, verbosity: int) -> None:
+    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
         sc: ScriptCollectionCore = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
-        sc.run_program(program, argument, working_directory, verbosity=verbosity)
+        return sc.run_program(program, argument, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive)
 
     @GeneralUtilities.check_arguments
     def set_default_constants(self, codeunit_folder: str) -> None:
@@ -1833,7 +1849,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_flutter_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
-        pass  # TODO
+        pass  # TODO generalize and add option to ignore certain dependencies
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
@@ -1862,7 +1878,29 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
-        pass  # TODO generalize and add option to ignore certain dependencies
+        current_folder = os.path.dirname(update_script_file)
+        result = self.run_with_epew("npm", "outdated", current_folder, verbosity, throw_exception_if_exitcode_is_not_zero=False)
+        if result[0] == 0:
+            return  # all dependencies up to date
+        elif result[0] == 1:
+            package_json_content = None
+            package_json_file = f"{current_folder}/package.json"
+            with open(package_json_file, "r", encoding="utf-8") as package_json_file_object:
+                package_json_content = json.load(package_json_file_object)
+                lines = GeneralUtilities.string_to_lines(result[1])[1:][:-1]
+                for line in lines:
+                    normalized_line_splitted = ' '.join(line.split()).split(" ")
+                    package = normalized_line_splitted[0]
+                    latest_version = normalized_line_splitted[3]
+                    if package in package_json_content["dependencies"]:
+                        package_json_content["dependencies"][package] = latest_version
+                    if package in package_json_content["devDependencies"]:
+                        package_json_content["devDependencies"][package] = latest_version
+            with open(package_json_file, "w", encoding="utf-8") as package_json_file_object:
+                json.dump(package_json_content, package_json_file_object, indent=4)
+            self.run_with_epew("npm", "install --force", current_folder, verbosity)
+        else:
+            GeneralUtilities.write_message_to_stderr("Update dependencies resulted in an error.")
 
     @GeneralUtilities.check_arguments
     def run_local_test_service(self, file: str):
