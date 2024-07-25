@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.5"
+version = "3.5.6"
 __version__ = version
 
 
@@ -129,17 +129,14 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def find_file_by_extension(self, folder: str, extension: str):
-        result = [file for file in GeneralUtilities.get_direct_files_of_folder(
-            folder) if file.endswith(f".{extension}")]
+        result = [file for file in GeneralUtilities.get_direct_files_of_folder(folder) if file.endswith(f".{extension}")]
         result_length = len(result)
         if result_length == 0:
-            raise FileNotFoundError(
-                f"No file available in folder '{folder}' with extension '{extension}'.")
+            raise FileNotFoundError(f"No file available in folder '{folder}' with extension '{extension}'.")
         if result_length == 1:
             return result[0]
         else:
-            raise ValueError(
-                f"Multiple values available in folder '{folder}' with extension '{extension}'.")
+            raise ValueError(f"Multiple values available in folder '{folder}' with extension '{extension}'.")
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
@@ -1262,9 +1259,7 @@ class ScriptCollectionCore:
             working_directory = self.__adapt_workingdirectory(working_directory)
 
             if arguments_for_log is None:
-                arguments_for_log = ' '.join(arguments_as_array)
-            else:
-                arguments_for_log = ' '.join(arguments_for_log)
+                arguments_for_log = arguments_as_array
 
             arguments_for_exception_as_string = arguments_for_log
 
@@ -1278,7 +1273,6 @@ class ScriptCollectionCore:
 
             if verbosity >= 3:
                 GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
-
             with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
                 pid = process.pid
 
@@ -1543,13 +1537,13 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
-    def generate_certificate_authority(self, folder: str, name: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str,                                       days_until_expire: int = None, password: str = None) -> None:
+    def generate_certificate_authority(self, folder: str, name: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str, days_until_expire: int = None, password: str = None) -> None:
         if days_until_expire is None:
             days_until_expire = 1825
         if password is None:
             password = GeneralUtilities.generate_password()
-        self.run_program(
-            "openssl", f'req -new -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -days {days_until_expire} -nodes -x509 -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={name}/OU={subj_ou} -passout pass:{password} -keyout {name}.key -out {name}.crt', folder)
+        GeneralUtilities.ensure_directory_exists(folder)
+        self.run_program("openssl", f'req -new -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -days {days_until_expire} -nodes -x509 -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={name}/OU={subj_ou} -passout pass:{password} -keyout {name}.key -out {name}.crt', folder)
 
     @GeneralUtilities.check_arguments
     def generate_certificate(self, folder: str,  domain: str, filename: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str, days_until_expire: int = None, password: str = None) -> None:
@@ -1598,10 +1592,8 @@ DNS                 = {domain}
         ca = os.path.join(ca_folder, ca_name)
         password_file = os.path.join(folder, f"{filename}.password")
         password = GeneralUtilities.read_text_from_file(password_file)
-        self.run_program(
-            "openssl", f'x509 -req -in {filename}.csr -CA {ca}.crt -CAkey {ca}.key -CAcreateserial -CAserial {ca}.srl -out {filename}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {filename}.san.conf', folder)
-        self.run_program(
-            "openssl", f'pkcs12 -export -out {filename}.pfx -inkey {filename}.key -in {filename}.crt -password pass:{password}', folder)
+        self.run_program("openssl", f'x509 -req -in {filename}.csr -CA {ca}.crt -CAkey {ca}.key -CAcreateserial -CAserial {ca}.srl -out {filename}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {filename}.san.conf', folder)
+        self.run_program("openssl", f'pkcs12 -export -out {filename}.pfx -inkey {filename}.key -in {filename}.crt -password pass:{password}', folder)
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_python_in_requirementstxt_file(self, file: str, verbosity: int):
@@ -1649,7 +1641,7 @@ DNS                 = {domain}
         GeneralUtilities.write_lines_to_file(setup_cfg_file, new_lines)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int):
+    def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int, ignored_dependencies: list[str]):
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stderr(f"Check for updates in {csproj_filename}")
@@ -1658,12 +1650,12 @@ DNS                 = {domain}
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
                 package_name = line.replace(">", "").strip().split(" ")[0]
-                GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
-                self.run_program(
-                    "dotnet", f"add {csproj_filename} package {package_name}", folder)
+                if not (ignored_dependencies in package_name):
+                    GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
+                    self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)
 
     @GeneralUtilities.check_arguments
-    def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str,                           deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
+    def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
 
         # prepare
         GeneralUtilities.ensure_directory_exists(deb_output_folder)
