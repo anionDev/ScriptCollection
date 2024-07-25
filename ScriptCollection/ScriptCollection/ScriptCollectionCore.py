@@ -1261,9 +1261,7 @@ class ScriptCollectionCore:
             if arguments_for_log is None:
                 arguments_for_log = arguments_as_array
 
-            arguments_for_exception_as_string = arguments_for_log
-
-            arguments_for_log_as_string = arguments_for_log
+            arguments_for_log_as_string: str = ' '.join(arguments_for_log)
             cmd = f'{working_directory}>{program} {arguments_for_log_as_string}'
 
             if GeneralUtilities.string_is_none_or_whitespace(title):
@@ -1344,14 +1342,8 @@ class ScriptCollectionCore:
                     stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
                     stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
 
-                if arguments_for_exception_as_string is None:
-                    arguments_for_exception_as_string = ' '.join(arguments_as_array)
-                else:
-                    arguments_for_exception_as_string = ' '.join(arguments_for_log)
-
                 if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                    arguments_for_exception_as_string = ' '.join(arguments_for_log)
-                    raise ValueError(f"Program '{working_directory}>{program} {arguments_for_exception_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
+                    raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
 
                 result = (exit_code, stdout, stderr, pid)
                 return result
