@@ -2560,7 +2560,7 @@ class TasksForCommonProjectStructure:
         main_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, main_branch)
         if merge_source_branch_commit_id == main_branch_commit_id:
             GeneralUtilities.write_message_to_stdout("Release will not be done because there are no changed which can be released.")
-            return [False, None]
+            return False, None
         else:
             additional_arguments_file = os.path.join(folder_of_this_file, "AdditionalArguments.configuration")
             verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_create_release_arguments.commandline_arguments, 1)
@@ -2577,7 +2577,7 @@ class TasksForCommonProjectStructure:
 
             self.__sc.git_checkout(repository_folder, merge_source_branch)
 
-            return [True, new_version]
+            return True, new_version
 
     class UpdateHTTPDocumentationArguments:
         current_file: str
