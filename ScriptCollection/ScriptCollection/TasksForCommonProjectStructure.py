@@ -2555,29 +2555,23 @@ class TasksForCommonProjectStructure:
         repository_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_create_release_arguments.product_name}", folder_of_this_file)
 
         merge_source_branch = "other/next-release"
-        merge_source_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, merge_source_branch)
-        main_branch = "main"
-        main_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, main_branch)
-        if merge_source_branch_commit_id == main_branch_commit_id:
-            GeneralUtilities.write_message_to_stdout("Release will not be done because there are no changed which can be released.")
-            return [False, None]
-        else:
-            additional_arguments_file = os.path.join(folder_of_this_file, "AdditionalArguments.configuration")
-            verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_create_release_arguments.commandline_arguments, 1)
-            createReleaseConfiguration: CreateReleaseConfiguration = CreateReleaseConfiguration(
-                generic_create_release_arguments.product_name, generic_create_release_arguments.common_remote_name, generic_create_release_arguments.artifacts_target_folder, folder_of_this_file, verbosity, repository_folder, additional_arguments_file, repository_folder_name)
 
-            reference_repo: str = os.path.join(build_repository_folder, "Submodules", f"{generic_create_release_arguments.product_name}Reference")
-            self.__sc.git_commit(reference_repo, "Updated reference")
+        additional_arguments_file = os.path.join(folder_of_this_file, "AdditionalArguments.configuration")
+        verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_create_release_arguments.commandline_arguments, 1)
+        createReleaseConfiguration: CreateReleaseConfiguration = CreateReleaseConfiguration(
+            generic_create_release_arguments.product_name, generic_create_release_arguments.common_remote_name, generic_create_release_arguments.artifacts_target_folder, folder_of_this_file, verbosity, repository_folder, additional_arguments_file, repository_folder_name)
 
-            self.__sc.git_commit(build_repository_folder, "Updated submodule")
+        reference_repo: str = os.path.join(build_repository_folder, "Submodules", f"{generic_create_release_arguments.product_name}Reference")
+        self.__sc.git_commit(reference_repo, "Updated reference")
 
-            # create release
-            new_version = self.merge_to_stable_branch(generic_create_release_arguments.current_file, createReleaseConfiguration)
+        self.__sc.git_commit(build_repository_folder, "Updated submodule")
 
-            self.__sc.git_checkout(repository_folder, merge_source_branch)
+        # create release
+        new_version = self.merge_to_stable_branch(generic_create_release_arguments.current_file, createReleaseConfiguration)
 
-            return [True, new_version]
+        self.__sc.git_checkout(repository_folder, merge_source_branch)
+
+        return new_version
 
     class UpdateHTTPDocumentationArguments:
         current_file: str
