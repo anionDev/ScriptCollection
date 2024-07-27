@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.8"
+version = "3.5.9"
 __version__ = version
 
 
@@ -275,7 +275,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str) -> None:
-        self.run_program("git", f"pull {folder} {remote} {remotebranchname}:{localbranchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program("git", f"pull {remote} {remotebranchname}:{localbranchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_list_remote_branches(self, folder: str, remote: str, fetch: bool) -> list[str]:
