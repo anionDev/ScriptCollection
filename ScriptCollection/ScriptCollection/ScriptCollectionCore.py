@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.7"
+version = "3.5.8"
 __version__ = version
 
 
@@ -94,8 +94,7 @@ class ScriptCollectionCore:
         versiononlyregex = f"^{versionregex}$"
         pattern = re.compile(versiononlyregex)
         if pattern.match(new_version):
-            GeneralUtilities.write_text_to_file(nuspec_file, re.sub(
-                f"<version>{versionregex}<\\/version>", f"<version>{new_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
+            GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"<version>{versionregex}<\\/version>", f"<version>{new_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
         else:
             raise ValueError(
                 f"Version '{new_version}' does not match version-regex '{versiononlyregex}'")
@@ -200,8 +199,7 @@ class ScriptCollectionCore:
         elif exit_code == 1:
             return False
         else:
-            raise ValueError(
-                f"Can not calculate if {ancestor} is an ancestor of {descendant} in repository {repository_folder}.")
+            raise ValueError(f"Can not calculate if {ancestor} is an ancestor of {descendant} in repository {repository_folder}.")
 
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
@@ -242,8 +240,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        result: tuple[int, str, str, int] = self.run_program_argsasarray(
-            "git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
@@ -256,30 +253,49 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
-        self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"],
-                                     folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
-        self.run_program_argsasarray("git", [
-                                     "fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_remove_branch(self, folder: str, branchname: str) -> None:
-        self.run_program("git", f"branch -D {branchname}", folder,
-                         throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
-        argument = ["push", "--recurse-submodules=on-demand",
-                    remotename, f"{localbranchname}:{remotebranchname}"]
+        argument = ["push", "--recurse-submodules=on-demand", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
         if (pushalltags):
             argument.append("--tags")
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True,
-                                                                         verbosity=verbosity, print_errors_as_information=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=verbosity, print_errors_as_information=True)
         return result[1].replace('\r', '').replace('\n', '')
+
+    @GeneralUtilities.check_arguments
+    def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str) -> None:
+        self.run_program("git", f"pull {folder} {remote} {remotebranchname}:{localbranchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+
+    @GeneralUtilities.check_arguments
+    def git_list_remote_branches(self, folder: str, remote: str, fetch: bool) -> list[str]:
+        if fetch:
+            self.git_fetch(folder, remote)
+        run_program_result = self.run_program("git", f"branch -rl {remote}/*", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        output = GeneralUtilities.string_to_lines(run_program_result[1])
+        result = list[str]()
+        for item in output:
+            striped_item = item.strip()
+            if GeneralUtilities.string_has_content(striped_item):
+                branch: str = None
+                if " " in striped_item:
+                    branch = striped_item.split(" ")[0]
+                else:
+                    branch = striped_item
+                branchname = branch[len(remote)+1:]
+                if branchname != "HEAD":
+                    result.append(branchname)
+        return result
 
     @GeneralUtilities.check_arguments
     def git_clone(self, clone_target_folder: str, remote_repository_path: str, include_submodules: bool = True, mirror: bool = False) -> None:
@@ -292,19 +308,16 @@ class ScriptCollectionCore:
                 args.append("--remote-submodules")
             if mirror:
                 args.append("--mirror")
-            self.run_program_argsasarray("git", args, os.getcwd(
-            ), throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_get_all_remote_names(self, directory: str) -> list[str]:
-        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray(
-            "git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result
 
     @GeneralUtilities.check_arguments
     def git_get_remote_url(self, directory: str, remote_name: str) -> str:
-        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray(
-            "git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result[0].replace('\n', '')
 
     @GeneralUtilities.check_arguments
