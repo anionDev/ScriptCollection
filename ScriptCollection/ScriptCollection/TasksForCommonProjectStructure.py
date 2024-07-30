@@ -1883,7 +1883,7 @@ class TasksForCommonProjectStructure:
         root: etree._ElementTree = etree.parse(codeunit_file)
         ignoreddependencies = root.xpath('//cps:codeunit/cps:properties/cps:updatesettings/cps:ignoreddependencies/cps:ignoreddependency', namespaces=namespaces)
         result = [x.text.replace("\\n", "").replace("\\r", "").replace("\n", "").replace("\r", "").strip() for x in ignoreddependencies]
-        if print_warnings_for_ignored_dependencies and len(result > 0):
+        if print_warnings_for_ignored_dependencies and len(result) > 0:
             GeneralUtilities.write_message_to_stderr(f"Warning: Codeunit {codeunit_name} contains the following dependencies which will are ignoed for automatic updates: "+', '.join(result))
         return result
 
@@ -2569,13 +2569,13 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout("Release will not be done because there are no changed which can be released.")
             return False, None
         else:
+            self.__sc.git_checkout(repository_folder, merge_source_branch)
             reference_repo: str = os.path.join(build_repository_folder, "Submodules", f"{generic_create_release_arguments.product_name}Reference")
             self.__sc.git_commit(reference_repo, "Updated reference")
             self.__sc.git_commit(build_repository_folder, "Updated submodule")
 
             # create release
             new_version = self.merge_to_stable_branch(generic_create_release_arguments.current_file, createReleaseConfiguration)
-            self.__sc.git_checkout(repository_folder, merge_source_branch)
             return True, new_version
 
     class UpdateHTTPDocumentationArguments:
