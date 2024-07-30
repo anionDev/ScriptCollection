@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.9"
+version = "3.5.10"
 __version__ = version
 
 
@@ -1605,7 +1605,8 @@ DNS                 = {domain}
         lines = GeneralUtilities.read_lines_from_file(file)
         new_lines = []
         for line in lines:
-            new_lines.append(self.__get_updated_line_for_python_requirements(line.strip()))
+            if GeneralUtilities.string_has_content(line):
+                new_lines.append(self.__get_updated_line_for_python_requirements(line.strip()))
         GeneralUtilities.write_lines_to_file(file, new_lines)
 
     @GeneralUtilities.check_arguments
