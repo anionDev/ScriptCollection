@@ -236,11 +236,9 @@ def ObfuscateFilesFolder() -> int:
 This script does not process subfolders transitively.
 Caution: This script can cause harm if you pass a wrong inputfolder-argument.''')
 
-    parser.add_argument('--printtableheadline', type=GeneralUtilities.string_to_boolean, const=True,
-                        default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
+    parser.add_argument('--printtableheadline', type=GeneralUtilities.string_to_boolean, const=True,  default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
     parser.add_argument('--namemappingfile', default="NameMapping.csv", help='Specifies the file where the name-mapping will be written to')
-    parser.add_argument('--extensions', default="exe,py,sh",
-                        help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
+    parser.add_argument('--extensions', default="exe,py,sh", help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
     parser.add_argument('--inputfolder', help='Specifies the folder where the files are stored whose names should be obfuscated', required=True)
 
     args = parser.parse_args()
@@ -345,4 +343,16 @@ def SignCertificate() -> int:
     parser.add_argument('--days_until_expire', required=False, default=None, type=int)
     args = parser.parse_args()
     ScriptCollectionCore().sign_certificate(os.getcwd(), args.cafolder, args.caname, args.targetcertificate, args.filename, args.args.days_until_expire)
+    return 0
+
+
+def ChangeFileExtensions() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--folder', required=True)
+    parser.add_argument('-s', '--source_extension', required=True)
+    parser.add_argument('-t', '--target_extension', required=True)
+    parser.add_argument('-r', '--recursive', required=False, default=False, type=GeneralUtilities.string_to_boolean)
+    parser.add_argument('-i', '--ignore_case', required=False, default=True, type=GeneralUtilities.string_to_boolean)
+    args = parser.parse_args()
+    ScriptCollectionCore().change_file_extensions(args.folder, args.source_extension, args.target_extension, args.recursive, args.ignore_case)
     return 0
