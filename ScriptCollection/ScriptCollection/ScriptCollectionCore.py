@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.10"
+version = "3.5.11"
 __version__ = version
 
 
@@ -1780,3 +1780,19 @@ DNS                 = {domain}
         network_information_as_json_string = GeneralUtilities.bytes_to_string(
             response.content)
         return network_information_as_json_string
+
+    @GeneralUtilities.check_arguments
+    def change_file_extensions(self, folder: str, from_extension: str, to_extension: str, recursive: bool, ignore_case: bool) -> None:
+        extension_to_compare:str=None
+        if ignore_case:
+            extension_to_compare=from_extension.lower()
+        else:
+            extension_to_compare=from_extension
+        for file in GeneralUtilities.get_direct_files_of_folder(folder):
+            if (ignore_case and file.lower().endswith(f".{extension_to_compare}")
+                    or not ignore_case and file.endswith(f".{extension_to_compare}")):
+                p = Path(file)
+                p.rename(p.with_suffix('.'+to_extension))
+        if recursive:
+            for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
+                self.change_file_extensions(subfolder, from_extension, to_extension, recursive,ignore_case)
