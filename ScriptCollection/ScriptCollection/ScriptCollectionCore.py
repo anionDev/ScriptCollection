@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.12"
+version = "3.5.13"
 __version__ = version
 
 
@@ -562,9 +562,11 @@ class ScriptCollectionCore:
         with open(target_file, "w", encoding=encoding) as file_object:
             file_object.write("\n".join(lines))
 
+    @GeneralUtilities.check_arguments
     def escape_git_repositories_in_folder(self, folder: str) -> dict[str, str]:
         return self.__escape_git_repositories_in_folder_internal(folder, dict[str, str]())
 
+    @GeneralUtilities.check_arguments
     def __escape_git_repositories_in_folder_internal(self, folder: str, renamed_items: dict[str, str]) -> dict[str, str]:
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
             filename = os.path.basename(file)
@@ -586,10 +588,12 @@ class ScriptCollectionCore:
             self.__escape_git_repositories_in_folder_internal(subfolder2, renamed_items)
         return renamed_items
 
+    @GeneralUtilities.check_arguments
     def deescape_git_repositories_in_folder(self, renamed_items: dict[str, str]):
         for renamed_item, original_name in renamed_items.items():
             os.rename(renamed_item, original_name)
 
+    @GeneralUtilities.check_arguments
     def __sort_fmd(self, line: str):
         splitted: list = line.split(";")
         filetype: str = splitted[1]
@@ -626,29 +630,36 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __calculate_lengh_in_seconds(self, filename: str, folder: str) -> float:
-        argument = ['-v', 'error', '-show_entries', 'format=duration',
-                    '-of', 'default=noprint_wrappers=1:nokey=1', filename]
+        argument = ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', filename]
         result = self.run_program_argsasarray("ffprobe", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
         return float(result[1].replace('\n', ''))
 
     @GeneralUtilities.check_arguments
-    def __create_thumbnails(self, filename: str, fps: str, folder: str, tempname_for_thumbnails: str) -> None:
-        argument = ['-i', filename, '-r', str(fps), '-vf', 'scale=-1:120',
-                    '-vcodec', 'png', f'{tempname_for_thumbnails}-%002d.png']
+    def __create_thumbnails(self, filename: str, fps: str, folder: str, tempname_for_thumbnails: str) -> list[str]:
+        argument = ['-i', filename, '-r', str(fps), '-vf', 'scale=-1:120', '-vcodec', 'png', f'{tempname_for_thumbnails}-%002d.png']
         self.run_program_argsasarray("ffmpeg", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+        files = GeneralUtilities.get_direct_files_of_folder(folder)
+        result: list[str] = []
+        regex = "^"+re.escape(tempname_for_thumbnails)+"\\-\\d+\\.png$"
+        regex_for_files = re.compile(regex)
+        for file in files:
+            filename = os.path.basename(file)
+            if regex_for_files.match(filename):
+                result.append(file)
+        GeneralUtilities.assert_condition(0 < len(result), "No thumbnail-files found.")
+        return result
 
     @GeneralUtilities.check_arguments
     def __create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails: str, amount_of_images: int) -> None:
         duration = timedelta(seconds=length_in_seconds)
         info = GeneralUtilities.timedelta_to_simple_string(duration)
-        next_square_number = str(int(math.sqrt(GeneralUtilities.get_next_square_number(amount_of_images))))
-        argument = ['-title', f'"{outputfilename} ({info})"', '-tile', f'{next_square_number}x{next_square_number}',
-                    f'{tempname_for_thumbnails}*.png', f'{outputfilename}.png']
-        self.run_program_argsasarray(
-            "montage", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+        rows: int = 5
+        columns: int = math.ceil(amount_of_images/rows)
+        argument = ['-title', f'"{outputfilename} ({info})"', '-tile', f'{rows}x{columns}', f'{tempname_for_thumbnails}*.png', f'{outputfilename}.png']
+        self.run_program_argsasarray("montage", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def roundup(self, x: float, places: int) -> int:
+    def __roundup(self, x: float, places: int) -> int:
         d = 10 ** places
         if x < 0:
             return math.floor(x * d) / d
@@ -656,33 +667,35 @@ class ScriptCollectionCore:
             return math.ceil(x * d) / d
 
     @GeneralUtilities.check_arguments
-    def generate_thumbnail(self, file: str, frames_per_second: str, tempname_for_thumbnails: str = None) -> None:
+    def generate_thumbnail(self, file: str, frames_per_second: str, tempname_for_thumbnails: str = None, hook=None) -> None:
         if tempname_for_thumbnails is None:
-            tempname_for_thumbnails = "t"+str(uuid.uuid4())
+            tempname_for_thumbnails = "t_"+str(uuid.uuid4())
 
         file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
         filename = os.path.basename(file)
         folder = os.path.dirname(file)
         filename_without_extension = Path(file).stem
-
+        preview_files: list[str] = []
         try:
             length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
             if (frames_per_second.endswith("fps")):
                 # frames per second, example: frames_per_second="20fps" => 20 frames per second
-                x = self.roundup(float(frames_per_second[:-3]), 2)
-                frames_per_secondx = str(x)
-                amounf_of_previewframes = int(math.floor(length_in_seconds*x))
+                frames_per_second = self.__roundup(float(frames_per_second[:-3]), 2)
+                frames_per_second_as_string = str(frames_per_second)
+                amounf_of_previewframes = int(math.floor(length_in_seconds*frames_per_second))
             else:
                 # concrete amount of frame, examples: frames_per_second="16" => 16 frames for entire video
                 amounf_of_previewframes = int(float(frames_per_second))
                 # self.roundup((amounf_of_previewframes-2)/length_in_seconds, 2)
-                frames_per_secondx = f"{amounf_of_previewframes-2}/{length_in_seconds}"
-            self.__create_thumbnails(filename, frames_per_secondx, folder, tempname_for_thumbnails)
-            self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, amounf_of_previewframes)
+                frames_per_second_as_string = f"{amounf_of_previewframes-2}/{length_in_seconds}"
+            preview_files = self.__create_thumbnails(filename, frames_per_second_as_string, folder, tempname_for_thumbnails)
+            if hook is not None:
+                hook(file, preview_files)
+            actual_amounf_of_previewframes = len(preview_files)
+            self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, actual_amounf_of_previewframes)
         finally:
-            for thumbnail_to_delete in Path(folder).rglob(tempname_for_thumbnails+"-*"):
-                file = str(thumbnail_to_delete)
-                os.remove(file)
+            for thumbnail_to_delete in preview_files:
+                os.remove(thumbnail_to_delete)
 
     @GeneralUtilities.check_arguments
     def extract_pdf_pages(self, file: str, from_page: int, to_page: int, outputfile: str) -> None:
@@ -1783,11 +1796,11 @@ DNS                 = {domain}
 
     @GeneralUtilities.check_arguments
     def change_file_extensions(self, folder: str, from_extension: str, to_extension: str, recursive: bool, ignore_case: bool) -> None:
-        extension_to_compare:str=None
+        extension_to_compare: str = None
         if ignore_case:
-            extension_to_compare=from_extension.lower()
+            extension_to_compare = from_extension.lower()
         else:
-            extension_to_compare=from_extension
+            extension_to_compare = from_extension
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
             if (ignore_case and file.lower().endswith(f".{extension_to_compare}")
                     or not ignore_case and file.endswith(f".{extension_to_compare}")):
@@ -1795,4 +1808,4 @@ DNS                 = {domain}
                 p.rename(p.with_suffix('.'+to_extension))
         if recursive:
             for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
-                self.change_file_extensions(subfolder, from_extension, to_extension, recursive,ignore_case)
+                self.change_file_extensions(subfolder, from_extension, to_extension, recursive, ignore_case)

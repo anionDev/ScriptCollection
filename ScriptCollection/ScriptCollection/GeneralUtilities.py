@@ -574,12 +574,14 @@ class GeneralUtilities:
     @check_arguments
     def get_direct_files_of_folder(folder: str) -> list[str]:
         result = [os.path.join(folder, f) for f in listdir(folder) if isfile(join(folder, f))]
+        result = sorted(result, key=str.casefold)
         return result
 
     @staticmethod
     @check_arguments
     def get_direct_folders_of_folder(folder: str) -> list[str]:
         result = [os.path.join(folder, f) for f in listdir(folder) if isdir(join(folder, f))]
+        result = sorted(result, key=str.casefold)
         return result
 
     @staticmethod
@@ -589,6 +591,7 @@ class GeneralUtilities:
         result.extend(GeneralUtilities.get_direct_files_of_folder(folder))
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
             result.extend(GeneralUtilities.get_all_files_of_folder(subfolder))
+        result = sorted(result, key=str.casefold)
         return result
 
     @staticmethod
@@ -599,12 +602,13 @@ class GeneralUtilities:
         result.extend(subfolders)
         for subfolder in subfolders:
             result.extend(GeneralUtilities.get_all_folders_of_folder(subfolder))
+        result = sorted(result, key=str.casefold)
         return result
 
     @staticmethod
     @check_arguments
     def get_all_objects_of_folder(folder: str) -> list[str]:
-        return GeneralUtilities.get_all_files_of_folder(folder) + GeneralUtilities.get_all_folders_of_folder(folder)
+        return sorted(GeneralUtilities.get_all_files_of_folder(folder) + GeneralUtilities.get_all_folders_of_folder(folder), key=str.casefold)
 
     @staticmethod
     @check_arguments
