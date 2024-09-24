@@ -1,19 +1,19 @@
-import time
 from datetime import timedelta, datetime
 import json
 import binascii
 import filecmp
+import time
 import hashlib
-from io import BufferedReader, BytesIO
+from io import BytesIO
 import itertools
 import math
 import os
+from queue import Queue, Empty
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from random import randrange
 from subprocess import Popen
 import re
 import shutil
-import traceback
 import uuid
 import tempfile
 import io
@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.13"
+version = "3.5.14"
 __version__ = version
 
 
@@ -59,8 +59,7 @@ class ScriptCollectionCore:
             errorsonly_argument = ""
         else:
             errorsonly_argument = " --errors-only"
-        (exit_code, stdout, stderr, _) = self.run_program("pylint", filename +
-                                                          errorsonly_argument, working_directory, throw_exception_if_exitcode_is_not_zero=False)
+        (exit_code, stdout, stderr, _) = self.run_program("pylint", filename + errorsonly_argument, working_directory, throw_exception_if_exitcode_is_not_zero=False)
         if (exit_code != 0):
             errors.append(f"Linting-issues of {file}:")
             errors.append(f"Pylint-exitcode: {exit_code}")
@@ -74,18 +73,15 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def replace_version_in_dockerfile_file(self, dockerfile: str, new_version_value: str) -> None:
-        GeneralUtilities.write_text_to_file(dockerfile, re.sub(
-            "ARG Version=\"\\d+\\.\\d+\\.\\d+\"", f"ARG Version=\"{new_version_value}\"", GeneralUtilities.read_text_from_file(dockerfile)))
+        GeneralUtilities.write_text_to_file(dockerfile, re.sub("ARG Version=\"\\d+\\.\\d+\\.\\d+\"", f"ARG Version=\"{new_version_value}\"", GeneralUtilities.read_text_from_file(dockerfile)))
 
     @GeneralUtilities.check_arguments
     def replace_version_in_python_file(self, file: str, new_version_value: str):
-        GeneralUtilities.write_text_to_file(file, re.sub(
-            "version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"", GeneralUtilities.read_text_from_file(file)))
+        GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"", GeneralUtilities.read_text_from_file(file)))
 
     @GeneralUtilities.check_arguments
     def replace_version_in_ini_file(self, file: str, new_version_value: str):
-        GeneralUtilities.write_text_to_file(file, re.sub(
-            "version = \\d+\\.\\d+\\.\\d+", f"version = {new_version_value}", GeneralUtilities.read_text_from_file(file)))
+        GeneralUtilities.write_text_to_file(file, re.sub("version = \\d+\\.\\d+\\.\\d+", f"version = {new_version_value}", GeneralUtilities.read_text_from_file(file)))
 
     @GeneralUtilities.check_arguments
     def replace_version_in_nuspec_file(self, nuspec_file: str, new_version: str) -> None:
@@ -96,8 +92,7 @@ class ScriptCollectionCore:
         if pattern.match(new_version):
             GeneralUtilities.write_text_to_file(nuspec_file, re.sub(f"<version>{versionregex}<\\/version>", f"<version>{new_version}</version>", GeneralUtilities.read_text_from_file(nuspec_file)))
         else:
-            raise ValueError(
-                f"Version '{new_version}' does not match version-regex '{versiononlyregex}'")
+            raise ValueError(f"Version '{new_version}' does not match version-regex '{versiononlyregex}'")
 
     @GeneralUtilities.check_arguments
     def replace_version_in_csproj_file(self, csproj_file: str, current_version: str):
@@ -106,25 +101,20 @@ class ScriptCollectionCore:
         pattern = re.compile(versiononlyregex)
         if pattern.match(current_version):
             for tag in ["Version", "AssemblyVersion", "FileVersion"]:
-                GeneralUtilities.write_text_to_file(csproj_file, re.sub(
-                    f"<{tag}>{versionregex}(.\\d+)?<\\/{tag}>", f"<{tag}>{current_version}</{tag}>", GeneralUtilities.read_text_from_file(csproj_file)))
+                GeneralUtilities.write_text_to_file(csproj_file, re.sub(f"<{tag}>{versionregex}(.\\d+)?<\\/{tag}>", f"<{tag}>{current_version}</{tag}>", GeneralUtilities.read_text_from_file(csproj_file)))
         else:
-            raise ValueError(
-                f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
+            raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
     @GeneralUtilities.check_arguments
     def push_nuget_build_artifact(self, nupkg_file: str, registry_address: str, api_key: str, verbosity: int = 1):
         nupkg_file_name = os.path.basename(nupkg_file)
         nupkg_file_folder = os.path.dirname(nupkg_file)
-        self.run_program(
-            "dotnet", f"nuget push {nupkg_file_name} --force-english-output --source {registry_address} --api-key {api_key}", nupkg_file_folder, verbosity)
+        self.run_program("dotnet", f"nuget push {nupkg_file_name} --force-english-output --source {registry_address} --api-key {api_key}", nupkg_file_folder, verbosity)
 
     @GeneralUtilities.check_arguments
     def dotnet_build(self, repository_folder: str, projectname: str, configuration: str):
-        self.run_program(
-            "dotnet", f"clean -c {configuration}", repository_folder)
-        self.run_program(
-            "dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}", repository_folder)
+        self.run_program("dotnet", f"clean -c {configuration}", repository_folder)
+        self.run_program("dotnet", f"build {projectname}/{projectname}.csproj -c {configuration}", repository_folder)
 
     @GeneralUtilities.check_arguments
     def find_file_by_extension(self, folder: str, extension: str):
@@ -162,8 +152,7 @@ class ScriptCollectionCore:
             subfolder_argument = ""
         else:
             subfolder_argument = f" -- {subfolder}"
-        log_result = self.run_program(
-            "git", f'log --pretty=%aN{space_character}%aE%n%cN{space_character}%cE HEAD{subfolder_argument}', repository_folder, verbosity=0)
+        log_result = self.run_program("git", f'log --pretty=%aN{space_character}%aE%n%cN{space_character}%cE HEAD{subfolder_argument}', repository_folder, verbosity=0)
         plain_content: list[str] = list(
             set([line for line in log_result[1].split("\n") if len(line) > 0]))
         result: list[tuple[str, str]] = []
@@ -179,8 +168,7 @@ class ScriptCollectionCore:
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
-        result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program(
-            "git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
+        result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(
                 repository_folder, commit_id)]
@@ -192,8 +180,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        exit_code = self.run_program_argsasarray(
-            "git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0]
+        exit_code = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0]
         if exit_code == 0:
             return True
         elif exit_code == 1:
@@ -203,8 +190,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
-        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray(
-            "git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         for line in lines:
             if GeneralUtilities.string_has_content(line):
                 return True
@@ -245,8 +231,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
-        result: tuple[int, str, str, int] = self.run_program_argsasarray(
-            "git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         date_as_string = result[1].replace('\n', '')
         result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
         return result
@@ -359,8 +344,7 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True,
-                   no_changes_behavior: int = 0) -> str:
+    def git_commit(self, directory: str, message: str, author_name: str = None, author_email: str = None, stage_all_changes: bool = True, no_changes_behavior: int = 0) -> str:
         # no_changes_behavior=0 => No commit
         # no_changes_behavior=1 => Commit anyway
         # no_changes_behavior=2 => Exception
@@ -410,7 +394,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str) -> None:
         self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", ["submodule", "update", "--recursive"],                                     directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["submodule", "update", "--recursive"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
@@ -450,7 +434,7 @@ class ScriptCollectionCore:
                     self.git_fetch(target_directory)
                 else:
                     # clone
-                    self.git_clone(target_repository, source_repository,                                   include_submodules=True, mirror=True)
+                    self.git_clone(target_repository, source_repository, include_submodules=True, mirror=True)
 
     def get_git_submodules(self, folder: str) -> list[str]:
         e = self.run_program("git", "submodule status", folder)
@@ -472,8 +456,7 @@ class ScriptCollectionCore:
             return True
         if (exit_code == 1):
             return False
-        raise ValueError(
-            f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
+        raise ValueError(f"Unable to calculate whether '{file_in_repository}' in repository '{repositorybasefolder}' is ignored due to git-exitcode {exit_code}.")
 
     @GeneralUtilities.check_arguments
     def git_discard_all_changes(self, repository: str) -> None:
@@ -922,29 +905,6 @@ class ScriptCollectionCore:
         GeneralUtilities.write_message_to_stdout(separator_line)
 
     @GeneralUtilities.check_arguments
-    def SCUploadFileToFileHost(self, file: str, host: str) -> int:
-        try:
-            GeneralUtilities.write_message_to_stdout(
-                self.upload_file_to_file_host(file, host))
-            return 0
-        except Exception as exception:
-            GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback)
-            return 1
-
-    @GeneralUtilities.check_arguments
-    def SCFileIsAvailableOnFileHost(self, file: str) -> int:
-        try:
-            if self.file_is_available_on_file_host(file):
-                GeneralUtilities.write_message_to_stdout(f"'{file}' is available")
-                return 0
-            else:
-                GeneralUtilities.write_message_to_stdout(f"'{file}' is not available")
-                return 1
-        except Exception as exception:
-            GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback)
-            return 2
-
-    @GeneralUtilities.check_arguments
     def SCCalculateBitcoinBlockHash(self, block_version_number: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str) -> str:
         # Example-values:
         # block_version_number: "00000020"
@@ -1132,44 +1092,6 @@ class ScriptCollectionCore:
         tor_version = version_with_overhead.split("~")[0]
         return tor_version
 
-    @GeneralUtilities.check_arguments
-    def upload_file_to_file_host(self, file: str, host: str) -> int:
-        if (host is None):
-            return self.upload_file_to_random_filesharing_service(file)
-        elif host == "anonfiles.com":
-            return self.upload_file_to_anonfiles(file)
-        elif host == "bayfiles.com":
-            return self.upload_file_to_bayfiles(file)
-        GeneralUtilities.write_message_to_stderr("Unknown host: "+host)
-        return 1
-
-    @GeneralUtilities.check_arguments
-    def upload_file_to_random_filesharing_service(self, file: str) -> int:
-        host = randrange(2)
-        if host == 0:
-            return self.upload_file_to_anonfiles(file)
-        if host == 1:
-            return self.upload_file_to_bayfiles(file)
-        return 1
-
-    @GeneralUtilities.check_arguments
-    def upload_file_to_anonfiles(self, file) -> int:
-        return self.upload_file_by_using_simple_curl_request("https://api.anonfiles.com/upload", file)
-
-    @GeneralUtilities.check_arguments
-    def upload_file_to_bayfiles(self, file) -> int:
-        return self.upload_file_by_using_simple_curl_request("https://api.bayfiles.com/upload", file)
-
-    @GeneralUtilities.check_arguments
-    def upload_file_by_using_simple_curl_request(self, api_url: str, file: str) -> int:
-        # TODO implement
-        return 1
-
-    @GeneralUtilities.check_arguments
-    def file_is_available_on_file_host(self, file) -> int:
-        # TODO implement
-        return 1
-
     def run_testcases_for_python_project(self, repository_folder: str):
         self.run_program("coverage", "run -m pytest", repository_folder)
         self.run_program("coverage", "xml", repository_folder)
@@ -1180,7 +1102,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_file_permission(self, file: str) -> str:
-        """This function returns an usual octet-triple, for example "0700"."""
+        """This function returns an usual octet-triple, for example "700"."""
         ls_output = self.__ls(file)
         return self.__get_file_permission_helper(ls_output)
 
@@ -1223,12 +1145,10 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def __ls(self, file: str) -> str:
         file = file.replace("\\", "/")
-        GeneralUtilities.assert_condition(os.path.isfile(file) or os.path.isdir(
-            file), f"Can not execute 'ls' because '{file}' does not exist")
+        GeneralUtilities.assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist.")
         result = self.run_program_argsasarray("ls", ["-ld", file])
         GeneralUtilities.assert_condition(result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
-        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(
-            result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
+        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
         return result[1]
 
     @GeneralUtilities.check_arguments
@@ -1268,8 +1188,39 @@ class ScriptCollectionCore:
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument, interactive)
         return popen
 
-    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def __enqueue_output(file, queue):
+        for line in iter(file.readline, ''):
+            queue.put(line)
+        file.close()
 
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def __read_popen_pipes(p: Popen):
+
+        with ThreadPoolExecutor(2) as pool:
+            q_stdout, q_stderr = Queue(), Queue()
+
+            pool.submit(ScriptCollectionCore.__enqueue_output, p.stdout, q_stdout)
+            pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
+            while True:
+                time.sleep(0.2)
+                if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
+                    break
+
+                out_line = ''
+                err_line = ''
+
+                try:
+                    out_line = q_stdout.get_nowait()
+                    err_line = q_stderr.get_nowait()
+                except Empty:
+                    pass
+
+                yield (out_line, err_line)
+
+    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
     def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
         # verbosity 1: No output will be logged.
@@ -1305,41 +1256,15 @@ class ScriptCollectionCore:
             stderr: str = ""
             pid: int = None
 
-            def enqueue_output(file, queue):
-                for line in iter(file.readline, ''):
-                    queue.put(line)
-                file.close()
-
-            def read_popen_pipes(p):
-
-                with ThreadPoolExecutor(2) as pool:
-                    q_stdout, q_stderr = Queue(), Queue()
-
-                    pool.submit(enqueue_output, p.stdout, q_stdout)
-                    pool.submit(enqueue_output, p.stderr, q_stderr)
-                    while True:
-
-                        if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
-                            break
-
-                        out_line = ''
-                        err_line = ''
-
-                        try:
-                            out_line = q_stdout.get_nowait()
-                            err_line = q_stderr.get_nowait()
-                        except Empty:
-                            pass
-
-                        yield (out_line, err_line)
-
             with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
 
                 pid = process.pid
-                for out_line, err_line in read_popen_pipes(process):
+                for out_line, err_line in ScriptCollectionCore.__read_popen_pipes(process):
                     if print_live_output:
-                        print(out_line, end='')
-                        print(err_line, end='')
+                        #print(out_line, end='')
+                        GeneralUtilities.write_message_to_stdout(out_line)
+                        #print(err_line, end='')
+                        GeneralUtilities.write_message_to_stderr(err_line)
 
                     if out_line is not None and GeneralUtilities.string_has_content(out_line):
                         stdout = stdout+"\n"+out_line
@@ -1349,11 +1274,11 @@ class ScriptCollectionCore:
                 process.poll()
                 exit_code = process.returncode
 
-                if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                    raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
+            if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
+                raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
 
-                result = (exit_code, stdout, stderr, pid)
-                return result
+            result = (exit_code, stdout, stderr, pid)
+            return result
         except Exception as e:
             raise e
 
@@ -1510,8 +1435,7 @@ class ScriptCollectionCore:
             result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
             if self.git_repository_has_uncommitted_changes(repository_folder):
                 if self.get_current_git_branch_has_tag(repository_folder):
-                    id_of_latest_tag = self.git_get_commitid_of_tag(
-                        repository_folder, self.get_latest_git_tag(repository_folder))
+                    id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_git_tag(repository_folder))
                     current_commit = self.git_get_commit_id(repository_folder)
                     current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
                     if current_commit_is_on_latest_tag:
@@ -1554,8 +1478,7 @@ class ScriptCollectionCore:
         self.run_program("openssl", f'genrsa -out {filename}.key {rsa_key_length}', folder)
         self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -x509 -key {filename}.key -out {filename}.unsigned.crt -days {days_until_expire}', folder)
         self.run_program("openssl", f'pkcs12 -export -out {filename}.selfsigned.pfx -password pass:{password} -inkey {filename}.key -in {filename}.unsigned.crt', folder)
-        GeneralUtilities.write_text_to_file(
-            os.path.join(folder, f"{filename}.password"), password)
+        GeneralUtilities.write_text_to_file(os.path.join(folder, f"{filename}.password"), password)
         GeneralUtilities.write_text_to_file(os.path.join(folder, f"{filename}.san.conf"), f"""[ req ]
 default_bits        = {rsa_key_length}
 distinguished_name  = req_distinguished_name
@@ -1581,8 +1504,7 @@ DNS                 = {domain}
 
     @GeneralUtilities.check_arguments
     def generate_certificate_sign_request(self, folder: str, domain: str, filename: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str) -> None:
-        self.run_program(
-            "openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -key {filename}.key -out {filename}.csr -config {filename}.san.conf', folder)
+        self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -key {filename}.key -out {filename}.csr -config {filename}.san.conf', folder)
 
     @GeneralUtilities.check_arguments
     def sign_certificate(self, folder: str, ca_folder: str, ca_name: str, domain: str, filename: str, days_until_expire: int = None) -> None:
@@ -1610,11 +1532,13 @@ DNS                 = {domain}
         elif ">" in line:
             try:
                 # line is something like "cyclonedx-bom>=2.0.2" and the function must return with the updated version
-                # (something like "cyclonedx-bom>=3.11.0" for example)
+                # (something like "cyclonedx-bom>=2.11.0" for example)
                 package = line.split(">")[0]
                 operator = ">=" if ">=" in line else ">"
                 response = requests.get(f'https://pypi.org/pypi/{package}/json', timeout=5)
                 latest_version = response.json()['info']['version']
+                # TODO update only minor- and patch-version
+                # TODO print info if there is a new major-version
                 return package+operator+latest_version
             except:
                 return line
@@ -1677,8 +1601,7 @@ DNS                 = {domain}
         GeneralUtilities.ensure_directory_exists(packagecontent_entireresult_folder)
 
         # create "debian-binary"-file
-        debianbinary_file = os.path.join(
-            packagecontent_entireresult_folder, "debian-binary")
+        debianbinary_file = os.path.join(packagecontent_entireresult_folder, "debian-binary")
         GeneralUtilities.ensure_file_exists(debianbinary_file)
         GeneralUtilities.write_text_to_file(debianbinary_file, "2.0\n")
 
@@ -1695,10 +1618,10 @@ DNS                 = {domain}
         link_file = f"/usr/bin/{toolname.lower()}"
         permission = str(permission_of_executable_file_as_octet_triple)
         GeneralUtilities.write_text_to_file(postinst_file, f"""#!/bin/sh
-    ln -s {exe_file} {link_file}
-    chmod {permission} {exe_file}
-    chmod {permission} {link_file}
-    """)
+ln -s {exe_file} {link_file}
+chmod {permission} {exe_file}
+chmod {permission} {link_file}
+""")
 
         #  control
         control_file = os.path.join(packagecontent_control_folder, "control")
@@ -1769,8 +1692,7 @@ DNS                 = {domain}
         proxies = None
         if GeneralUtilities.string_has_content(proxy):
             proxies = {"http": proxy}
-        response = requests.get('https://ipinfo.io',
-                                proxies=proxies, timeout=5)
+        response = requests.get('https://ipinfo.io',  proxies=proxies, timeout=5)
         network_information_as_json_string = GeneralUtilities.bytes_to_string(
             response.content)
         return network_information_as_json_string
@@ -1783,8 +1705,7 @@ DNS                 = {domain}
         else:
             extension_to_compare = from_extension
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
-            if (ignore_case and file.lower().endswith(f".{extension_to_compare}")
-                    or not ignore_case and file.endswith(f".{extension_to_compare}")):
+            if (ignore_case and file.lower().endswith(f".{extension_to_compare}") or not ignore_case and file.endswith(f".{extension_to_compare}")):
                 p = Path(file)
                 p.rename(p.with_suffix('.'+to_extension))
         if recursive:
