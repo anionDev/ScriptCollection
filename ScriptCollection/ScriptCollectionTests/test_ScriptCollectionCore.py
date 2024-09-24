@@ -22,7 +22,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             target_file = os.path.join(tests_folder, "test.csv")
             assert not os.path.isfile(target_file)
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            folder_for_export = GeneralUtilities.resolve_relative_path("..", dir_path)
+            folder_for_export = GeneralUtilities.resolve_relative_path("../Other/Reference", dir_path)
 
             # act
             sc.export_filemetadata(folder_for_export, target_file)
