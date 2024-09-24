@@ -1297,76 +1297,57 @@ class ScriptCollectionCore:
 
             if verbosity >= 3:
                 GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
-            with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
-                pid = process.pid
 
-                stdout_lines = list[str]()
-                stderr_lines = list[str]()
+            print_live_output = 1 < verbosity
 
-                live_console_output_printing = 2 < verbosity and interactive
+            exit_code: int = None
+            stdout: str = ""
+            stderr: str = ""
+            pid: int = None
 
-                log_to_file = log_file is not None
-                if log_to_file:
-                    GeneralUtilities.ensure_file_exists(log_file)
+            def enqueue_output(file, queue):
+                for line in iter(file.readline, ''):
+                    queue.put(line)
+                file.close()
 
-                if interactive:
-                    # there are 2 issues in this part:
-                    # 1.: ctrl+c
-                    # 2.: sometimes this function does not terminate even if the started process exited
-                    def stream_process(process) -> bool:
+            def read_popen_pipes(p):
+
+                with ThreadPoolExecutor(2) as pool:
+                    q_stdout, q_stderr = Queue(), Queue()
+
+                    pool.submit(enqueue_output, p.stdout, q_stdout)
+                    pool.submit(enqueue_output, p.stderr, q_stderr)
+                    while True:
+
+                        if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
+                            break
+
+                        out_line = ''
+                        err_line = ''
+
                         try:
-                            go: bool = process.poll() is None
+                            out_line = q_stdout.get_nowait()
+                            err_line = q_stderr.get_nowait()
+                        except Empty:
+                            pass
 
-                            stdoutreader: BufferedReader = process.stdout
-                            if stdoutreader.readable():
-                                stdoutresultb: bytes = stdoutreader.read()
-                                stdoutresult = GeneralUtilities.bytes_to_string(
-                                    stdoutresultb)
-                                stdoutlines = GeneralUtilities.string_to_lines(stdoutresult)
-                                for line in stdoutlines:
-                                    line_stripped = line.replace("\r", "").strip()
-                                    if len(line_stripped) > 0:
-                                        line_str = line_stripped
-                                        stdout_lines.append(line_str)
-                                        if live_console_output_printing:
-                                            GeneralUtilities.write_message_to_stdout(line_str)
-                                        if log_to_file:
-                                            GeneralUtilities.append_line_to_file(
-                                                log_file, line_str)
+                        yield (out_line, err_line)
 
-                            stderrreader: BufferedReader = process.stderr
-                            if stderrreader.readable():
-                                stderrresultb: bytes = stderrreader.read()
-                                stderrresult = GeneralUtilities.bytes_to_string(stderrresultb)
-                                stderrlines = GeneralUtilities.string_to_lines(stderrresult)
-                                for line in stderrlines:
-                                    line_stripped = line.replace("\r", "").strip()
-                                    if len(line_stripped) > 0:
-                                        line_str = line_stripped
-                                        stderr_lines.append(line_str)
-                                        if live_console_output_printing:
-                                            if print_errors_as_information:
-                                                GeneralUtilities.write_message_to_stdout(line_str)
-                                            else:
-                                                GeneralUtilities.write_message_to_stderr(line_str)
-                                        if log_to_file:
-                                            GeneralUtilities.append_line_to_file(log_file, line_str)
+            with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
 
-                            return go
-                        except Exception:
-                            return False
+                pid = process.pid
+                for out_line, err_line in read_popen_pipes(process):
+                    if print_live_output:
+                        print(out_line, end='')
+                        print(err_line, end='')
 
-                    while stream_process(process):
-                        time.sleep(0.1)
+                    if out_line is not None and GeneralUtilities.string_has_content(out_line):
+                        stdout = stdout+"\n"+out_line
+                    if err_line is not None and GeneralUtilities.string_has_content(err_line):
+                        stderr = stderr+"\n"+err_line
 
-                    exit_code = process.poll()
-                    stdout = '\n'.join(stdout_lines)
-                    stderr = '\n'.join(stderr_lines)
-                else:
-                    stdout, stderr = process.communicate()
-                    exit_code = process.wait()
-                    stdout = GeneralUtilities.bytes_to_string(stdout).replace('\r', '')
-                    stderr = GeneralUtilities.bytes_to_string(stderr).replace('\r', '')
+                process.poll()
+                exit_code = process.returncode
 
                 if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                     raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
