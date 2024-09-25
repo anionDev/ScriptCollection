@@ -2,7 +2,6 @@ from datetime import timedelta, datetime
 import json
 import binascii
 import filecmp
-import time
 import hashlib
 from io import BytesIO
 import itertools
@@ -29,7 +28,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.14"
+version = "3.5.15"
 __version__ = version
 
 
@@ -1189,28 +1188,26 @@ class ScriptCollectionCore:
         return popen
 
     @staticmethod
-    @GeneralUtilities.check_arguments
     def __enqueue_output(file, queue):
         for line in iter(file.readline, ''):
             queue.put(line)
         file.close()
 
     @staticmethod
-    @GeneralUtilities.check_arguments
     def __read_popen_pipes(p: Popen):
 
         with ThreadPoolExecutor(2) as pool:
             q_stdout, q_stderr = Queue(), Queue()
 
-            pool.submit(ScriptCollectionCore.__enqueue_output, p.stdout, q_stdout)
+            pool.submit(ScriptCollectionCore. __enqueue_output, p.stdout, q_stdout)
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
+
             while True:
-                time.sleep(0.2)
+
                 if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
                     break
 
-                out_line = ''
-                err_line = ''
+                out_line = err_line = ''
 
                 try:
                     out_line = q_stdout.get_nowait()
@@ -1259,16 +1256,20 @@ class ScriptCollectionCore:
             with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
 
                 pid = process.pid
-                for out_line, err_line in ScriptCollectionCore.__read_popen_pipes(process):
-                    if print_live_output:
-                        #print(out_line, end='')
-                        GeneralUtilities.write_message_to_stdout(out_line)
-                        #print(err_line, end='')
-                        GeneralUtilities.write_message_to_stderr(err_line)
+                for out_line_plain, err_line_plain in ScriptCollectionCore.__read_popen_pipes(process):
+                    out_line=str(out_line_plain)
+                    err_line=str(err_line_plain)
 
-                    if out_line is not None and GeneralUtilities.string_has_content(out_line):
+                    if out_line is not None:
+                        if print_live_output:
+                            # print(out_line, end='')
+                            GeneralUtilities.write_message_to_stdout(out_line)
                         stdout = stdout+"\n"+out_line
-                    if err_line is not None and GeneralUtilities.string_has_content(err_line):
+
+                    if err_line is not None:
+                        if print_live_output:
+                            # print(err_line, end='')
+                            GeneralUtilities.write_message_to_stderr(err_line)
                         stderr = stderr+"\n"+err_line
 
                 process.poll()
@@ -1711,3 +1712,5 @@ chmod {permission} {link_file}
         if recursive:
             for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
                 self.change_file_extensions(subfolder, from_extension, to_extension, recursive, ignore_case)
+
+ScriptCollectionCore()
