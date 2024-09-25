@@ -15,9 +15,9 @@ class ProgramRunnerPopen(ProgramRunnerBase):
         # would not be possible anymore because the ampersand will be treated as shell-command.
         try:
             if interactive:
-                result = Popen(arguments_for_process, cwd=working_directory, stdout=PIPE, stderr=PIPE, shell=False, text=True, encoding="utf*8", stdin=sys.stdin)  # pylint: disable=consider-using-with
+                result = Popen(arguments_for_process, cwd=working_directory, stdout=PIPE, stderr=PIPE, shell=False, text=True, stdin=sys.stdin)  # pylint: disable=consider-using-with
             else:
-                result = Popen(arguments_for_process, cwd=working_directory,  stdout=PIPE, stderr=PIPE, shell=False, text=True, encoding="utf*8")  # pylint: disable=consider-using-with
+                result = Popen(arguments_for_process, cwd=working_directory,  stdout=PIPE, stderr=PIPE, shell=False, text=True)  # pylint: disable=consider-using-with
         except FileNotFoundError as fileNotFoundError:
             raise FileNotFoundError(f"Starting '{program}' in '{working_directory}' resulted in a FileNotFoundError: '{fileNotFoundError.filename}'")
         return result
