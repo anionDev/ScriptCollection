@@ -29,7 +29,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.14"
+version = "3.5.15"
 __version__ = version
 
 
@@ -1205,7 +1205,7 @@ class ScriptCollectionCore:
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stdout, q_stdout)
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
             while True:
-                time.sleep(0.2)
+                time.sleep(0.02)
                 if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
                     break
 
@@ -1256,19 +1256,28 @@ class ScriptCollectionCore:
             stderr: str = ""
             pid: int = None
 
+            # TODO ensure system-encoding is utf8
+
             with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
 
                 pid = process.pid
-                for out_line, err_line in ScriptCollectionCore.__read_popen_pipes(process):
-                    if print_live_output:
-                        #print(out_line, end='')
-                        GeneralUtilities.write_message_to_stdout(out_line)
-                        #print(err_line, end='')
-                        GeneralUtilities.write_message_to_stderr(err_line)
+                for out_line_plain, err_line_plain in ScriptCollectionCore.__read_popen_pipes(process):
 
-                    if out_line is not None and GeneralUtilities.string_has_content(out_line):
+                    out_line: str = "" if out_line_plain is None else out_line_plain
+                    err_line: str = "" if err_line_plain is None else err_line_plain
+
+                    if GeneralUtilities.string_has_content(out_line):
+                        if print_live_output:
+                            GeneralUtilities.write_message_to_stdout(out_line)
+                        if stdout is None:
+                            stdout = ""
                         stdout = stdout+"\n"+out_line
-                    if err_line is not None and GeneralUtilities.string_has_content(err_line):
+
+                    if GeneralUtilities.string_has_content(err_line):
+                        if print_live_output:
+                            GeneralUtilities.write_message_to_stdout(err_line)
+                        if stderr is None:
+                            stderr = ""
                         stderr = stderr+"\n"+err_line
 
                 process.poll()
