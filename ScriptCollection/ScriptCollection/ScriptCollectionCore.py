@@ -1,8 +1,8 @@
+import sys
 from datetime import timedelta, datetime
 import json
 import binascii
 import filecmp
-import time
 import hashlib
 from io import BytesIO
 import itertools
@@ -40,11 +40,12 @@ class ScriptCollectionCore:
     mock_program_calls: bool = False
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     execute_program_really_if_no_mock_call_is_defined: bool = False
-    __mocked_program_calls: list = list()
+    __mocked_program_calls: list = None
     program_runner: ProgramRunnerBase = None
 
     def __init__(self):
         self.program_runner = ProgramRunnerPopen()
+        self.__mocked_program_calls = list[ScriptCollectionCore.__MockProgramCall]()
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -1189,29 +1190,22 @@ class ScriptCollectionCore:
         return popen
 
     @staticmethod
-    @GeneralUtilities.check_arguments
     def __enqueue_output(file, queue):
         for line in iter(file.readline, ''):
             queue.put(line)
         file.close()
 
     @staticmethod
-    @GeneralUtilities.check_arguments
     def __read_popen_pipes(p: Popen):
-
         with ThreadPoolExecutor(2) as pool:
             q_stdout = Queue()
             q_stderr = Queue()
 
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stdout, q_stdout)
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
-            while True:
-                time.sleep(0.2)
-                if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
-                    break
-
-                out_line = ''
-                err_line = ''
+            while (p.poll() is None) or (not q_stdout.empty()) or (not q_stderr.empty()):
+                out_line = None
+                err_line = None
 
                 try:
                     out_line = q_stdout.get_nowait()
@@ -1256,8 +1250,8 @@ class ScriptCollectionCore:
             print_live_output = 1 < verbosity
 
             exit_code: int = None
-            stdout: str = None
-            stderr: str = None
+            stdout: str = ""
+            stderr: str = ""
             pid: int = None
 
             with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
@@ -1266,49 +1260,43 @@ class ScriptCollectionCore:
                     GeneralUtilities.ensure_file_exists(log_file)
                 pid = process.pid
                 for out_line_plain, err_line_plain in ScriptCollectionCore.__read_popen_pipes(process):  # see https://stackoverflow.com/a/57084403/3905529
-                    out_line: str = None
-                    err_line: str = None
 
-                    if isinstance(out_line_plain, str):
-                        out_line = out_line_plain
-                    elif isinstance(out_line_plain, bytes):
-                        out_line = GeneralUtilities.bytes_to_string(out_line_plain)
-                    else:
-                        raise ValueError(f"Unknown type of output: {str(type(out_line_plain))}")
+                    if out_line_plain is not None:
+                        out_line: str = None
+                        if isinstance(out_line_plain, str):
+                            out_line = out_line_plain
+                        elif isinstance(out_line_plain, bytes):
+                            out_line = GeneralUtilities.bytes_to_string(out_line_plain)
+                        else:
+                            raise ValueError(f"Unknown type of output: {str(type(out_line_plain))}")
 
-                    if isinstance(out_line_plain, str):
-                        err_line = err_line_plain
-                    elif isinstance(out_line_plain, bytes):
-                        err_line = GeneralUtilities.bytes_to_string(err_line_plain)
-                    else:
-                        raise ValueError(f"Unknown type of output: {str(type(err_line_plain))}")
+                        if out_line is not None and GeneralUtilities.string_has_content(out_line):
+                            if out_line.endswith("\n"):
+                                out_line = out_line[:-1]
+                            if print_live_output:
+                                print(out_line, end='\n', file=sys.stdout,  flush=True)
+                            stdout = stdout+"\n"+out_line
+                            if log_file is not None:
+                                GeneralUtilities.append_line_to_file(log_file, out_line)
 
-                    if out_line is not None and GeneralUtilities.string_has_content(out_line):
-                        if out_line.endswith("\n"):
-                            out_line = out_line[:-1]
-                        if print_live_output:
-                            # print(out_line, end='')
-                            GeneralUtilities.write_message_to_stdout(out_line)
-                        if stdout is None:
-                            stdout = ""
-                        stdout = stdout+"\n"+out_line
-                        if log_file is not None:
-                            GeneralUtilities.append_line_to_file(log_file, out_line)
+                    if err_line_plain is not None:
+                        err_line: str = None
+                        if isinstance(err_line_plain, str):
+                            err_line = err_line_plain
+                        elif isinstance(err_line_plain, bytes):
+                            err_line = GeneralUtilities.bytes_to_string(err_line_plain)
+                        else:
+                            raise ValueError(f"Unknown type of output: {str(type(err_line_plain))}")
+                        if err_line is not None and GeneralUtilities.string_has_content(err_line):
+                            if err_line.endswith("\n"):
+                                err_line = err_line[:-1]
+                            if print_live_output:
+                                print(err_line, end='\n', file=sys.stderr,  flush=True)
+                            stderr = stderr+"\n"+err_line
+                            if log_file is not None:
+                                GeneralUtilities.append_line_to_file(log_file, err_line)
 
-                    if err_line is not None and GeneralUtilities.string_has_content(err_line):
-                        if err_line.endswith("\n"):
-                            err_line = err_line[:-1]
-                        if print_live_output:
-                            # print(err_line, end='')
-                            GeneralUtilities.write_message_to_stderr(err_line)
-                        if stderr is None:
-                            stderr = ""
-                        stderr = stderr+"\n"+err_line
-                        if log_file is not None:
-                            GeneralUtilities.append_line_to_file(log_file, err_line)
-
-                process.poll()
-                exit_code = process.returncode
+            exit_code = process.returncode
 
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                 raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
@@ -1444,8 +1432,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def check_system_time_with_default_tolerance(self) -> None:
-        self.check_system_time(
-            self.__get_default_tolerance_for_system_time_equals_internet_time())
+        self.check_system_time(self.__get_default_tolerance_for_system_time_equals_internet_time())
 
     @GeneralUtilities.check_arguments
     def __get_default_tolerance_for_system_time_equals_internet_time(self) -> timedelta:
@@ -1476,8 +1463,7 @@ class ScriptCollectionCore:
                     current_commit = self.git_get_commit_id(repository_folder)
                     current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
                     if current_commit_is_on_latest_tag:
-                        result = self.increment_version(
-                            result, False, False, True)
+                        result = self.increment_version(result, False, False, True)
         else:
             result = "0.1.0"
         return result
