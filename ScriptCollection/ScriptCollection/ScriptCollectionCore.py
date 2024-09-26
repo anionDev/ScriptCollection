@@ -4,6 +4,7 @@ import json
 import binascii
 import filecmp
 import hashlib
+import time
 from io import BytesIO
 import itertools
 import math
@@ -537,8 +538,7 @@ class ScriptCollectionCore:
         for file_or_folder, item_type in items.items():
             truncated_file = file_or_folder[path_prefix:]
             if (filter_function is None or filter_function(folder, truncated_file)):
-                owner_and_permisssion = self.get_file_owner_and_file_permission(
-                    file_or_folder)
+                owner_and_permisssion = self.get_file_owner_and_file_permission(file_or_folder)
                 user = owner_and_permisssion[0]
                 permissions = owner_and_permisssion[1]
                 lines.append(f"{truncated_file};{item_type};{user};{permissions}")
@@ -1104,12 +1104,11 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_file_permission(self, file: str) -> str:
         """This function returns an usual octet-triple, for example "700"."""
-        ls_output = self.__ls(file)
+        ls_output: str = self.run_ls_for_folder(file)
         return self.__get_file_permission_helper(ls_output)
 
     @GeneralUtilities.check_arguments
-    def __get_file_permission_helper(self, ls_output: str) -> str:
-        permissions = ' '.join(ls_output.split()).split(' ')[0][1:]
+    def __get_file_permission_helper(self, permissions: str) -> str:
         return str(self.__to_octet(permissions[0:3]))+str(self.__to_octet(permissions[3:6]))+str(self.__to_octet(permissions[6:9]))
 
     @GeneralUtilities.check_arguments
@@ -1126,31 +1125,44 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_file_owner(self, file: str) -> str:
         """This function returns the user and the group in the format "user:group"."""
-        ls_output = self.__ls(file)
+        ls_output: str = self.run_ls_for_folder(file)
         return self.__get_file_owner_helper(ls_output)
 
     @GeneralUtilities.check_arguments
     def __get_file_owner_helper(self, ls_output: str) -> str:
-        try:
-            splitted = ' '.join(ls_output.split()).split(' ')
-            return f"{splitted[2]}:{splitted[3]}"
-        except Exception as exception:
-            raise ValueError(
-                f"ls-output '{ls_output}' not parsable") from exception
+        splitted = ls_output.split()
+        return f"{splitted[2]}:{splitted[3]}"
 
     @GeneralUtilities.check_arguments
     def get_file_owner_and_file_permission(self, file: str) -> str:
-        ls_output = self.__ls(file)
+        ls_output: str = self.run_ls_for_folder(file)
         return [self.__get_file_owner_helper(ls_output), self.__get_file_permission_helper(ls_output)]
 
     @GeneralUtilities.check_arguments
-    def __ls(self, file: str) -> str:
-        file = file.replace("\\", "/")
-        GeneralUtilities.assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist.")
-        result = self.run_program_argsasarray("ls", ["-ld", file])
-        GeneralUtilities.assert_condition(result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
-        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
-        return result[1]
+    def run_ls_for_folder(self, file_or_folder: str) -> str:
+        file_or_folder = file_or_folder.replace("\\", "/")
+        GeneralUtilities.assert_condition(os.path.isfile(file_or_folder) or os.path.isdir(file_or_folder), f"Can not execute 'ls -ld' because '{file_or_folder}' does not exist.")
+        ls_result = self.run_program_argsasarray("ls", ["-ld", file_or_folder])
+        GeneralUtilities.assert_condition(ls_result[0] == 0, f"'ls -ld {file_or_folder}' resulted in exitcode {str(ls_result[0])}. StdErr: {ls_result[2]}")
+        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(ls_result[1]), f"'ls -ld' of '{file_or_folder}' had an empty output. StdErr: '{ls_result[2]}'")
+        GeneralUtilities.write_message_to_stdout(ls_result[1])
+        output = ls_result[1]
+        result = output.replace("\n", "")
+        result = ' '.join(result.split())   # reduce multiple whitespaces to one
+        return result
+
+    @GeneralUtilities.check_arguments
+    def run_ls_for_folder_content(self, file_or_folder: str) -> list[str]:
+        file_or_folder = file_or_folder.replace("\\", "/")
+        GeneralUtilities.assert_condition(os.path.isfile(file_or_folder) or os.path.isdir(file_or_folder), f"Can not execute 'ls -la' because '{file_or_folder}' does not exist.")
+        ls_result = self.run_program_argsasarray("ls", ["-la", file_or_folder])
+        GeneralUtilities.assert_condition(ls_result[0] == 0, f"'ls -la {file_or_folder}' resulted in exitcode {str(ls_result[0])}. StdErr: {ls_result[2]}")
+        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(ls_result[1]), f"'ls -la' of '{file_or_folder}' had an empty output. StdErr: '{ls_result[2]}'")
+        GeneralUtilities.write_message_to_stdout(ls_result[1])
+        output = ls_result[1]
+        result = output.split("\n")[3:]  # skip the lines with "Total", "." and ".."
+        result = [' '.join(line.split()) for line in result]  # reduce multiple whitespaces to one
+        return result
 
     @GeneralUtilities.check_arguments
     def set_permission(self, file_or_folder: str, permissions: str, recursive: bool = False) -> None:
@@ -1204,9 +1216,9 @@ class ScriptCollectionCore:
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stdout, q_stdout)
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
             while (p.poll() is None) or (not q_stdout.empty()) or (not q_stderr.empty()):
+                time.sleep(0.01)
                 out_line = None
                 err_line = None
-
                 try:
                     out_line = q_stdout.get_nowait()
                 except Empty:
@@ -1275,7 +1287,9 @@ class ScriptCollectionCore:
                                 out_line = out_line[:-1]
                             if print_live_output:
                                 print(out_line, end='\n', file=sys.stdout,  flush=True)
-                            stdout = stdout+"\n"+out_line
+                            if 0 < len(stdout):
+                                stdout = stdout+"\n"
+                            stdout = stdout+out_line
                             if log_file is not None:
                                 GeneralUtilities.append_line_to_file(log_file, out_line)
 
@@ -1292,7 +1306,9 @@ class ScriptCollectionCore:
                                 err_line = err_line[:-1]
                             if print_live_output:
                                 print(err_line, end='\n', file=sys.stderr,  flush=True)
-                            stderr = stderr+"\n"+err_line
+                            if 0 < len(stderr):
+                                stderr = stderr+"\n"
+                            stderr = stderr+err_line
                             if log_file is not None:
                                 GeneralUtilities.append_line_to_file(log_file, err_line)
 

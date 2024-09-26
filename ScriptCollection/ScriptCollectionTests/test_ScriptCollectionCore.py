@@ -15,9 +15,9 @@ class ScriptCollectionCoreTests(unittest.TestCase):
 
     def test_export_filemetadata(self) -> None:
         # arrange
+        sc = ScriptCollectionCore()
+        tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
         try:
-            sc = ScriptCollectionCore()
-            tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
             GeneralUtilities.ensure_directory_exists(tests_folder)
             target_file = os.path.join(tests_folder, "test.csv")
             assert not os.path.isfile(target_file)
@@ -31,7 +31,52 @@ class ScriptCollectionCoreTests(unittest.TestCase):
             assert os.path.isfile(target_file)
             # TODO add more assertions
         finally:
-            GeneralUtilities.ensure_file_does_not_exist(target_file)
+            GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
+
+    def test_ls_for_folder_content(self) -> None:
+        # arrange
+        sc = ScriptCollectionCore()
+        tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
+        try:
+            GeneralUtilities.ensure_directory_exists(tests_folder)
+            filename1 = "test1.csv"
+            target_file1 = os.path.join(tests_folder, filename1)
+            filename2 = "test2.csv"
+            target_file2 = os.path.join(tests_folder, filename2)
+            GeneralUtilities.ensure_file_exists(target_file1)
+            GeneralUtilities.ensure_file_exists(target_file2)
+
+            # act
+            lines: list[str] = sc.run_ls_for_folder_content(tests_folder)
+
+            # assert
+            assert len(lines) == 2
+            assert filename1 in lines[0]
+            assert filename2 in lines[1]
+        finally:
+            GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
+
+    def test_ls_for_folder(self) -> None:
+        # arrange
+        sc = ScriptCollectionCore()
+        tests_folder = tempfile.gettempdir()+os.path.sep+str(uuid.uuid4())
+        try:
+            GeneralUtilities.ensure_directory_exists(tests_folder)
+            filename1 = "test1.csv"
+            target_file = os.path.join(tests_folder, filename1)
+            filename2 = "test2.csv"
+            target_file = os.path.join(tests_folder, filename2)
+            GeneralUtilities.ensure_file_exists(target_file)
+
+            # act
+            line: str = sc.run_ls_for_folder(tests_folder)
+
+            # assert
+            assert filename1 not in line
+            assert filename2 not in line
+            assert os.path.basename(tests_folder) in line
+        finally:
+            GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
 
     def test_git_commit_is_ancestor(self) -> None:
         sc = ScriptCollectionCore()
@@ -297,10 +342,12 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
-        (exit_code, _, _2, _3) = sc.run_program("git", "status", dir_path)
+        (exit_code, stdout, stderr, _3) = sc.run_program("git", "rev-parse HEAD", dir_path)
 
         # assert
         assert exit_code == 0
+        assert len(stdout) == 40
+        assert stderr == ""
 
     def test_file_is_git_ignored_1(self) -> None:
 
