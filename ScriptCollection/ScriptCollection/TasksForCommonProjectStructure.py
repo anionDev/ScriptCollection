@@ -241,11 +241,11 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_directory_exists(web_folder)
                 GeneralUtilities.copy_content_of_folder(web_relase_folder, web_folder)
             elif target == "windows":
-                windows_relase_folder = os.path.join(src_folder, "build/windows/runner/Release")
+                windows_release_folder = os.path.join(src_folder, "build/windows/x64/runner/Release")
                 windows_folder = os.path.join(artifacts_folder, "BuildResult_Windows")
                 GeneralUtilities.ensure_directory_does_not_exist(windows_folder)
                 GeneralUtilities.ensure_directory_exists(windows_folder)
-                GeneralUtilities.copy_content_of_folder(windows_relase_folder, windows_folder)
+                GeneralUtilities.copy_content_of_folder(windows_release_folder, windows_folder)
             elif target == "ios":
                 raise ValueError("building for ios is not implemented yet")
             elif target == "appbundle":
@@ -2238,16 +2238,16 @@ class TasksForCommonProjectStructure:
                 raise ValueError("Can not download FFMPEG.")
 
     @GeneralUtilities.check_arguments
-    def ensure_plantuml_is_available(self, codeunit_folder: str) -> None:
-        self.ensure_file_from_github_assets_is_available(codeunit_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar")
+    def ensure_plantuml_is_available(self, target_folder: str) -> None:
+        self.ensure_file_from_github_assets_is_available(target_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar")
 
     @GeneralUtilities.check_arguments
-    def ensure_androidappbundletool_is_available(self, codeunit_folder: str) -> None:
-        self.ensure_file_from_github_assets_is_available(codeunit_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
+    def ensure_androidappbundletool_is_available(self, target_folder: str) -> None:
+        self.ensure_file_from_github_assets_is_available(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
 
     @GeneralUtilities.check_arguments
-    def ensure_file_from_github_assets_is_available(self, codeunit_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github) -> None:
-        resource_folder = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
+    def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github) -> None:
+        resource_folder = os.path.join(target_folder, "Other", "Resources", resource_name)
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         file = f"{resource_folder}/{local_filename}"
         file_exists = os.path.isfile(file)
@@ -2266,10 +2266,10 @@ class TasksForCommonProjectStructure:
                 raise ValueError(f"Can not download {resource_name}.")
 
     @GeneralUtilities.check_arguments
-    def generate_svg_files_from_plantuml_files(self, codeunit_folder: str) -> None:
-        self.ensure_plantuml_is_available(codeunit_folder)
-        plant_uml_folder = os.path.join(codeunit_folder, "Other", "Resources", "PlantUML")
-        files_folder = os.path.join(codeunit_folder, "Other/Reference")
+    def generate_svg_files_from_plantuml_files(self, target_folder: str) -> None:
+        self.ensure_plantuml_is_available(target_folder)
+        plant_uml_folder = os.path.join(target_folder, "Other", "Resources", "PlantUML")
+        files_folder = os.path.join(target_folder, "Other/Reference")
         sc = ScriptCollectionCore()
         for file in GeneralUtilities.get_all_files_of_folder(files_folder):
             if file.endswith(".plantuml"):
