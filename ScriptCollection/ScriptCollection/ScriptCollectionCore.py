@@ -1265,7 +1265,7 @@ class ScriptCollectionCore:
                 if log_file is not None:
                     GeneralUtilities.ensure_file_exists(log_file)
                 pid = process.pid
-                for out_line_plain, err_line_plain in ScriptCollectionCore.__read_popen_pipes(process):
+                for out_line_plain, err_line_plain in ScriptCollectionCore.__read_popen_pipes(process):  # see https://stackoverflow.com/a/57084403/3905529
                     out_line: str = None
                     err_line: str = None
 
