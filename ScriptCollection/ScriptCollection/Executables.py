@@ -356,3 +356,16 @@ def ChangeFileExtensions() -> int:
     args = parser.parse_args()
     ScriptCollectionCore().change_file_extensions(args.folder, args.source_extension, args.target_extension, args.recursive, args.ignore_case)
     return 0
+
+
+def GenerateARC42ReferenceTemplate() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--folder', required=False)
+    parser.add_argument('-p', '--productname', required=False)
+    args = parser.parse_args()
+
+    folder = args.folder
+    if folder is None:
+        folder = os.getcwd()
+    ScriptCollectionCore().generate_arc42_reference_template(folder, args.productname)
+    return 0

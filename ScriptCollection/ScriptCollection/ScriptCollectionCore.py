@@ -563,8 +563,7 @@ class ScriptCollectionCore:
             foldername = os.path.basename(subfolder)
             if ".git" in foldername:
                 new_name = foldername.replace(".git", ".gitx")
-                subfolder2 = os.path.join(
-                    str(Path(subfolder).parent), new_name)
+                subfolder2 = os.path.join(str(Path(subfolder).parent), new_name)
                 os.rename(subfolder, subfolder2)
                 renamed_items[subfolder2] = subfolder
             else:
@@ -955,13 +954,11 @@ class ScriptCollectionCore:
                 with (open(full_path, "rb").read()) as text_io_wrapper:
                     content = text_io_wrapper
                     path_in_iso = '/' + files_directory + \
-                        self.__adjust_folder_name(
-                            full_path[len(folder)::1]).upper()
+                        self.__adjust_folder_name(full_path[len(folder)::1]).upper()
                     if path_in_iso not in created_directories:
                         iso.add_directory(path_in_iso)
                         created_directories.append(path_in_iso)
-                    iso.add_fp(BytesIO(content), len(content),
-                               path_in_iso + '/' + file.upper() + ';1')
+                    iso.add_fp(BytesIO(content), len(content), path_in_iso + '/' + file.upper() + ';1')
         iso.write(iso_file)
         iso.close()
 
@@ -1009,8 +1006,7 @@ class ScriptCollectionCore:
                 new_file_name = os.path.join(
                     os.path.dirname(file), new_file_name_without_path)
                 os.rename(file, new_file_name)
-                GeneralUtilities.append_line_to_file(namemappingfile, os.path.basename(
-                    file) + ";" + new_file_name_without_path + ";" + hash_value)
+                GeneralUtilities.append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash_value)
         else:
             raise ValueError(f"Directory not found: '{inputfolder}'")
 
@@ -1027,15 +1023,12 @@ class ScriptCollectionCore:
         for line in reversed(lines):
             if not GeneralUtilities.string_is_none_or_whitespace(line):
                 if "RunningHealthy (" in line:  # TODO use regex
-                    GeneralUtilities.write_message_to_stderr(
-                        f"Healthy running due to line '{line}' in file '{file}'.")
+                    GeneralUtilities.write_message_to_stderr(f"Healthy running due to line '{line}' in file '{file}'.")
                     return 0
                 else:
-                    GeneralUtilities.write_message_to_stderr(
-                        f"Not healthy running due to line '{line}' in file '{file}'.")
+                    GeneralUtilities.write_message_to_stderr(f"Not healthy running due to line '{line}' in file '{file}'.")
                     return 1
-        GeneralUtilities.write_message_to_stderr(
-            f"No valid line found for healthycheck in file '{file}'.")
+        GeneralUtilities.write_message_to_stderr(f"No valid line found for healthycheck in file '{file}'.")
         return 2
 
     @GeneralUtilities.check_arguments
@@ -1362,8 +1355,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def verify_no_pending_mock_program_calls(self):
         if (len(self.__mocked_program_calls) > 0):
-            raise AssertionError(
-                "The following mock-calls were not called:\n"+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
+            raise AssertionError("The following mock-calls were not called:\n"+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
 
     @GeneralUtilities.check_arguments
     def __format_mock_program_call(self, r) -> str:
@@ -1398,8 +1390,7 @@ class ScriptCollectionCore:
                 result = mock_call
                 break
         if result is None:
-            raise LookupError(
-                f"Tried to execute mock-call '{workingdirectory}>{program} {argument}' but no mock-call was defined for that execution")
+            raise LookupError(f"Tried to execute mock-call '{workingdirectory}>{program} {argument}' but no mock-call was defined for that execution")
         else:
             self.__mocked_program_calls.remove(result)
             return (result.exit_code, result.stdout, result.stderr, result.pid)
@@ -1676,16 +1667,14 @@ chmod {permission} {link_file}
         #  copy binaries
         usr_bin_folder = os.path.join(packagecontent_data_folder, "usr/bin")
         GeneralUtilities.ensure_directory_exists(usr_bin_folder)
-        usr_bin_content_folder = os.path.join(
-            usr_bin_folder, tool_content_folder_name)
+        usr_bin_content_folder = os.path.join(usr_bin_folder, tool_content_folder_name)
         GeneralUtilities.copy_content_of_folder(bin_folder, usr_bin_content_folder)
 
         # create debfile
         deb_filename = f"{toolname}.deb"
         self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"], packagecontent_control_folder, verbosity=verbosity)
         self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"], packagecontent_data_folder, verbosity=verbosity)
-        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz",
-                                     "data.tar.gz"], packagecontent_entireresult_folder, verbosity=verbosity)
+        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz", "data.tar.gz"], packagecontent_entireresult_folder, verbosity=verbosity)
         result_file = os.path.join(packagecontent_entireresult_folder, deb_filename)
         shutil.copy(result_file, os.path.join(deb_output_folder, deb_filename))
 
@@ -1750,3 +1739,127 @@ chmod {permission} {link_file}
         if recursive:
             for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
                 self.change_file_extensions(subfolder, from_extension, to_extension, recursive, ignore_case)
+
+    @GeneralUtilities.check_arguments
+    def __add_chapter(self, main_reference_file, reference_content_folder, number: int, chaptertitle: str, content: str = None):
+        if content is None:
+            content = "TXDX add content here"
+        filename = str(number).zfill(2)+"_"+chaptertitle.replace(' ', '-')
+        file = f"{reference_content_folder}/{filename}.md"
+        full_title = f"{number}. {chaptertitle}"
+
+        GeneralUtilities.append_line_to_file(main_reference_file, f"- [{full_title}](./{filename}.md)")
+
+        GeneralUtilities.ensure_file_exists(file)
+        GeneralUtilities.write_text_to_file(file, f"""# {full_title}
+
+{content}
+""".replace("XDX", "ODO"))
+
+    @GeneralUtilities.check_arguments
+    def generate_arc42_reference_template(self, repository: str, productname: str = None):
+        productname: str
+        if productname is None:
+            productname = os.path.basename(repository)
+        reference_root_folder = f"{repository}/Other/Resources/Reference"
+        reference_content_folder = reference_root_folder + "/Technical"
+        if os.path.isdir(reference_root_folder):
+            raise ValueError(f"The folder '{reference_root_folder}' does already exist.")
+        GeneralUtilities.ensure_directory_exists(reference_root_folder)
+        GeneralUtilities.ensure_directory_exists(reference_content_folder)
+        main_reference_file = f"{reference_root_folder}/Reference.md"
+        GeneralUtilities.ensure_file_exists(main_reference_file)
+        GeneralUtilities.write_text_to_file(main_reference_file, f"""# {productname}
+    
+TXDX add minimal service-description here.
+
+## Technical documentation
+
+""".replace("XDX", "ODO"))
+        self.__add_chapter(main_reference_file, reference_content_folder, 1, 'Introduction and Goals', """## Overview
+
+TXDX
+
+# Quality goals
+
+ TXDX
+
+# Stakeholder
+
+| Name | How to contact | Reason |
+| ---- | -------------- | ------ |""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 2, 'Constraints', """## Technical constraints
+
+| Constraint-identifier | Constraint | Reason |
+| --------------------- | ---------- | ------ |
+
+## Organizational constraints
+
+| Constraint-identifier | Constraint | Reason |
+| --------------------- | ---------- | ------ |""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 3, 'Context and Scope', """## Context
+
+TXDX
+
+## Scope
+
+ TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 4, 'Solution Strategy', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 5, 'Building Block View', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 6, 'Runtime View', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 7, 'Deployment View', """## Infrastructure-overview
+
+TXDX
+
+## Infrastructure-requirements
+
+TXDX
+
+## Deployment-proecsses
+
+TXDX
+""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 8, 'Crosscutting Concepts', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 9, 'Architectural Decisions', """## Decision-board
+
+| Decision-identifier | Date | Decision | Reason and notes |
+| ------------------- | ---- | -------- | ---------------- |""")  # empty because there are no decsions yet
+        self.__add_chapter(main_reference_file, reference_content_folder, 10, 'Quality Requirements', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 11, 'Risks and Technical Debt', """## Risks
+
+Currently there are no known risks.
+
+## Technical debts
+
+Currently there are no technical depts.""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 12, 'Glossary', """## Terms
+
+| Term | Meaning |
+| ---- | ------- |
+
+## Abbreviations
+
+| Abbreviation | Meaning |
+| ------------ | ------- |""")
+
+        GeneralUtilities.append_to_file(main_reference_file, """
+
+## Responsibilities
+
+| Responsibility  | Name and contact-information |
+| --------------- | ---------------------------- |
+| Pdocut-owner    | TXDX                         |
+| Product-manager | TXDX                         |
+| Support         | TXDX                         |
+
+## License & Pricing
+
+TXDX
+
+## External resources
+
+- [Repository](TXDX)
+- [Productive-System](TXDX)
+- [QualityCheck-system](TXDX)
+
+""")
