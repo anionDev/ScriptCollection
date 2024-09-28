@@ -1,9 +1,10 @@
+import sys
 from datetime import timedelta, datetime
 import json
 import binascii
 import filecmp
-import time
 import hashlib
+import time
 from io import BytesIO
 import itertools
 import math
@@ -29,7 +30,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.14"
+version = "3.5.15"
 __version__ = version
 
 
@@ -40,11 +41,12 @@ class ScriptCollectionCore:
     mock_program_calls: bool = False
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     execute_program_really_if_no_mock_call_is_defined: bool = False
-    __mocked_program_calls: list = list()
+    __mocked_program_calls: list = None
     program_runner: ProgramRunnerBase = None
 
     def __init__(self):
         self.program_runner = ProgramRunnerPopen()
+        self.__mocked_program_calls = list[ScriptCollectionCore.__MockProgramCall]()
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -536,8 +538,7 @@ class ScriptCollectionCore:
         for file_or_folder, item_type in items.items():
             truncated_file = file_or_folder[path_prefix:]
             if (filter_function is None or filter_function(folder, truncated_file)):
-                owner_and_permisssion = self.get_file_owner_and_file_permission(
-                    file_or_folder)
+                owner_and_permisssion = self.get_file_owner_and_file_permission(file_or_folder)
                 user = owner_and_permisssion[0]
                 permissions = owner_and_permisssion[1]
                 lines.append(f"{truncated_file};{item_type};{user};{permissions}")
@@ -562,8 +563,7 @@ class ScriptCollectionCore:
             foldername = os.path.basename(subfolder)
             if ".git" in foldername:
                 new_name = foldername.replace(".git", ".gitx")
-                subfolder2 = os.path.join(
-                    str(Path(subfolder).parent), new_name)
+                subfolder2 = os.path.join(str(Path(subfolder).parent), new_name)
                 os.rename(subfolder, subfolder2)
                 renamed_items[subfolder2] = subfolder
             else:
@@ -954,13 +954,11 @@ class ScriptCollectionCore:
                 with (open(full_path, "rb").read()) as text_io_wrapper:
                     content = text_io_wrapper
                     path_in_iso = '/' + files_directory + \
-                        self.__adjust_folder_name(
-                            full_path[len(folder)::1]).upper()
+                        self.__adjust_folder_name(full_path[len(folder)::1]).upper()
                     if path_in_iso not in created_directories:
                         iso.add_directory(path_in_iso)
                         created_directories.append(path_in_iso)
-                    iso.add_fp(BytesIO(content), len(content),
-                               path_in_iso + '/' + file.upper() + ';1')
+                    iso.add_fp(BytesIO(content), len(content), path_in_iso + '/' + file.upper() + ';1')
         iso.write(iso_file)
         iso.close()
 
@@ -1008,8 +1006,7 @@ class ScriptCollectionCore:
                 new_file_name = os.path.join(
                     os.path.dirname(file), new_file_name_without_path)
                 os.rename(file, new_file_name)
-                GeneralUtilities.append_line_to_file(namemappingfile, os.path.basename(
-                    file) + ";" + new_file_name_without_path + ";" + hash_value)
+                GeneralUtilities.append_line_to_file(namemappingfile, os.path.basename(file) + ";" + new_file_name_without_path + ";" + hash_value)
         else:
             raise ValueError(f"Directory not found: '{inputfolder}'")
 
@@ -1026,15 +1023,12 @@ class ScriptCollectionCore:
         for line in reversed(lines):
             if not GeneralUtilities.string_is_none_or_whitespace(line):
                 if "RunningHealthy (" in line:  # TODO use regex
-                    GeneralUtilities.write_message_to_stderr(
-                        f"Healthy running due to line '{line}' in file '{file}'.")
+                    GeneralUtilities.write_message_to_stderr(f"Healthy running due to line '{line}' in file '{file}'.")
                     return 0
                 else:
-                    GeneralUtilities.write_message_to_stderr(
-                        f"Not healthy running due to line '{line}' in file '{file}'.")
+                    GeneralUtilities.write_message_to_stderr(f"Not healthy running due to line '{line}' in file '{file}'.")
                     return 1
-        GeneralUtilities.write_message_to_stderr(
-            f"No valid line found for healthycheck in file '{file}'.")
+        GeneralUtilities.write_message_to_stderr(f"No valid line found for healthycheck in file '{file}'.")
         return 2
 
     @GeneralUtilities.check_arguments
@@ -1103,12 +1097,11 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_file_permission(self, file: str) -> str:
         """This function returns an usual octet-triple, for example "700"."""
-        ls_output = self.__ls(file)
+        ls_output: str = self.run_ls_for_folder(file)
         return self.__get_file_permission_helper(ls_output)
 
     @GeneralUtilities.check_arguments
-    def __get_file_permission_helper(self, ls_output: str) -> str:
-        permissions = ' '.join(ls_output.split()).split(' ')[0][1:]
+    def __get_file_permission_helper(self, permissions: str) -> str:
         return str(self.__to_octet(permissions[0:3]))+str(self.__to_octet(permissions[3:6]))+str(self.__to_octet(permissions[6:9]))
 
     @GeneralUtilities.check_arguments
@@ -1125,31 +1118,44 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_file_owner(self, file: str) -> str:
         """This function returns the user and the group in the format "user:group"."""
-        ls_output = self.__ls(file)
+        ls_output: str = self.run_ls_for_folder(file)
         return self.__get_file_owner_helper(ls_output)
 
     @GeneralUtilities.check_arguments
     def __get_file_owner_helper(self, ls_output: str) -> str:
-        try:
-            splitted = ' '.join(ls_output.split()).split(' ')
-            return f"{splitted[2]}:{splitted[3]}"
-        except Exception as exception:
-            raise ValueError(
-                f"ls-output '{ls_output}' not parsable") from exception
+        splitted = ls_output.split()
+        return f"{splitted[2]}:{splitted[3]}"
 
     @GeneralUtilities.check_arguments
     def get_file_owner_and_file_permission(self, file: str) -> str:
-        ls_output = self.__ls(file)
+        ls_output: str = self.run_ls_for_folder(file)
         return [self.__get_file_owner_helper(ls_output), self.__get_file_permission_helper(ls_output)]
 
     @GeneralUtilities.check_arguments
-    def __ls(self, file: str) -> str:
-        file = file.replace("\\", "/")
-        GeneralUtilities.assert_condition(os.path.isfile(file) or os.path.isdir(file), f"Can not execute 'ls' because '{file}' does not exist.")
-        result = self.run_program_argsasarray("ls", ["-ld", file])
-        GeneralUtilities.assert_condition(result[0] == 0, f"'ls -ld {file}' resulted in exitcode {str(result[0])}. StdErr: {result[2]}")
-        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(result[1]), f"'ls' of '{file}' had an empty output. StdErr: '{result[2]}'")
-        return result[1]
+    def run_ls_for_folder(self, file_or_folder: str) -> str:
+        file_or_folder = file_or_folder.replace("\\", "/")
+        GeneralUtilities.assert_condition(os.path.isfile(file_or_folder) or os.path.isdir(file_or_folder), f"Can not execute 'ls -ld' because '{file_or_folder}' does not exist.")
+        ls_result = self.run_program_argsasarray("ls", ["-ld", file_or_folder])
+        GeneralUtilities.assert_condition(ls_result[0] == 0, f"'ls -ld {file_or_folder}' resulted in exitcode {str(ls_result[0])}. StdErr: {ls_result[2]}")
+        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(ls_result[1]), f"'ls -ld' of '{file_or_folder}' had an empty output. StdErr: '{ls_result[2]}'")
+        GeneralUtilities.write_message_to_stdout(ls_result[1])
+        output = ls_result[1]
+        result = output.replace("\n", "")
+        result = ' '.join(result.split())   # reduce multiple whitespaces to one
+        return result
+
+    @GeneralUtilities.check_arguments
+    def run_ls_for_folder_content(self, file_or_folder: str) -> list[str]:
+        file_or_folder = file_or_folder.replace("\\", "/")
+        GeneralUtilities.assert_condition(os.path.isfile(file_or_folder) or os.path.isdir(file_or_folder), f"Can not execute 'ls -la' because '{file_or_folder}' does not exist.")
+        ls_result = self.run_program_argsasarray("ls", ["-la", file_or_folder])
+        GeneralUtilities.assert_condition(ls_result[0] == 0, f"'ls -la {file_or_folder}' resulted in exitcode {str(ls_result[0])}. StdErr: {ls_result[2]}")
+        GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(ls_result[1]), f"'ls -la' of '{file_or_folder}' had an empty output. StdErr: '{ls_result[2]}'")
+        GeneralUtilities.write_message_to_stdout(ls_result[1])
+        output = ls_result[1]
+        result = output.split("\n")[3:]  # skip the lines with "Total", "." and ".."
+        result = [' '.join(line.split()) for line in result]  # reduce multiple whitespaces to one
+        return result
 
     @GeneralUtilities.check_arguments
     def set_permission(self, file_or_folder: str, permissions: str, recursive: bool = False) -> None:
@@ -1189,31 +1195,28 @@ class ScriptCollectionCore:
         return popen
 
     @staticmethod
-    @GeneralUtilities.check_arguments
     def __enqueue_output(file, queue):
         for line in iter(file.readline, ''):
             queue.put(line)
         file.close()
 
     @staticmethod
-    @GeneralUtilities.check_arguments
     def __read_popen_pipes(p: Popen):
-
         with ThreadPoolExecutor(2) as pool:
-            q_stdout, q_stderr = Queue(), Queue()
+            q_stdout = Queue()
+            q_stderr = Queue()
 
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stdout, q_stdout)
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
-            while True:
-                time.sleep(0.2)
-                if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
-                    break
-
-                out_line = ''
-                err_line = ''
-
+            while (p.poll() is None) or (not q_stdout.empty()) or (not q_stderr.empty()):
+                time.sleep(0.01)
+                out_line = None
+                err_line = None
                 try:
                     out_line = q_stdout.get_nowait()
+                except Empty:
+                    pass
+                try:
                     err_line = q_stderr.get_nowait()
                 except Empty:
                     pass
@@ -1258,25 +1261,56 @@ class ScriptCollectionCore:
 
             with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
 
+                if log_file is not None:
+                    GeneralUtilities.ensure_file_exists(log_file)
                 pid = process.pid
-                for out_line, err_line in ScriptCollectionCore.__read_popen_pipes(process):
-                    if print_live_output:
-                        #print(out_line, end='')
-                        GeneralUtilities.write_message_to_stdout(out_line)
-                        #print(err_line, end='')
-                        GeneralUtilities.write_message_to_stderr(err_line)
+                for out_line_plain, err_line_plain in ScriptCollectionCore.__read_popen_pipes(process):  # see https://stackoverflow.com/a/57084403/3905529
 
-                    if out_line is not None and GeneralUtilities.string_has_content(out_line):
-                        stdout = stdout+"\n"+out_line
-                    if err_line is not None and GeneralUtilities.string_has_content(err_line):
-                        stderr = stderr+"\n"+err_line
+                    if out_line_plain is not None:
+                        out_line: str = None
+                        if isinstance(out_line_plain, str):
+                            out_line = out_line_plain
+                        elif isinstance(out_line_plain, bytes):
+                            out_line = GeneralUtilities.bytes_to_string(out_line_plain)
+                        else:
+                            raise ValueError(f"Unknown type of output: {str(type(out_line_plain))}")
 
-                process.poll()
-                exit_code = process.returncode
+                        if out_line is not None and GeneralUtilities.string_has_content(out_line):
+                            if out_line.endswith("\n"):
+                                out_line = out_line[:-1]
+                            if print_live_output:
+                                print(out_line, end='\n', file=sys.stdout,  flush=True)
+                            if 0 < len(stdout):
+                                stdout = stdout+"\n"
+                            stdout = stdout+out_line
+                            if log_file is not None:
+                                GeneralUtilities.append_line_to_file(log_file, out_line)
+
+                    if err_line_plain is not None:
+                        err_line: str = None
+                        if isinstance(err_line_plain, str):
+                            err_line = err_line_plain
+                        elif isinstance(err_line_plain, bytes):
+                            err_line = GeneralUtilities.bytes_to_string(err_line_plain)
+                        else:
+                            raise ValueError(f"Unknown type of output: {str(type(err_line_plain))}")
+                        if err_line is not None and GeneralUtilities.string_has_content(err_line):
+                            if err_line.endswith("\n"):
+                                err_line = err_line[:-1]
+                            if print_live_output:
+                                print(err_line, end='\n', file=sys.stderr,  flush=True)
+                            if 0 < len(stderr):
+                                stderr = stderr+"\n"
+                            stderr = stderr+err_line
+                            if log_file is not None:
+                                GeneralUtilities.append_line_to_file(log_file, err_line)
+
+            exit_code = process.returncode
 
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                 raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
 
+            GeneralUtilities.assert_condition(exit_code is not None, f"Exitcode of program-run of '{info_for_log}' is None.")
             result = (exit_code, stdout, stderr, pid)
             return result
         except Exception as e:
@@ -1321,8 +1355,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def verify_no_pending_mock_program_calls(self):
         if (len(self.__mocked_program_calls) > 0):
-            raise AssertionError(
-                "The following mock-calls were not called:\n"+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
+            raise AssertionError("The following mock-calls were not called:\n"+",\n    ".join([self.__format_mock_program_call(r) for r in self.__mocked_program_calls]))
 
     @GeneralUtilities.check_arguments
     def __format_mock_program_call(self, r) -> str:
@@ -1357,8 +1390,7 @@ class ScriptCollectionCore:
                 result = mock_call
                 break
         if result is None:
-            raise LookupError(
-                f"Tried to execute mock-call '{workingdirectory}>{program} {argument}' but no mock-call was defined for that execution")
+            raise LookupError(f"Tried to execute mock-call '{workingdirectory}>{program} {argument}' but no mock-call was defined for that execution")
         else:
             self.__mocked_program_calls.remove(result)
             return (result.exit_code, result.stdout, result.stderr, result.pid)
@@ -1407,8 +1439,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def check_system_time_with_default_tolerance(self) -> None:
-        self.check_system_time(
-            self.__get_default_tolerance_for_system_time_equals_internet_time())
+        self.check_system_time(self.__get_default_tolerance_for_system_time_equals_internet_time())
 
     @GeneralUtilities.check_arguments
     def __get_default_tolerance_for_system_time_equals_internet_time(self) -> timedelta:
@@ -1439,8 +1470,7 @@ class ScriptCollectionCore:
                     current_commit = self.git_get_commit_id(repository_folder)
                     current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
                     if current_commit_is_on_latest_tag:
-                        result = self.increment_version(
-                            result, False, False, True)
+                        result = self.increment_version(result, False, False, True)
         else:
             result = "0.1.0"
         return result
@@ -1637,16 +1667,14 @@ chmod {permission} {link_file}
         #  copy binaries
         usr_bin_folder = os.path.join(packagecontent_data_folder, "usr/bin")
         GeneralUtilities.ensure_directory_exists(usr_bin_folder)
-        usr_bin_content_folder = os.path.join(
-            usr_bin_folder, tool_content_folder_name)
+        usr_bin_content_folder = os.path.join(usr_bin_folder, tool_content_folder_name)
         GeneralUtilities.copy_content_of_folder(bin_folder, usr_bin_content_folder)
 
         # create debfile
         deb_filename = f"{toolname}.deb"
         self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"], packagecontent_control_folder, verbosity=verbosity)
         self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"], packagecontent_data_folder, verbosity=verbosity)
-        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz",
-                                     "data.tar.gz"], packagecontent_entireresult_folder, verbosity=verbosity)
+        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz", "data.tar.gz"], packagecontent_entireresult_folder, verbosity=verbosity)
         result_file = os.path.join(packagecontent_entireresult_folder, deb_filename)
         shutil.copy(result_file, os.path.join(deb_output_folder, deb_filename))
 
@@ -1711,3 +1739,127 @@ chmod {permission} {link_file}
         if recursive:
             for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
                 self.change_file_extensions(subfolder, from_extension, to_extension, recursive, ignore_case)
+
+    @GeneralUtilities.check_arguments
+    def __add_chapter(self, main_reference_file, reference_content_folder, number: int, chaptertitle: str, content: str = None):
+        if content is None:
+            content = "TXDX add content here"
+        filename = str(number).zfill(2)+"_"+chaptertitle.replace(' ', '-')
+        file = f"{reference_content_folder}/{filename}.md"
+        full_title = f"{number}. {chaptertitle}"
+
+        GeneralUtilities.append_line_to_file(main_reference_file, f"- [{full_title}](./{filename}.md)")
+
+        GeneralUtilities.ensure_file_exists(file)
+        GeneralUtilities.write_text_to_file(file, f"""# {full_title}
+
+{content}
+""".replace("XDX", "ODO"))
+
+    @GeneralUtilities.check_arguments
+    def generate_arc42_reference_template(self, repository: str, productname: str = None):
+        productname: str
+        if productname is None:
+            productname = os.path.basename(repository)
+        reference_root_folder = f"{repository}/Other/Resources/Reference"
+        reference_content_folder = reference_root_folder + "/Technical"
+        if os.path.isdir(reference_root_folder):
+            raise ValueError(f"The folder '{reference_root_folder}' does already exist.")
+        GeneralUtilities.ensure_directory_exists(reference_root_folder)
+        GeneralUtilities.ensure_directory_exists(reference_content_folder)
+        main_reference_file = f"{reference_root_folder}/Reference.md"
+        GeneralUtilities.ensure_file_exists(main_reference_file)
+        GeneralUtilities.write_text_to_file(main_reference_file, f"""# {productname}
+    
+TXDX add minimal service-description here.
+
+## Technical documentation
+
+""".replace("XDX", "ODO"))
+        self.__add_chapter(main_reference_file, reference_content_folder, 1, 'Introduction and Goals', """## Overview
+
+TXDX
+
+# Quality goals
+
+ TXDX
+
+# Stakeholder
+
+| Name | How to contact | Reason |
+| ---- | -------------- | ------ |""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 2, 'Constraints', """## Technical constraints
+
+| Constraint-identifier | Constraint | Reason |
+| --------------------- | ---------- | ------ |
+
+## Organizational constraints
+
+| Constraint-identifier | Constraint | Reason |
+| --------------------- | ---------- | ------ |""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 3, 'Context and Scope', """## Context
+
+TXDX
+
+## Scope
+
+ TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 4, 'Solution Strategy', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 5, 'Building Block View', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 6, 'Runtime View', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 7, 'Deployment View', """## Infrastructure-overview
+
+TXDX
+
+## Infrastructure-requirements
+
+TXDX
+
+## Deployment-proecsses
+
+TXDX
+""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 8, 'Crosscutting Concepts', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 9, 'Architectural Decisions', """## Decision-board
+
+| Decision-identifier | Date | Decision | Reason and notes |
+| ------------------- | ---- | -------- | ---------------- |""")  # empty because there are no decsions yet
+        self.__add_chapter(main_reference_file, reference_content_folder, 10, 'Quality Requirements', """TXDX""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 11, 'Risks and Technical Debt', """## Risks
+
+Currently there are no known risks.
+
+## Technical debts
+
+Currently there are no technical depts.""")
+        self.__add_chapter(main_reference_file, reference_content_folder, 12, 'Glossary', """## Terms
+
+| Term | Meaning |
+| ---- | ------- |
+
+## Abbreviations
+
+| Abbreviation | Meaning |
+| ------------ | ------- |""")
+
+        GeneralUtilities.append_to_file(main_reference_file, """
+
+## Responsibilities
+
+| Responsibility  | Name and contact-information |
+| --------------- | ---------------------------- |
+| Pdocut-owner    | TXDX                         |
+| Product-manager | TXDX                         |
+| Support         | TXDX                         |
+
+## License & Pricing
+
+TXDX
+
+## External resources
+
+- [Repository](TXDX)
+- [Productive-System](TXDX)
+- [QualityCheck-system](TXDX)
+
+""")
