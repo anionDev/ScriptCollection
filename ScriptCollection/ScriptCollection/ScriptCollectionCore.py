@@ -1757,12 +1757,12 @@ chmod {permission} {link_file}
 """.replace("XDX", "ODO"))
 
     @GeneralUtilities.check_arguments
-    def generate_arc42_reference_template(self, repository: str, productname: str = None, subfolder:str=None):
+    def generate_arc42_reference_template(self, repository: str, productname: str = None, subfolder: str = None):
         productname: str
         if productname is None:
             productname = os.path.basename(repository)
         if subfolder is None:
-            subfolder="Other/Resources/Reference"
+            subfolder = "Other/Resources/Reference"
         reference_root_folder = f"{repository}/{subfolder}"
         reference_content_folder = reference_root_folder + "/Technical"
         if os.path.isdir(reference_root_folder):
@@ -1782,11 +1782,11 @@ TXDX add minimal service-description here.
 
 TXDX
 
-# Quality goals
+## Quality goals
 
 TXDX
 
-# Stakeholder
+## Stakeholder
 
 | Name | How to contact | Reason |
 | ---- | -------------- | ------ |""")
