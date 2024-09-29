@@ -1391,7 +1391,7 @@ class TasksForCommonProjectStructure:
 
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]" == <codeunitname> in file
-        supported_codeunitspecificationversion = "2.9.0"  # should always be the latest version of the ProjectTemplates-repository
+        supported_codeunitspecificationversion = "2.9.1"  # should always be the latest version of the ProjectTemplates-repository
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if not os.path.isfile(codeunit_file):
             raise ValueError(f'Codeunitfile "{codeunit_file}" does not exist.')
@@ -1427,6 +1427,13 @@ class TasksForCommonProjectStructure:
         # Check owner-emailaddress
         codeunit_owneremailaddress_in_codeunit_file = root.xpath('//cps:codeunit/cps:codeunitowneremailaddress/text()', namespaces=namespaces)[0]
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_owneremailaddress_in_codeunit_file), "No valid email-address for codeunitowner given.")
+
+        # Check development-state
+        developmentstate = root.xpath('//cps:properties/@developmentstate', namespaces=namespaces)[0]
+        developmentstate_active = "Active development"
+        developmentstate_maintenance = "Maintenance-updates only"
+        developmentstate_inactive = "Inactive"
+        GeneralUtilities.assert_condition(developmentstate in (developmentstate_active, developmentstate_maintenance, developmentstate_inactive), f"Invalid development-state. Must be '{developmentstate_active}' or '{developmentstate_maintenance}' or '{developmentstate_inactive}' but was '{developmentstate}'.")
 
         # Check for mandatory files
         files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
