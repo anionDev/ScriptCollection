@@ -362,10 +362,11 @@ def GenerateARC42ReferenceTemplate() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--folder', required=False)
     parser.add_argument('-p', '--productname', required=False)
+    parser.add_argument('-s', '--subfolder', required=False)
     args = parser.parse_args()
 
     folder = args.folder
     if folder is None:
         folder = os.getcwd()
-    ScriptCollectionCore().generate_arc42_reference_template(folder, args.productname)
+    ScriptCollectionCore().generate_arc42_reference_template(folder, args.productname, args.subfolder)
     return 0

@@ -1757,11 +1757,13 @@ chmod {permission} {link_file}
 """.replace("XDX", "ODO"))
 
     @GeneralUtilities.check_arguments
-    def generate_arc42_reference_template(self, repository: str, productname: str = None):
+    def generate_arc42_reference_template(self, repository: str, productname: str = None, subfolder:str=None):
         productname: str
         if productname is None:
             productname = os.path.basename(repository)
-        reference_root_folder = f"{repository}/Other/Resources/Reference"
+        if subfolder is None:
+            subfolder="Other/Resources/Reference"
+        reference_root_folder = f"{repository}/{subfolder}"
         reference_content_folder = reference_root_folder + "/Technical"
         if os.path.isdir(reference_root_folder):
             raise ValueError(f"The folder '{reference_root_folder}' does already exist.")
@@ -1782,7 +1784,7 @@ TXDX
 
 # Quality goals
 
- TXDX
+TXDX
 
 # Stakeholder
 
@@ -1803,7 +1805,7 @@ TXDX
 
 ## Scope
 
- TXDX""")
+TXDX""")
         self.__add_chapter(main_reference_file, reference_content_folder, 4, 'Solution Strategy', """TXDX""")
         self.__add_chapter(main_reference_file, reference_content_folder, 5, 'Building Block View', """TXDX""")
         self.__add_chapter(main_reference_file, reference_content_folder, 6, 'Runtime View', """TXDX""")
