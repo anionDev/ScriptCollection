@@ -1841,6 +1841,74 @@ class TasksForCommonProjectStructure:
         shutil.copyfile(os.path.join(artifacts_folder, versioned_api_spec_file), os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.json"))
 
     @GeneralUtilities.check_arguments
+    def ensure_openapigenerator_is_available(self, codeunit_folder: str) -> None:
+        openapigenerator_folder = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        filename = "open-api-generator.jar"
+        jar_file = f"{openapigenerator_folder}/{filename}"
+        jar_file_exists = os.path.isfile(jar_file)
+        if internet_connection_is_available:  # Load/Update
+            github_api_releases_link = "https://api.github.com/repos/OpenAPITools/openapi-generator/releases"
+            with urllib.request.urlopen(github_api_releases_link) as release_information_url:
+                latest_release_infos = json.load(release_information_url)[0]
+                latest_version = latest_release_infos["tag_name"][1:]
+                download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{latest_version}/openapi-generator-cli-{latest_version}.jar"
+                GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
+                GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
+                urllib.request.urlretrieve(download_link, jar_file)
+        else:
+            if jar_file_exists:
+                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download OpenAPIGenerator.")
+
+    def generate_api_client_from_dependent_codeunit_in_dotnet(self, file: str, name_of_api_providing_codeunit: str, base_namespace: str) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
+        codeunit_name = os.path.basename(codeunit_folder)
+        client_subpath = f"{codeunit_name}/APIClients/{name_of_api_providing_codeunit}"
+        namespace = f"{base_namespace}.APIClients.{name_of_api_providing_codeunit}"
+        self.generate_api_client_from_dependent_codeunit(file, name_of_api_providing_codeunit, client_subpath, "csharp", f"--additional-properties packageName={namespace}")
+
+    def generate_api_client_from_dependent_codeunit(self, file: str, name_of_api_providing_codeunit: str, target_subfolder_in_codeunit: str, language: str, additional_properties: str) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
+        self.ensure_openapigenerator_is_available(codeunit_folder)
+        openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
+        openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
+        target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        ScriptCollectionCore().run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis {additional_properties}', codeunit_folder)
+
+        # move docs to correct folder
+        target_folder_docs = os.path.join(target_folder, "docs")
+        target_folder_docs_correct = os.path.join(codeunit_folder, "Other", "Reference", "ReferenceContent", f"{name_of_api_providing_codeunit}-API")
+        GeneralUtilities.ensure_directory_does_not_exist(target_folder_docs_correct)
+        GeneralUtilities.ensure_directory_exists(target_folder_docs_correct)
+        GeneralUtilities.move_content_of_folder(target_folder_docs, target_folder_docs_correct)
+        GeneralUtilities.ensure_directory_does_not_exist(target_folder_docs)
+
+        code_folders = GeneralUtilities.get_direct_folders_of_folder(os.path.join(target_folder, "src"))
+
+        # remove test-folder
+        tests_folder = [x for x in code_folders if x.endswith(".Test")][0]
+        GeneralUtilities.ensure_directory_does_not_exist(tests_folder)
+
+        # move source to correct folder
+        src_folder = [x for x in code_folders if not x.endswith(".Test")][0]
+        target_folder_src = GeneralUtilities.resolve_relative_path("../..", src_folder)
+
+        for targetfile in GeneralUtilities.get_direct_files_of_folder(target_folder_src):
+            GeneralUtilities.ensure_file_does_not_exist(targetfile)
+        for folder in GeneralUtilities.get_direct_folders_of_folder(target_folder_src):
+            f = folder.replace("\\", "/")
+            if not f.endswith("/.openapi-generator") and not f.endswith("/src"):
+                GeneralUtilities.ensure_directory_does_not_exist(f)
+        GeneralUtilities.ensure_directory_exists(target_folder_src)
+        GeneralUtilities.move_content_of_folder(src_folder, target_folder_src)
+        GeneralUtilities.ensure_directory_does_not_exist(src_folder)
+        for targetfile in GeneralUtilities.get_direct_files_of_folder(target_folder_src):
+            GeneralUtilities.ensure_file_does_not_exist(targetfile)
+
+    @GeneralUtilities.check_arguments
     def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str) -> None:
         encoding = "utf-8"
         with open(packagejson_file, encoding=encoding) as f:
@@ -2507,7 +2575,7 @@ class TasksForCommonProjectStructure:
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
         if updated_dependencies:
-            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck", repository_folder)  # TODO set verbosity
+            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck", repository_folder, verbosity=verbosity)  # TODO set timeout
             self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
