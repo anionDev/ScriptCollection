@@ -2575,7 +2575,7 @@ class TasksForCommonProjectStructure:
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
         if updated_dependencies:
-            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck", repository_folder)  # TODO set verbosity
+            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck", repository_folder, verbosity=verbosity)  # TODO set timeout
             self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
