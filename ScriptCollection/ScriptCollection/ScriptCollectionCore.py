@@ -1604,7 +1604,7 @@ DNS                 = {domain}
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
                 package_name = line.replace(">", "").strip().split(" ")[0]
-                if not (ignored_dependencies in package_name):
+                if not (package_name in ignored_dependencies):
                     GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
                     self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)
 
