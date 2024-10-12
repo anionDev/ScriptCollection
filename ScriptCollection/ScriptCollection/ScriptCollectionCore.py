@@ -30,7 +30,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.19"
+version = "3.5.20"
 __version__ = version
 
 
@@ -414,8 +414,8 @@ class ScriptCollectionCore:
             args.append("-m")
             args.append(commit_message)
         args.append(sourcebranch)
-        self.run_program_argsasarray(
-            "git", args, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["submodule", "update"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return self.git_get_commit_id(directory)
 
     @GeneralUtilities.check_arguments
