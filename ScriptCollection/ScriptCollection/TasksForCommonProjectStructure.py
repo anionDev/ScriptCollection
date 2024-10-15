@@ -1391,7 +1391,7 @@ class TasksForCommonProjectStructure:
 
         # Check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]" == <codeunitname> in file
-        supported_codeunitspecificationversion = "2.9.1"  # should always be the latest version of the ProjectTemplates-repository
+        supported_codeunitspecificationversion = "2.9.4"  # should always be the latest version of the ProjectTemplates-repository
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         if not os.path.isfile(codeunit_file):
             raise ValueError(f'Codeunitfile "{codeunit_file}" does not exist.')
@@ -1493,7 +1493,7 @@ class TasksForCommonProjectStructure:
         shutil.copy(changelog_file, target_folder)
 
         # Hints-file
-        hints_file = os.path.join(codeunit_folder, "Other", "Hints.md")
+        hints_file = os.path.join(codeunit_folder, "Other", "Reference", "ReferenceContent", "Hints.md")
         if not os.path.isfile(hints_file):
             raise ValueError(f"Hints-file '{hints_file}' does not exist.")
 
