@@ -14,6 +14,10 @@ The details can be found [here](https://github.com/anionDev/ScriptCollection/tre
 
 This product requires to use `scbuildcodeunits` implemented/provided by [ScriptCollection](https://github.com/anionDev/ScriptCollection) to build the project.
 
+## Changelog
+
+See the [Changelog-folder](./Other/Resources/Changelog).
+
 ## Contribue
 
 Contributions are always welcome.
@@ -34,4 +38,4 @@ This product follows the [SemVerPractise](https://projects.aniondev.de/PublicPro
 
 ## License
 
-See [License.txt](https://raw.githubusercontent.com/anionDev/ScriptCollection/main/License.txt) for license-information.
+See [License.txt](./License.txt) for license-information.

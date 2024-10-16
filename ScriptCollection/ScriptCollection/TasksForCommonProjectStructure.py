@@ -458,6 +458,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
         GeneralUtilities.ensure_directory_exists(obj_folder)
         self.__sc.run_program("docfx", "docfx.json", folder_of_current_file, verbosity=verbosity)
+        # TODO generate also a darkmode-variant (darkFX for example, see https://dotnet.github.io/docfx/extensions/templates.html )
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
     def standardized_task_verify_standard_format_csproj_files(self, codeunit_folder: str) -> bool:
@@ -1509,7 +1510,8 @@ class TasksForCommonProjectStructure:
         target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DiffReport", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         GeneralUtilities.ensure_directory_exists(target_folder)
-        target_file = os.path.join(target_folder, "DiffReport.html").replace("\\", "/")
+        target_file_light = os.path.join(target_folder, "DiffReport.html").replace("\\", "/")
+        target_file_dark = os.path.join(target_folder, "DiffReportDark.html").replace("\\", "/")
         src = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # hash/id of empty git-tree
         src_prefix = "Begin"
         if self.__sc.get_current_git_branch_has_tag(repository_folder):
@@ -1518,7 +1520,15 @@ class TasksForCommonProjectStructure:
             src_prefix = latest_tag
         dst = "HEAD"
         dst_prefix = f"v{current_version}"
-        self.__sc.run_program_argsasarray("sh", ['-c', f'git diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name} | pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark'], repository_folder)
+
+        temp_file = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        try:
+            GeneralUtilities.ensure_file_does_not_exist(temp_file)
+            GeneralUtilities.write_text_to_file(temp_file, self.__sc.run_program("git", f'--no-pager diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name}', repository_folder)[1])
+            self.__sc.run_program("pygmentize", f'-l diff -f html -O full -o {target_file_light} -P style=default {temp_file}', repository_folder)
+            self.__sc.run_program("pygmentize", f'-l diff -f html -O full -o {target_file_dark} -P style=github-dark {temp_file}', repository_folder)
+        finally:
+            GeneralUtilities.ensure_file_does_not_exist(temp_file)
 
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str) -> str:
