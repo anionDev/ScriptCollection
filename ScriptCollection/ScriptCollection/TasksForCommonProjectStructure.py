@@ -2347,7 +2347,8 @@ class TasksForCommonProjectStructure:
         if internet_connection_is_available:  # Load/Update
             GeneralUtilities.ensure_directory_does_not_exist(resource_folder)
             GeneralUtilities.ensure_directory_exists(resource_folder)
-            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest", timeout=5)
+            headers = {'Cache-Control': 'no-cache'}
+            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest", timeout=5, headers=headers)
             latest_version = response.json()["name"]
             filename_on_github = get_filename_on_github(latest_version)
             jar_link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
