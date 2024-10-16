@@ -14,6 +14,10 @@ The details can be found [here](https://github.com/anionDev/ScriptCollection/tre
 
 This product requires to use `scbuildcodeunits` implemented/provided by [ScriptCollection](https://github.com/anionDev/ScriptCollection) to build the project.
 
+## Changelog
+
+See the [Changelog-folder](./Other/Resources/Changelog).
+
 ## Contribue
 
 Contributions are always welcome.

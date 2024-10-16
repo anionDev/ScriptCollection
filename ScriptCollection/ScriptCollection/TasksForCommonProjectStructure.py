@@ -1518,7 +1518,7 @@ class TasksForCommonProjectStructure:
             src_prefix = latest_tag
         dst = "HEAD"
         dst_prefix = f"v{current_version}"
-        self.__sc.run_program_argsasarray("sh", ['-c', f'git diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name} | pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark'], repository_folder)
+        self.__sc.run_program_argsasarray("sh", ['-c', f'git --no-pager diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name} | pygmentize -l diff -f html -O full -o {target_file} -P style=github-dark'], repository_folder)
 
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str) -> str:
