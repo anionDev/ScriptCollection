@@ -38,4 +38,4 @@ This product follows the [SemVerPractise](https://projects.aniondev.de/PublicPro
 
 ## License
 
-See [License.txt](https://raw.githubusercontent.com/anionDev/ScriptCollection/main/License.txt) for license-information.
+See [License.txt](./License.txt) for license-information.
