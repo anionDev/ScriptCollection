@@ -204,11 +204,11 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_repository_has_unstaged_changes_of_tracked_files(self, repositoryFolder: str):
-        return self.__git_changes_helper(repositoryFolder, ["diff"])
+        return self.__git_changes_helper(repositoryFolder, ["--no-pager", "diff"])
 
     @GeneralUtilities.check_arguments
     def git_repository_has_staged_changes(self, repositoryFolder: str):
-        return self.__git_changes_helper(repositoryFolder, ["diff", "--cached"])
+        return self.__git_changes_helper(repositoryFolder, ["--no-pager", "diff", "--cached"])
 
     @GeneralUtilities.check_arguments
     def git_repository_has_uncommitted_changes(self, repositoryFolder: str) -> bool:

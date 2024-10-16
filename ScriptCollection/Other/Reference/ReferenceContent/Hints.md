@@ -10,7 +10,6 @@ The following requirements from the [tools-list](https://github.com/anionDev/Scr
 - `gitversion`
 - `python`
 - `reportgenerator`
-- `sh`
 - `scriptcollection`
 
 To create a release the following tools are also required:
