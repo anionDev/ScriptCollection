@@ -30,7 +30,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.22"
+version = "3.5.23"
 __version__ = version
 
 
@@ -1071,15 +1071,15 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_docker_debian_version(self, image_tag: str) -> str:
-        result = ScriptCollectionCore().run_program_argsasarray(
-            "docker", ['run', f'debian:{image_tag}', 'bash', '-c', 'apt-get -y update && apt-get -y install lsb-release && lsb_release -cs'])
+        result = ScriptCollectionCore().run_program_argsasarray("docker", ['run', f'debian:{image_tag}', 'bash', '-c', 'apt-get -y update && apt-get -y install lsb-release && lsb_release -cs'])
         result_line = GeneralUtilities.string_to_lines(result[1])[-2]
         return result_line
 
     @GeneralUtilities.check_arguments
     def get_latest_tor_version_of_debian_repository(self, debian_version: str) -> str:
         package_url: str = f"https://deb.torproject.org/torproject.org/dists/{debian_version}/main/binary-amd64/Packages"
-        r = requests.get(package_url, timeout=5)
+        headers = {'Cache-Control': 'no-cache'}
+        r = requests.get(package_url, timeout=5, headers=headers)
         if r.status_code != 200:
             raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
         lines = GeneralUtilities.string_to_lines(GeneralUtilities.bytes_to_string(r.content))
@@ -1095,7 +1095,7 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage"))
         coveragefile = os.path.join(repository_folder, "Other/TestCoverage/TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(coveragefile)
-        os.rename(os.path.join(repository_folder,                "coverage.xml"), coveragefile)
+        os.rename(os.path.join(repository_folder, "coverage.xml"), coveragefile)
 
     @GeneralUtilities.check_arguments
     def get_file_permission(self, file: str) -> str:
@@ -1105,11 +1105,11 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __get_file_permission_helper(self, permissions: str) -> str:
-        return str(self.__to_octet(permissions[0:3]))+str(self.__to_octet(permissions[3:6]))+str(self.__to_octet(permissions[6:9]))
+        return str(self.__to_octet(permissions[0:3])) + str(self.__to_octet(permissions[3:6]))+str(self.__to_octet(permissions[6:9]))
 
     @GeneralUtilities.check_arguments
     def __to_octet(self, string: str) -> int:
-        return int(self.__to_octet_helper(string[0])+self.__to_octet_helper(string[1])+self.__to_octet_helper(string[2]), 2)
+        return int(self.__to_octet_helper(string[0]) + self.__to_octet_helper(string[1])+self.__to_octet_helper(string[2]), 2)
 
     @GeneralUtilities.check_arguments
     def __to_octet_helper(self, string: str) -> str:
@@ -1568,7 +1568,8 @@ DNS                 = {domain}
                 # (something like "cyclonedx-bom>=2.11.0" for example)
                 package = line.split(">")[0]
                 operator = ">=" if ">=" in line else ">"
-                response = requests.get(f'https://pypi.org/pypi/{package}/json', timeout=5)
+                headers = {'Cache-Control': 'no-cache'}
+                response = requests.get(f'https://pypi.org/pypi/{package}/json', timeout=5, headers=headers)
                 latest_version = response.json()['info']['version']
                 # TODO update only minor- and patch-version
                 # TODO print info if there is a new major-version
@@ -1723,7 +1724,8 @@ chmod {permission} {link_file}
         proxies = None
         if GeneralUtilities.string_has_content(proxy):
             proxies = {"http": proxy}
-        response = requests.get('https://ipinfo.io',  proxies=proxies, timeout=5)
+        headers = {'Cache-Control': 'no-cache'}
+        response = requests.get('https://ipinfo.io',  proxies=proxies, timeout=5, headers=headers)
         network_information_as_json_string = GeneralUtilities.bytes_to_string(
             response.content)
         return network_information_as_json_string
