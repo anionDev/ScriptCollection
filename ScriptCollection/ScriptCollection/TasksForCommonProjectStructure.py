@@ -2514,7 +2514,11 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}", build_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
-        self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"BuildResult_.+": True, "BOM": False, "CodeAnalysisResult": False, "SourceCode": True}))
+
+        artifacts = {"BuildResult_.+": True, "BOM": False, "SourceCode": True}
+        if self.codeunit_has_testable_sourcecode(codeunit_file):
+            artifacts["CodeAnalysisResult"] = False
+        self.verify_artifact_exists(codeunit_folder, dict[str, bool](artifacts))
 
         codeunit_hast_testable_sourcecode = self.codeunit_has_testable_sourcecode(codeunit_file)
         if codeunit_hast_testable_sourcecode:
