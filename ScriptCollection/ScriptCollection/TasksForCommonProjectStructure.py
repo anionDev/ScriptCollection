@@ -1287,8 +1287,9 @@ class TasksForCommonProjectStructure:
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
         codeunitname_lower = codeunitname.lower()
-        codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={target_environment_type}", "--build-arg", f"Version={codeunitversion}"]
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
+        codeunitversion = self.get_version_of_codeunit(codeunit_file)
+        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={target_environment_type}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.get_codeunit_owner_name(codeunit_file)}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.get_codeunit_owner_emailaddress(codeunit_file)}"]
         for custom_argument_key, custom_argument_value in custom_arguments.items():
             args.append("--build-arg")
             args.append(f"{custom_argument_key}={custom_argument_value}")
@@ -1430,11 +1431,11 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
 
         # Check owner-name
-        codeunit_ownername_in_codeunit_file = root.xpath('//cps:codeunit/cps:codeunitownername/text()', namespaces=namespaces)[0]
+        codeunit_ownername_in_codeunit_file = self. get_codeunit_owner_name(codeunit_file)
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_ownername_in_codeunit_file), "No valid name for codeunitowner given.")
 
         # Check owner-emailaddress
-        codeunit_owneremailaddress_in_codeunit_file = root.xpath('//cps:codeunit/cps:codeunitowneremailaddress/text()', namespaces=namespaces)[0]
+        codeunit_owneremailaddress_in_codeunit_file = self.get_codeunit_owner_emailaddress(codeunit_file)
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_owneremailaddress_in_codeunit_file), "No valid email-address for codeunitowner given.")
 
         # Check development-state
@@ -1511,6 +1512,22 @@ class TasksForCommonProjectStructure:
 
         # Generate diff-report
         self.generate_diff_report(repository_folder, codeunit_name, codeunit_version)
+
+    @GeneralUtilities.check_arguments
+    def get_codeunit_owner_name(self, codeunit_file: str) -> None:
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
+                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        result = root.xpath('//cps:codeunit/cps:codeunitownername/text()', namespaces=namespaces)[0]
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_codeunit_owner_emailaddress(self, codeunit_file: str) -> None:
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
+                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        result = root.xpath('//cps:codeunit/cps:codeunitowneremailaddress/text()', namespaces=namespaces)[0]
+        return result
 
     @GeneralUtilities.check_arguments
     def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str) -> None:
