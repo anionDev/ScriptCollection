@@ -1277,6 +1277,10 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str]) -> None:
+        self.standardized_tasks_build_for_docker_project_with_additional_build_arguments(build_script_file, target_environment_type, verbosity, commandline_arguments, dict[str, str]())
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
         use_cache: bool = False
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         sc: ScriptCollectionCore = ScriptCollectionCore()
@@ -1284,7 +1288,11 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
         codeunitname_lower = codeunitname.lower()
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={target_environment_type}", "--build-arg", f"Version={codeunitversion}", "--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
+        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={target_environment_type}", "--build-arg", f"Version={codeunitversion}"]
+        for custom_argument_key, custom_argument_value in custom_arguments.items():
+            args.append("--build-arg")
+            args.append(f"{custom_argument_key}={custom_argument_value}")
+        args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
         if not use_cache:
             args.append("--no-cache")
         args.append(".")
