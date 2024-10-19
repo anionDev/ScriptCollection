@@ -4,6 +4,7 @@ import json
 import binascii
 import filecmp
 import hashlib
+import multiprocessing
 import time
 from io import BytesIO
 import itertools
@@ -1870,3 +1871,17 @@ TXDX
 - [QualityCheck-system](TXDX)
 
 """)
+
+    @GeneralUtilities.check_arguments
+    def run_with_timeout(self, method, timeout_in_seconds: float) -> bool:
+        # Returns true if the method was terminated due to a timeout
+        # Returns false if the method terminates in the given time
+        p = multiprocessing.Process(target=method)
+        p.start()
+        p.join(timeout_in_seconds)
+        if p.is_alive():
+            p.kill()
+            p.join()
+            return True
+        else:
+            return False
