@@ -4,6 +4,7 @@ import json
 import binascii
 import filecmp
 import hashlib
+import multiprocessing
 import time
 from io import BytesIO
 import itertools
@@ -30,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.24"
+version = "3.5.25"
 __version__ = version
 
 
@@ -1072,7 +1073,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_docker_debian_version(self, image_tag: str) -> str:
         result = ScriptCollectionCore().run_program_argsasarray("docker", ['run', f'debian:{image_tag}', 'bash', '-c', 'apt-get -y update && apt-get -y install lsb-release && lsb_release -cs'])
-        result_line = GeneralUtilities.string_to_lines(result[1])[-2]
+        result_line = GeneralUtilities.string_to_lines(result[1])[-1]
         return result_line
 
     @GeneralUtilities.check_arguments
@@ -1870,3 +1871,17 @@ TXDX
 - [QualityCheck-system](TXDX)
 
 """)
+
+    @GeneralUtilities.check_arguments
+    def run_with_timeout(self, method, timeout_in_seconds: float) -> bool:
+        # Returns true if the method was terminated due to a timeout
+        # Returns false if the method terminates in the given time
+        p = multiprocessing.Process(target=method)
+        p.start()
+        p.join(timeout_in_seconds)
+        if p.is_alive():
+            p.kill()
+            p.join()
+            return True
+        else:
+            return False
