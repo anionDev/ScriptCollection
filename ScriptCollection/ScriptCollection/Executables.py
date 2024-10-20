@@ -271,8 +271,9 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--verbosity', required=False, default=1)
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
+    parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv)
+    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv, args.removeuncommittedfiles)
     return 0
 
 

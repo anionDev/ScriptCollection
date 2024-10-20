@@ -990,7 +990,7 @@ class TasksForCommonProjectStructure:
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target)
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True)
 
         reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -1199,7 +1199,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
         self.__sc.git_checkout(repository_folder, source_branch)
-        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None)
+        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None, [], True)
         self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
         self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
@@ -1258,7 +1258,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("git", "clean -dfx", information.repository,  verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target)
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True)
 
         self.assert_no_uncommitted_changes(information.repository)
 
@@ -2161,7 +2161,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
-        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built, commandlinearguments)
+        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built, commandlinearguments, False)
 
     @GeneralUtilities.check_arguments
     def build_codeunitsC(self, repository_folder: str, image: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, commandlinearguments: list[str] = []) -> None:
@@ -2173,19 +2173,23 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docker", f"run --volume {repository_folder}:/Workspace/Repository " + f"-e repositoryfolder=/Workspace/Repository -e verbosity={verbosity} -e targetenvironment={target_environmenttype} {image}", repository_folder)
 
     @GeneralUtilities.check_arguments
-    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = []) -> None:
+    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False) -> None:
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         codeunits = self.get_codeunits(repository_folder, False)
-        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments)
+        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes)
 
     @GeneralUtilities.check_arguments
-    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = []) -> None:
+    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False) -> None:
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
-        if is_pre_merge and contains_uncommitted_changes:
-            raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
+        if contains_uncommitted_changes:
+            if is_pre_merge:
+                raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
+        else:
+            if do_git_clean_when_no_changes:
+                self.__sc.run_program("git", "clean -dfx", repository_folder)
         subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
         codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
 
@@ -2615,7 +2619,7 @@ class TasksForCommonProjectStructure:
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
         if updated_dependencies:
-            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck", repository_folder, verbosity=verbosity)  # TODO set timeout
+            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck --removeuncommittedfiles", repository_folder, verbosity=verbosity)  # TODO set timeout
             self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
