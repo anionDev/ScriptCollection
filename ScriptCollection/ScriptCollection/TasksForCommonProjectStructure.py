@@ -2129,10 +2129,12 @@ class TasksForCommonProjectStructure:
         ce_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/DevelopmentCertificate", codeunit_folder)
         ca_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/CA", codeunit_folder)
         ce_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DevelopmentCertificate", codeunit_folder)
-        ca_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/A", codeunit_folder)
+        ca_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/CA", codeunit_folder)
 
+        GeneralUtilities.ensure_directory_does_not_exist(ce_target_folder)
         GeneralUtilities.ensure_directory_exists(ce_target_folder)
         GeneralUtilities.copy_content_of_folder(ce_source_folder, ce_target_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(ca_target_folder)
         GeneralUtilities.ensure_directory_exists(ca_target_folder)
         GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
