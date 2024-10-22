@@ -1692,8 +1692,11 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str, verbosity: int) -> None:
-        self.run_with_epew("npm", "clean-install", package_json_folder, verbosity=verbosity)
+    def do_npm_install(self, package_json_folder: str,force:bool, verbosity: int) -> None:
+        argument = "clean-install"
+        if force:
+            argument = f"{argument} --force"
+        self.run_with_epew("npm", argument, package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
@@ -2129,10 +2132,12 @@ class TasksForCommonProjectStructure:
         ce_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/DevelopmentCertificate", codeunit_folder)
         ca_source_folder = GeneralUtilities.resolve_relative_path("Other/Resources/CA", codeunit_folder)
         ce_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DevelopmentCertificate", codeunit_folder)
-        ca_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/A", codeunit_folder)
+        ca_target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/CA", codeunit_folder)
 
+        GeneralUtilities.ensure_directory_does_not_exist(ce_target_folder)
         GeneralUtilities.ensure_directory_exists(ce_target_folder)
         GeneralUtilities.copy_content_of_folder(ce_source_folder, ce_target_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(ca_target_folder)
         GeneralUtilities.ensure_directory_exists(ca_target_folder)
         GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
