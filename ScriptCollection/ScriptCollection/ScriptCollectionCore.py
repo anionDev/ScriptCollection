@@ -1788,7 +1788,7 @@ chmod {permission} {link_file}
         main_reference_file = f"{reference_root_folder}/Reference.md"
         GeneralUtilities.ensure_file_exists(main_reference_file)
         GeneralUtilities.write_text_to_file(main_reference_file, f"""# {productname}
-    
+
 TXDX add minimal service-description here.
 
 ## Technical documentation
