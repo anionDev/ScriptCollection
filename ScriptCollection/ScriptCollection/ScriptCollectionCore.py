@@ -1880,7 +1880,7 @@ TXDX
 - [Productive-System](TXDX)
 - [QualityCheck-system](TXDX)
 
-""")
+""".replace("XDX", "ODO"))
 
     @GeneralUtilities.check_arguments
     def run_with_timeout(self, method, timeout_in_seconds: float) -> bool:
