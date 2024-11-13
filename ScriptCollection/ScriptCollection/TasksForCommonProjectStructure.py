@@ -1692,11 +1692,16 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str,force:bool, verbosity: int) -> None:
-        argument = "clean-install"
+    def do_npm_install(self, package_json_folder: str, force: bool, verbosity: int) -> None:
+        argument1 = "install"
         if force:
-            argument = f"{argument} --force"
-        self.run_with_epew("npm", argument, package_json_folder, verbosity=verbosity)
+            argument1 = f"{argument1} --force"
+        self.run_with_epew("npm", argument1, package_json_folder, verbosity=verbosity)
+
+        argument2 = "clean-install"
+        if force:
+            argument2 = f"{argument2} --force"
+        self.run_with_epew("npm", argument2, package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
@@ -2397,7 +2402,7 @@ class TasksForCommonProjectStructure:
     def generate_svg_files_from_plantuml_files(self, target_folder: str) -> None:
         self.ensure_plantuml_is_available(target_folder)
         plant_uml_folder = os.path.join(target_folder, "Other", "Resources", "PlantUML")
-        files_folder = os.path.join(target_folder, "Other/Reference")
+        files_folder = os.path.join(target_folder, "Other", "Reference")
         sc = ScriptCollectionCore()
         for file in GeneralUtilities.get_all_files_of_folder(files_folder):
             if file.endswith(".plantuml"):

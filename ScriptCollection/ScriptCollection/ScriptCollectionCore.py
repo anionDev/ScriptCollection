@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.28"
+version = "3.5.29"
 __version__ = version
 
 
@@ -1788,7 +1788,7 @@ chmod {permission} {link_file}
         main_reference_file = f"{reference_root_folder}/Reference.md"
         GeneralUtilities.ensure_file_exists(main_reference_file)
         GeneralUtilities.write_text_to_file(main_reference_file, f"""# {productname}
-    
+
 TXDX add minimal service-description here.
 
 ## Technical documentation
@@ -1880,7 +1880,7 @@ TXDX
 - [Productive-System](TXDX)
 - [QualityCheck-system](TXDX)
 
-""")
+""".replace("XDX", "ODO"))
 
     @GeneralUtilities.check_arguments
     def run_with_timeout(self, method, timeout_in_seconds: float) -> bool:
