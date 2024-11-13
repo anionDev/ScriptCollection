@@ -2606,6 +2606,13 @@ class TasksForCommonProjectStructure:
         codeunits = self.get_codeunits(repository_folder)
         updated_dependencies = False
         verbosity: int = 1  # TODO set value dynamically
+        update_dependencies_script_filename = "UpdateDependencies.py"
+        # update dependencies of resources
+        global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
+        if os.path.isfile(os.path.join(global_scripts_folder, update_dependencies_script_filename)):
+            self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder)
+
+        # update dependencies of codeunits
         for codeunit in codeunits:
             codeunit_file = os.path.join(repository_folder, codeunit, f"{codeunit}.codeunit.xml")
             codeunit_has_updatable_dependencies = self.codeunit_has_updatable_dependencies(codeunit_file)
@@ -2613,7 +2620,7 @@ class TasksForCommonProjectStructure:
                 codeunit_folder = os.path.join(repository_folder, codeunit)
                 update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
                 GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
-                self.__sc.run_program("python", "UpdateDependencies.py", update_dependencies_script_folder, verbosity)
+                self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     updated_dependencies = True
                     version_of_project = self.get_version_of_project(repository_folder)
