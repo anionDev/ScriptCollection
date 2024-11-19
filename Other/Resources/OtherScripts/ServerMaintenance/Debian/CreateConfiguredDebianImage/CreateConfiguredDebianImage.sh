@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e
+set -e
 #set -o pipefail
 
 # Source https://wiki.debian.org/DebianInstaller/Preseed/EditIso
