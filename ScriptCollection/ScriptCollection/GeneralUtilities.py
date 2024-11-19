@@ -51,13 +51,13 @@ class GeneralUtilities:
                         # Check type of arguments if the type is a generic type seems to be impossible.
                         if not GeneralUtilities.is_generic(function.__annotations__[parameters[index]]):
                             if not isinstance(argument, function.__annotations__[parameters[index]]):
-                                raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type { function.__annotations__[parameters[index]]} but has type "+str(type(argument)))
+                                raise TypeError(f"Argument with index {index} for function {function.__name__} ('{str(argument)}') is not of type {function.__annotations__[parameters[index]]} but has type "+str(type(argument)))
             for index, named_argument in enumerate(named_args):
                 if named_args[named_argument] is not None:
                     if parameters[index] in function.__annotations__:
                         if not GeneralUtilities.is_generic(function.__annotations__.get(named_argument)):
                             if not isinstance(named_args[named_argument], function.__annotations__.get(named_argument)):
-                                raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') is not of type { function.__annotations__.get(named_argument)}")
+                                raise TypeError(f"Argument with name {named_argument} for function {function.__name__} ('{str(named_args[named_argument])}') is not of type {function.__annotations__.get(named_argument)}")
             return function(*args, **named_args)
         __check_function.__doc__ = function.__doc__
         return __check_function
@@ -385,14 +385,8 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def __remove_readonly(func, path, _):
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-
-    @staticmethod
-    @check_arguments
-    def rmtree(directory: str) -> None:
-        shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)
+    def __rmtree(directory: str) -> None:
+        shutil.rmtree(directory)
 
     @staticmethod
     @check_arguments
@@ -404,8 +398,8 @@ class GeneralUtilities:
                     os.chmod(filename, stat.S_IWUSR)
                     os.remove(filename)
                 for name in dirs:
-                    GeneralUtilities.rmtree(os.path.join(root, name))
-            GeneralUtilities.rmtree(path)
+                    GeneralUtilities.__rmtree(os.path.join(root, name))
+            GeneralUtilities.__rmtree(path)
 
     @staticmethod
     @check_arguments

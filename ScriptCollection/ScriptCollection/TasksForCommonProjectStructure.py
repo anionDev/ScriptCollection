@@ -753,7 +753,7 @@ class TasksForCommonProjectStructure:
         for file in GeneralUtilities.get_all_files_of_folder(src_folder)+GeneralUtilities.get_all_files_of_folder(tests_folder):
             relative_file_path_in_repository = os.path.relpath(file, repository_folder)
             if file.endswith(".py") and os.path.getsize(file) > 0 and not self.__sc.file_is_git_ignored(relative_file_path_in_repository, repository_folder):
-                GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in {os.path.relpath(file,os.path.join(repository_folder,codeunitname))}.")
+                GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in {os.path.relpath(file, os.path.join(repository_folder, codeunitname))}.")
                 linting_result = self.__sc.python_file_has_errors(file, repository_folder)
                 if (linting_result[0]):
                     errors_found = True
@@ -1991,6 +1991,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, commandline_arguments: list[str]) -> None:
+        GeneralUtilities.write_message_to_stdout(f"Create GitHub-release for {productname}.")
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, 1)
         github_repo = f"{github_username}/{productname}"
         artifact_files = []
@@ -2651,6 +2652,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generic_prepare_new_release(self, generic_prepare_new_release_arguments: GenericPrepareNewReleaseArguments):
+        GeneralUtilities.write_message_to_stdout(f"Prepare release for {generic_prepare_new_release_arguments.product_name}.")
 
         # constants
         folder_of_this_file = os.path.dirname(generic_prepare_new_release_arguments.current_file)
@@ -2695,6 +2697,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generic_create_release(self, generic_create_release_arguments: GenericCreateReleaseArguments) -> tuple[bool, str]:
+        GeneralUtilities.write_message_to_stdout(f"Create release for {generic_create_release_arguments.product_name}.")
         folder_of_this_file = os.path.dirname(generic_create_release_arguments.current_file)
         build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
         repository_folder_name = generic_create_release_arguments.product_name
@@ -2742,6 +2745,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_http_documentation(self, update_http_documentation_arguments: UpdateHTTPDocumentationArguments):
+        GeneralUtilities.write_message_to_stdout(f"Update HTTP-documentation for for {update_http_documentation_arguments.product_name}.")
         folder_of_this_file = str(os.path.dirname(update_http_documentation_arguments.current_file))
 
         ref_repo = GeneralUtilities.resolve_relative_path(f"../../Submodules/{update_http_documentation_arguments.reference_repository_name}", folder_of_this_file)
