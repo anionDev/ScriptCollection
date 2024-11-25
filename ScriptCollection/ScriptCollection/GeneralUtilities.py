@@ -732,8 +732,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def read_csv_file(file: str, ignore_first_line: bool = False, treat_number_sign_at_begin_of_line_as_comment: bool = True, trim_values: bool = True,
-                      encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list[list[str]]:
+    def read_csv_file(file: str, ignore_first_line: bool = False, treat_number_sign_at_begin_of_line_as_comment: bool = True, trim_values: bool = True, encoding="utf-8", ignore_empty_lines: bool = True, separator_character: str = ";", values_are_surrounded_by_quotes: bool = False) -> list[list[str]]:
         lines = GeneralUtilities.read_lines_from_file(file, encoding)
 
         if ignore_first_line:

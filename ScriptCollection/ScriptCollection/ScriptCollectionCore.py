@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.31"
+version = "3.5.32"
 __version__ = version
 
 
@@ -1719,26 +1719,22 @@ chmod {permission} {link_file}
         GeneralUtilities.write_lines_to_file(file, lines)
 
     @GeneralUtilities.check_arguments
-    def get_external_ip(self, proxy: str) -> str:
-        information = self.get_externalnetworkinformation_as_json_string(proxy)
+    def get_external_ip(self) -> str:
+        information = self.get_externalnetworkinformation_as_json_string()
         parsed = json.loads(information)
-        return parsed.ip
+        return parsed.IPAddress
 
     @GeneralUtilities.check_arguments
-    def get_country_of_external_ip(self, proxy: str) -> str:
-        information = self.get_externalnetworkinformation_as_json_string(proxy)
+    def get_country_of_external_ip(self) -> str:
+        information = self.get_externalnetworkinformation_as_json_string()
         parsed = json.loads(information)
-        return parsed.country
+        return parsed.Country
 
     @GeneralUtilities.check_arguments
-    def get_externalnetworkinformation_as_json_string(self, proxy: str) -> str:
-        proxies = None
-        if GeneralUtilities.string_has_content(proxy):
-            proxies = {"http": proxy}
+    def get_externalnetworkinformation_as_json_string(self) -> str:
         headers = {'Cache-Control': 'no-cache'}
-        response = requests.get('https://ipinfo.io',  proxies=proxies, timeout=5, headers=headers)
-        network_information_as_json_string = GeneralUtilities.bytes_to_string(
-            response.content)
+        response = requests.get('https://clientinformation.anion327.de/API/v1/ClientInformationBackendController/Information',  timeout=5, headers=headers)
+        network_information_as_json_string = GeneralUtilities.bytes_to_string(response.content)
         return network_information_as_json_string
 
     @GeneralUtilities.check_arguments
