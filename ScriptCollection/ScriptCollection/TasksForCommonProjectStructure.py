@@ -2288,7 +2288,7 @@ class TasksForCommonProjectStructure:
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
         changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
         if not os.path.isfile(changelog_file):
-            raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+            raise ValueError(f"Changelog-file '{changelog_file}' does not exist. Try creating it using 'sccreatechangelogentry' for example.")
 
     @GeneralUtilities.check_arguments
     def __check_whether_security_txt_exists(self, repository_folder: str) -> None:
