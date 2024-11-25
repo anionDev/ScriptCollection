@@ -371,3 +371,19 @@ def GenerateARC42ReferenceTemplate() -> int:
         folder = os.getcwd()
     ScriptCollectionCore().generate_arc42_reference_template(folder, args.productname, args.subfolder)
     return 0
+
+
+def CreateChangelogEntry() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--repositoryfolder', required=False, default=".")
+    parser.add_argument('-p', '--message', required=True)
+    parser.add_argument('-s', '--commit', action='store_true', required=False, default=False)
+    args = parser.parse_args()
+
+    folder: str = None
+    if os.path.isabs(args.repositoryfolder):
+        folder = args.repositoryfolder
+    else:
+        folder = GeneralUtilities.resolve_relative_path(args.repositoryfolder, os.getcwd())
+    TasksForCommonProjectStructure().create_changelog_entry(folder, args.message, args.commit)
+    return 0
