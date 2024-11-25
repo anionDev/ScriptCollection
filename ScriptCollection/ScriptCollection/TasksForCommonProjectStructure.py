@@ -1102,9 +1102,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
-    def ensure_certificate_authority_for_development_purposes_is_generated(self, script_file: str):
-        folder_of_current_file = os.path.dirname(script_file)
-        product_folder: str = GeneralUtilities.resolve_relative_path("../..", folder_of_current_file)
+    def ensure_certificate_authority_for_development_purposes_is_generated(self, product_folder: str):
         product_name: str = os.path.basename(product_folder)
         now = datetime.now()
         ca_name = f"{product_name}CA_{now.year:04}{now.month:02}{now.day:02}{now.hour:02}{now.min:02}{now.second:02}"
@@ -1119,6 +1117,15 @@ class TasksForCommonProjectStructure:
                 pass
         if generate_certificate:
             self.__sc.generate_certificate_authority(ca_folder, ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+        # TODO add switch to auto-install the script if desired
+        # for windows: powershell Import-Certificate -FilePath ConSurvCA_20241121000236.crt -CertStoreLocation 'Cert:\CurrentUser\Root'
+        # for linux: (TODO)
+
+    @GeneralUtilities.check_arguments
+    def generate_certificate_for_development_purposes_for_product(self, repository_folder: str):
+        product_name = os.path.basename(repository_folder)
+        ca_folder: str = os.path.join(repository_folder, "Other", "Resources", "CA")
+        self.__generate_certificate_for_development_purposes(product_name, os.path.join(repository_folder, "Other", "Resources"), ca_folder, None)
 
     @GeneralUtilities.check_arguments
     def generate_certificate_for_development_purposes_for_external_service(self, service_folder: str, domain: str = None):
@@ -1159,6 +1166,15 @@ class TasksForCommonProjectStructure:
             ca_name = os.path.basename(self.__sc.find_file_by_extension(ca_folder, "crt"))[:-4]
             self.__sc.sign_certificate(certificate_folder, ca_folder, ca_name, domain, resource_content_filename)
             GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
+
+    @GeneralUtilities.check_arguments
+    def copy_product_resource_to_codeunit_resource_folder(self, codeunit_folder: str, resourcename: str) -> None:
+        src_folder = GeneralUtilities.resolve_relative_path(f"../Other/Resources/{resourcename}", codeunit_folder)
+        GeneralUtilities.assert_condition(os.path.isdir(src_folder), f"Required product-resource {resourcename} does not exist. Expected folder: {src_folder}")
+        trg_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resourcename}", codeunit_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(trg_folder)
+        GeneralUtilities.ensure_directory_exists(trg_folder)
+        GeneralUtilities.copy_content_of_folder(src_folder, trg_folder)
 
     @GeneralUtilities.check_arguments
     def ensure_product_resource_is_imported(self, codeunit_folder: str, product_resource_name: str) -> None:
@@ -1803,7 +1819,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def copy_development_certificate_to_default_development_directory(self, codeunit_folder: str, build_environment: str, domain: str = None, certificate_resource_name: str = "DevelopmentCertificate") -> None:
-        if build_environment == "Development":
+        if build_environment != "Productive":
             codeunit_name: str = os.path.basename(codeunit_folder)
             if domain is None:
                 domain = f"{codeunit_name}.test.local".lower()
@@ -2272,7 +2288,7 @@ class TasksForCommonProjectStructure:
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
         changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
         if not os.path.isfile(changelog_file):
-            raise ValueError(f"Changelog-file '{changelog_file}' does not exist.")
+            raise ValueError(f"Changelog-file '{changelog_file}' does not exist. Try creating it using 'sccreatechangelogentry' for example.")
 
     @GeneralUtilities.check_arguments
     def __check_whether_security_txt_exists(self, repository_folder: str) -> None:
@@ -2742,6 +2758,21 @@ class TasksForCommonProjectStructure:
             self.reference_repository_name = reference_repository_name
             self.commandline_arguments = commandline_arguments
             self.main_branch_name = "main"
+
+    @GeneralUtilities.check_arguments
+    def create_changelog_entry(self, repositoryfolder: str, message: str, commit: bool):
+        current_version = self.get_version_of_project(repositoryfolder)
+        changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
+        if os.path.isdir(changelog_file):
+            raise ValueError(f"Changelogfile {changelog_file} already exists.")
+        else:
+            GeneralUtilities.ensure_file_exists(changelog_file)
+            GeneralUtilities.write_text_to_file(changelog_file, f"""# Release notes
+
+## Changes
+
+- {message}
+""")
 
     @GeneralUtilities.check_arguments
     def update_http_documentation(self, update_http_documentation_arguments: UpdateHTTPDocumentationArguments):
