@@ -1920,15 +1920,30 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
             else:
                 raise ValueError("Can not download OpenAPIGenerator.")
+            
+    @GeneralUtilities.check_arguments
+    def generate_api_client_from_dependent_codeunit_in_angular(self, file: str, name_of_api_providing_codeunit: str, generated_program_part_name: str) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
+        target_subfolder_in_codeunit = f"src/app/generated/{generated_program_part_name}"
+        language = "typescript-angular"
+        self.ensure_openapigenerator_is_available(codeunit_folder)
+        openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
+        openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
+        target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        ScriptCollectionCore().run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
 
+
+    @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_dotnet(self, file: str, name_of_api_providing_codeunit: str, base_namespace: str) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
         codeunit_name = os.path.basename(codeunit_folder)
         client_subpath = f"{codeunit_name}/APIClients/{name_of_api_providing_codeunit}"
         namespace = f"{base_namespace}.APIClients.{name_of_api_providing_codeunit}"
-        self.generate_api_client_from_dependent_codeunit(file, name_of_api_providing_codeunit, client_subpath, "csharp", f"--additional-properties packageName={namespace}")
+        target_subfolder_in_codeunit = client_subpath
+        language = "csharp"
+        additional_properties = f"--additional-properties packageName={namespace}"
 
-    def generate_api_client_from_dependent_codeunit(self, file: str, name_of_api_providing_codeunit: str, target_subfolder_in_codeunit: str, language: str, additional_properties: str) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
         self.ensure_openapigenerator_is_available(codeunit_folder)
         openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
