@@ -1110,8 +1110,8 @@ class TasksForCommonProjectStructure:
         generate_certificate = True
         if os.path.isdir(ca_folder):
             try:
-                ca_file = self.__sc.find_file_by_extension(ca_folder, "crt")  # pylint: disable=unused-variable
-                certificate_is_valid = True   # TODO check if certificate is not valid
+                ca_file = [file for file in GeneralUtilities.get_direct_files_of_folder(ca_folder) if file.endswith(".crt")][-1]
+                certificate_is_valid = True   # TODO check if certificate is really valid
                 generate_certificate = not certificate_is_valid
             except FileNotFoundError:
                 pass
@@ -1920,7 +1920,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
             else:
                 raise ValueError("Can not download OpenAPIGenerator.")
-            
+
     @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_angular(self, file: str, name_of_api_providing_codeunit: str, generated_program_part_name: str) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
@@ -1932,7 +1932,6 @@ class TasksForCommonProjectStructure:
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
         GeneralUtilities.ensure_directory_exists(target_folder)
         ScriptCollectionCore().run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
-
 
     @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_dotnet(self, file: str, name_of_api_providing_codeunit: str, base_namespace: str) -> None:
