@@ -2126,16 +2126,23 @@ class TasksForCommonProjectStructure:
                 if "options" in task:
                     options = task["options"]
                     if "cwd" in options:
-                        cwd = options["cwd"].replace("${workspaceFolder}", ".")
+                        cwd: str = options["cwd"]
+                        cwd = cwd.replace("${workspaceFolder}", ".")
                         relative_script_file = cwd
                 if len(relative_script_file) == 0:
                     relative_script_file = "."
+
+                command_with_args = command
+                if "args" in task:
+                    args = task["args"]
+                    if len(args) > 1:
+                        command_with_args = f"{command_with_args} {' '.join(args)}"
 
                 lines.append(f"  {name}:")
                 lines.append(f'    desc: "{description}"')
                 lines.append(f'    dir: "{cwd}"')
                 lines.append("    cmds:")
-                lines.append(f"      - {command} {{{{.CLI_ARGS}}}}")
+                lines.append(f"      - {command_with_args} {{{{.CLI_ARGS}}}}")
                 lines.append('    aliases:')
                 lines.append(f'      - {name.lower()}')
                 if "aliases" in task:
