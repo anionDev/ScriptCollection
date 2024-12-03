@@ -385,8 +385,14 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def __remove_readonly(func, path, _):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    @staticmethod
+    @check_arguments
     def __rmtree(directory: str) -> None:
-        shutil.rmtree(directory)
+        shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)
 
     @staticmethod
     @check_arguments
