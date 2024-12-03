@@ -473,6 +473,16 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def to_pascal_case(s: str) -> str:
+        return ''.join(current.lower() if prev.isalnum() else current.upper() for prev, current in zip(' ' + s, s) if current.isalnum())
+
+    @staticmethod
+    @check_arguments
+    def find_between(s: str, start: str, end: str) -> str:
+        return s.split(start)[1].split(end)[0]
+
+    @staticmethod
+    @check_arguments
     def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
         lines = [GeneralUtilities.strip_new_line_character(line) for line in lines]
         content = os.linesep.join(lines)
