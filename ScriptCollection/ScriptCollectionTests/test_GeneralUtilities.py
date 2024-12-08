@@ -164,3 +164,9 @@ class GeneralUtilitiesTests(unittest.TestCase):
     def test_internal_ends_with_newline_character_nonempty_string_false(self) -> None:
         # pylint: disable=W0212
         assert GeneralUtilities.ends_with_newline_character("ab".encode()) is False
+
+    def test_to_pascal_case(self) -> None:
+        assert GeneralUtilities.to_pascal_case("ab: Cd-ef_ghIj") == "AbCdEfGhij"
+
+    def test_find_between(self) -> None:
+        assert GeneralUtilities.find_between("a(bc)de", "(", ")") == "bc"

@@ -385,8 +385,14 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def __remove_readonly(func, path, _):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    @staticmethod
+    @check_arguments
     def __rmtree(directory: str) -> None:
-        shutil.rmtree(directory)
+        shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)
 
     @staticmethod
     @check_arguments
@@ -464,6 +470,16 @@ class GeneralUtilities:
             if not os.path.isfile(fileB):
                 result.append(fileB)
         return result
+
+    @staticmethod
+    @check_arguments
+    def to_pascal_case(s: str) -> str:
+        return ''.join(current.lower() if prev.isalnum() else current.upper() for prev, current in zip(' ' + s, s) if current.isalnum())
+
+    @staticmethod
+    @check_arguments
+    def find_between(s: str, start: str, end: str) -> str:
+        return s.split(start)[1].split(end)[0]
 
     @staticmethod
     @check_arguments
