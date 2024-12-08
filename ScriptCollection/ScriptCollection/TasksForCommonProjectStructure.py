@@ -1110,8 +1110,8 @@ class TasksForCommonProjectStructure:
         generate_certificate = True
         if os.path.isdir(ca_folder):
             try:
-                ca_file = self.__sc.find_file_by_extension(ca_folder, "crt")  # pylint: disable=unused-variable
-                certificate_is_valid = True   # TODO check if certificate is not valid
+                ca_file = [file for file in GeneralUtilities.get_direct_files_of_folder(ca_folder) if file.endswith(".crt")][-1]  # pylint:disable=unused-variable
+                certificate_is_valid = True   # TODO check if certificate is really valid
                 generate_certificate = not certificate_is_valid
             except FileNotFoundError:
                 pass
@@ -1921,14 +1921,28 @@ class TasksForCommonProjectStructure:
             else:
                 raise ValueError("Can not download OpenAPIGenerator.")
 
+    @GeneralUtilities.check_arguments
+    def generate_api_client_from_dependent_codeunit_in_angular(self, file: str, name_of_api_providing_codeunit: str, generated_program_part_name: str) -> None:
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
+        target_subfolder_in_codeunit = f"src/app/generated/{generated_program_part_name}"
+        language = "typescript-angular"
+        self.ensure_openapigenerator_is_available(codeunit_folder)
+        openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
+        openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
+        target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        ScriptCollectionCore().run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
+
+    @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_dotnet(self, file: str, name_of_api_providing_codeunit: str, base_namespace: str) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
         codeunit_name = os.path.basename(codeunit_folder)
         client_subpath = f"{codeunit_name}/APIClients/{name_of_api_providing_codeunit}"
         namespace = f"{base_namespace}.APIClients.{name_of_api_providing_codeunit}"
-        self.generate_api_client_from_dependent_codeunit(file, name_of_api_providing_codeunit, client_subpath, "csharp", f"--additional-properties packageName={namespace}")
+        target_subfolder_in_codeunit = client_subpath
+        language = "csharp"
+        additional_properties = f"--additional-properties packageName={namespace}"
 
-    def generate_api_client_from_dependent_codeunit(self, file: str, name_of_api_providing_codeunit: str, target_subfolder_in_codeunit: str, language: str, additional_properties: str) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
         self.ensure_openapigenerator_is_available(codeunit_folder)
         openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
@@ -2092,14 +2106,68 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stderr("Update dependencies resulted in an error.")
 
     @GeneralUtilities.check_arguments
-    def run_local_test_service(self, file: str):
+    def generate_tasksfile_from_workspace_file(self, repository_folder: str) -> None:
+        sc: ScriptCollectionCore = ScriptCollectionCore()
+        workspace_file: str = sc.find_file_by_extension(repository_folder, "code-workspace")
+        task_file: str = os.path.join(repository_folder, "Taskfile.yml")
+        lines: list[str] = ["version: '3'", "", "tasks:", ""]
+        workspace_file_content: str = GeneralUtilities.read_text_from_file(workspace_file)
+        jsoncontent = json.loads(workspace_file_content)
+        tasks = jsoncontent["tasks"]["tasks"]
+        tasks.sort(key=lambda x: x["label"].split("/")[-1], reverse=False)  # sort by the label of the task
+        for task in tasks:
+            if task["type"] == "shell":
+                description: str = task["label"]
+                name: str = GeneralUtilities.to_pascal_case(description)
+                command = task["command"]
+                relative_script_file = task["command"]
+
+                relative_script_file = "."
+                if "options" in task:
+                    options = task["options"]
+                    if "cwd" in options:
+                        cwd: str = options["cwd"]
+                        cwd = cwd.replace("${workspaceFolder}", ".")
+                        relative_script_file = cwd
+                if len(relative_script_file) == 0:
+                    relative_script_file = "."
+
+                command_with_args = command
+                if "args" in task:
+                    args = task["args"]
+                    if len(args) > 1:
+                        command_with_args = f"{command_with_args} {' '.join(args)}"
+
+                lines.append(f"  {name}:")
+                lines.append(f'    desc: "{description}"')
+                lines.append(f'    dir: "{cwd}"')
+                lines.append("    cmds:")
+                lines.append(f"      - {command_with_args} {{{{.CLI_ARGS}}}}")
+                lines.append('    aliases:')
+                lines.append(f'      - {name.lower()}')
+                if "aliases" in task:
+                    aliases = task["aliases"]
+                    for alias in aliases:
+                        lines.append(f'      - {alias}')
+                lines.append("")
+        GeneralUtilities.write_lines_to_file(task_file, lines)
+
+    @GeneralUtilities.check_arguments
+    def start_local_test_service(self, file: str):
         example_folder = os.path.dirname(file)
         docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
         for service in self.__sc.get_services_from_yaml_file(docker_compose_file):
             self.__sc.kill_docker_container(service)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.__sc.run_program("docker", f"compose -p {title.lower()} up", example_folder, title=title)
+        self.__sc.run_program("docker", f"compose -p {title.lower()} up -d --abort-on-container-exit", example_folder, title=title)
+
+    @GeneralUtilities.check_arguments
+    def stop_local_test_service(self, file: str):
+        example_folder = os.path.dirname(file)
+        example_name = os.path.basename(example_folder)
+        title = f"Test{example_name}"
+        self.__sc.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version) -> None:
@@ -2116,14 +2184,12 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
-    def run_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
+    def start_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         folder = os.path.dirname(current_file)
         example_name = os.path.basename(folder)
-        GeneralUtilities.write_message_to_stdout(f'Run "{example_name}"-example')
-        sc = ScriptCollectionCore()
         oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder)
-        image_filename = os.path.basename(sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
+        image_filename = os.path.basename(self.__sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
         codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
         if remove_old_container:
             docker_compose_file = f"{folder}/docker-compose.yml"
@@ -2135,19 +2201,27 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout(f"Ensure container of {docker_compose_file} do not exist...")
             for container_name in container_names:
                 GeneralUtilities.write_message_to_stdout(f"Ensure container of {container_name} does not exist")
-                sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
+                self.__sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         if remove_volumes_folder:
             volumes_folder = os.path.join(folder, "Volumes")
             GeneralUtilities.write_message_to_stdout(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
             GeneralUtilities.ensure_directory_does_not_exist(volumes_folder)
             GeneralUtilities.ensure_directory_exists(volumes_folder)
         GeneralUtilities.write_message_to_stdout("Load docker-image...")
-        sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
+        self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
-        sc_epew = ScriptCollectionCore()
-        sc_epew.program_runner = ProgramRunnerEpew()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
-        sc_epew.run_program("docker", f"compose --project-name {docker_project_name} up --abort-on-container-exit", folder, verbosity=verbosity)
+        self.__sc.run_program("docker", f"compose --project-name {docker_project_name} up --abort-on-container-exit -d", folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def stop_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
+        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
+        folder = os.path.dirname(current_file)
+        example_name = os.path.basename(folder)
+        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
+        docker_project_name = f"{codeunit_name}_{example_name}".lower()
+        GeneralUtilities.write_message_to_stdout("Stop docker-container...")
+        self.__sc.run_program("docker", f"compose --project-name {docker_project_name} down", folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def create_artifact_for_development_certificate(self, codeunit_folder: str):
