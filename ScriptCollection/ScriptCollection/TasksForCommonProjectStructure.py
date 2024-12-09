@@ -2160,7 +2160,7 @@ class TasksForCommonProjectStructure:
             self.__sc.kill_docker_container(service)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.__sc.run_program("docker", f"compose -p {title.lower()} up -d --abort-on-container-exit", example_folder, title=title)
+        self.__sc.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title)
 
     @GeneralUtilities.check_arguments
     def stop_local_test_service(self, file: str):
@@ -2211,7 +2211,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
-        self.__sc.run_program("docker", f"compose --project-name {docker_project_name} up --abort-on-container-exit -d", folder, verbosity=verbosity)
+        self.__sc.run_program("docker", f"compose --project-name {docker_project_name} up --detach", folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def stop_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
