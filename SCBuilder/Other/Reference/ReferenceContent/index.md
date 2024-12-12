@@ -1,3 +1,0 @@
-# SCBuilder reference
-
-TODO

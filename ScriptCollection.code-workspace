@@ -2,42 +2,26 @@
 	"folders": [
 		{
 			"path": ".",
-			"name": "Entire repository",
-		},
-		{
-			"path": "./SCBuilder",
-			"name": "SCBuilder",
+			"name": "Entire repository"
 		},
 		{
 			"path": "./ScriptCollection",
-			"name": "ScriptCollection",
+			"name": "ScriptCollection"
 		}
 	],
 	"tasks": {
 		"version": "2.0.0",
 		"tasks": [
 			{
-				"label": "Build all codeunits",
-				"command": "SCBuildCodeunits",
-				"args": [
-					"--buildenvironment",
-					"Development"
-				],
+				"label": "Base: Build all codeunits",
+				"command": "scbuildcodeunits",
 				"type": "shell",
 				"options": {
-					"cwd": "${workspaceFolder}",
+					"cwd": "${workspaceFolder}"
 				},
-			},
-			{
-				"label": "ScriptCollection: Update dependencies",
-				"command": "python",
-				"args": [
-					"UpdateDependencies.py"
-				],
-				"type": "shell",
-				"options": {
-					"cwd": "${workspaceFolder}/ScriptCollection/Other",
-				},
+				"aliases": [
+					"bb"
+				]
 			}
 		]
 	},
@@ -45,29 +29,22 @@
 		"version": "0.2.0",
 		"configurations": [
 			{
-				"name": "Debug current python-file",
-				"type": "python",
+				"name": "Debug current file",
+				"type": "debugpy",
 				"request": "launch",
 				"program": "${file}",
 				"console": "integratedTerminal"
-			},
-			{
-				"name": "Debug current bash-script",
-				"type": "bashdb",
-				"request": "launch",
-				"program": "${file}",
-				"cwd": "${workspaceFolder}"
 			}
 		]
 	},
 	"settings": {
-		"window.title": "${dirty} ${rootName}", // see https://code.visualstudio.com/updates/v1_10#_configurable-window-title
+		"window.title": "${dirty} ${rootName}",
 		"spellright.documentTypes": [
 			"markdown",
-			"plaintext",
+			"plaintext"
 		],
 		"spellright.language": [
-			"en",
-		],
+			"en"
+		]
 	}
 }
