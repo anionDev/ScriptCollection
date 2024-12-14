@@ -256,7 +256,7 @@ def HealthCheck() -> int:
 def BuildCodeUnit() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--codeunitfolder', required=False, default=".")
-    parser.add_argument('--verbosity', required=False, default=1)
+    parser.add_argument('-v', '--verbosity', required=False, default=1)
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
@@ -268,7 +268,7 @@ def BuildCodeUnit() -> int:
 def BuildCodeUnits() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repositoryfolder', required=False, default=".")
-    parser.add_argument('--verbosity', required=False, default=1)
+    parser.add_argument('-v', '--verbosity', required=False, default=1)
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
@@ -280,7 +280,7 @@ def BuildCodeUnits() -> int:
 def BuildCodeUnitsC() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repositoryfolder', required=False, default=".")
-    parser.add_argument('--verbosity', required=False, default=1)
+    parser.add_argument('-v', '--verbosity', required=False, default=1)
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--image', required=False, default="scbuilder:latest")
