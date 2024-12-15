@@ -230,8 +230,14 @@ class TasksForCommonProjectStructure:
         src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         verbosity = self.get_verbosity_from_commandline_arguments(args, verbosity)
+        target_names: dict[str, str] = {
+            "web": "WebApplication",
+            "windows": "Windows",
+            "ios": "IOS",
+            "appbundle": "Android",
+        }
         for target in targets:
-            GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target}...")
+            GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target_names[target]}...")
             sc = ScriptCollectionCore()
             self.run_with_epew("flutter", f"build {target}", src_folder, verbosity)
             if target == "web":
