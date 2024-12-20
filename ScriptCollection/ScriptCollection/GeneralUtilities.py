@@ -392,7 +392,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def __rmtree(directory: str) -> None:
-        shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)
+        shutil.rmtree(directory, onerror=GeneralUtilities.__remove_readonly)  # pylint: disable=deprecated-argument
 
     @staticmethod
     @check_arguments

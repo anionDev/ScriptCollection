@@ -996,6 +996,8 @@ class TasksForCommonProjectStructure:
 
         for codeunitname in self.get_codeunits(information.repository):
             # Push artifacts to registry
+            if information.verbosity > 2:
+                GeneralUtilities.write_message_to_stdout(f"Push artifacts of {codeunitname}...")
             scriptfilename = f"PushArtifacts.{codeunitname}.py"
             push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
             if os.path.isfile(push_artifact_to_registry_script):
@@ -2580,6 +2582,8 @@ class TasksForCommonProjectStructure:
         now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
+        if verbosity > 2:
+            GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}")
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
 
         if (not os.path.isfile(codeunit_file)):
