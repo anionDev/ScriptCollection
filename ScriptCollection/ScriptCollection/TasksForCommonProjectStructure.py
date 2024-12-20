@@ -1903,7 +1903,16 @@ class TasksForCommonProjectStructure:
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         versioned_api_spec_file = f"APISpecification/{codeunitname}.v{codeunit_version}.api.json"
         self.__sc.run_program("swagger", f"tofile --output {versioned_api_spec_file} BuildResult_DotNet_{runtime}/{codeunitname}.dll {swagger_document_name}", artifacts_folder, verbosity=verbosity)
-        shutil.copyfile(os.path.join(artifacts_folder, versioned_api_spec_file), os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.json"))
+        api_file:str=os.path.join(artifacts_folder, versioned_api_spec_file)
+        shutil.copyfile(api_file, os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.json"))
+        resources_folder = os.path.join(codeunit_folder, "Other", "Resources")
+        GeneralUtilities.ensure_directory_exists(resources_folder)
+        resources_apispec_folder = os.path.join(resources_folder,"APISpecification")
+        GeneralUtilities.ensure_directory_exists(resources_apispec_folder)
+        resource_target_file=os.path.join(resources_folder,f"{codeunitname}.latest.api.json")
+        GeneralUtilities.ensure_file_does_not_exist(resource_target_file)
+        shutil.copyfile(api_file, resource_target_file)
+
 
     @GeneralUtilities.check_arguments
     def ensure_openapigenerator_is_available(self, codeunit_folder: str) -> None:
