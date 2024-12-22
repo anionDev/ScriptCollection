@@ -1,9 +1,0 @@
-Artifacts
-Resources/DependentCodeUnits
-Resources/Constants/CodeUnitDescription.*
-Resources/Constants/CodeUnitName.*
-Resources/Constants/CodeUnitVersion.*
-Resources/Constants/CodeUnitMajorVersion.*
-Resources/Constants/CommitDate.*
-Resources/Constants/CommitId.*
-Resources/CodeAnalysisResult/*.sarif

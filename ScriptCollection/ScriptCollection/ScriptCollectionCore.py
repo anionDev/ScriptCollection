@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.34"
+version = "3.5.35"
 __version__ = version
 
 
@@ -1207,25 +1207,48 @@ class ScriptCollectionCore:
         file.close()
 
     @staticmethod
+    def __continue_process_reading(pid: int, p: Popen, q_stdout: Queue, q_stderr: Queue, reading_stdout_last_time_resulted_in_exception: bool, reading_stderr_last_time_resulted_in_exception: bool):
+        if p.poll() is None:
+            return True
+
+        # if reading_stdout_last_time_resulted_in_exception and reading_stderr_last_time_resulted_in_exception:
+        #    return False
+
+        if not q_stdout.empty():
+            return True
+
+        if not q_stderr.empty():
+            return True
+
+        return False
+
+    @staticmethod
     def __read_popen_pipes(p: Popen):
+        p_id = p.pid
         with ThreadPoolExecutor(2) as pool:
             q_stdout = Queue()
             q_stderr = Queue()
 
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stdout, q_stdout)
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
-            while (p.poll() is None) or (not q_stdout.empty()) or (not q_stderr.empty()):
-                time.sleep(0.01)
+            reading_stdout_last_time_resulted_in_exception: bool = False
+            reading_stderr_last_time_resulted_in_exception: bool = False
+            while (ScriptCollectionCore.__continue_process_reading(p_id, p, q_stdout, q_stderr, reading_stdout_last_time_resulted_in_exception, reading_stderr_last_time_resulted_in_exception)):
                 out_line = None
                 err_line = None
                 try:
                     out_line = q_stdout.get_nowait()
+                    reading_stdout_last_time_resulted_in_exception = False
                 except Empty:
-                    pass
+                    reading_stdout_last_time_resulted_in_exception = True
+
                 try:
                     err_line = q_stderr.get_nowait()
+                    reading_stderr_last_time_resulted_in_exception = False
                 except Empty:
-                    pass
+                    reading_stderr_last_time_resulted_in_exception = True
+
+                time.sleep(0.01)
 
                 yield (out_line, err_line)
 
