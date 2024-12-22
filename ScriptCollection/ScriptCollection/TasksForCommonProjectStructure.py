@@ -12,6 +12,7 @@ import json
 import configparser
 import tempfile
 import uuid
+import yaml
 import requests
 from packaging import version
 import xmlschema
@@ -230,8 +231,14 @@ class TasksForCommonProjectStructure:
         src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         verbosity = self.get_verbosity_from_commandline_arguments(args, verbosity)
+        target_names: dict[str, str] = {
+            "web": "WebApplication",
+            "windows": "Windows",
+            "ios": "IOS",
+            "appbundle": "Android",
+        }
         for target in targets:
-            GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target}...")
+            GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target_names[target]}...")
             sc = ScriptCollectionCore()
             self.run_with_epew("flutter", f"build {target}", src_folder, verbosity)
             if target == "web":
@@ -1897,9 +1904,36 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
+
         versioned_api_spec_file = f"APISpecification/{codeunitname}.v{codeunit_version}.api.json"
         self.__sc.run_program("swagger", f"tofile --output {versioned_api_spec_file} BuildResult_DotNet_{runtime}/{codeunitname}.dll {swagger_document_name}", artifacts_folder, verbosity=verbosity)
-        shutil.copyfile(os.path.join(artifacts_folder, versioned_api_spec_file), os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.json"))
+        api_file: str = os.path.join(artifacts_folder, versioned_api_spec_file)
+        shutil.copyfile(api_file, os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.json"))
+
+        resources_folder = os.path.join(codeunit_folder, "Other", "Resources")
+        GeneralUtilities.ensure_directory_exists(resources_folder)
+        resources_apispec_folder = os.path.join(resources_folder, "APISpecification")
+        GeneralUtilities.ensure_directory_exists(resources_apispec_folder)
+        resource_target_file = os.path.join(resources_apispec_folder, f"{codeunitname}.api.json")
+        GeneralUtilities.ensure_file_does_not_exist(resource_target_file)
+        shutil.copyfile(api_file, resource_target_file)
+
+        with open(api_file, encoding="utf-8") as api_file_content:
+            reloaded_json = json.load(api_file_content)
+
+            yamlfile1: str = str(os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.v{codeunit_version}.api.yaml"))
+            GeneralUtilities.ensure_file_does_not_exist(yamlfile1)
+            GeneralUtilities.ensure_file_exists(yamlfile1)
+            with open(yamlfile1, "w+", encoding="utf-8") as yamlfile:
+                yaml.dump(reloaded_json, yamlfile, allow_unicode=True)
+
+            yamlfile2: str = str(os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.yaml"))
+            GeneralUtilities.ensure_file_does_not_exist(yamlfile2)
+            shutil.copyfile(yamlfile1, yamlfile2)
+
+            yamlfile3: str = str(os.path.join(resources_apispec_folder, f"{codeunitname}.api.yaml"))
+            GeneralUtilities.ensure_file_does_not_exist(yamlfile3)
+            shutil.copyfile(yamlfile1, yamlfile3)
 
     @GeneralUtilities.check_arguments
     def ensure_openapigenerator_is_available(self, codeunit_folder: str) -> None:
@@ -1932,7 +1966,7 @@ class TasksForCommonProjectStructure:
         openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
         openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
-        GeneralUtilities.ensure_directory_exists(target_folder)
+        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
         ScriptCollectionCore().run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
 
     @GeneralUtilities.check_arguments
