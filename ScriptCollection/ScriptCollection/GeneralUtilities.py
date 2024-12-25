@@ -880,3 +880,12 @@ class GeneralUtilities:
     @check_arguments
     def replace_variable_in_string(input_string: str, variable_name: str, variable_value: str) -> None:
         return input_string.replace(f"__[{variable_name}]__", variable_value)
+
+    @staticmethod
+    @check_arguments
+    def input(prompt: str, print_result: bool) -> str:  # This function is a workaround for usescases like python scripts which calls input(...) using epew because then the prompt is not printed by the built-in-input-function.
+        GeneralUtilities.write_message_to_stdout(prompt)
+        result = input()
+        if print_result:
+            GeneralUtilities.write_message_to_stdout(f"Result: {print_result}")
+        return result

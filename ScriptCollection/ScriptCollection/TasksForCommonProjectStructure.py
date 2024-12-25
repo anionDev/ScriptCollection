@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from graphlib import TopologicalSorter
 import os
 from pathlib import Path
@@ -1539,6 +1539,58 @@ class TasksForCommonProjectStructure:
         self.generate_diff_report(repository_folder, codeunit_name, codeunit_version)
 
     @GeneralUtilities.check_arguments
+    def __suport_information_exists(self, repository_folder: str, version_of_product: str) -> bool:
+        folder = os.path.join(repository_folder, "Other", "Resources", "Support")
+        file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
+        if not os.path.isfile(file):
+            return False
+        entries = GeneralUtilities.read_csv_file(file, True)
+        for entry in entries:
+            if entry[0] == version_of_product:
+                return True
+        return False
+
+    @GeneralUtilities.check_arguments
+    def get_versions(self, repository_folder: str) -> list[(str, datetime, datetime)]:
+        folder = os.path.join(repository_folder, "Other", "Resources", "Support")
+        file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
+        result: list[str] = list[(str, datetime, datetime)]()
+        if not os.path.isfile(file):
+            return result
+        entries = GeneralUtilities.read_csv_file(file, True)
+        for entry in entries:
+            result.append((entry[0], GeneralUtilities.string_to_datetime(entry[1]), GeneralUtilities.string_to_datetime(entry[2])))
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_supported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+        result: list[str] = list[(str, datetime, datetime)]()
+        for entry in self.get_versions(repository_folder):
+            if entry[1] <= moment and moment <= entry[2]:
+                result.append(entry)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+        result: list[str] = list[(str, datetime, datetime)]()
+        for entry in self.get_versions(repository_folder):
+            if not (entry[1] <= moment and moment <= entry[2]):
+                result.append(entry)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def mark_current_version_as_supported(self, repository_folder: str, version_of_product: str, supported_from: datetime, supported_until: datetime):
+        if self.__suport_information_exists(repository_folder, version_of_product):
+            raise ValueError(f"Version-support for v{version_of_product} already defined.")
+        folder = os.path.join(repository_folder, "Other", "Resources", "Support")
+        GeneralUtilities.ensure_directory_exists(folder)
+        file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
+        if not os.path.isfile(file):
+            GeneralUtilities.ensure_file_exists(file)
+            GeneralUtilities.append_line_to_file(file, "Version;SupportBegin;SupportEnd")
+        GeneralUtilities.append_line_to_file(file, f"{version_of_product};{GeneralUtilities.datetime_to_string(supported_from)};{GeneralUtilities.datetime_to_string(supported_until)}")
+
+    @GeneralUtilities.check_arguments
     def get_codeunit_owner_name(self, codeunit_file: str) -> None:
         namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
                       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
@@ -2346,6 +2398,13 @@ class TasksForCommonProjectStructure:
                 raise ValueError(f"{repository_folder} does not have a codeunit with name {codeunit_name}.")
         sorted_codeunits = self.get_sorted_codeunits(codeunits_with_dependent_codeunits)
         project_version = self.get_version_of_project(repository_folder)
+
+        now = datetime.now()
+        if not self.__suport_information_exists(repository_folder, project_version):
+            support_time = timedelta(days=365*2*31)  # TODO make this configurable
+            until = now + support_time
+            self.mark_current_version_as_supported(repository_folder, project_version, now, until)
+
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
@@ -2787,6 +2846,7 @@ class TasksForCommonProjectStructure:
         build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_prepare_new_release_arguments.product_name}", folder_of_this_file)
+        reference_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_prepare_new_release_arguments.product_name}Reference", folder_of_this_file)
         verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_prepare_new_release_arguments.commandline_arguments, 1)
 
         merge_source_branch = "other/next-release"  # TODO make this configurable
@@ -2794,12 +2854,20 @@ class TasksForCommonProjectStructure:
 
         # prepare
         self.assert_no_uncommitted_changes(repository_folder)
+        self.assert_no_uncommitted_changes(reference_folder)
         self.__sc.git_checkout(repository_folder, merge_source_branch)
         self.assert_no_uncommitted_changes(repository_folder)
+        self.assert_no_uncommitted_changes(reference_folder)
 
         if "--dependencyupdate" in generic_prepare_new_release_arguments.commandline_arguments:
             self.generic_update_dependencies(repository_folder)
             self.assert_no_uncommitted_changes(repository_folder)
+
+        now = datetime.now()
+        for unsupported_version in self.get_unsupported_versions(repository_folder, now):
+            reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version}"
+            GeneralUtilities.ensure_directory_does_not_exist(reference_folder)
+        self.__sc.git_commit(reference_folder, "Removed reference of outdated versions.")
 
         merge_source_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, merge_source_branch)
         main_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, main_branch)
