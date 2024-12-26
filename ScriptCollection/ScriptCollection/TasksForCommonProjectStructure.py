@@ -2401,7 +2401,7 @@ class TasksForCommonProjectStructure:
 
         now = datetime.now()
         if not self.__suport_information_exists(repository_folder, project_version):
-            support_time = timedelta(days=365*2*31)  # TODO make this configurable
+            support_time = timedelta(days=365*2+31)  # TODO make this configurable
             until = now + support_time
             self.mark_current_version_as_supported(repository_folder, project_version, now, until)
 
