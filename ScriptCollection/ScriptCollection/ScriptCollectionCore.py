@@ -185,13 +185,14 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        exit_code = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0]
+        result = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)
+        exit_code = result[0]
         if exit_code == 0:
             return True
         elif exit_code == 1:
             return False
         else:
-            raise ValueError(f"Can not calculate if {ancestor} is an ancestor of {descendant} in repository {repository_folder}.")
+            raise ValueError(f'Can not calculate if {ancestor} is an ancestor of {descendant} in repository {repository_folder}. Outout of "{repository_folder}> git merge-base --is-ancestor {ancestor} {descendant}": Exitcode: {exit_code}; StdOut: {result[1]}; StdErr: {result[2]}.')
 
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
