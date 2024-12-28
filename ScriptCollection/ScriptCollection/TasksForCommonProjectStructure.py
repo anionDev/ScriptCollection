@@ -1375,7 +1375,7 @@ class TasksForCommonProjectStructure:
         sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
         sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
         if push_readme:
-            sc.run_program("docker", f"pushrm {repo}", codeunit_folder, verbosity=verbosity)
+            sc.run_program("docker-pushrm", f"{repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> set[str]:
@@ -2194,7 +2194,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stderr("Update dependencies resulted in an error.")
 
     @GeneralUtilities.check_arguments
-    def generate_tasksfile_from_workspace_file(self, repository_folder: str) -> None:
+    def generate_tasksfile_from_workspace_file(self, repository_folder: str, append_cli_args_at_end: bool = False) -> None:
         sc: ScriptCollectionCore = ScriptCollectionCore()
         workspace_file: str = sc.find_file_by_extension(repository_folder, "code-workspace")
         task_file: str = os.path.join(repository_folder, "Taskfile.yml")
@@ -2226,11 +2226,13 @@ class TasksForCommonProjectStructure:
                     if len(args) > 1:
                         command_with_args = f"{command_with_args} {' '.join(args)}"
 
+                if append_cli_args_at_end:
+                    command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
                 lines.append(f"  {name}:")
                 lines.append(f'    desc: "{description}"')
                 lines.append(f'    dir: "{cwd}"')
                 lines.append("    cmds:")
-                lines.append(f"      - {command_with_args} {{{{.CLI_ARGS}}}}")
+                lines.append(f"      - {command_with_args}")
                 lines.append('    aliases:')
                 lines.append(f'      - {name.lower()}')
                 if "aliases" in task:
