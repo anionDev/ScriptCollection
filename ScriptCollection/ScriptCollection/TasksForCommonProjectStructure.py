@@ -2230,7 +2230,7 @@ class TasksForCommonProjectStructure:
                 lines.append(f'    desc: "{description}"')
                 lines.append(f'    dir: "{cwd}"')
                 lines.append("    cmds:")
-                lines.append(f"      - {command_with_args} {{{{.CLI_ARGS}}}}")
+                lines.append(f"      - {command_with_args}")
                 lines.append('    aliases:')
                 lines.append(f'      - {name.lower()}')
                 if "aliases" in task:
