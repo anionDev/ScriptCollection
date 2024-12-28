@@ -1375,7 +1375,7 @@ class TasksForCommonProjectStructure:
         sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
         sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
         if push_readme:
-            sc.run_program("docker", f"pushrm {repo}", codeunit_folder, verbosity=verbosity)
+            sc.run_program("docker-pushrm", f"{repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> set[str]:
