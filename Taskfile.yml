@@ -6,7 +6,7 @@ tasks:
     desc: "Base: Build all codeunits"
     dir: "."
     cmds:
-      - scbuildcodeunits {{.CLI_ARGS}}
+      - scbuildcodeunits
     aliases:
       - basebuildallcodeunits
       - bb
