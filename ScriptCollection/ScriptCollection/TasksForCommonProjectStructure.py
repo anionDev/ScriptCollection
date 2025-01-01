@@ -2792,11 +2792,13 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name} without errors.")
 
     @GeneralUtilities.check_arguments
-    def generic_update_dependencies(self, repository_folder: str):
+    def generic_update_dependencies(self, repository_folder: str, verbosity: int = 1):
+        # Prepare
         codeunits = self.get_codeunits(repository_folder)
         updated_dependencies = False
-        verbosity: int = 1  # TODO set value dynamically
         update_dependencies_script_filename = "UpdateDependencies.py"
+        self.__sc.run_program("scbuildcodeunits", "", repository_folder)  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
+
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
         if os.path.isfile(os.path.join(global_scripts_folder, update_dependencies_script_filename)):
