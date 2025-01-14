@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.44"
+version = "3.5.45"
 __version__ = version
 
 
@@ -1251,18 +1251,18 @@ class ScriptCollectionCore:
                 out_line = None
                 err_line = None
                 try:
-                    out_line = q_stdout.get_nowait()
+                    out_line = q_stdout.get_nowait()  # TODO read all avaliable lines
                     reading_stdout_last_time_resulted_in_exception = False
                 except Empty:
                     reading_stdout_last_time_resulted_in_exception = True
 
                 try:
-                    err_line = q_stderr.get_nowait()
+                    err_line = q_stderr.get_nowait()  # TODO read all avaliable lines
                     reading_stderr_last_time_resulted_in_exception = False
                 except Empty:
                     reading_stderr_last_time_resulted_in_exception = True
 
-                time.sleep(0.01)
+                time.sleep(0.01)  # this is required to not finish too early
 
                 yield (out_line, err_line)
 

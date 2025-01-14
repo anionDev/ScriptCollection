@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<coverage version="1.0" date="2025-01-14_21-33-11" tag="v3.5.45">
+  <assembly name="ScriptCollection">
+    <class name="Executables.py" coveredlines="0" coverablelines="285" totallines="389" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="GeneralUtilities.py" coveredlines="489" coverablelines="765" totallines="907" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProcessesRunner.py" coveredlines="0" coverablelines="31" totallines="41" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerBase.py" coveredlines="22" coverablelines="28" totallines="47" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerEpew.py" coveredlines="40" coverablelines="103" totallines="122" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerPopen.py" coveredlines="23" coverablelines="38" totallines="51" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="RPStream.py" coveredlines="0" coverablelines="32" totallines="42" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="ScriptCollectionCore.py" coveredlines="573" coverablelines="1441" totallines="1930" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="TasksForCommonProjectStructure.py" coveredlines="483" coverablelines="2323" totallines="2990" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+    <class name="UpdateCertificates.py" coveredlines="0" coverablelines="105" totallines="126" coveredbranches="0" totalbranches="0" coveredcodeelements="0" totalcodeelements="0" />
+  </assembly>
+</coverage>
