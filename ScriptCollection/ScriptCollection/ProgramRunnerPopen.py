@@ -19,7 +19,9 @@ class ProgramRunnerPopen(ProgramRunnerBase):
             else:
                 result = Popen(arguments_for_process, cwd=working_directory,  stdout=PIPE, stderr=PIPE, shell=False, text=True)  # pylint: disable=consider-using-with
         except FileNotFoundError as fileNotFoundError:
-            raise FileNotFoundError(f"Starting '{program}' in '{working_directory}' resulted in a FileNotFoundError: '{fileNotFoundError.filename}'")
+            raise FileNotFoundError(f"Starting '{program}' in '{working_directory}' resulted in a FileNotFoundError: '{str(fileNotFoundError)}'")
+        except NotADirectoryError as notADirectoryError:
+            raise NotADirectoryError(f"Starting '{program}' in '{working_directory}' resulted in a NotADirectoryError: '{str(notADirectoryError)}'")
         return result
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
