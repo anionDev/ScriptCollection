@@ -2974,6 +2974,7 @@ class TasksForCommonProjectStructure:
         folder_of_this_file = str(os.path.dirname(update_http_documentation_arguments.current_file))
 
         ref_repo = GeneralUtilities.resolve_relative_path(f"../../Submodules/{update_http_documentation_arguments.reference_repository_name}", folder_of_this_file)
+        GeneralUtilities.assert_is_git_repository(ref_repo)
         self.__sc.git_checkout(ref_repo, update_http_documentation_arguments.main_branch_name)
 
         # update reference
