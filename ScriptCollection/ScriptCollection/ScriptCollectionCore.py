@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.43"
+version = "3.5.44"
 __version__ = version
 
 
@@ -131,6 +131,19 @@ class ScriptCollectionCore:
             return result[0]
         else:
             raise ValueError(f"Multiple values available in folder '{folder}' with extension '{extension}'.")
+
+    @GeneralUtilities.check_arguments
+    def find_latest_file_by_extension(self, folder: str, extension: str) -> str:
+        files: list[str] = GeneralUtilities.get_direct_files_of_folder(folder)
+        possible_results: list[str] = []
+        for file in files:
+            if file.endswith(f".{extension}"):
+                possible_results.append(file)
+        result_length = len(possible_results)
+        if result_length == 0:
+            raise FileNotFoundError(f"No file available in folder '{folder}' with extension '{extension}'.")
+        else:
+            return possible_results[-1]
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:

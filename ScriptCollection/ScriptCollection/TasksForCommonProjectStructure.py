@@ -1172,7 +1172,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for development-purposes.")
             self.__sc.generate_certificate(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             self.__sc.generate_certificate_sign_request(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-            ca_name = os.path.basename(self.__sc.find_file_by_extension(ca_folder, "crt"))[:-4]
+            ca_name = os.path.basename(self.__sc.find_file_by_extension_and_return_all(ca_folder, "crt")[-1])[:-4]
             self.__sc.sign_certificate(certificate_folder, ca_folder, ca_name, domain, resource_content_filename)
             GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
