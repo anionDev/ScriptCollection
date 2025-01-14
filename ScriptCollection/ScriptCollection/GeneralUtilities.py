@@ -889,3 +889,19 @@ class GeneralUtilities:
         if print_result:
             GeneralUtilities.write_message_to_stdout(f"Result: {result}")
         return result
+
+    @staticmethod
+    @check_arguments
+    def assert_is_git_repository(folder: str) -> str:
+        git_file_or_folder = os.path.join(folder, ".git")
+        GeneralUtilities.assert_condition(os.path.isdir(git_file_or_folder) or os.path.isfile(git_file_or_folder), f"'{folder}' is not a git-repository.")
+
+    @staticmethod
+    @check_arguments
+    def assert_file_exists(file: str) -> str:
+        GeneralUtilities.assert_condition(os.path.isfile(file), f"File '{file}' does not exist.")
+
+    @staticmethod
+    @check_arguments
+    def assert_folder_exists(folder: str) -> str:
+        GeneralUtilities.assert_condition(os.path.isdir(folder), f"Folder '{folder}' does not exist.")

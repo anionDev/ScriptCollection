@@ -1118,12 +1118,11 @@ class TasksForCommonProjectStructure:
         ca_folder = os.path.join(product_folder, "Other", "Resources", "CA")
         generate_certificate = True
         if os.path.isdir(ca_folder):
-            try:
-                ca_file = [file for file in GeneralUtilities.get_direct_files_of_folder(ca_folder) if file.endswith(".crt")][-1]  # pylint:disable=unused-variable
-                certificate_is_valid = True   # TODO check if certificate is really valid
+            ca_files = [file for file in GeneralUtilities.get_direct_files_of_folder(ca_folder) if file.endswith(".crt")]
+            if len(ca_files) > 0:
+                ca_file = ca_files[-1]  # pylint:disable=unused-variable
+                certificate_is_valid = True  # TODO check if certificate is really valid
                 generate_certificate = not certificate_is_valid
-            except FileNotFoundError:
-                pass
         if generate_certificate:
             self.__sc.generate_certificate_authority(ca_folder, ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
         # TODO add switch to auto-install the script if desired
@@ -1178,7 +1177,9 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def copy_product_resource_to_codeunit_resource_folder(self, codeunit_folder: str, resourcename: str) -> None:
-        src_folder = GeneralUtilities.resolve_relative_path(f"../Other/Resources/{resourcename}", codeunit_folder)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..", codeunit_folder)
+        GeneralUtilities.assert_is_git_repository(repository_folder)
+        src_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resourcename}", repository_folder)
         GeneralUtilities.assert_condition(os.path.isdir(src_folder), f"Required product-resource {resourcename} does not exist. Expected folder: {src_folder}")
         trg_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resourcename}", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(trg_folder)
@@ -1196,6 +1197,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_codeunits(self, repository_folder: str, ignore_disabled_codeunits: bool = True) -> list[str]:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         result: list[str] = []
         for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
             subfoldername = os.path.basename(direct_subfolder)
@@ -1217,6 +1219,7 @@ class TasksForCommonProjectStructure:
     def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release", target_branch: str = "main", verbosity: int = 1, additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
         # This is an automatization for automatic merges. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
         # (like GitHub, GitLab or Azure DevOps)
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         self.assert_no_uncommitted_changes(repository_folder)
 
         src_branch_commit_id = self.__sc.git_get_commit_id(repository_folder,  source_branch)
@@ -1243,6 +1246,7 @@ class TasksForCommonProjectStructure:
         self.__sc.git_checkout(build_repository_folder, createRelease_configuration.build_repository_branch)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createRelease_configuration.repository_folder_name}", build_repository_folder)
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         mergeInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.additional_arguments_file, createRelease_configuration.artifacts_folder)
 
         # TODO check if repository_folder-merge-source-branch and repository_folder-merge-target-branch have different commits
@@ -1634,6 +1638,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str) -> str:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         return ScriptCollectionCore().get_semver_version_from_gitversion(repository_folder)
 
     @GeneralUtilities.check_arguments
@@ -2367,6 +2372,7 @@ class TasksForCommonProjectStructure:
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False) -> None:
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         codeunits = self.get_codeunits(repository_folder, False)
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes)
 
@@ -2848,9 +2854,12 @@ class TasksForCommonProjectStructure:
         # constants
         folder_of_this_file = os.path.dirname(generic_prepare_new_release_arguments.current_file)
         build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
+        GeneralUtilities.assert_is_git_repository(build_repository_folder)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_prepare_new_release_arguments.product_name}", folder_of_this_file)
-        reference_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_prepare_new_release_arguments.product_name}Reference", folder_of_this_file)
+        GeneralUtilities.assert_is_git_repository(repository_folder)
+        reference_folder = repository_folder+"Reference"
+        GeneralUtilities.assert_is_git_repository(reference_folder)
         verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_prepare_new_release_arguments.commandline_arguments, 1)
 
         merge_source_branch = "other/next-release"  # TODO make this configurable
@@ -2902,6 +2911,7 @@ class TasksForCommonProjectStructure:
         build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
         repository_folder_name = generic_create_release_arguments.product_name
         repository_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_create_release_arguments.product_name}", folder_of_this_file)
+        GeneralUtilities.assert_is_git_repository(repository_folder)
 
         merge_source_branch = "main"  # TODO make this configurable
         main_branch = "stable"  # TODO make this configurable
