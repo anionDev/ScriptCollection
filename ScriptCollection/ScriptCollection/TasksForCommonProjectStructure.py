@@ -1227,7 +1227,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
         self.__sc.git_checkout(repository_folder, source_branch)
-        self.build_codeunits(repository_folder, verbosity, "QualityCheck", additional_arguments_file, True, None, [], True)
+        self.build_codeunits(repository_folder, verbosity, TasksForCommonProjectStructure.get_qualitycheck_environment_name(), additional_arguments_file, True, None, [], True)
         self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
         self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
