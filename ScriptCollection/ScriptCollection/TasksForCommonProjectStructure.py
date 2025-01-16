@@ -39,6 +39,7 @@ class CreateReleaseConfiguration():
 
     def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str, verbosity: int, repository_folder: str, additional_arguments_file: str, repository_folder_name: str):
 
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         self.__sc = ScriptCollectionCore()
         self.projectname = projectname
         self.remotename = remotename
@@ -134,14 +135,17 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_build_folder(self, repository_folder: str, codeunit_name: str) -> str:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         return os.path.join(repository_folder, codeunit_name, "Other", "Build")
 
     @GeneralUtilities.check_arguments
     def get_artifacts_folder(self, repository_folder: str, codeunit_name: str) -> str:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         return os.path.join(repository_folder, codeunit_name, "Other", "Artifacts")
 
     @GeneralUtilities.check_arguments
     def get_wheel_file(self, repository_folder: str, codeunit_name: str) -> str:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         return self.__sc.find_file_by_extension(os.path.join(self.get_artifacts_folder(repository_folder, codeunit_name), "BuildResult_Wheel"), "whl")
 
     @GeneralUtilities.check_arguments
@@ -171,6 +175,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         GeneralUtilities.write_message_to_stdout("Check testcoverage..")
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         if len(root.xpath('//coverage/packages/package')) != 1:
@@ -338,8 +343,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_version_of_codeunit_file_content(self, codeunit_file_content: str) -> str:
         root: etree._ElementTree = etree.fromstring(codeunit_file_content.encode("utf-8"))
-        result = str(root.xpath('//cps:version/text()',
-                     namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0])
+        result = str(root.xpath('//cps:version/text()',  namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0])
         return result
 
     @GeneralUtilities.check_arguments
@@ -628,6 +632,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str, verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         csproj_filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stdout(f"Build {csproj_filename}...")
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
@@ -676,8 +681,7 @@ class TasksForCommonProjectStructure:
         # this function builds an exe
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
         self.__standardized_tasks_build_for_dotnet_project(
-            buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype,
-            runtimes, True, commandline_arguments)
+            buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype,  runtimes, True, commandline_arguments)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_library_project(self, buildscript_file: str, default_target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]) -> None:
@@ -778,6 +782,7 @@ class TasksForCommonProjectStructure:
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverageReport'.
         This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
         GeneralUtilities.write_message_to_stdout("Generate testcoverage report..")
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         codeunit_version = self.get_version_of_codeunit(os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml"))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         if verbosity == 0:
@@ -847,6 +852,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         self.update_path_of_source_in_testcoverage_file(repository_folder, codeunit_name)
@@ -856,6 +862,7 @@ class TasksForCommonProjectStructure:
     @staticmethod
     @GeneralUtilities.check_arguments
     def update_path_of_source_in_testcoverage_file(repository_folder: str, codeunitname: str) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         GeneralUtilities.write_message_to_stdout("Update paths of source files in testcoverage files..")
         folder = f"{repository_folder}/{codeunitname}/Other/Artifacts/TestCoverage"
         filename = "TestCoverage.xml"
@@ -875,6 +882,7 @@ class TasksForCommonProjectStructure:
     @staticmethod
     @GeneralUtilities.check_arguments
     def __remove_not_existing_files_from_testcoverage_file(testcoveragefile: str, repository_folder: str, codeunit_name: str) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         root: etree._ElementTree = etree.parse(testcoveragefile)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         xpath = f"//coverage/packages/package[@name='{codeunit_name}']/classes/class"
@@ -1131,6 +1139,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generate_certificate_for_development_purposes_for_product(self, repository_folder: str):
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         product_name = os.path.basename(repository_folder)
         ca_folder: str = os.path.join(repository_folder, "Other", "Resources", "CA")
         self.__generate_certificate_for_development_purposes(product_name, os.path.join(repository_folder, "Other", "Resources"), ca_folder, None)
@@ -1171,7 +1180,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for development-purposes.")
             self.__sc.generate_certificate(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             self.__sc.generate_certificate_sign_request(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-            ca_name = os.path.basename(self.__sc.find_file_by_extension_and_return_all(ca_folder, "crt")[-1])[:-4]
+            ca_name = os.path.basename(self.__sc.find_file_by_extension(ca_folder, "crt")[-1])[:-4]
             self.__sc.sign_certificate(certificate_folder, ca_folder, ca_name, domain, resource_content_filename)
             GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
@@ -1423,6 +1432,7 @@ class TasksForCommonProjectStructure:
             raise ValueError('An empty array as argument for the "commandline_arguments"-parameter is not valid.')
         commandline_arguments = commandline_arguments[1:]
         repository_folder: str = str(Path(os.path.dirname(common_tasks_scripts_file)).parent.parent.absolute())
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         codeunit_name: str = str(os.path.basename(Path(os.path.dirname(common_tasks_scripts_file)).parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         project_version = self.get_version_of_project(repository_folder)
@@ -1435,8 +1445,7 @@ class TasksForCommonProjectStructure:
         if not os.path.isfile(codeunit_file):
             raise ValueError(f'Codeunitfile "{codeunit_file}" does not exist.')
         # TODO implement usage of self.reference_latest_version_of_xsd_when_generating_xml
-        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
-                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',  'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunit_file)
 
         # Check codeunit-spcecification-version
@@ -1544,6 +1553,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __suport_information_exists(self, repository_folder: str, version_of_product: str) -> bool:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         folder = os.path.join(repository_folder, "Other", "Resources", "Support")
         file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
         if not os.path.isfile(file):
@@ -1556,6 +1566,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_versions(self, repository_folder: str) -> list[(str, datetime, datetime)]:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         folder = os.path.join(repository_folder, "Other", "Resources", "Support")
         file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
         result: list[str] = list[(str, datetime, datetime)]()
@@ -1568,6 +1579,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_supported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         result: list[str] = list[(str, datetime, datetime)]()
         for entry in self.get_versions(repository_folder):
             if entry[1] <= moment and moment <= entry[2]:
@@ -1576,6 +1588,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         result: list[str] = list[(str, datetime, datetime)]()
         for entry in self.get_versions(repository_folder):
             if not (entry[1] <= moment and moment <= entry[2]):
@@ -1584,6 +1597,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def mark_current_version_as_supported(self, repository_folder: str, version_of_product: str, supported_from: datetime, supported_until: datetime):
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         if self.__suport_information_exists(repository_folder, version_of_product):
             raise ValueError(f"Version-support for v{version_of_product} already defined.")
         folder = os.path.join(repository_folder, "Other", "Resources", "Support")
@@ -1596,22 +1610,21 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_codeunit_owner_name(self, codeunit_file: str) -> None:
-        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
-                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',  'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunit_file)
         result = root.xpath('//cps:codeunit/cps:codeunitownername/text()', namespaces=namespaces)[0]
         return result
 
     @GeneralUtilities.check_arguments
     def get_codeunit_owner_emailaddress(self, codeunit_file: str) -> None:
-        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
-                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunit_file)
         result = root.xpath('//cps:codeunit/cps:codeunitowneremailaddress/text()', namespaces=namespaces)[0]
         return result
 
     @GeneralUtilities.check_arguments
     def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DiffReport", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
@@ -2114,6 +2127,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, commandline_arguments: list[str]) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         GeneralUtilities.write_message_to_stdout(f"Create GitHub-release for {productname}.")
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, 1)
         github_repo = f"{github_username}/{productname}"
@@ -2126,8 +2140,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_dependencies_which_are_ignored_from_updates(self, codeunit_folder: str, print_warnings_for_ignored_dependencies: bool) -> list[str]:
-        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',
-                      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         root: etree._ElementTree = etree.parse(codeunit_file)
@@ -2200,6 +2213,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generate_tasksfile_from_workspace_file(self, repository_folder: str, append_cli_args_at_end: bool = False) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         sc: ScriptCollectionCore = ScriptCollectionCore()
         workspace_file: str = sc.find_file_by_extension(repository_folder, "code-workspace")
         task_file: str = os.path.join(repository_folder, "Taskfile.yml")
@@ -2342,6 +2356,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_project_name(self, repository_folder: str) -> str:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         for file in GeneralUtilities.get_direct_files_of_folder(repository_folder):
             if file.endswith(".code-workspace"):
                 return Path(file).stem
@@ -2361,6 +2376,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_codeunitsC(self, repository_folder: str, image: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, commandlinearguments: list[str] = []) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         if target_environmenttype == "Development":
             raise ValueError(f"build_codeunitsC is not available for target_environmenttype {target_environmenttype}.")
         # TODO handle additional_arguments_file
@@ -2371,13 +2387,14 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False) -> None:
         self.__check_target_environmenttype(target_environmenttype)
-        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         GeneralUtilities.assert_is_git_repository(repository_folder)
+        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         codeunits = self.get_codeunits(repository_folder, False)
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes)
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
@@ -2449,19 +2466,15 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __do_repository_checks(self, repository_folder: str, project_version: str) -> None:
-        self.__check_if_folder_is_git_repository(repository_folder)
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         self.__check_if_changelog_exists(repository_folder, project_version)
         self.__check_whether_security_txt_exists(repository_folder)
         self.__check_whether_workspace_file_exists(repository_folder)
         self.__check_for_staged_or_committed_ignored_files(repository_folder)
 
     @GeneralUtilities.check_arguments
-    def __check_if_folder_is_git_repository(self, repository_folder: str) -> None:
-        if (not self.__sc.is_git_repository(repository_folder)):
-            raise ValueError(f"Folder {repository_folder} is not a git-repository")
-
-    @GeneralUtilities.check_arguments
     def __check_if_changelog_exists(self, repository_folder: str, project_version: str) -> None:
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
         changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
         if not os.path.isfile(changelog_file):
@@ -2800,6 +2813,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def generic_update_dependencies(self, repository_folder: str, verbosity: int = 1):
         # Prepare
+        GeneralUtilities.assert_is_git_repository(repository_folder)
         codeunits = self.get_codeunits(repository_folder)
         updated_dependencies = False
         update_dependencies_script_filename = "UpdateDependencies.py"
@@ -2955,6 +2969,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def create_changelog_entry(self, repositoryfolder: str, message: str, commit: bool):
+        GeneralUtilities.assert_is_git_repository(repositoryfolder)
         current_version = self.get_version_of_project(repositoryfolder)
         changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
         if os.path.isdir(changelog_file):
