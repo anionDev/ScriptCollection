@@ -1946,3 +1946,37 @@ TXDX
             return True
         else:
             return False
+
+    @GeneralUtilities.check_arguments
+    def ensure_local_docker_network_exists(self, network_name: str) -> None:
+        if not self.local_docker_network_exists(network_name):
+            self.create_local_docker_network(network_name)
+
+    @GeneralUtilities.check_arguments
+    def ensure_local_docker_network_does_not_exist(self, network_name: str) -> None:
+        if self.local_docker_network_exists(network_name):
+            self.remove_local_docker_network(network_name)
+
+    @GeneralUtilities.check_arguments
+    def local_docker_network_exists(self, network_name: str) -> bool:
+        return network_name in self.get_all_local_existing_docker_networks()
+
+    @GeneralUtilities.check_arguments
+    def get_all_local_existing_docker_networks(self) -> list[str]:
+        program_call_result = self.run_program("docker", "network list")
+        std_out = program_call_result[1]
+        std_out_lines = std_out.split("\n")[1:]
+        result: list[str] = []
+        for std_out_line in std_out_lines:
+            normalized_line = ';'.join(std_out_line.split())
+            splitted = normalized_line.split(";")
+            result.append(splitted[1])
+        return result
+
+    @GeneralUtilities.check_arguments
+    def remove_local_docker_network(self, network_name: str) -> None:
+        self.run_program("docker", f"network remove {network_name}")
+
+    @GeneralUtilities.check_arguments
+    def create_local_docker_network(self, network_name: str) -> None:
+        self.run_program("docker", f"network create {network_name}")

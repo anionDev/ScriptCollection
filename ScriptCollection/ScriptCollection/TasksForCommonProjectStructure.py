@@ -2469,9 +2469,10 @@ class TasksForCommonProjectStructure:
 
         now = datetime.now()
         if not self.__suport_information_exists(repository_folder, project_version):
-            support_time = timedelta(days=365*2+30*3)  # TODO make this configurable
+            support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
             until = now + support_time
-            self.mark_current_version_as_supported(repository_folder, project_version, now, until)
+            until_day=datetime(until.year,until.month,until.day,0,0,0)
+            self.mark_current_version_as_supported(repository_folder, project_version, now, until_day)
 
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
