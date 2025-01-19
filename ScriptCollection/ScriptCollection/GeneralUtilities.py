@@ -892,9 +892,15 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def is_git_repository(folder: str) -> bool:
+        combined = os.path.join(folder, ".git")
+        # TODO consider check for bare-repositories
+        return os.path.isdir(combined) or os.path.isfile(combined)
+
+    @staticmethod
+    @check_arguments
     def assert_is_git_repository(folder: str) -> str:
-        git_file_or_folder = os.path.join(folder, ".git")
-        GeneralUtilities.assert_condition(os.path.isdir(git_file_or_folder) or os.path.isfile(git_file_or_folder), f"'{folder}' is not a git-repository.")
+        GeneralUtilities.assert_condition(GeneralUtilities.is_git_repository(folder), f"'{folder}' is not a git-repository.")
 
     @staticmethod
     @check_arguments

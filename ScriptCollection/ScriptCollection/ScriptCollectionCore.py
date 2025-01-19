@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.48"
+version = "3.5.49"
 __version__ = version
 
 
@@ -460,7 +460,7 @@ class ScriptCollectionCore:
     def git_fetch_or_clone_all_in_directory(self, source_directory: str, target_directory: str) -> None:
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(source_directory):
             foldername = os.path.basename(subfolder)
-            if self.is_git_repository(subfolder):
+            if GeneralUtilities.is_git_repository(subfolder):
                 source_repository = subfolder
                 target_repository = os.path.join(target_directory, foldername)
                 if os.path.isdir(target_directory):
@@ -476,12 +476,6 @@ class ScriptCollectionCore:
         for submodule_line in GeneralUtilities.string_to_lines(e[1], False, True):
             result.append(submodule_line.split(' ')[1])
         return result
-
-    @GeneralUtilities.check_arguments
-    def is_git_repository(self, folder: str) -> bool:
-        combined = os.path.join(folder, ".git")
-        # TODO consider check for bare-repositories
-        return os.path.isdir(combined) or os.path.isfile(combined)
 
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
@@ -1414,10 +1408,17 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __adapt_workingdirectory(self, workingdirectory: str) -> str:
+        result: str = None
         if workingdirectory is None:
-            return os.getcwd()
+            result = os.getcwd()
         else:
-            return GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
+            if os.path.isabs(workingdirectory):
+                result = workingdirectory
+            else:
+                result = GeneralUtilities.resolve_relative_path_from_current_working_directory(workingdirectory)
+        if not os.path.isdir(result):
+            raise ValueError(f"Working-directory '{workingdirectory}' does not exist.")
+        return result
 
     @GeneralUtilities.check_arguments
     def verify_no_pending_mock_program_calls(self):
@@ -1945,3 +1946,37 @@ TXDX
             return True
         else:
             return False
+
+    @GeneralUtilities.check_arguments
+    def ensure_local_docker_network_exists(self, network_name: str) -> None:
+        if not self.local_docker_network_exists(network_name):
+            self.create_local_docker_network(network_name)
+
+    @GeneralUtilities.check_arguments
+    def ensure_local_docker_network_does_not_exist(self, network_name: str) -> None:
+        if self.local_docker_network_exists(network_name):
+            self.remove_local_docker_network(network_name)
+
+    @GeneralUtilities.check_arguments
+    def local_docker_network_exists(self, network_name: str) -> bool:
+        return network_name in self.get_all_local_existing_docker_networks()
+
+    @GeneralUtilities.check_arguments
+    def get_all_local_existing_docker_networks(self) -> list[str]:
+        program_call_result = self.run_program("docker", "network list")
+        std_out = program_call_result[1]
+        std_out_lines = std_out.split("\n")[1:]
+        result: list[str] = []
+        for std_out_line in std_out_lines:
+            normalized_line = ';'.join(std_out_line.split())
+            splitted = normalized_line.split(";")
+            result.append(splitted[1])
+        return result
+
+    @GeneralUtilities.check_arguments
+    def remove_local_docker_network(self, network_name: str) -> None:
+        self.run_program("docker", f"network remove {network_name}")
+
+    @GeneralUtilities.check_arguments
+    def create_local_docker_network(self, network_name: str) -> None:
+        self.run_program("docker", f"network create {network_name}")
