@@ -1291,7 +1291,7 @@ class TasksForCommonProjectStructure:
 
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
         if createRelease_configuration.reference_repository_remote_name is not None:
-            self.__sc.git_push(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name, createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name, verbosity=createRelease_configuration.verbosity)
+            self.__sc.git_push_with_retry(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name, createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name, verbosity=createRelease_configuration.verbosity)
         self.__sc.git_commit(build_repository_folder, f"Added {createRelease_configuration.projectname} release v{new_project_version}")
         GeneralUtilities.write_message_to_stdout(f"Finished release for project {createRelease_configuration.projectname} v{new_project_version} successfully.")
         return new_project_version
@@ -1323,11 +1323,11 @@ class TasksForCommonProjectStructure:
 
         if information.push_source_branch:
             GeneralUtilities.write_message_to_stdout("Push source-branch...")
-            self.__sc.git_push(information.repository, information.push_source_branch_remote_name, information.sourcebranch, information.sourcebranch, pushalltags=True, verbosity=information.verbosity)
+            self.__sc.git_push_with_retry(information.repository, information.push_source_branch_remote_name, information.sourcebranch, information.sourcebranch, pushalltags=True, verbosity=information.verbosity)
 
         if information.push_target_branch:
             GeneralUtilities.write_message_to_stdout("Push target-branch...")
-            self.__sc.git_push(information.repository, information.push_target_branch_remote_name, information.targetbranch, information.targetbranch, pushalltags=True, verbosity=information.verbosity)
+            self.__sc.git_push_with_retry(information.repository, information.push_target_branch_remote_name, information.targetbranch, information.targetbranch, pushalltags=True, verbosity=information.verbosity)
 
         return project_version
 
@@ -2471,7 +2471,7 @@ class TasksForCommonProjectStructure:
         if not self.__suport_information_exists(repository_folder, project_version):
             support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
             until = now + support_time
-            until_day=datetime(until.year,until.month,until.day,0,0,0)
+            until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
             self.mark_current_version_as_supported(repository_folder, project_version, now, until_day)
 
         if len(sorted_codeunits) == 0:
@@ -3052,5 +3052,5 @@ class TasksForCommonProjectStructure:
         self.__sc.git_fetch(ref_repo, update_http_documentation_arguments.common_remote_name)
         self.__sc.git_merge(ref_repo, update_http_documentation_arguments.common_remote_name+"/"+update_http_documentation_arguments.main_branch_name, update_http_documentation_arguments.main_branch_name)
         self.__sc.git_checkout(ref_repo, update_http_documentation_arguments.main_branch_name)
-        self.__sc.git_push(ref_repo, update_http_documentation_arguments.common_remote_name, update_http_documentation_arguments.main_branch_name, update_http_documentation_arguments.main_branch_name)
+        self.__sc.git_push_with_retry(ref_repo, update_http_documentation_arguments.common_remote_name, update_http_documentation_arguments.main_branch_name, update_http_documentation_arguments.main_branch_name)
         self.__sc.git_commit(GeneralUtilities.resolve_relative_path("../..", folder_of_this_file), f"Updated content of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version} in {update_http_documentation_arguments.reference_repository_name}-submodule")
