@@ -838,8 +838,11 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def assert_condition(condition: bool, information: str) -> None:
+    def assert_condition(condition: bool, information: str = None) -> None:
+        """Throws an exception if the condition is false."""
         if (not condition):
+            if information is None:
+                information = "Internal assertion error."
             raise ValueError("Condition failed. "+information)
 
     @staticmethod
@@ -911,3 +914,18 @@ class GeneralUtilities:
     @check_arguments
     def assert_folder_exists(folder: str) -> str:
         GeneralUtilities.assert_condition(os.path.isdir(folder), f"Folder '{folder}' does not exist.")
+
+    @staticmethod
+    @check_arguments
+    def retry_action(action, amount_of_attempts: int) -> None:
+        amount_of_fails = 0
+        enabled = True
+        while enabled:
+            try:
+                action()
+                return
+            except Exception:
+                amount_of_fails = amount_of_fails+1
+                GeneralUtilities.assert_condition(not (amount_of_attempts < amount_of_fails))
+                if amount_of_fails == amount_of_attempts:
+                    raise
