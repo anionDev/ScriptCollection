@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.51"
+version = "3.5.52"
 __version__ = version
 
 
@@ -281,7 +281,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_push_with_retry(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0, amount_of_amounts: int = 5) -> None:
-        GeneralUtilities.retry_action(lambda _: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags), amount_of_amounts)
+        GeneralUtilities.retry_action(lambda: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags), amount_of_amounts)
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
