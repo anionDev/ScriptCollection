@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.52"
+version = "3.5.53"
 __version__ = version
 
 
@@ -1569,7 +1569,7 @@ class ScriptCollectionCore:
         if password is None:
             password = GeneralUtilities.generate_password()
         GeneralUtilities.ensure_directory_exists(folder)
-        self.run_program("openssl", f'req -new -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -days {days_until_expire} -nodes -x509 -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={name}/OU={subj_ou} -passout pass:{password} -keyout {name}.key -out {name}.crt', folder)
+        self.run_program_argsasarray("openssl", ['req', '-new', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-days', str(days_until_expire), '-nodes', '-x509', '-subj', f'/C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={name}/OU={subj_ou}', '-passout', f'pass:{password}', '-keyout', f'{name}.key', '-out', f'{name}.crt'], folder)
 
     @GeneralUtilities.check_arguments
     def generate_certificate(self, folder: str,  domain: str, filename: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str, days_until_expire: int = None, password: str = None) -> None:
@@ -1578,9 +1578,9 @@ class ScriptCollectionCore:
         if password is None:
             password = GeneralUtilities.generate_password()
         rsa_key_length = 4096
-        self.run_program("openssl", f'genrsa -out {filename}.key {rsa_key_length}', folder)
-        self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -x509 -key {filename}.key -out {filename}.unsigned.crt -days {days_until_expire}', folder)
-        self.run_program("openssl", f'pkcs12 -export -out {filename}.selfsigned.pfx -password pass:{password} -inkey {filename}.key -in {filename}.unsigned.crt', folder)
+        self.run_program_argsasarray("openssl", ['genrsa', '-out', f'{filename}.key', f'{rsa_key_length}'], folder)
+        self.run_program_argsasarray("openssl", ['req', '-new', '-subj', f'/C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou}', '-x509', '-key', f'{filename}.key', '-out', f'{filename}.unsigned.crt', '-days', f'{days_until_expire}'], folder)
+        self.run_program_argsasarray("openssl", ['pkcs12', '-export', '-out', f'{filename}.selfsigned.pfx', '-password', f'pass:{password}', '-inkey', f'{filename}.key', '-in', f'{filename}.unsigned.crt'], folder)
         GeneralUtilities.write_text_to_file(os.path.join(folder, f"{filename}.password"), password)
         GeneralUtilities.write_text_to_file(os.path.join(folder, f"{filename}.san.conf"), f"""[ req ]
 default_bits        = {rsa_key_length}
@@ -1607,7 +1607,7 @@ DNS                 = {domain}
 
     @GeneralUtilities.check_arguments
     def generate_certificate_sign_request(self, folder: str, domain: str, filename: str, subj_c: str, subj_st: str, subj_l: str, subj_o: str, subj_ou: str) -> None:
-        self.run_program("openssl", f'req -new -subj /C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou} -key {filename}.key -out {filename}.csr -config {filename}.san.conf', folder)
+        self.run_program_argsasarray("openssl", ['req', '-new', '-subj', f'/C={subj_c}/ST={subj_st}/L={subj_l}/O={subj_o}/CN={domain}/OU={subj_ou}', '-key', f'{filename}.key', f'-out', f'{filename}.csr', f'-config', f'{filename}.san.conf'], folder)
 
     @GeneralUtilities.check_arguments
     def sign_certificate(self, folder: str, ca_folder: str, ca_name: str, domain: str, filename: str, days_until_expire: int = None) -> None:
@@ -1616,8 +1616,8 @@ DNS                 = {domain}
         ca = os.path.join(ca_folder, ca_name)
         password_file = os.path.join(folder, f"{filename}.password")
         password = GeneralUtilities.read_text_from_file(password_file)
-        self.run_program("openssl", f'x509 -req -in {filename}.csr -CA {ca}.crt -CAkey {ca}.key -CAcreateserial -CAserial {ca}.srl -out {filename}.crt -days {days_until_expire} -sha256 -extensions v3_req -extfile {filename}.san.conf', folder)
-        self.run_program("openssl", f'pkcs12 -export -out {filename}.pfx -inkey {filename}.key -in {filename}.crt -password pass:{password}', folder)
+        self.run_program_argsasarray("openssl", ['x509', '-req', '-in', f'{filename}.csr', '-CA', f'{ca}.crt', '-CAkey', f'{ca}.key', '-CAcreateserial', '-CAserial', f'{ca}.srl', '-out', f'{filename}.crt', '-days', str(days_until_expire),  '-sha256', '-extensions', 'v3_req', '-extfile', f'{filename}.san.conf'], folder)
+        self.run_program_argsasarray("openssl", ['pkcs12', '-export', '-out', f'{filename}.pfx', f'-inkey', f'{filename}.key', '-in', f'{filename}.crt', '-password', f'pass:{password}'], folder)
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_python_in_requirementstxt_file(self, file: str, verbosity: int):
@@ -1984,3 +1984,43 @@ TXDX
     @GeneralUtilities.check_arguments
     def create_local_docker_network(self, network_name: str) -> None:
         self.run_program("docker", f"network create {network_name}")
+
+    @GeneralUtilities.check_arguments
+    def create_file(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
+        if not os.path.isabs(path):
+            path = os.path.join(os.getcwd(), path)
+
+        if os.path.isfile(path) and error_if_already_exists:
+            raise ValueError(f"File '{path}' already exists.")
+
+        # TODO maybe it should be checked if there is a folder with the same path which already exists.
+
+        folder = os.path.dirname(path)
+
+        if not os.path.isdir(folder):
+            if create_necessary_folder:
+                GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
+            else:
+                raise ValueError(f"Folder '{folder}' does not exist.")
+
+        GeneralUtilities.ensure_file_exists(path)
+
+    @GeneralUtilities.check_arguments
+    def create_folder(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
+        if not os.path.isabs(path):
+            path = os.path.join(os.getcwd(), path)
+
+        if os.path.isdir(path) and error_if_already_exists:
+            raise ValueError(f"Folder '{path}' already exists.")
+
+        # TODO maybe it should be checked if there is a file with the same path which already exists.
+
+        folder = os.path.dirname(path)
+
+        if not os.path.isdir(folder):
+            if create_necessary_folder:
+                GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
+            else:
+                raise ValueError(f"Folder '{folder}' does not exist.")
+
+        GeneralUtilities.ensure_directory_exists(path)
