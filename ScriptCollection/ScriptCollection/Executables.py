@@ -387,3 +387,90 @@ def CreateChangelogEntry() -> int:
         folder = GeneralUtilities.resolve_relative_path(args.repositoryfolder, os.getcwd())
     TasksForCommonProjectStructure().create_changelog_entry(folder, args.message, args.commit)
     return 0
+
+
+def FileExists() -> int:
+    parser = argparse.ArgumentParser(description="This function returns 0 if the given file exists. Otherwise this function returns 1.")
+    parser.add_argument('-p', '--path', required=True)
+    args = parser.parse_args()
+    if os.path.isfile(args.path):
+        return 0
+    else:
+        return 1
+
+
+def FolderExists() -> int:
+    parser = argparse.ArgumentParser(description="This function returns 0 if the given folder exists. Otherwise this function returns 1.")
+    parser.add_argument('-p', '--path', required=True)
+    args = parser.parse_args()
+    if os.path.isdir(args.path):
+        return 0
+    else:
+        return 1
+
+
+def SetContentOfFile() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    return 1
+
+
+def PrintFileContent() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    return 1
+
+
+def CreateFile() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    # TODO add switch to enable/disable error if file already exists
+    # TODO add switch to enable/disable automatic creation of parent-folder if required
+    return 1
+
+
+def CreateFolder() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    # TODO add switch to enable/disable error if file already exists
+    # TODO add switch to enable/disable automatic creation of parent-folder if required
+    return 1
+
+
+def AppendLineToFile() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    # TODO add switch to set if adding new line at begin of line should be skipped if the file already ends with a new-line-character
+    # TODO add switch to enable/disable appending another new-line-character at the end of the file
+    return 1
+
+
+def RegexReplaceInFile() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    return 1
+
+
+def PrintFileSize() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    return 1
+
+
+def FileContainsContent() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    # TODO add switch to set if the input pattern should be treated as regex
+    return 1
+
+
+def RemoveFile() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    return 1
+
+
+def RemoveFolder() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    return 1

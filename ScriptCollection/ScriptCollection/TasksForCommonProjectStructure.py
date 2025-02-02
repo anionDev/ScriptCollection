@@ -468,8 +468,8 @@ class TasksForCommonProjectStructure:
         for search_result in Path(codeunit_folder).glob('**/*.tt'):
             tt_file = str(search_result)
             relative_path_to_tt_file = str(Path(tt_file).relative_to(codeunit_folder))
-            argument = f"--parameter=repositoryFolder={repository_folder} --parameter=codeUnitName={codeunitname} {relative_path_to_tt_file}"
-            sc.run_program("t4", argument, codeunit_folder, verbosity=verbosity)
+            argument = [f"--parameter=repositoryFolder={repository_folder}", f"--parameter=codeUnitName={codeunitname}", relative_path_to_tt_file]
+            sc.run_program_argsasarray("t4", argument, codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -667,7 +667,7 @@ class TasksForCommonProjectStructure:
             self.__sc.run_program("dotnet", "clean", csproj_file_folder, verbosity=verbosity)
             GeneralUtilities.ensure_directory_exists(outputfolder)
             self.__sc.run_program("dotnet", "restore", codeunit_folder, verbosity=verbosity)
-            self.__sc.run_program("dotnet", f"build {csproj_file_name} -c {dotnet_build_configuration} -o {outputfolder} --runtime {runtime}", csproj_file_folder, verbosity=verbosity)
+            self.__sc.run_program_argsasarray("dotnet", ["build", csproj_file_name, "-c", dotnet_build_configuration, "-o", outputfolder, "--runtime", runtime], csproj_file_folder, verbosity=verbosity)
             if copy_license_file_to_target_folder:
                 license_file = os.path.join(repository_folder, "License.txt")
                 target = os.path.join(outputfolder, f"{codeunit_name}.License.txt")
@@ -679,7 +679,7 @@ class TasksForCommonProjectStructure:
                     dll_file_full = os.path.join(outputfolder, dll_file)
                     if os.path.isfile(dll_file_full):
                         GeneralUtilities.assert_condition(self.__sc.run_program("sn", f"-vf {dll_file}", outputfolder, throw_exception_if_exitcode_is_not_zero=False)[0] == 1, f"Pre-verifying of {dll_file} failed.")
-                        self.__sc.run_program("sn", f"-R {dll_file} {snk_file}", outputfolder)
+                        self.__sc.run_program_argsasarray("sn", ["-R", dll_file, snk_file], outputfolder)
                         GeneralUtilities.assert_condition(self.__sc.run_program("sn", f"-vf {dll_file}", outputfolder, throw_exception_if_exitcode_is_not_zero=False)[0] == 0, f"Verifying of {dll_file} failed.")
             sarif_filename = f"{csproj_file_name_without_extension}.sarif"
             sarif_source_file = os.path.join(sarif_folder, sarif_filename)
@@ -757,7 +757,7 @@ class TasksForCommonProjectStructure:
         sc = ScriptCollectionCore()
         bomfile_folder = "Other\\Artifacts\\BOM"
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.run_program("dotnet", f"CycloneDX {codeunit_name}\\{codeunit_name}.csproj -o {bomfile_folder} --disable-github-licenses", codeunit_folder, verbosity=verbosity)
+        sc.run_program_argsasarray("dotnet", ["CycloneDX", f"{codeunit_name}\\{codeunit_name}.csproj", "-o", bomfile_folder, "--disable-github-licenses"], codeunit_folder, verbosity=verbosity)
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml"))
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
@@ -1662,8 +1662,8 @@ class TasksForCommonProjectStructure:
         try:
             GeneralUtilities.ensure_file_does_not_exist(temp_file)
             GeneralUtilities.write_text_to_file(temp_file, self.__sc.run_program("git", f'--no-pager diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name}', repository_folder)[1])
-            self.__sc.run_program("pygmentize", f'-l diff -f html -O full -o {target_file_light} -P style=default {temp_file}', repository_folder)
-            self.__sc.run_program("pygmentize", f'-l diff -f html -O full -o {target_file_dark} -P style=github-dark {temp_file}', repository_folder)
+            self.__sc.run_program_argsasarray("pygmentize", ['-l', 'diff', '-f', 'html', '-O', 'full', '-o', target_file_light, '-P', 'style=default', temp_file], repository_folder)
+            self.__sc.run_program_argsasarray("pygmentize", ['-l', 'diff', '-f', 'html', '-O', 'full', '-o', target_file_dark, '-P', 'style=github-dark', temp_file], repository_folder)
         finally:
             GeneralUtilities.ensure_file_does_not_exist(temp_file)
 
