@@ -51,3 +51,7 @@ class ProgramRunnerPopen(ProgramRunnerBase):
     @GeneralUtilities.check_arguments
     def run_program_async(self, program: str, arguments: str = "", working_directory: str = None, custom_argument: object = None, interactive: bool = False) -> int:
         return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, custom_argument, interactive)
+
+    @GeneralUtilities.check_arguments
+    def will_be_executed_locally(self) -> bool:
+        return True
