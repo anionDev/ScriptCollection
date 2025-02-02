@@ -25,13 +25,13 @@ import yaml
 import qrcode
 import pycdlib
 import send2trash
-import PyPDF2
+from pypdf import PdfReader, PdfWriter
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.53"
+version = "3.5.54"
 __version__ = version
 
 
@@ -147,7 +147,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         result = self.run_program("git", f"verify-commit {revision_identifier}", repository_folder, throw_exception_if_exitcode_is_not_zero=False)
         if (result[0] != 0):
             return False
@@ -161,12 +161,12 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", "").replace("\n", "").split(" ")
 
     @GeneralUtilities.check_arguments
     def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None, verbosity: int = 1) -> list[tuple[str, str]]:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         space_character = "_"
         if subfolder is None:
             subfolder_argument = ""
@@ -186,7 +186,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
@@ -201,7 +201,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         result = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)
         exit_code = result[0]
         if exit_code == 0:
@@ -213,7 +213,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         for line in lines:
             if GeneralUtilities.string_has_content(line):
@@ -222,22 +222,22 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_repository_has_new_untracked_files(self, repository_folder: str):
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         return self.__git_changes_helper(repository_folder, ["ls-files", "--exclude-standard", "--others"])
 
     @GeneralUtilities.check_arguments
     def git_repository_has_unstaged_changes_of_tracked_files(self, repository_folder: str):
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         return self.__git_changes_helper(repository_folder, ["--no-pager", "diff"])
 
     @GeneralUtilities.check_arguments
     def git_repository_has_staged_changes(self, repository_folder: str):
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         return self.__git_changes_helper(repository_folder, ["--no-pager", "diff", "--cached"])
 
     @GeneralUtilities.check_arguments
     def git_repository_has_uncommitted_changes(self, repository_folder: str) -> bool:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         if (self.git_repository_has_unstaged_changes(repository_folder)):
             return True
         if (self.git_repository_has_staged_changes(repository_folder)):
@@ -246,7 +246,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_repository_has_unstaged_changes(self, repository_folder: str) -> bool:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         if (self.git_repository_has_unstaged_changes_of_tracked_files(repository_folder)):
             return True
         if (self.git_repository_has_new_untracked_files(repository_folder)):
@@ -255,13 +255,13 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         date_as_string = result[1].replace('\n', '')
         result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
@@ -464,7 +464,7 @@ class ScriptCollectionCore:
     def git_fetch_or_clone_all_in_directory(self, source_directory: str, target_directory: str) -> None:
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(source_directory):
             foldername = os.path.basename(subfolder)
-            if GeneralUtilities.is_git_repository(subfolder):
+            if self.is_git_repository(subfolder):
                 source_repository = subfolder
                 target_repository = os.path.join(target_directory, foldername)
                 if os.path.isdir(target_directory):
@@ -534,20 +534,20 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_current_git_branch_has_tag(self, repository_folder: str) -> bool:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         return result[0] == 0
 
     @GeneralUtilities.check_arguments
     def get_latest_git_tag(self, repository_folder: str) -> str:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
         result = result[1].replace("\r", "").replace("\n", "")
         return result
 
     @GeneralUtilities.check_arguments
     def get_staged_or_committed_git_ignored_files(self, repository_folder: str) -> list[str]:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         temp_result = self.run_program_argsasarray("git", ["ls-files", "-i", "-c", "--exclude-standard"], repository_folder, verbosity=0)
         temp_result = temp_result[1].replace("\r", "")
         result = [line for line in temp_result.split("\n") if len(line) > 0]
@@ -555,7 +555,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_repository_has_commits(self, repository_folder: str) -> bool:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         return self.run_program_argsasarray("git", ["rev-parse", "--verify", "HEAD"], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0] == 0
 
     @GeneralUtilities.check_arguments
@@ -608,6 +608,44 @@ class ScriptCollectionCore:
     def deescape_git_repositories_in_folder(self, renamed_items: dict[str, str]):
         for renamed_item, original_name in renamed_items.items():
             os.rename(renamed_item, original_name)
+
+    @GeneralUtilities.check_arguments
+    def is_file(self, path: str) -> bool:
+        if self.program_runner.will_be_executed_locally():
+            return os.path.isfile(path)  # much more performant than always running an external program
+        else:
+            exit_code, _, stderr = self.run_program("scfileexists", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code == 0:
+                return True
+            elif exit_code == 1:
+                raise ValueError(f"Not calculatable whether file '{path}' exists. StdErr: '{stderr}'")
+            elif exit_code == 2:
+                return False
+            raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def is_folder(self, path: str) -> bool:
+        if self.program_runner.will_be_executed_locally():  # much more performant than always running an external program
+            return os.path.isdir(path)
+        else:
+            exit_code, _, stderr = self.run_program("scfolderexists", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code == 0:
+                return True
+            elif exit_code == 1:
+                raise ValueError(f"Not calculatable whether folder '{path}' exists. StdErr: '{stderr}'")
+            elif exit_code == 2:
+                return False
+            raise ValueError(f"Fatal error occurrs while checking whether folder '{path}' exists. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def is_git_repository(self, folder: str) -> bool:
+        combined = f"{folder}/.git"
+        # TODO consider check for bare-repositories
+        return self.is_file(combined) or self.is_folder(combined)
+
+    @GeneralUtilities.check_arguments
+    def assert_is_git_repository(self, folder: str) -> str:
+        GeneralUtilities.assert_condition(self.is_git_repository(folder), f"'{folder}' is not a git-repository.")
 
     @GeneralUtilities.check_arguments
     def __sort_fmd(self, line: str):
@@ -715,8 +753,8 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def extract_pdf_pages(self, file: str, from_page: int, to_page: int, outputfile: str) -> None:
-        pdf_reader = PyPDF2.PdfReader(file)
-        pdf_writer = PyPDF2.PdfWriter()
+        pdf_reader: PdfReader = PdfReader(file)
+        pdf_writer: PdfWriter = PdfWriter()
         start = from_page
         end = to_page
         while start <= end:
@@ -728,11 +766,13 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def merge_pdf_files(self, files: list[str], outputfile: str) -> None:
         # TODO add wildcard-option
-        pdfFileMerger = PyPDF2.PdfFileMerger()
+        pdfFileMerger: PdfWriter = PdfWriter()
         for file in files:
-            pdfFileMerger.append(file.strip())
-        pdfFileMerger.write(outputfile)
-        pdfFileMerger.close()
+            with open(file, "rb") as f:
+                pdfFileMerger.append(f)
+        with open(outputfile, "wb") as output:
+            pdfFileMerger.write(output)
+            pdfFileMerger.close()
 
     @GeneralUtilities.check_arguments
     def pdf_to_image(self, file: str, outputfilename_without_extension: str) -> None:
@@ -1120,7 +1160,7 @@ class ScriptCollectionCore:
         return tor_version
 
     def run_testcases_for_python_project(self, repository_folder: str):
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         self.run_program("coverage", "run -m pytest", repository_folder)
         self.run_program("coverage", "xml", repository_folder)
         GeneralUtilities.ensure_directory_exists(os.path.join(repository_folder, "Other/TestCoverage"))
@@ -1534,7 +1574,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_semver_version_from_gitversion(self, repository_folder: str) -> str:
-        GeneralUtilities.assert_is_git_repository(repository_folder)
+        self.assert_is_git_repository(repository_folder)
         if (self.git_repository_has_commits(repository_folder)):
             result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
             if self.git_repository_has_uncommitted_changes(repository_folder):
