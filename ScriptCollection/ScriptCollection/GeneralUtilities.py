@@ -5,6 +5,7 @@ import ctypes
 import hashlib
 import re
 import os
+import subprocess
 import shutil
 import urllib
 import stat
@@ -790,8 +791,13 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def epew_is_available() -> bool:
+        return GeneralUtilities.tool_is_available("epew")
+
+    @staticmethod
+    @check_arguments
+    def tool_is_available(toolname: str) -> bool:
         try:
-            return shutil.which("epew") is not None
+            return shutil.which(toolname) is not None
         except:
             return False
 
@@ -873,7 +879,7 @@ class GeneralUtilities:
     def internet_connection_is_available() -> bool:
         # TODO add more hosts to check to return true if at least one is available
         try:
-            with urllib.request.urlopen("https://google.com") as url_result:
+            with urllib.request.urlopen("https://www.google.com") as url_result:
                 return (url_result.code // 100) == 2
         except:
             pass
@@ -895,10 +901,45 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def run_program_simple(program: str, arguments: list[str], cwd: str = None) -> tuple[int, str, str]:
+        if cwd is None:
+            cwd = os.getcwd()
+        cmd = [program]+arguments
+        with subprocess.Popen(cmd, cwd=cwd, stderr=subprocess.PIPE, stdout=subprocess.PIPE) as process:
+            stdout, stderr = process.communicate()
+            exit_code = process.wait()
+            return (exit_code, stdout, stderr)
+
+    @staticmethod
+    @check_arguments
+    def is_file(path: str) -> bool:
+        exit_code, _, stderr = GeneralUtilities.run_program_simple("scfileexists", ["--path", path])
+        if exit_code == 0:
+            return True
+        elif exit_code == 1:
+            raise ValueError(f"Not calculatable whether file '{path}' exists. StdErr: '{stderr}'")
+        elif exit_code == 2:
+            return False
+        raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
+
+    @staticmethod
+    @check_arguments
+    def is_folder(path: str) -> bool:
+        exit_code, _, stderr = GeneralUtilities.run_program_simple("scfolderexists", ["--path", path])
+        if exit_code == 0:
+            return True
+        elif exit_code == 1:
+            raise ValueError(f"Not calculatable whether folder '{path}' exists. StdErr: '{stderr}'")
+        elif exit_code == 2:
+            return False
+        raise ValueError(f"Fatal error occurrs while checking whether folder '{path}' exists. StdErr: '{stderr}'")
+
+    @staticmethod
+    @check_arguments
     def is_git_repository(folder: str) -> bool:
         combined = os.path.join(folder, ".git")
         # TODO consider check for bare-repositories
-        return os.path.isdir(combined) or os.path.isfile(combined)
+        return GeneralUtilities.is_file(combined) or GeneralUtilities.is_folder(combined)
 
     @staticmethod
     @check_arguments

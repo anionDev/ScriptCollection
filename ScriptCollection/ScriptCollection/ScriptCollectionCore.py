@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.52"
+version = "3.5.53"
 __version__ = version
 
 
@@ -1984,3 +1984,43 @@ TXDX
     @GeneralUtilities.check_arguments
     def create_local_docker_network(self, network_name: str) -> None:
         self.run_program("docker", f"network create {network_name}")
+
+    @GeneralUtilities.check_arguments
+    def create_file(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
+        if not os.path.isabs(path):
+            path = os.path.join(os.getcwd(), path)
+
+        if os.path.isfile(path) and error_if_already_exists:
+            raise ValueError(f"File '{path}' already exists.")
+
+        # TODO maybe it should be checked if there is a folder with the same path which already exists.
+
+        folder = os.path.dirname(path)
+
+        if not os.path.isdir(folder):
+            if create_necessary_folder:
+                GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
+            else:
+                raise ValueError(f"Folder '{folder}' does not exist.")
+
+        GeneralUtilities.ensure_file_exists(path)
+
+    @GeneralUtilities.check_arguments
+    def create_folder(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
+        if not os.path.isabs(path):
+            path = os.path.join(os.getcwd(), path)
+
+        if os.path.isdir(path) and error_if_already_exists:
+            raise ValueError(f"Folder '{path}' already exists.")
+
+        # TODO maybe it should be checked if there is a file with the same path which already exists.
+
+        folder = os.path.dirname(path)
+
+        if not os.path.isdir(folder):
+            if create_necessary_folder:
+                GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
+            else:
+                raise ValueError(f"Folder '{folder}' does not exist.")
+
+        GeneralUtilities.ensure_directory_exists(path)
