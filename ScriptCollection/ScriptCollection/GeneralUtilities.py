@@ -109,11 +109,14 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def string_to_datetime(value: str) -> datetime:
+        if "." in value:
+            value = value.split(".")[0]
         return datetime.strptime(value, GeneralUtilities.__datetime_format)  # value ="2022-10-06T19:26:01" for example
 
     @staticmethod
     @check_arguments
     def datetime_to_string(value: datetime) -> str:
+        value = datetime(year=value.year, month=value.month, day=value.day, hour=value.hour, minute=value.minute, second=value.second)
         return value.strftime(GeneralUtilities.__datetime_format)  # returns "2022-10-06T19:26:01" for example
 
     @staticmethod
