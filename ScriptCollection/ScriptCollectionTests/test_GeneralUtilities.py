@@ -29,12 +29,34 @@ class GeneralUtilitiesTests(unittest.TestCase):
         # assert
         assert actual == expected
 
+    def test_datetime_to_string_to_datetime_with_milliseconds(self) -> None:
+        # arrange
+        input_value = datetime(2022, 10, 6, 19, 26, 1, 123)
+        expected = datetime(2022, 10, 6, 19, 26, 1)
+
+        # act
+        actual = GeneralUtilities.string_to_datetime(GeneralUtilities.datetime_to_string(input_value))
+
+        # assert
+        assert actual == expected
+
     def test_string_to_datetime_to_string(self) -> None:
         # arrange
         expected = "2022-10-06T19:26:01"
 
         # act
         actual = GeneralUtilities.datetime_to_string(GeneralUtilities.string_to_datetime(expected))
+
+        # assert
+        assert actual == expected
+
+    def test_string_to_datetime_to_string_with_milliseconds(self) -> None:
+        # arrange
+        inputvalue = "2022-10-06T19:26:01.123"
+        expected = "2022-10-06T19:26:01"
+
+        # act
+        actual = GeneralUtilities.datetime_to_string(GeneralUtilities.string_to_datetime(inputvalue))
 
         # assert
         assert actual == expected
