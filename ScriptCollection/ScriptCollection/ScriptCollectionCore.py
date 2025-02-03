@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.55"
+version = "3.5.56"
 __version__ = version
 
 
@@ -612,9 +612,9 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def is_file(self, path: str) -> bool:
         if self.program_runner.will_be_executed_locally():
-            return os.path.isfile(path)  # much more performant than always running an external program
+            return os.path.isfile(path)  # works only locally, but much more performant than always running an external program
         else:
-            exit_code, _, stderr = self.run_program("scfileexists", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, _, stderr = self.run_program_argsasarray("scfileexists", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code == 0:
                 return True
             elif exit_code == 1:
@@ -625,10 +625,10 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def is_folder(self, path: str) -> bool:
-        if self.program_runner.will_be_executed_locally():  # much more performant than always running an external program
+        if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
             return os.path.isdir(path)
         else:
-            exit_code, _, stderr = self.run_program("scfolderexists", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, _, stderr = self.run_program_argsasarray("scfolderexists", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code == 0:
                 return True
             elif exit_code == 1:
