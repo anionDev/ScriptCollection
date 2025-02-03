@@ -480,3 +480,12 @@ def RemoveFolder() -> int:
     GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
     # TODO implement function
     return 1
+
+
+def Rename() -> int:
+    parser = argparse.ArgumentParser(description="This function renames a file or folder.")
+    parser.add_argument('-s', '--source', required=True)
+    parser.add_argument('-t', '--target', required=True)
+    args = parser.parse_args()
+    os.rename(args.source, args.target)
+    return 0
