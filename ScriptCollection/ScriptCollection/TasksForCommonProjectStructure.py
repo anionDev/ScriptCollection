@@ -1902,19 +1902,19 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_constant_value(self, source_codeunit_folder: str, constant_name: str) -> str:
-        self.__sc.assert_is_git_repository(source_codeunit_folder)
+        self.assert_is_codeunit_folder(source_codeunit_folder)
         value_file_relative = self.__get_constant_helper(source_codeunit_folder, constant_name, "path")
         value_file = GeneralUtilities.resolve_relative_path(value_file_relative, os.path.join(source_codeunit_folder, "Other", "Resources", "Constants"))
         return GeneralUtilities.read_text_from_file(value_file)
 
     @GeneralUtilities.check_arguments
     def get_constant_documentation(self, source_codeunit_folder: str, constant_name: str) -> str:
-        self.__sc.assert_is_git_repository(source_codeunit_folder)
+        self.assert_is_codeunit_folder(source_codeunit_folder)
         return self.__get_constant_helper(source_codeunit_folder, constant_name, "documentationsummary")
 
     @GeneralUtilities.check_arguments
     def __get_constant_helper(self, source_codeunit_folder: str, constant_name: str, propertyname: str) -> str:
-        self.__sc.assert_is_git_repository(source_codeunit_folder)
+        self.assert_is_codeunit_folder(source_codeunit_folder)
         root: etree._ElementTree = etree.parse(os.path.join(source_codeunit_folder, "Other", "Resources", "Constants", f"{constant_name}.constant.xml"))
         results = root.xpath(f'//cps:{propertyname}/text()', namespaces={
             'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'
