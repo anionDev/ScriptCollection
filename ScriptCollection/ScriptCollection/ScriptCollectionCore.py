@@ -1357,7 +1357,7 @@ class ScriptCollectionCore:
                             if err_line.endswith("\n"):
                                 err_line = err_line[:-1]
                             if print_live_output:
-                                print(err_line, end='\n', file=sys.stderr,  flush=True)
+                                print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr,  flush=True)
                             if 0 < len(stderr):
                                 stderr = stderr+"\n"
                             stderr = stderr+err_line
