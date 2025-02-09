@@ -109,11 +109,14 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def string_to_datetime(value: str) -> datetime:
+        if "." in value:
+            value = value.split(".")[0]
         return datetime.strptime(value, GeneralUtilities.__datetime_format)  # value ="2022-10-06T19:26:01" for example
 
     @staticmethod
     @check_arguments
     def datetime_to_string(value: datetime) -> str:
+        value = datetime(year=value.year, month=value.month, day=value.day, hour=value.hour, minute=value.minute, second=value.second)
         return value.strftime(GeneralUtilities.__datetime_format)  # returns "2022-10-06T19:26:01" for example
 
     @staticmethod
@@ -909,42 +912,6 @@ class GeneralUtilities:
             stdout, stderr = process.communicate()
             exit_code = process.wait()
             return (exit_code, stdout, stderr)
-
-    @staticmethod
-    @check_arguments
-    def is_file(path: str) -> bool:
-        exit_code, _, stderr = GeneralUtilities.run_program_simple("scfileexists", ["--path", path])
-        if exit_code == 0:
-            return True
-        elif exit_code == 1:
-            raise ValueError(f"Not calculatable whether file '{path}' exists. StdErr: '{stderr}'")
-        elif exit_code == 2:
-            return False
-        raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
-
-    @staticmethod
-    @check_arguments
-    def is_folder(path: str) -> bool:
-        exit_code, _, stderr = GeneralUtilities.run_program_simple("scfolderexists", ["--path", path])
-        if exit_code == 0:
-            return True
-        elif exit_code == 1:
-            raise ValueError(f"Not calculatable whether folder '{path}' exists. StdErr: '{stderr}'")
-        elif exit_code == 2:
-            return False
-        raise ValueError(f"Fatal error occurrs while checking whether folder '{path}' exists. StdErr: '{stderr}'")
-
-    @staticmethod
-    @check_arguments
-    def is_git_repository(folder: str) -> bool:
-        combined = os.path.join(folder, ".git")
-        # TODO consider check for bare-repositories
-        return GeneralUtilities.is_file(combined) or GeneralUtilities.is_folder(combined)
-
-    @staticmethod
-    @check_arguments
-    def assert_is_git_repository(folder: str) -> str:
-        GeneralUtilities.assert_condition(GeneralUtilities.is_git_repository(folder), f"'{folder}' is not a git-repository.")
 
     @staticmethod
     @check_arguments
