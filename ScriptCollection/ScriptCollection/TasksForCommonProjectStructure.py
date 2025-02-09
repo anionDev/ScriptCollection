@@ -2246,7 +2246,7 @@ class TasksForCommonProjectStructure:
                         package_json_content["devDependencies"][package] = latest_version
             with open(package_json_file, "w", encoding="utf-8") as package_json_file_object:
                 json.dump(package_json_content, package_json_file_object, indent=4)
-            self.run_with_epew("npm", "install --force", codeunit_folder, verbosity)
+            self.do_npm_install(codeunit_folder, True, verbosity)
         else:
             GeneralUtilities.write_message_to_stderr("Update dependencies resulted in an error.")
 
