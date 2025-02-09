@@ -560,3 +560,18 @@ def ForEach() -> int:
     GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
     # TODO implement function
     return 1
+
+
+def NpmI() -> int:
+    parser = argparse.ArgumentParser(description="Does \"npm clean install\".")
+    parser.add_argument('-d', '--directory', required=False, default=".")
+    parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
+    parser.add_argument('-v', '--verbose', action='store_true', required=False, default=False)
+    args = parser.parse_args()
+    if os.path.isabs(args.directory):
+        folder = args.directory
+    else:
+        folder = GeneralUtilities.resolve_relative_path(args.directory, os.getcwd())
+    t = TasksForCommonProjectStructure()
+    t.do_npm_install(folder, args.force, 3 if args.verbose else 0)
+    return 0
