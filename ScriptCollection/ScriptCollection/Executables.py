@@ -416,9 +416,18 @@ def SetContentOfFile() -> int:
 
 
 def PrintFileContent() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
-    # TODO implement function
-    return 1
+    parser = argparse.ArgumentParser(description="This function prints the size of a file")
+    parser.add_argument('-p', '--path', required=True)
+    parser.add_argument('-e', '--encoding', required=False, default="utf-8")
+    args = parser.parse_args()
+    file = args.path
+    encoding = args.encoding
+    if os.path.isfile(file):
+        GeneralUtilities.write_message_to_stdout(GeneralUtilities.read_text_from_file(file, encoding))
+        return 0
+    else:
+        GeneralUtilities.write_exception_to_stderr(f"File '{file}' does not exist.")
+        return 1
 
 
 def CreateFile() -> int:
@@ -458,9 +467,17 @@ def RegexReplaceInFile() -> int:
 
 
 def PrintFileSize() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
-    # TODO implement function
-    return 1
+    parser = argparse.ArgumentParser(description="This function prints the size of a file")
+    parser.add_argument('-p', '--path', required=True)
+    args = parser.parse_args()
+    file = args.path
+    if os.path.isfile(file):
+        size = os.path.getsize(file)
+        GeneralUtilities.write_message_to_stdout(str(size))
+        return 0
+    else:
+        GeneralUtilities.write_exception_to_stderr(f"File '{file}' does not exist.")
+        return 1
 
 
 def FileContainsContent() -> int:
@@ -471,15 +488,35 @@ def FileContainsContent() -> int:
 
 
 def RemoveFile() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
-    # TODO implement function
-    return 1
+    parser = argparse.ArgumentParser(description="This function removes a file.")
+    parser.add_argument('-p', '--path', required=True)
+    parser.add_argument('-e', '--errorwhennotexists', action='store_true', required=False, default=False)
+    args = parser.parse_args()
+    file = args.path
+    errorwhennotexists = args.errorwhennotexists
+    if os.path.isfile(file):
+        GeneralUtilities.ensure_file_does_not_exist(file)
+    else:
+        if errorwhennotexists:
+            GeneralUtilities.write_exception_to_stderr(f"File '{file}' does not exist.")
+            return 1
+    return 0
 
 
 def RemoveFolder() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
-    # TODO implement function
-    return 1
+    parser = argparse.ArgumentParser(description="This function removes a folder.")
+    parser.add_argument('-p', '--path', required=True)
+    parser.add_argument('-e', '--errorwhennotexists', action='store_true', required=False, default=False)
+    args = parser.parse_args()
+    folder = args.path
+    errorwhennotexists = args.errorwhennotexists
+    if os.path.isdir(folder):
+        GeneralUtilities.ensure_directory_does_not_exist(folder)
+    else:
+        if errorwhennotexists:
+            GeneralUtilities.write_exception_to_stderr(f"Folder '{folder}' does not exist.")
+            return 1
+    return 0
 
 
 def Rename() -> int:
@@ -489,3 +526,37 @@ def Rename() -> int:
     args = parser.parse_args()
     os.rename(args.source, args.target)
     return 0
+
+
+def PrintOSName() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    if GeneralUtilities.current_system_is_windows():
+        GeneralUtilities.write_message_to_stdout("Windows")
+    elif GeneralUtilities.current_system_is_linux():
+        GeneralUtilities.write_message_to_stdout("Linux")
+    # TODO also consider Mac, Unix, etc.
+    else:
+        GeneralUtilities.write_message_to_stderr("Unknown OS.")
+        return 1
+    return 0
+
+
+def PrintCurrecntWorkingDirectory() -> int:
+    GeneralUtilities.write_message_to_stdout(os.getcwd())
+    return 0
+
+
+def ListFolderContent() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    # TODO add option to include/exclude full path
+    # TODO add option to also list transitively list subfolder
+    # TODO add option to print only folder
+    # TODO add option to print only files
+    return 1
+
+
+def ForEach() -> int:
+    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    # TODO implement function
+    return 1
