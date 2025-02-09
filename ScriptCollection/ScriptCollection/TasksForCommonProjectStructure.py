@@ -2224,16 +2224,15 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
-        current_folder = os.path.dirname(update_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(codeunit_folder, True)
         # TODO consider ignored_dependencies
-        result = self.run_with_epew("npm", "outdated", current_folder, verbosity, throw_exception_if_exitcode_is_not_zero=False)
+        result = self.run_with_epew("npm", "outdated", codeunit_folder, verbosity, throw_exception_if_exitcode_is_not_zero=False)
         if result[0] == 0:
             return  # all dependencies up to date
         elif result[0] == 1:
             package_json_content = None
-            package_json_file = f"{current_folder}/package.json"
+            package_json_file = f"{codeunit_folder}/package.json"
             with open(package_json_file, "r", encoding="utf-8") as package_json_file_object:
                 package_json_content = json.load(package_json_file_object)
                 lines = GeneralUtilities.string_to_lines(result[1])[1:][:-1]
@@ -2247,7 +2246,7 @@ class TasksForCommonProjectStructure:
                         package_json_content["devDependencies"][package] = latest_version
             with open(package_json_file, "w", encoding="utf-8") as package_json_file_object:
                 json.dump(package_json_content, package_json_file_object, indent=4)
-            self.run_with_epew("npm", "install --force", current_folder, verbosity)
+            self.do_npm_install(codeunit_folder, True, verbosity)
         else:
             GeneralUtilities.write_message_to_stderr("Update dependencies resulted in an error.")
 
