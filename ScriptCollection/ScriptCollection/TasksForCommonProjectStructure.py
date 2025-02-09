@@ -1811,10 +1811,15 @@ class TasksForCommonProjectStructure:
             argument1 = f"{argument1} --force"
         self.run_with_epew("npm", argument1, package_json_folder, verbosity=verbosity)
 
-        argument2 = "clean-install"
+        argument2 = "install --package-lock-only"
         if force:
             argument2 = f"{argument2} --force"
         self.run_with_epew("npm", argument2, package_json_folder, verbosity=verbosity)
+
+        argument3 = "clean-install"
+        if force:
+            argument3 = f"{argument3} --force"
+        self.run_with_epew("npm", argument3, package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
