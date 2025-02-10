@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.61"
+version = "3.5.62"
 __version__ = version
 
 
@@ -1291,7 +1291,7 @@ class ScriptCollectionCore:
         return False
 
     @staticmethod
-    def __read_popen_pipes(p: Popen):
+    def __read_popen_pipes(p: Popen) -> tuple[list[str], list[str]]:
         p_id = p.pid
         with ThreadPoolExecutor(2) as pool:
             q_stdout = Queue()
@@ -1301,28 +1301,33 @@ class ScriptCollectionCore:
             pool.submit(ScriptCollectionCore.__enqueue_output, p.stderr, q_stderr)
             reading_stdout_last_time_resulted_in_exception: bool = False
             reading_stderr_last_time_resulted_in_exception: bool = False
+
+            stdout_result: list[str] = []
+            stderr_result: list[str] = []
+
             while (ScriptCollectionCore.__continue_process_reading(p_id, p, q_stdout, q_stderr, reading_stdout_last_time_resulted_in_exception, reading_stderr_last_time_resulted_in_exception)):
-                out_line = None
-                err_line = None
+
                 try:
-                    out_line = q_stdout.get_nowait()  # TODO read all avaliable lines
-                    reading_stdout_last_time_resulted_in_exception = False
+                    while not q_stdout.empty():
+                        stdout_result.append(q_stdout.get_nowait())
+                        reading_stdout_last_time_resulted_in_exception = False
                 except Empty:
                     reading_stdout_last_time_resulted_in_exception = True
 
                 try:
-                    err_line = q_stderr.get_nowait()  # TODO read all avaliable lines
-                    reading_stderr_last_time_resulted_in_exception = False
+                    while not q_stderr.empty():
+                        stderr_result.append(q_stderr.get_nowait())
+                        reading_stderr_last_time_resulted_in_exception = False
                 except Empty:
                     reading_stderr_last_time_resulted_in_exception = True
 
                 time.sleep(0.01)  # this is required to not finish too early
 
-                yield (out_line, err_line)
+            return (stdout_result, stderr_result)
 
-    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
     def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
+        # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
         # verbosity 1: No output will be logged.
         # verbosity 2: If the exitcode of the executed program is not 0 then the StdErr will be logged. This is supposed to be the default verbosity-level.
         # verbosity 3: Logs and prints StdOut and StdErr of the executed program in realtime.
@@ -1363,8 +1368,10 @@ class ScriptCollectionCore:
                 if log_file is not None:
                     GeneralUtilities.ensure_file_exists(log_file)
                 pid = process.pid
-                for out_line_plain, err_line_plain in ScriptCollectionCore.__read_popen_pipes(process):  # see https://stackoverflow.com/a/57084403/3905529
 
+                outputs: tuple[list[str], list[str]] = ScriptCollectionCore.__read_popen_pipes(process)
+
+                for out_line_plain in outputs[0]:
                     if out_line_plain is not None:
                         out_line: str = None
                         if isinstance(out_line_plain, str):
@@ -1385,6 +1392,7 @@ class ScriptCollectionCore:
                             if log_file is not None:
                                 GeneralUtilities.append_line_to_file(log_file, out_line)
 
+                for err_line_plain in outputs[1]:
                     if err_line_plain is not None:
                         err_line: str = None
                         if isinstance(err_line_plain, str):
