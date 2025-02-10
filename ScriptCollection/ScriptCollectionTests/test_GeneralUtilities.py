@@ -192,3 +192,9 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
     def test_find_between(self) -> None:
         assert GeneralUtilities.find_between("a(bc)de", "(", ")") == "bc"
+
+    def test_int_to_string(self) -> None:
+        assert GeneralUtilities.int_to_string(2, 2, 5) == "02.00000"
+
+    def test_float_to_string(self) -> None:
+        assert GeneralUtilities.float_to_string(2.39, 2, 5) == "02.39000"

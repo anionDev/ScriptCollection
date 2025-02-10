@@ -937,3 +937,16 @@ class GeneralUtilities:
                 GeneralUtilities.assert_condition(not (amount_of_attempts < amount_of_fails))
                 if amount_of_fails == amount_of_attempts:
                     raise
+
+    @staticmethod
+    @check_arguments
+    def int_to_string(number: int, leading_zeroplaces: int, trailing_zeroplaces: int) -> str:
+        return GeneralUtilities.float_to_string(float(number), leading_zeroplaces, trailing_zeroplaces)
+
+    @staticmethod
+    @check_arguments
+    def float_to_string(number: float, leading_zeroplaces: int, trailing_zeroplaces: int) -> str:
+        plain_str = str(number)
+        GeneralUtilities.assert_condition("." in plain_str)
+        splitted: list[str] = plain_str.split(".")
+        return splitted[0].zfill(leading_zeroplaces)+"."+splitted[1].ljust(trailing_zeroplaces, '0')
