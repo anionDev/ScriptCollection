@@ -1348,7 +1348,7 @@ class ScriptCollectionCore:
             else:
                 info_for_log = title
 
-            verbose = verbosity > 0
+            verbose = verbosity > 2
             if verbose:
                 GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
