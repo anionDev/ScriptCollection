@@ -2457,7 +2457,7 @@ class TasksForCommonProjectStructure:
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
-            self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder)
+            self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder,print_live_output=1<verbosity)
 
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
@@ -2809,11 +2809,11 @@ class TasksForCommonProjectStructure:
             c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile "{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
-        self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
+        self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
-        self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}", build_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
+        self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}", build_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
 
         artifacts = {"BuildResult_.+": True, "BOM": False, "SourceCode": True}
         if self.codeunit_has_testable_sourcecode(codeunit_file):
@@ -2823,20 +2823,20 @@ class TasksForCommonProjectStructure:
         codeunit_hast_testable_sourcecode = self.codeunit_has_testable_sourcecode(codeunit_file)
         if codeunit_hast_testable_sourcecode:
             GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
-            self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
+            self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
             self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
-        self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
+        self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]())
 
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
-        self.__sc.run_program("python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
+        self.__sc.run_program("python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         if os.path.isfile(os.path.join(other_folder, "OnBuildingFinished.py")):
             GeneralUtilities.write_message_to_stdout('Run "OnBuildingFinished.py"...')
-            self.__sc.run_program("python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True)
+            self.__sc.run_program("python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         codeunit_version = self.get_version_of_codeunit(codeunit_file)
