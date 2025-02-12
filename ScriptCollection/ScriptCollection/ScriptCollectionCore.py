@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.62"
+version = "3.5.63"
 __version__ = version
 
 
@@ -1326,12 +1326,7 @@ class ScriptCollectionCore:
             return (stdout_result, stderr_result)
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
-        # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
-        # verbosity 1: No output will be logged.
-        # verbosity 2: If the exitcode of the executed program is not 0 then the StdErr will be logged. This is supposed to be the default verbosity-level.
-        # verbosity 3: Logs and prints StdOut and StdErr of the executed program in realtime.
-        # verbosity 4: Same as loglevel 3 but with some more overhead-information.
+    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 0, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False) -> tuple[int, str, str, int]:
         if self.call_program_runner_directly:
             return self.program_runner.run_program_argsasarray(program, arguments_as_array, working_directory, custom_argument, interactive)
         try:
@@ -1353,10 +1348,9 @@ class ScriptCollectionCore:
             else:
                 info_for_log = title
 
-            if verbosity >= 3:
+            verbose = verbosity > 0
+            if verbose:
                 GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
-
-            print_live_output = 1 < verbosity
 
             exit_code: int = None
             stdout: str = ""
@@ -1413,11 +1407,16 @@ class ScriptCollectionCore:
                                 GeneralUtilities.append_line_to_file(log_file, err_line)
 
             exit_code = process.returncode
+            GeneralUtilities.assert_condition(exit_code is not None, f"Exitcode of program-run of '{info_for_log}' is None.")
+
+            result_message = f"Program '{info_for_log}' resulted in exitcode {exit_code}."
+
+            if verbose:
+                GeneralUtilities.write_message_to_stdout(result_message)
 
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
-                raise ValueError(f"Program '{working_directory}>{program} {arguments_for_log_as_string}' resulted in exitcode {exit_code}. (StdOut: '{stdout}', StdErr: '{stderr}')")
+                raise ValueError(f"{result_message} (StdOut: '{stdout}', StdErr: '{stderr}')")
 
-            GeneralUtilities.assert_condition(exit_code is not None, f"Exitcode of program-run of '{info_for_log}' is None.")
             result = (exit_code, stdout, stderr, pid)
             return result
         except Exception as e:
@@ -1425,10 +1424,10 @@ class ScriptCollectionCore:
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def run_program(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
+    def run_program(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False) -> tuple[int, str, str, int]:
         if self.call_program_runner_directly:
             return self.program_runner.run_program(program, arguments, working_directory, custom_argument, interactive)
-        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive)
+        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive, print_live_output)
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
