@@ -2442,8 +2442,8 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
-        contains_uncommitted_changes = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
-        if contains_uncommitted_changes:
+        contains_uncommitted_changes_at_begin = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
+        if contains_uncommitted_changes_at_begin:
             if is_pre_merge:
                 raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
         else:
@@ -2457,7 +2457,7 @@ class TasksForCommonProjectStructure:
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
-            self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder,print_live_output=1<verbosity)
+            self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder, print_live_output=1 < verbosity)
 
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
@@ -2491,12 +2491,16 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout(line)
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, assume_dependent_codeunits_are_already_built, commandline_arguments)
             GeneralUtilities.write_message_to_stdout(line)
-        if not contains_uncommitted_changes and self.__sc.git_repository_has_uncommitted_changes(repository_folder) and not is_pre_merge:
-            message = f'Due to the build-process the repository "{repository_folder}" has new uncommitted changes.'
-            if target_environmenttype == "Development":
-                GeneralUtilities.write_message_to_stdout(message)
+        contains_uncommitted_changes_at_end = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
+        if contains_uncommitted_changes_at_end and not is_pre_merge:
+            if contains_uncommitted_changes_at_begin:
+                GeneralUtilities.write_message_to_stdout(f'There are still uncommitted changes in the repository "{repository_folder}".')
             else:
-                raise ValueError(message)
+                message = f'Due to the build-process the repository "{repository_folder}" has new uncommitted changes.'
+                if target_environmenttype == "Development":
+                    GeneralUtilities.write_message_to_stderr(f"Warning: {message}")
+                else:
+                    raise ValueError(message)
         if export_target_directory is not None:
             project_name = self.get_project_name(repository_folder)
             for codeunit in sorted_codeunits:
@@ -2809,11 +2813,11 @@ class TasksForCommonProjectStructure:
             c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile "{additional_arguments_file}"'
 
         GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
-        self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
+        self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
         GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
-        self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}", build_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
+        self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}", build_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
 
         artifacts = {"BuildResult_.+": True, "BOM": False, "SourceCode": True}
         if self.codeunit_has_testable_sourcecode(codeunit_file):
@@ -2823,20 +2827,20 @@ class TasksForCommonProjectStructure:
         codeunit_hast_testable_sourcecode = self.codeunit_has_testable_sourcecode(codeunit_file)
         if codeunit_hast_testable_sourcecode:
             GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
-            self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
+            self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
             self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
-        self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
+        self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]())
 
         GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
-        self.__sc.run_program("python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
+        self.__sc.run_program("python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         if os.path.isfile(os.path.join(other_folder, "OnBuildingFinished.py")):
             GeneralUtilities.write_message_to_stdout('Run "OnBuildingFinished.py"...')
-            self.__sc.run_program("python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True,print_live_output=1<verbosity)
+            self.__sc.run_program("python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
 
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         codeunit_version = self.get_version_of_codeunit(codeunit_file)
@@ -2869,7 +2873,7 @@ class TasksForCommonProjectStructure:
         codeunits = self.get_codeunits(repository_folder)
         updated_dependencies = False
         update_dependencies_script_filename = "UpdateDependencies.py"
-        self.__sc.run_program("scbuildcodeunits", "", repository_folder)  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
+        self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True)  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
@@ -2900,7 +2904,7 @@ class TasksForCommonProjectStructure:
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
         if updated_dependencies:
-            self.__sc.run_program("scbuildcodeunits", "--targetenvironment QualityCheck --removeuncommittedfiles", repository_folder, verbosity=verbosity)  # TODO set timeout
+            self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True)
             self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
