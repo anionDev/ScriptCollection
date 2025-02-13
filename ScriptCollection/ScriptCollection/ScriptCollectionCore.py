@@ -31,7 +31,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.64"
+version = "3.5.65"
 __version__ = version
 
 
@@ -268,6 +268,10 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
+    def git_fetch_with_retry(self, folder: str, remotename: str = "--all", amount_of_attempts: int = 5) -> None:
+        GeneralUtilities.retry_action(lambda: self.git_fetch(folder, remotename), amount_of_attempts)
+
+    @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
         self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
@@ -280,8 +284,8 @@ class ScriptCollectionCore:
         self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_push_with_retry(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0, amount_of_amounts: int = 5) -> None:
-        GeneralUtilities.retry_action(lambda: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags), amount_of_amounts)
+    def git_push_with_retry(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0, amount_of_attempts: int = 5) -> None:
+        GeneralUtilities.retry_action(lambda: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
@@ -292,6 +296,10 @@ class ScriptCollectionCore:
             argument.append("--tags")
         result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=verbosity, print_errors_as_information=True)
         return result[1].replace('\r', '').replace('\n', '')
+
+    @GeneralUtilities.check_arguments
+    def git_pull_with_retry(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False, amount_of_attempts: int = 5) -> None:
+        GeneralUtilities.retry_action(lambda: self.git_pull_with_retry(folder, remote,localbranchname,remotebranchname), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
     def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False) -> None:
@@ -1340,8 +1348,10 @@ class ScriptCollectionCore:
             if arguments_for_log is None:
                 arguments_for_log = arguments_as_array
 
-            arguments_for_log_as_string: str = ' '.join(arguments_for_log)
-            cmd = f'{working_directory}>{program} {arguments_for_log_as_string}'
+            cmd = f'{working_directory}>{program}'
+            if 0 < len(arguments_for_log):
+                arguments_for_log_as_string: str = ' '.join([f'"{argument_for_log}"' for argument_for_log in arguments_for_log])
+                cmd = f'{cmd} {arguments_for_log_as_string}'
 
             if GeneralUtilities.string_is_none_or_whitespace(title):
                 info_for_log = cmd
