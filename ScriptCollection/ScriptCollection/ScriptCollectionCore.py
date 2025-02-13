@@ -1340,8 +1340,10 @@ class ScriptCollectionCore:
             if arguments_for_log is None:
                 arguments_for_log = arguments_as_array
 
-            arguments_for_log_as_string: str = ' '.join(arguments_for_log)
-            cmd = f'{working_directory}>{program} {arguments_for_log_as_string}'
+            cmd = f'{working_directory}>{program}'
+            if 0 < len(arguments_for_log):
+                arguments_for_log_as_string: str = ' '.join([f'"{argument_for_log}"' for argument_for_log in arguments_for_log])
+                cmd = f'{cmd} {arguments_for_log_as_string}'
 
             if GeneralUtilities.string_is_none_or_whitespace(title):
                 info_for_log = cmd
