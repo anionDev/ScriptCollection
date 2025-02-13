@@ -1019,7 +1019,7 @@ class TasksForCommonProjectStructure:
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True)
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")
 
         reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -1251,7 +1251,7 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
         self.__sc.git_checkout(repository_folder, source_branch)
-        self.build_codeunits(repository_folder, verbosity, TasksForCommonProjectStructure.get_qualitycheck_environment_name(), additional_arguments_file, True, None, [], True)
+        self.build_codeunits(repository_folder, verbosity, TasksForCommonProjectStructure.get_qualitycheck_environment_name(), additional_arguments_file, True, None, [], True, "Check if product is buildable")
         self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
         self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
@@ -1312,7 +1312,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("git", "clean -dfx", information.repository,  verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True)
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")
 
         self.assert_no_uncommitted_changes(information.repository)
 
@@ -2430,7 +2430,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docker", f"run --volume {repository_folder}:/Workspace/Repository " + f"-e repositoryfolder=/Workspace/Repository -e verbosity={verbosity} -e targetenvironment={target_environmenttype} {image}", repository_folder)
 
     @GeneralUtilities.check_arguments
-    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False) -> None:
+    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None) -> None:
         self.__check_target_environmenttype(target_environmenttype)
         self.__sc.assert_is_git_repository(repository_folder)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
@@ -2438,10 +2438,11 @@ class TasksForCommonProjectStructure:
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes)
 
     @GeneralUtilities.check_arguments
-    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False) -> None:
+    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
+        repository_name = os.path.dirname(repository_folder)
         contains_uncommitted_changes_at_begin = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
         if contains_uncommitted_changes_at_begin:
             if is_pre_merge:
@@ -2470,6 +2471,11 @@ class TasksForCommonProjectStructure:
         project_version = self.get_version_of_project(repository_folder)
 
         now = datetime.now()
+        message = f"Build codeunits in product {repository_name}..."
+        if note is not None:
+            message = f"{message} ({note})"
+        GeneralUtilities.write_message_to_stdout(message)
+
         if not self.__suport_information_exists(repository_folder, project_version):
             support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
             until = now + support_time
@@ -2871,9 +2877,8 @@ class TasksForCommonProjectStructure:
         # Prepare
         self.__sc.assert_is_git_repository(repository_folder)
         codeunits = self.get_codeunits(repository_folder)
-        updated_dependencies = False
         update_dependencies_script_filename = "UpdateDependencies.py"
-        self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True)  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
+        self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
@@ -2890,7 +2895,6 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
                 self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
-                    updated_dependencies = True
                     version_of_project = self.get_version_of_project(repository_folder)
                     changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
                     if not os.path.isfile(changelog_file):
@@ -2903,9 +2907,8 @@ class TasksForCommonProjectStructure:
                         GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
-        if updated_dependencies:
-            self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True)
-            self.__sc.git_commit(repository_folder, "Updated dependencies")
+        self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True, note="Check if product is buildable after dependency-update")
+        self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
         current_file: str
@@ -2932,8 +2935,8 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(reference_folder)
         verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_prepare_new_release_arguments.commandline_arguments, 1)
 
-        merge_source_branch = "other/next-release"  # TODO make this configurable
-        main_branch = "main"  # TODO make this configurable
+        merge_source_branch = "other/next-release"  # maybe this should be configurable
+        main_branch = "main"  # maybe this should be configurable
 
         # prepare
         self.assert_no_uncommitted_changes(repository_folder)
