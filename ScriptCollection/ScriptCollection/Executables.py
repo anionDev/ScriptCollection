@@ -411,7 +411,7 @@ def FolderExists() -> int:
 
 
 def SetContentOfFile() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    GeneralUtilities.write_message_to_stderr("This function is not implemented yet.")
     # TODO implement function
     return 1
 
@@ -454,7 +454,7 @@ def CreateFolder() -> int:
 
 
 def AppendLineToFile() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    GeneralUtilities.write_message_to_stderr("This function is not implemented yet.")
     # TODO implement function
     # TODO add switch to set if adding new line at begin of line should be skipped if the file already ends with a new-line-character
     # TODO add switch to enable/disable appending another new-line-character at the end of the file
@@ -462,7 +462,7 @@ def AppendLineToFile() -> int:
 
 
 def RegexReplaceInFile() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    GeneralUtilities.write_message_to_stderr("This function is not implemented yet.")
     # TODO implement function
     return 1
 
@@ -482,7 +482,7 @@ def PrintFileSize() -> int:
 
 
 def FileContainsContent() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    GeneralUtilities.write_message_to_stderr("This function is not implemented yet.")
     # TODO implement function
     # TODO add switch to set if the input pattern should be treated as regex
     return 1
@@ -547,7 +547,6 @@ def Copy() -> int:
 
 
 def PrintOSName() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
     if GeneralUtilities.current_system_is_windows():
         GeneralUtilities.write_message_to_stdout("Windows")
     elif GeneralUtilities.current_system_is_linux():
@@ -565,7 +564,6 @@ def PrintCurrecntWorkingDirectory() -> int:
 
 
 def ListFolderContent() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
     parser = argparse.ArgumentParser(description="This function lists folder-content.")
     parser.add_argument('-p', '--path', required=True)
     parser.add_argument('-f', '--excludefiles', action='store_true', required=False,default=False)
@@ -593,7 +591,7 @@ def ListFolderContent() -> int:
 
 
 def ForEach() -> int:
-    GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
+    GeneralUtilities.write_message_to_stderr("This function is not implemented yet.")
     # TODO implement function
     return 1
 
