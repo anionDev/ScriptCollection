@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.69"
+version = "3.5.70"
 __version__ = version
 
 
@@ -631,7 +631,7 @@ class ScriptCollectionCore:
         GeneralUtilities.assert_condition(self.is_git_repository(folder), f"'{folder}' is not a git-repository.")
 
     @GeneralUtilities.check_arguments
-    def list_content(self, path: str,include_files:bool,include_folder:bool) -> list[str]:
+    def list_content(self, path: str,include_files:bool,include_folder:bool,printonlynamewithoutpath:bool) -> list[str]:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():
             result=[]
@@ -646,6 +646,8 @@ class ScriptCollectionCore:
                 arguments=arguments+["--excludefiles"]
             if not include_folder:
                 arguments=arguments+["--excludedirectories"]
+            if printonlynamewithoutpath:
+                arguments=arguments+["--printonlynamewithoutpath"]
             exit_code, stdout, stderr, _ = self.run_program_argsasarray("sclistfoldercontent", arguments)
             if exit_code == 0:
                 result:list[str]=[]
