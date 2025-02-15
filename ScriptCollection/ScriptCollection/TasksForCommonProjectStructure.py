@@ -1302,7 +1302,9 @@ class TasksForCommonProjectStructure:
         # hint: arguments can be overwritten by commandline_arguments
         folder_of_this_file = os.path.dirname(create_release_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity {str(verbosity)}", folder_of_this_file,  verbosity=verbosity, log_file=logfile, addLogOverhead=addLogOverhead)
+        result=self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity {str(verbosity)}", folder_of_this_file,  verbosity=verbosity, log_file=logfile, addLogOverhead=addLogOverhead,print_live_output=True,throw_exception_if_exitcode_is_not_zero=False)
+        if result[0]!=0:
+            raise ValueError(f"CreateRelease.py resulted in exitcode {result[0]}.")
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_merge_to_stable_branch(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
@@ -2438,7 +2440,7 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(repository_folder)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         codeunits = self.get_codeunits(repository_folder, False)
-        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes)
+        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes,note)
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None) -> None:
@@ -2463,7 +2465,9 @@ class TasksForCommonProjectStructure:
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
-            self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder, print_live_output=1 < verbosity)
+            result=self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder,throw_exception_if_exitcode_is_not_zero=False, print_live_output=True)
+            if result[0]!=0:
+                raise ValueError(f"PrepareBuildCodeunits.py resulted in exitcode {result[0]}.")
 
         for subfolder in subfolders:
             codeunit_name: str = os.path.basename(subfolder)
