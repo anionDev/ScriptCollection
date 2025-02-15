@@ -553,7 +553,15 @@ def ListFolderContent() -> int:
     # TODO add option to also list transitively list subfolder
     # TODO add option to print only folder
     # TODO add option to print only files
-    return 1
+    parser = argparse.ArgumentParser(description="This function lists folder-content.")
+    parser.add_argument('-p', '--path', required=True)
+    args=parser.parse_args()
+    folder=args.path
+    if not os.path.isabs(folder):
+        folder=GeneralUtilities.resolve_relative_path(folder,os.getcwd())
+    for file in GeneralUtilities.get_direct_files_of_folder(folder):
+        GeneralUtilities.write_message_to_stdout(file)
+    return 0
 
 
 def ForEach() -> int:

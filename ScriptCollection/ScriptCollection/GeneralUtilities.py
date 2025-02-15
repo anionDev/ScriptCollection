@@ -930,13 +930,14 @@ class GeneralUtilities:
         enabled = True
         while enabled:
             try:
-                action()
-                return
+                result=action()
+                return result
             except Exception:
                 amount_of_fails = amount_of_fails+1
                 GeneralUtilities.assert_condition(not (amount_of_attempts < amount_of_fails))
                 if amount_of_fails == amount_of_attempts:
                     raise
+        return None
 
     @staticmethod
     @check_arguments

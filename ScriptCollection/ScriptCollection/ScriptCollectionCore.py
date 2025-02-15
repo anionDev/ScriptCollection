@@ -16,6 +16,7 @@ from pathlib import Path
 from subprocess import Popen
 import re
 import shutil
+from typing import IO
 import uuid
 import tempfile
 import io
@@ -31,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.66"
+version = "3.5.67"
 __version__ = version
 
 
@@ -616,6 +617,21 @@ class ScriptCollectionCore:
     def deescape_git_repositories_in_folder(self, renamed_items: dict[str, str]):
         for renamed_item, original_name in renamed_items.items():
             os.rename(renamed_item, original_name)
+
+    @GeneralUtilities.check_arguments
+    def list_files(self, path: str) -> list[str]:
+        if self.program_runner.will_be_executed_locally():
+            return GeneralUtilities.get_direct_files_of_folder(path)
+        else:
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("scfileexists", ["--path", path])
+            if exit_code == 0:
+                result:list[str]=[]
+                for line in stdout.split("\n"):
+                    normalized_line=line.replace("\r","")
+                    result.append(normalized_line)
+                return result
+            else:
+                raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def is_file(self, path: str) -> bool:
@@ -1277,7 +1293,7 @@ class ScriptCollectionCore:
         return popen
 
     @staticmethod
-    def __enqueue_output(file, queue):
+    def __enqueue_output(file:IO, queue:Queue):
         for line in iter(file.readline, ''):
             queue.put(line)
         file.close()
@@ -1431,6 +1447,11 @@ class ScriptCollectionCore:
             return result
         except Exception as e:
             raise e
+
+    # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
+    @GeneralUtilities.check_arguments
+    def run_program_with_retry(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False,amount_of_attempts:int=5) -> tuple[int, str, str, int]:
+        return GeneralUtilities.retry_action(lambda: self.run_program(program, arguments,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log,throw_exception_if_exitcode_is_not_zero,custom_argument,interactive,print_live_output), amount_of_attempts)
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
@@ -1730,7 +1751,7 @@ DNS                 = {domain}
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stderr(f"Check for updates in {csproj_filename}")
-        result = self.run_program("dotnet", f"list {csproj_filename} package --outdated", folder)
+        result = self.run_program_with_retry("dotnet", f"list {csproj_filename} package --outdated", folder)
         for line in result[1].replace("\r", "").split("\n"):
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:

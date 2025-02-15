@@ -1015,6 +1015,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_release_artifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
+        GeneralUtilities.write_message_to_stdout("Release artifacts...")
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
@@ -1243,6 +1244,7 @@ class TasksForCommonProjectStructure:
     def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release", target_branch: str = "main", verbosity: int = 1, additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
         # This is an automatization for automatic merges. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
         # (like GitHub, GitLab or Azure DevOps)
+        GeneralUtilities.write_message_to_stdout(f"Merge to main-branch...")
         self.__sc.assert_is_git_repository(repository_folder)
         self.assert_no_uncommitted_changes(repository_folder)
 
@@ -1262,6 +1264,7 @@ class TasksForCommonProjectStructure:
     def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfiguration):
 
         GeneralUtilities.write_message_to_stdout(f"Create release for project {createRelease_configuration.projectname}.")
+        GeneralUtilities.write_message_to_stdout(f"Merge to stable-branch...")
         self.__sc.assert_is_git_repository(createRelease_configuration.repository_folder)
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
@@ -2439,6 +2442,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None) -> None:
+        if verbosity>2:
+            GeneralUtilities.write_message_to_stdout(f"Start building codeunits for repository '{repository_folder}'...")
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
@@ -2519,6 +2524,11 @@ class TasksForCommonProjectStructure:
                 shutil.make_archive(filename_without_extension, 'zip', artifacts_folder)
                 archive_file = os.path.join(os.getcwd(), f"{filename_without_extension}.zip")
                 shutil.move(archive_file, target_folder)
+
+        message2 = f"Finished build codeunits in product {repository_name}."
+        if note is not None:
+            message2 = f"{message2} ({note})"
+        GeneralUtilities.write_message_to_stdout(message2)
 
     @GeneralUtilities.check_arguments
     def __do_repository_checks(self, repository_folder: str, project_version: str) -> None:
@@ -2875,6 +2885,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def generic_update_dependencies(self, repository_folder: str, verbosity: int = 1):
         # Prepare
+        GeneralUtilities.write_message_to_stdout("Update dependencies...")
         self.__sc.assert_is_git_repository(repository_folder)
         codeunits = self.get_codeunits(repository_folder)
         update_dependencies_script_filename = "UpdateDependencies.py"
@@ -2949,6 +2960,7 @@ class TasksForCommonProjectStructure:
             self.generic_update_dependencies(repository_folder)
             self.assert_no_uncommitted_changes(repository_folder)
 
+        GeneralUtilities.write_message_to_stdout(f"Check reference-repository...")
         now = datetime.now()
         for unsupported_version in self.get_unsupported_versions(repository_folder, now):
             reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version}"
@@ -2962,6 +2974,8 @@ class TasksForCommonProjectStructure:
         else:
             self.merge_to_main_branch(repository_folder, merge_source_branch, verbosity=verbosity, fast_forward_source_branch=True)
             self.__sc.git_commit(build_repository_folder, "Updated submodule due to merge to main-branch.")
+        GeneralUtilities.write_message_to_stdout(f"Finished prepare release for {generic_prepare_new_release_arguments.product_name}.")
+
 
     class GenericCreateReleaseArguments():
         current_file: str
@@ -3006,6 +3020,7 @@ class TasksForCommonProjectStructure:
 
             # create release
             new_version = self.merge_to_stable_branch(generic_create_release_arguments.current_file, createReleaseConfiguration)
+            GeneralUtilities.write_message_to_stdout(f"Finished create release for {generic_create_release_arguments.product_name}.")
             return True, new_version
 
     class UpdateHTTPDocumentationArguments:
