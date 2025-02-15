@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.68"
+version = "3.5.69"
 __version__ = version
 
 
@@ -619,7 +619,20 @@ class ScriptCollectionCore:
             os.rename(renamed_item, original_name)
 
     @GeneralUtilities.check_arguments
+    def is_git_repository(self, folder: str) -> bool:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        combined = f"{folder}/.git"
+        # TODO consider check for bare-repositories
+        return self.is_folder(combined) or self.is_file(combined)
+
+    @GeneralUtilities.check_arguments
+    def assert_is_git_repository(self, folder: str) -> str:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        GeneralUtilities.assert_condition(self.is_git_repository(folder), f"'{folder}' is not a git-repository.")
+
+    @GeneralUtilities.check_arguments
     def list_content(self, path: str,include_files:bool,include_folder:bool) -> list[str]:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():
             result=[]
             if include_files:
@@ -645,6 +658,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def is_file(self, path: str) -> bool:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():
             return os.path.isfile(path)  # works only locally, but much more performant than always running an external program
         else:
@@ -659,6 +673,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def is_folder(self, path: str) -> bool:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
             return os.path.isdir(path)
         else:
@@ -672,14 +687,22 @@ class ScriptCollectionCore:
             raise ValueError(f"Fatal error occurrs while checking whether folder '{path}' exists. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
-    def is_git_repository(self, folder: str) -> bool:
-        combined = f"{folder}/.git"
-        # TODO consider check for bare-repositories
-        return self.is_file(combined) or self.is_folder(combined)
-
-    @GeneralUtilities.check_arguments
-    def assert_is_git_repository(self, folder: str) -> str:
-        GeneralUtilities.assert_condition(self.is_git_repository(folder), f"'{folder}' is not a git-repository.")
+    def remove(self, path: str) ->None:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
+            if os.path.isdir(path):
+                GeneralUtilities.ensure_directory_does_not_exist(path)
+            if os.path.isfile(path):
+                GeneralUtilities.ensure_file_does_not_exist(path)
+        else:
+            if self.is_file(path):
+                exit_code, _, stderr, _ = self.run_program_argsasarray("scremovefile", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+                if exit_code != 0:
+                    raise ValueError(f"Fatal error occurrs while removing file '{path}'. StdErr: '{stderr}'")
+            if self.is_folder(path):
+                exit_code, _, stderr, _ = self.run_program_argsasarray("scremovefolder", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+                if exit_code != 0:
+                    raise ValueError(f"Fatal error occurrs while removing folder '{path}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def __sort_fmd(self, line: str):
