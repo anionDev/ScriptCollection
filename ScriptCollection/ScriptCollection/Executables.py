@@ -3,6 +3,7 @@ import argparse
 import time
 import traceback
 import sys
+import shutil
 import keyboard
 from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
@@ -528,13 +529,30 @@ def Rename() -> int:
     return 0
 
 
+def Copy() -> int:
+    parser = argparse.ArgumentParser(description="This function copies a file or folder.")
+    parser.add_argument('-s', '--source', required=True)
+    parser.add_argument('-t', '--target', required=True)
+    args = parser.parse_args()
+    if os.path.isfile(args.target) or os.path.isdir(args.target):
+        raise ValueError(f"Can not copy to '{args.target}' because the target already exists.")
+    if os.path.isfile(args.source):
+        shutil.copyfile(args.source, args.target)
+    elif os.path.isdir(args.source):
+        GeneralUtilities.ensure_directory_exists(args.target)
+        GeneralUtilities.copy_content_of_folder(args.source,args.target)
+    else:
+        raise ValueError(f"'{args.source}' can not be copied because the path does not exist.")
+    return 0
+
+
 def PrintOSName() -> int:
     GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
     if GeneralUtilities.current_system_is_windows():
         GeneralUtilities.write_message_to_stdout("Windows")
     elif GeneralUtilities.current_system_is_linux():
         GeneralUtilities.write_message_to_stdout("Linux")
-    # TODO also consider Mac, Unix, etc.
+    # TODO consider Mac, Unix, etc. too
     else:
         GeneralUtilities.write_message_to_stderr("Unknown OS.")
         return 1
@@ -548,19 +566,29 @@ def PrintCurrecntWorkingDirectory() -> int:
 
 def ListFolderContent() -> int:
     GeneralUtilities.write_exception_to_stderr("This function is not implemented yet.")
-    # TODO implement function
-    # TODO add option to include/exclude full path
-    # TODO add option to also list transitively list subfolder
-    # TODO add option to print only folder
-    # TODO add option to print only files
     parser = argparse.ArgumentParser(description="This function lists folder-content.")
     parser.add_argument('-p', '--path', required=True)
+    parser.add_argument('-f', '--excludefiles', action='store_true', required=False,default=False)
+    parser.add_argument('-d', '--excludedirectories', action='store_true', required=False,default=False)
+    parser.add_argument('-n', '--printonlynamewithoutpath', action='store_true', required=False,default=False)
+    # TODO add option to also list transitively list subfolder
+    # TODO add option to show only content which matches a filter by extension or regex or glob-pattern
     args=parser.parse_args()
     folder=args.path
     if not os.path.isabs(folder):
         folder=GeneralUtilities.resolve_relative_path(folder,os.getcwd())
-    for file in GeneralUtilities.get_direct_files_of_folder(folder):
-        GeneralUtilities.write_message_to_stdout(file)
+    content=[]
+    if not args.excludefiles:
+        content=content+GeneralUtilities.get_direct_files_of_folder(folder)
+    if not args.excludedirectories:
+        content=content+GeneralUtilities.get_direct_folders_of_folder(folder)
+    for contentitem in content:
+        content_to_print:str=None
+        if args.printonlynamewithoutpath:
+            content_to_print=os.path.basename(contentitem)
+        else:
+            content_to_print= contentitem
+        GeneralUtilities.write_message_to_stdout(content_to_print)
     return 0
 
 

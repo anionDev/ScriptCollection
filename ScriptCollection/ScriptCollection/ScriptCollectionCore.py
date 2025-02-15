@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.67"
+version = "3.5.68"
 __version__ = version
 
 
@@ -619,11 +619,21 @@ class ScriptCollectionCore:
             os.rename(renamed_item, original_name)
 
     @GeneralUtilities.check_arguments
-    def list_files(self, path: str) -> list[str]:
+    def list_content(self, path: str,include_files:bool,include_folder:bool) -> list[str]:
         if self.program_runner.will_be_executed_locally():
-            return GeneralUtilities.get_direct_files_of_folder(path)
+            result=[]
+            if include_files:
+                result=result + GeneralUtilities.get_direct_files_of_folder(path)
+            if include_folder:
+                result=result + GeneralUtilities.get_direct_folders_of_folder(path)
+            return result
         else:
-            exit_code, stdout, stderr, _ = self.run_program_argsasarray("scfileexists", ["--path", path])
+            arguments=["--path", path]
+            if not include_files:
+                arguments=arguments+["--excludefiles"]
+            if not include_folder:
+                arguments=arguments+["--excludedirectories"]
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("sclistfoldercontent", arguments)
             if exit_code == 0:
                 result:list[str]=[]
                 for line in stdout.split("\n"):
