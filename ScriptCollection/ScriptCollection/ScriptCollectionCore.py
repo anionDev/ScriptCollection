@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.72"
+version = "3.5.73"
 __version__ = version
 
 
@@ -714,13 +714,13 @@ class ScriptCollectionCore:
         else:
             exit_code, _, stderr, _ = self.run_program_argsasarray("screname", ["--source", source,"--target",target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
-                raise ValueError(f"Fatal error occurrs while moving file '{source}' to '{target}'. StdErr: '{stderr}'")
+                raise ValueError(f"Fatal error occurrs while renaming '{source}' to '{target}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
-    def copy(self, path: str,source:str,target:str) ->None:
+    def copy(self, source:str,target:str) ->None:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
-            if os.path.isfile(target) or os.path.isdir(target):
+            if not (os.path.isfile(target) or os.path.isdir(target)):
                 raise ValueError(f"Can not copy to '{target}' because the target already exists.")
             if os.path.isfile(source):
                 shutil.copyfile(source, target)
@@ -732,7 +732,7 @@ class ScriptCollectionCore:
         else:
             exit_code, _, stderr, _ = self.run_program_argsasarray("sccopy", ["--source", source,"--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
-                raise ValueError(f"Fatal error occurrs while removing file '{path}'. StdErr: '{stderr}'")
+                raise ValueError(f"Fatal error occurrs while copying '{source}' to '{target}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def __sort_fmd(self, line: str):

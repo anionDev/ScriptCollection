@@ -534,15 +534,24 @@ def Copy() -> int:
     parser.add_argument('-s', '--source', required=True)
     parser.add_argument('-t', '--target', required=True)
     args = parser.parse_args()
-    if os.path.isfile(args.target) or os.path.isdir(args.target):
+
+    if not (os.path.isfile(args.target) or os.path.isdir(args.target)):
         raise ValueError(f"Can not copy to '{args.target}' because the target already exists.")
-    if os.path.isfile(args.source):
-        shutil.copyfile(args.source, args.target)
-    elif os.path.isdir(args.source):
-        GeneralUtilities.ensure_directory_exists(args.target)
-        GeneralUtilities.copy_content_of_folder(args.source,args.target)
+
+    source=args.source
+    if not os.path.isabs(source):
+        source=GeneralUtilities.resolve_relative_path(source,os.getcwd())
+    target=args.target
+    if not os.path.isabs(target):
+        target=GeneralUtilities.resolve_relative_path(target,os.getcwd())
+
+    if os.path.isfile(source):
+        shutil.copyfile(source, target)
+    elif os.path.isdir(source):
+        GeneralUtilities.ensure_directory_exists(target)
+        GeneralUtilities.copy_content_of_folder(source,target)
     else:
-        raise ValueError(f"'{args.source}' can not be copied because the path does not exist.")
+        raise ValueError(f"'{source}' can not be copied because the path does not exist.")
     return 0
 
 
