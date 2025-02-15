@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.70"
+version = "3.5.71"
 __version__ = version
 
 
@@ -705,6 +705,24 @@ class ScriptCollectionCore:
                 exit_code, _, stderr, _ = self.run_program_argsasarray("scremovefolder", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
                 if exit_code != 0:
                     raise ValueError(f"Fatal error occurrs while removing folder '{path}'. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def copy(self, path: str,source:str,target:str) ->None:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
+            if os.path.isfile(target) or os.path.isdir(target):
+                raise ValueError(f"Can not copy to '{target}' because the target already exists.")
+            if os.path.isfile(source):
+                shutil.copyfile(source, target)
+            elif os.path.isdir(source):
+                GeneralUtilities.ensure_directory_exists(target)
+                GeneralUtilities.copy_content_of_folder(source,target)
+            else:
+                raise ValueError(f"'{source}' can not be copied because the path does not exist.")
+        else:
+            exit_code, _, stderr, _ = self.run_program_argsasarray("sccopy", ["--source", source,"--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code != 0:
+                raise ValueError(f"Fatal error occurrs while removing file '{path}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def __sort_fmd(self, line: str):
