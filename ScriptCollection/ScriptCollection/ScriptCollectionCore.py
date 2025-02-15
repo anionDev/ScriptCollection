@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.71"
+version = "3.5.72"
 __version__ = version
 
 
@@ -705,6 +705,16 @@ class ScriptCollectionCore:
                 exit_code, _, stderr, _ = self.run_program_argsasarray("scremovefolder", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
                 if exit_code != 0:
                     raise ValueError(f"Fatal error occurrs while removing folder '{path}'. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def rename(self,  source:str,target:str) ->None:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
+            os.rename(source, target)
+        else:
+            exit_code, _, stderr, _ = self.run_program_argsasarray("screname", ["--source", source,"--target",target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code != 0:
+                raise ValueError(f"Fatal error occurrs while moving file '{source}' to '{target}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def copy(self, path: str,source:str,target:str) ->None:
