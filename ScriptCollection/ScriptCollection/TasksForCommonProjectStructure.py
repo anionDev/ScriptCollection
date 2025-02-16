@@ -2176,7 +2176,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, commandline_arguments: list[str]) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
-        GeneralUtilities.write_message_to_stdout(f"Create GitHub-release for {productname}.")
+        GeneralUtilities.write_message_to_stdout(f"Create GitHub-release for {productname}...")
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, 1)
         github_repo = f"{github_username}/{productname}"
         artifact_files = []
@@ -3062,7 +3062,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_http_documentation(self, update_http_documentation_arguments: UpdateHTTPDocumentationArguments):
-        GeneralUtilities.write_message_to_stdout(f"Update HTTP-documentation for for {update_http_documentation_arguments.product_name}.")
+        GeneralUtilities.write_message_to_stdout(f"Update HTTP-documentation for for {update_http_documentation_arguments.product_name}...")
         folder_of_this_file = str(os.path.dirname(update_http_documentation_arguments.current_file))
 
         ref_repo = GeneralUtilities.resolve_relative_path(f"../../Submodules/{update_http_documentation_arguments.reference_repository_name}", folder_of_this_file)

@@ -535,7 +535,7 @@ def Copy() -> int:
     parser.add_argument('-t', '--target', required=True)
     args = parser.parse_args()
 
-    if not (os.path.isfile(args.target) or os.path.isdir(args.target)):
+    if os.path.isfile(args.target) or os.path.isdir(args.target):
         raise ValueError(f"Can not copy to '{args.target}' because the target already exists.")
 
     source=args.source

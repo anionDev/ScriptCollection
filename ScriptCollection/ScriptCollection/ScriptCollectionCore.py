@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.73"
+version = "3.5.74"
 __version__ = version
 
 
@@ -720,7 +720,7 @@ class ScriptCollectionCore:
     def copy(self, source:str,target:str) ->None:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
-            if not (os.path.isfile(target) or os.path.isdir(target)):
+            if os.path.isfile(target) or os.path.isdir(target):
                 raise ValueError(f"Can not copy to '{target}' because the target already exists.")
             if os.path.isfile(source):
                 shutil.copyfile(source, target)
