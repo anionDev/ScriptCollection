@@ -279,7 +279,7 @@ class GeneralUtilities:
         if string is None:
             return False
         else:
-            return len(string) > 0
+            return len(string.strip()) > 0
 
     @staticmethod
     @check_arguments
