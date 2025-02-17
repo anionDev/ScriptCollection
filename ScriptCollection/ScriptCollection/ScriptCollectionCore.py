@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.76"
+version = "3.5.77"
 __version__ = version
 
 
@@ -1390,10 +1390,11 @@ class ScriptCollectionCore:
                 try:
                     while not q_stdout.empty():
                         out_line:str=q_stdout.get_nowait()
-                        stdout_result.append(out_line)
-                        reading_stdout_last_time_resulted_in_exception = False
-                        if print_live_output:
-                            print(out_line, end='\n', file=sys.stdout, flush=False)
+                        if GeneralUtilities.string_has_content(out_line):
+                            stdout_result.append(out_line)
+                            reading_stdout_last_time_resulted_in_exception = False
+                            if print_live_output:
+                                print(out_line, end='\n', file=sys.stdout, flush=False)
                     if print_live_output:
                         sys.stdout.flush()
                 except Empty:
@@ -1402,10 +1403,11 @@ class ScriptCollectionCore:
                 try:
                     while not q_stderr.empty():
                         err_line:str=q_stderr.get_nowait()
-                        stderr_result.append(err_line)
-                        reading_stderr_last_time_resulted_in_exception = False
-                        if print_live_output:
-                            print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
+                        if GeneralUtilities.string_has_content(err_line):
+                            stderr_result.append(err_line)
+                            reading_stderr_last_time_resulted_in_exception = False
+                            if print_live_output:
+                                print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
                     if print_live_output:
                         if print_errors_as_information:
                             sys.stdout.flush()
