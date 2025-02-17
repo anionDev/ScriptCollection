@@ -868,6 +868,10 @@ class GeneralUtilities:
         return "--------------------------"
 
     @staticmethod
+    def get_longline():
+        return GeneralUtilities.get_line() + GeneralUtilities.get_line()
+
+    @staticmethod
     @check_arguments
     def get_icon_check_empty(positive: bool) -> str:
         if positive:
