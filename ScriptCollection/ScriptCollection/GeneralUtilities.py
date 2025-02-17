@@ -863,6 +863,10 @@ class GeneralUtilities:
         return platform.system() == 'Linux'
 
     @staticmethod
+    def get_line():
+        return "--------------------------"
+
+    @staticmethod
     @check_arguments
     def get_certificate_expiry_date(certificate_file: str) -> datetime:
         with open(certificate_file, encoding="utf-8") as certificate_file_content:
