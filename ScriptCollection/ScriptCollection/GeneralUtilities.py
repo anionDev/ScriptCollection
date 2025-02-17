@@ -864,6 +864,31 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def get_line():
+        return "--------------------------"
+
+    @staticmethod
+    def get_longline():
+        return GeneralUtilities.get_line() + GeneralUtilities.get_line()
+
+    @staticmethod
+    @check_arguments
+    def get_icon_check_empty(positive: bool) -> str:
+        if positive:
+            return "✅"
+        else:
+            return ""
+
+    @staticmethod
+    @check_arguments
+    def get_icon_check_cross(positive: bool) -> str:
+        if positive:
+            return "✅"
+        else:
+            return "❌"
+
+    @staticmethod
+    @check_arguments
     def get_certificate_expiry_date(certificate_file: str) -> datetime:
         with open(certificate_file, encoding="utf-8") as certificate_file_content:
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, certificate_file_content.read())
