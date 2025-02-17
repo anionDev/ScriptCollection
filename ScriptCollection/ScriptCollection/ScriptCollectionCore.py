@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.77"
+version = "3.5.78"
 __version__ = version
 
 
@@ -1390,6 +1390,7 @@ class ScriptCollectionCore:
                 try:
                     while not q_stdout.empty():
                         out_line:str=q_stdout.get_nowait()
+                        out_line=out_line.replace("\r","").replace("\n","")
                         if GeneralUtilities.string_has_content(out_line):
                             stdout_result.append(out_line)
                             reading_stdout_last_time_resulted_in_exception = False
@@ -1403,6 +1404,7 @@ class ScriptCollectionCore:
                 try:
                     while not q_stderr.empty():
                         err_line:str=q_stderr.get_nowait()
+                        err_line=err_line.replace("\r","").replace("\n","")
                         if GeneralUtilities.string_has_content(err_line):
                             stderr_result.append(err_line)
                             reading_stderr_last_time_resulted_in_exception = False
