@@ -925,7 +925,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def retry_action(action, amount_of_attempts: int) -> None:
+    def retry_action(action, amount_of_attempts: int,action_name:str=None) -> None:
         amount_of_fails = 0
         enabled = True
         while enabled:
@@ -936,6 +936,10 @@ class GeneralUtilities:
                 amount_of_fails = amount_of_fails+1
                 GeneralUtilities.assert_condition(not (amount_of_attempts < amount_of_fails))
                 if amount_of_fails == amount_of_attempts:
+                    message=f"Action failed {amount_of_attempts} times."
+                    if action_name is not None:
+                        message=f"{message} Name of action: {action_name}"
+                    GeneralUtilities.write_exception_to_stderr(message)
                     raise
         return None
 

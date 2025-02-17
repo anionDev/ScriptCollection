@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.74"
+version = "3.5.75"
 __version__ = version
 
 
@@ -1344,12 +1344,6 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> Popen:
-        # Verbosity:
-        # 0=Quiet (No output will be printed.)
-        # 1=Normal (If the exitcode of the executed program is not 0 then the StdErr will be printed.)
-        # 2=Full (Prints StdOut and StdErr of the executed program.)
-        # 3=Verbose (Same as "Full" but with some more information.)
-
         if isinstance(self.program_runner, ProgramRunnerEpew):
             custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, verbosity, arguments_for_log)
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument, interactive)
@@ -1378,7 +1372,7 @@ class ScriptCollectionCore:
         return False
 
     @staticmethod
-    def __read_popen_pipes(p: Popen) -> tuple[list[str], list[str]]:
+    def __read_popen_pipes(p: Popen,print_live_output:bool,print_errors_as_information:bool) -> tuple[list[str], list[str]]:
         p_id = p.pid
         with ThreadPoolExecutor(2) as pool:
             q_stdout = Queue()
@@ -1393,18 +1387,30 @@ class ScriptCollectionCore:
             stderr_result: list[str] = []
 
             while (ScriptCollectionCore.__continue_process_reading(p_id, p, q_stdout, q_stderr, reading_stdout_last_time_resulted_in_exception, reading_stderr_last_time_resulted_in_exception)):
-
                 try:
                     while not q_stdout.empty():
-                        stdout_result.append(q_stdout.get_nowait())
+                        out_line:str=q_stdout.get_nowait()
+                        stdout_result.append(out_line)
                         reading_stdout_last_time_resulted_in_exception = False
+                        if print_live_output:
+                            print(out_line, end='\n', file=sys.stdout, flush=False)
+                    if print_live_output:
+                        sys.stdout.flush()
                 except Empty:
                     reading_stdout_last_time_resulted_in_exception = True
 
                 try:
                     while not q_stderr.empty():
-                        stderr_result.append(q_stderr.get_nowait())
+                        err_line:str=q_stderr.get_nowait()
+                        stderr_result.append(err_line)
                         reading_stderr_last_time_resulted_in_exception = False
+                        if print_live_output:
+                            print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
+                    if print_live_output:
+                        if print_errors_as_information:
+                            sys.stdout.flush()
+                        else:
+                            sys.stderr.flush()
                 except Empty:
                     reading_stderr_last_time_resulted_in_exception = True
 
@@ -1452,7 +1458,7 @@ class ScriptCollectionCore:
                     GeneralUtilities.ensure_file_exists(log_file)
                 pid = process.pid
 
-                outputs: tuple[list[str], list[str]] = ScriptCollectionCore.__read_popen_pipes(process)
+                outputs: tuple[list[str], list[str]] = ScriptCollectionCore.__read_popen_pipes(process,print_live_output,print_errors_as_information)
 
                 for out_line_plain in outputs[0]:
                     if out_line_plain is not None:
@@ -1467,8 +1473,6 @@ class ScriptCollectionCore:
                         if out_line is not None and GeneralUtilities.string_has_content(out_line):
                             if out_line.endswith("\n"):
                                 out_line = out_line[:-1]
-                            if print_live_output:
-                                print(out_line, end='\n', file=sys.stdout,  flush=True)
                             if 0 < len(stdout):
                                 stdout = stdout+"\n"
                             stdout = stdout+out_line
@@ -1487,8 +1491,6 @@ class ScriptCollectionCore:
                         if err_line is not None and GeneralUtilities.string_has_content(err_line):
                             if err_line.endswith("\n"):
                                 err_line = err_line[:-1]
-                            if print_live_output:
-                                print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr,  flush=True)
                             if 0 < len(stderr):
                                 stderr = stderr+"\n"
                             stderr = stderr+err_line
