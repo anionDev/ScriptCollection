@@ -863,8 +863,25 @@ class GeneralUtilities:
         return platform.system() == 'Linux'
 
     @staticmethod
+    @check_arguments
     def get_line():
         return "--------------------------"
+
+    @staticmethod
+    @check_arguments
+    def get_icon_check_empty(positive: bool) -> str:
+        if positive:
+            return "✅"
+        else:
+            return ""
+
+    @staticmethod
+    @check_arguments
+    def get_icon_check_cross(positive: bool) -> str:
+        if positive:
+            return "✅"
+        else:
+            return "❌"
 
     @staticmethod
     @check_arguments
