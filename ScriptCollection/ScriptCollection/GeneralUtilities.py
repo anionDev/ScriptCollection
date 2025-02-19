@@ -964,7 +964,7 @@ class GeneralUtilities:
                     message=f"Action failed {amount_of_attempts} times."
                     if action_name is not None:
                         message=f"{message} Name of action: {action_name}"
-                    GeneralUtilities.write_exception_to_stderr(message)
+                    GeneralUtilities.write_message_to_stderr(message)
                     raise
         return None
 
