@@ -1816,15 +1816,15 @@ DNS                 = {domain}
     def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int, ignored_dependencies: list[str]):
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
-        GeneralUtilities.write_message_to_stderr(f"Check for updates in {csproj_filename}")
-        result = self.run_program_with_retry("dotnet", f"list {csproj_filename} package --outdated", folder)
+        GeneralUtilities.write_message_to_stdout(f"Check for updates in {csproj_filename}")
+        result = self.run_program_with_retry("dotnet", f"list {csproj_filename} package --outdated", folder,print_errors_as_information=True)
         for line in result[1].replace("\r", "").split("\n"):
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
                 package_name = line.replace(">", "").strip().split(" ")[0]
                 if not (package_name in ignored_dependencies):
-                    GeneralUtilities.write_message_to_stderr(f"Update package {package_name}")
-                    self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder)
+                    GeneralUtilities.write_message_to_stdout(f"Update package {package_name}...")
+                    self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder,print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
     def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:

@@ -2897,7 +2897,7 @@ class TasksForCommonProjectStructure:
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
         if os.path.isfile(os.path.join(global_scripts_folder, update_dependencies_script_filename)):
-            self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder)
+            self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder,print_live_output=True)
 
         # update dependencies of codeunits
         for codeunit in codeunits:
@@ -2907,7 +2907,7 @@ class TasksForCommonProjectStructure:
                 codeunit_folder = os.path.join(repository_folder, codeunit)
                 update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
                 GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
-                self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity)
+                self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity,print_live_output=True)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     version_of_project = self.get_version_of_project(repository_folder)
                     changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
