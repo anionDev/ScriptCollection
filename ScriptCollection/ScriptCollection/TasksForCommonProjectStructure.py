@@ -494,13 +494,13 @@ class TasksForCommonProjectStructure:
         csproj_file = os.path.join(codeunit_folder, csproj_project_name, csproj_project_name+".csproj")
         result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version)
         if not result1[0]:
-            raise ValueError(f"{csproj_file} with content '{GeneralUtilities.read_text_from_file(csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result1[1]}'.")
+            raise ValueError(f"'{csproj_file}' with content '{GeneralUtilities.read_text_from_file(csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result1[1]}'.")
 
         test_csproj_project_name = csproj_project_name+"Tests"
         test_csproj_file = os.path.join(codeunit_folder, test_csproj_project_name, test_csproj_project_name+".csproj")
         result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version)
         if not result2[0]:
-            raise ValueError(f"{test_csproj_file} with content '{GeneralUtilities.read_text_from_file(test_csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result2[1]}'.")
+            raise ValueError(f"'{test_csproj_file}' with content '{GeneralUtilities.read_text_from_file(test_csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result2[1]}'.")
 
     def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
         self.assert_is_codeunit_folder(codeunit_folder)
@@ -1948,6 +1948,7 @@ class TasksForCommonProjectStructure:
             src_file_psw = os.path.join(src_folder, f"{codeunit_name}{certificate_resource_name}.password")
 
             trg_folder = os.path.join(codeunit_folder, "Other", "Workspace", "Configuration", "Certificates")
+            GeneralUtilities.ensure_directory_exists(trg_folder)
             trg_file_pfx = os.path.join(trg_folder, f"{domain}.pfx")
             trg_file_psw = os.path.join(trg_folder, f"{domain}.password")
 
