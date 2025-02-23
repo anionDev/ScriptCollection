@@ -489,19 +489,18 @@ class TasksForCommonProjectStructure:
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
-        message = " does not match the standardized .csproj-file-format which is defined by the regex "
 
         csproj_project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, csproj_project_name, csproj_project_name+".csproj")
         result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version)
         if not result1[0]:
-            raise ValueError(csproj_file+message+f'"{result1[1]}".')
+            raise ValueError(f"{csproj_file} with content '{GeneralUtilities.read_text_from_file(csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result1[1]}'.")
 
         test_csproj_project_name = csproj_project_name+"Tests"
         test_csproj_file = os.path.join(codeunit_folder, test_csproj_project_name, test_csproj_project_name+".csproj")
         result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version)
         if not result2[0]:
-            raise ValueError(test_csproj_file+message+f'"{result2[1]}".')
+            raise ValueError(f"{test_csproj_file} with content '{GeneralUtilities.read_text_from_file(test_csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result2[1]}'.")
 
     def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
         self.assert_is_codeunit_folder(codeunit_folder)
