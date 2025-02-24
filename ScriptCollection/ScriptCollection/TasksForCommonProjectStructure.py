@@ -1018,7 +1018,7 @@ class TasksForCommonProjectStructure:
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True, "Generate artifacts")# Generate artifacts after merge (because now are constants like commit-id of the new version available)
 
         reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -1034,8 +1034,8 @@ class TasksForCommonProjectStructure:
 
             # Copy reference of codeunit to reference-repository
             codeunit_version = self.get_version_of_codeunit_folder(os.path.join(information.repository, codeunitname))
-            self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, information.repository, codeunitname, information.projectname, codeunit_version, information.public_repository_url,                                                                             f"v{project_version}")
-            self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, information.repository, codeunitname, information.projectname, codeunit_version, information.public_repository_url,                                                                             information.target_branch_name)
+            self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, information.repository, codeunitname, information.projectname, codeunit_version, information.public_repository_url, f"v{project_version}")
+            self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, information.repository, codeunitname, information.projectname, codeunit_version, information.public_repository_url, information.target_branch_name)
 
             # Generate reference
             self.__generate_entire_reference(information.projectname, project_version, reference_folder)
@@ -1315,7 +1315,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("git", "clean -dfx", information.repository,  verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")#verify hat codeunits are buildable with productive-config before merge
 
         self.assert_no_uncommitted_changes(information.repository)
 
