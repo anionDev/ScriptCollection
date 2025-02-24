@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.83"
+version = "3.5.84"
 __version__ = version
 
 
@@ -273,14 +273,17 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
+        self.assert_is_git_repository(folder)
         self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
+        self.assert_is_git_repository(folder)
         self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_remove_branch(self, folder: str, branchname: str) -> None:
+        self.assert_is_git_repository(folder)
         self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
@@ -289,6 +292,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
+        self.assert_is_git_repository(folder)
         argument = ["push", "--recurse-submodules=on-demand", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
@@ -303,6 +307,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False) -> None:
+        self.assert_is_git_repository(folder)
         argument = f"pull {remote} {remotebranchname}:{localbranchname}"
         if force:
             argument = f"{argument} --force"
@@ -310,6 +315,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_list_remote_branches(self, folder: str, remote: str, fetch: bool) -> list[str]:
+        self.assert_is_git_repository(folder)
         if fetch:
             self.git_fetch(folder, remote)
         run_program_result = self.run_program("git", f"branch -rl {remote}/*", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
@@ -343,20 +349,24 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_all_remote_names(self, directory: str) -> list[str]:
+        self.assert_is_git_repository(directory)
         result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result
 
     @GeneralUtilities.check_arguments
     def git_get_remote_url(self, directory: str, remote_name: str) -> str:
+        self.assert_is_git_repository(directory)
         result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result[0].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
+        self.assert_is_git_repository(directory)
         return remote_name in self.git_get_all_remote_names(directory)
 
     @GeneralUtilities.check_arguments
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
+        self.assert_is_git_repository(directory)
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
             self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         else:
@@ -364,34 +374,43 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_stage_all_changes(self, directory: str) -> None:
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_unstage_all_changes(self, directory: str) -> None:
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        #TODO check if this will also be done for submodules
 
     @GeneralUtilities.check_arguments
     def git_stage_file(self, directory: str, file: str) -> None:
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ['stage', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_unstage_file(self, directory: str, file: str) -> None:
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        #TODO check if this will also be done for submodules
 
     @GeneralUtilities.check_arguments
     def git_commit(self, directory: str, message: str="Saved changes.", author_name: str = None, author_email: str = None, stage_all_changes: bool = True, no_changes_behavior: int = 0) -> str:
         """no_changes_behavior=0 => No commit; no_changes_behavior=1 => Commit anyway; no_changes_behavior=2 => Exception"""
+        self.assert_is_git_repository(directory)
         author_name = GeneralUtilities.str_none_safe(author_name).strip()
         author_email = GeneralUtilities.str_none_safe(author_email).strip()
         argument = ['commit', '--quiet', '--allow-empty', '--message', message]
@@ -423,29 +442,36 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
+        self.assert_is_git_repository(directory)
         argument = ["tag", tag, target_for_tag]
         if sign:
             if message is None:
                 message = f"Created {target_for_tag}"
             argument.extend(["-s", '-m', message])
-        self.run_program_argsasarray(
-            "git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray(  "git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_delete_tag(self, directory: str, tag: str) -> None:
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_checkout(self, directory: str, branch: str) -> None:
+    def git_checkout(self, directory: str, branch: str,undo_all_changes_after_checkout:bool=True) -> None:
+        self.assert_is_git_repository(directory)
+        GeneralUtilities.assert_condition(self.git_repository_has_uncommitted_changes(directory),f"Repository '{directory}' has uncommitted changes..")
         self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         self.run_program_argsasarray("git", ["submodule", "update", "--recursive"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        if undo_all_changes_after_checkout:
+            self.git_undo_all_changes(directory)
 
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True, commit_message: str = None) -> str:
+        self.assert_is_git_repository(directory)
         self.git_checkout(directory, targetbranch)
         args = ["merge"]
         if not commit:
@@ -463,6 +489,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_undo_all_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
+        self.assert_is_git_repository(directory)
         self.git_unstage_all_changes(directory)
         self.git_discard_all_unstaged_changes(directory)
 
@@ -480,8 +507,9 @@ class ScriptCollectionCore:
                     # clone
                     self.git_clone(target_repository, source_repository, include_submodules=True, mirror=True)
 
-    def get_git_submodules(self, folder: str) -> list[str]:
-        e = self.run_program("git", "submodule status", folder)
+    def get_git_submodules(self, directory: str) -> list[str]:
+        self.assert_is_git_repository(directory)
+        e = self.run_program("git", "submodule status", directory)
         result = []
         for submodule_line in GeneralUtilities.string_to_lines(e[1], False, True):
             result.append(submodule_line.split(' ')[1])
@@ -489,6 +517,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
+        self.assert_is_git_repository(repositorybasefolder)
         exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False, verbosity=0)[0]
         if (exit_code == 0):
             return True
@@ -498,28 +527,33 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_discard_all_changes(self, repository: str) -> None:
+        self.assert_is_git_repository(repository)
         self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_get_current_branch_name(self, repository: str) -> str:
+        self.assert_is_git_repository(repository)
         result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace("\r", "").replace("\n", "")
 
     @GeneralUtilities.check_arguments
     def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
+        self.assert_is_git_repository(repository)
         stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
         result = stdout[1].replace("\r", "").replace("\n", "")
         return result
 
     @GeneralUtilities.check_arguments
     def git_get_tags(self, repository: str) -> list[str]:
+        self.assert_is_git_repository(repository)
         tags = [line.replace("\r", "") for line in self.run_program_argsasarray(
             "git", ["tag"], repository)[1].split("\n") if len(line) > 0]
         return tags
 
     @GeneralUtilities.check_arguments
     def git_move_tags_to_another_branch(self, repository: str, tag_source_branch: str, tag_target_branch: str, sign: bool = False, message: str = None) -> None:
+        self.assert_is_git_repository(repository)
         tags = self.git_get_tags(repository)
         tags_count = len(tags)
         counter = 0
@@ -1856,7 +1890,7 @@ DNS                 = {domain}
             raise ValueError(f"python_package_is_available is not implemented yet for other sources than {default_source_address}.")
 
     @GeneralUtilities.check_arguments
-    def python_until_dotnet_package_is_available(self,package_name:str,package_version:str,source:str):
+    def wait_until_python_package_is_available(self,package_name:str,package_version:str,source:str):
         while not self.python_package_is_available(package_name,package_version,source):
             time.sleep(5)
 
