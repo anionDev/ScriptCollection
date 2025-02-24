@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.81"
+version = "3.5.82"
 __version__ = version
 
 
@@ -1825,6 +1825,41 @@ DNS                 = {domain}
                 if not (package_name in ignored_dependencies):
                     GeneralUtilities.write_message_to_stdout(f"Update package {package_name}...")
                     self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder,print_errors_as_information=True)
+
+
+    @GeneralUtilities.check_arguments
+    def dotnet_package_is_available(self,package_name:str,package_version:str,source:str):
+        default_source_address="nuget.org"
+        if source==default_source_address:
+            GeneralUtilities.write_message_to_stdout(f"Wait until package {package_name} v{package_version} is available on {source}.")
+            headers = {'Cache-Control': 'no-cache'}
+            r=requests.get(f"https://api.{default_source_address}/v3-flatcontainer/{package_name.lower()}/{package_version}/{package_name.lower()}.nuspec", timeout=5,headers=headers)
+            return r.status_code==200
+        else:
+            raise ValueError(f"dotnet_package_is_available is not implemented yet for other sources than {default_source_address}.")
+
+    @GeneralUtilities.check_arguments
+    def wait_until_dotnet_package_is_available(self,package_name:str,package_version:str,source:str):
+        while not self.dotnet_package_is_available(package_name,package_version,source):
+            time.sleep(5)
+
+
+    @GeneralUtilities.check_arguments
+    def python_package_is_available(self,package_name:str,package_version:str,source:str):
+        default_source_address="pypi.org"
+        if source==default_source_address:
+            GeneralUtilities.write_message_to_stdout(f"Wait until package {package_name} v{package_version} is available on {source}.")
+            headers = {'Cache-Control': 'no-cache'}
+            r=requests.get(f"https://{default_source_address}/pypi/{package_name}/{package_version}/json", timeout=5,headers=headers)
+            return r.status_code==200
+        else:
+            raise ValueError(f"python_package_is_available is not implemented yet for other sources than {default_source_address}.")
+
+    @GeneralUtilities.check_arguments
+    def python_until_dotnet_package_is_available(self,package_name:str,package_version:str,source:str):
+        while not self.python_package_is_available(package_name,package_version,source):
+            time.sleep(5)
+
 
     @GeneralUtilities.check_arguments
     def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
