@@ -1948,9 +1948,15 @@ class TasksForCommonProjectStructure:
             src_file_psw = os.path.join(src_folder, f"{codeunit_name}{certificate_resource_name}.password")
 
             trg_folder = os.path.join(codeunit_folder, "Other", "Workspace", "Configuration", "Certificates")
-            GeneralUtilities.ensure_directory_exists(trg_folder)
             trg_file_pfx = os.path.join(trg_folder, f"{domain}.pfx")
             trg_file_psw = os.path.join(trg_folder, f"{domain}.password")
+
+            GeneralUtilities.assert_file_exists(src_file_pfx)
+            GeneralUtilities.assert_file_exists(src_file_psw)
+            GeneralUtilities.ensure_file_does_not_exist(trg_file_pfx)
+            GeneralUtilities.ensure_file_does_not_exist(trg_file_psw)
+
+            GeneralUtilities.ensure_directory_exists(trg_folder)
 
             GeneralUtilities.ensure_directory_exists(trg_folder)
             shutil.copyfile(src_file_pfx, trg_file_pfx)
