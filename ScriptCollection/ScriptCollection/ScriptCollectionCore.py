@@ -192,7 +192,7 @@ class ScriptCollectionCore:
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
         if ignore_commits_which_are_not_in_history_of_head:
-            result = [commit_id for commit_id in result if self.git_commit_is_ancestor( repository_folder, commit_id)]
+            result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
 
     @GeneralUtilities.check_arguments
@@ -303,7 +303,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_pull_with_retry(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False, amount_of_attempts: int = 5) -> None:
-        GeneralUtilities.retry_action(lambda: self.git_pull_with_retry(folder, remote,localbranchname,remotebranchname), amount_of_attempts)
+        GeneralUtilities.retry_action(lambda: self.git_pull_with_retry(folder, remote, localbranchname, remotebranchname), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
     def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False) -> None:
@@ -381,7 +381,7 @@ class ScriptCollectionCore:
     def git_unstage_all_changes(self, directory: str) -> None:
         self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        #TODO check if this will also be done for submodules
+        # TODO check if this will also be done for submodules
 
     @GeneralUtilities.check_arguments
     def git_stage_file(self, directory: str, file: str) -> None:
@@ -405,10 +405,10 @@ class ScriptCollectionCore:
         self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        #TODO check if this will also be done for submodules
+        # TODO check if this will also be done for submodules
 
     @GeneralUtilities.check_arguments
-    def git_commit(self, directory: str, message: str="Saved changes.", author_name: str = None, author_email: str = None, stage_all_changes: bool = True, no_changes_behavior: int = 0) -> str:
+    def git_commit(self, directory: str, message: str = "Saved changes.", author_name: str = None, author_email: str = None, stage_all_changes: bool = True, no_changes_behavior: int = 0) -> str:
         """no_changes_behavior=0 => No commit; no_changes_behavior=1 => Commit anyway; no_changes_behavior=2 => Exception"""
         self.assert_is_git_repository(directory)
         author_name = GeneralUtilities.str_none_safe(author_name).strip()
@@ -448,7 +448,7 @@ class ScriptCollectionCore:
             if message is None:
                 message = f"Created {target_for_tag}"
             argument.extend(["-s", '-m', message])
-        self.run_program_argsasarray(  "git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_delete_tag(self, directory: str, tag: str) -> None:
@@ -456,8 +456,8 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_checkout(self, directory: str, branch: str,undo_all_changes_after_checkout:bool=True) -> None:
-        GeneralUtilities.assert_condition(not self.git_repository_has_uncommitted_changes(directory),f"Repository '{directory}' has uncommitted changes..")
+    def git_checkout(self, directory: str, branch: str, undo_all_changes_after_checkout: bool = True) -> None:
+        self.assert_is_git_repository(directory)
         self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         self.run_program_argsasarray("git", ["submodule", "update", "--recursive"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         if undo_all_changes_after_checkout:
@@ -661,28 +661,28 @@ class ScriptCollectionCore:
         GeneralUtilities.assert_condition(self.is_git_repository(folder), f"'{folder}' is not a git-repository.")
 
     @GeneralUtilities.check_arguments
-    def list_content(self, path: str,include_files:bool,include_folder:bool,printonlynamewithoutpath:bool) -> list[str]:
+    def list_content(self, path: str, include_files: bool, include_folder: bool, printonlynamewithoutpath: bool) -> list[str]:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():
-            result=[]
+            result = []
             if include_files:
-                result=result + GeneralUtilities.get_direct_files_of_folder(path)
+                result = result + GeneralUtilities.get_direct_files_of_folder(path)
             if include_folder:
-                result=result + GeneralUtilities.get_direct_folders_of_folder(path)
+                result = result + GeneralUtilities.get_direct_folders_of_folder(path)
             return result
         else:
-            arguments=["--path", path]
+            arguments = ["--path", path]
             if not include_files:
-                arguments=arguments+["--excludefiles"]
+                arguments = arguments+["--excludefiles"]
             if not include_folder:
-                arguments=arguments+["--excludedirectories"]
+                arguments = arguments+["--excludedirectories"]
             if printonlynamewithoutpath:
-                arguments=arguments+["--printonlynamewithoutpath"]
+                arguments = arguments+["--printonlynamewithoutpath"]
             exit_code, stdout, stderr, _ = self.run_program_argsasarray("sclistfoldercontent", arguments)
             if exit_code == 0:
-                result:list[str]=[]
+                result: list[str] = []
                 for line in stdout.split("\n"):
-                    normalized_line=line.replace("\r","")
+                    normalized_line = line.replace("\r", "")
                     result.append(normalized_line)
                 return result
             else:
@@ -719,7 +719,7 @@ class ScriptCollectionCore:
             raise ValueError(f"Fatal error occurrs while checking whether folder '{path}' exists. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
-    def remove(self, path: str) ->None:
+    def remove(self, path: str) -> None:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
             if os.path.isdir(path):
@@ -737,17 +737,17 @@ class ScriptCollectionCore:
                     raise ValueError(f"Fatal error occurrs while removing folder '{path}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
-    def rename(self,  source:str,target:str) ->None:
+    def rename(self,  source: str, target: str) -> None:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
             os.rename(source, target)
         else:
-            exit_code, _, stderr, _ = self.run_program_argsasarray("screname", ["--source", source,"--target",target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, _, stderr, _ = self.run_program_argsasarray("screname", ["--source", source, "--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
                 raise ValueError(f"Fatal error occurrs while renaming '{source}' to '{target}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
-    def copy(self, source:str,target:str) ->None:
+    def copy(self, source: str, target: str) -> None:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
             if os.path.isfile(target) or os.path.isdir(target):
@@ -756,11 +756,11 @@ class ScriptCollectionCore:
                 shutil.copyfile(source, target)
             elif os.path.isdir(source):
                 GeneralUtilities.ensure_directory_exists(target)
-                GeneralUtilities.copy_content_of_folder(source,target)
+                GeneralUtilities.copy_content_of_folder(source, target)
             else:
                 raise ValueError(f"'{source}' can not be copied because the path does not exist.")
         else:
-            exit_code, _, stderr, _ = self.run_program_argsasarray("sccopy", ["--source", source,"--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, _, stderr, _ = self.run_program_argsasarray("sccopy", ["--source", source, "--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
                 raise ValueError(f"Fatal error occurrs while copying '{source}' to '{target}'. StdErr: '{stderr}'")
 
@@ -1085,14 +1085,11 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
-        separator_line = "--------------------------------------------------------"
         lines = GeneralUtilities.read_csv_file(csvfile, True)
         lines.sort(key=lambda items: ''.join(items).lower())
         for line in lines:
-            GeneralUtilities.write_message_to_stdout(separator_line)
-            self.__print_qr_code_by_csv_line(
-                line[0], line[1], line[2], line[3], line[4])
-        GeneralUtilities.write_message_to_stdout(separator_line)
+            self.__print_qr_code_by_csv_line(line[0], line[1], line[2], line[3], line[4])
+            GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_longline())
 
     @GeneralUtilities.check_arguments
     def SCCalculateBitcoinBlockHash(self, block_version_number: str, previousblockhash: str, transactionsmerkleroot: str, timestamp: str, target: str, nonce: str) -> str:
@@ -1380,7 +1377,7 @@ class ScriptCollectionCore:
         return popen
 
     @staticmethod
-    def __enqueue_output(file:IO, queue:Queue):
+    def __enqueue_output(file: IO, queue: Queue):
         for line in iter(file.readline, ''):
             queue.put(line)
         file.close()
@@ -1402,7 +1399,7 @@ class ScriptCollectionCore:
         return False
 
     @staticmethod
-    def __read_popen_pipes(p: Popen,print_live_output:bool,print_errors_as_information:bool) -> tuple[list[str], list[str]]:
+    def __read_popen_pipes(p: Popen, print_live_output: bool, print_errors_as_information: bool) -> tuple[list[str], list[str]]:
         p_id = p.pid
         with ThreadPoolExecutor(2) as pool:
             q_stdout = Queue()
@@ -1419,8 +1416,8 @@ class ScriptCollectionCore:
             while (ScriptCollectionCore.__continue_process_reading(p_id, p, q_stdout, q_stderr, reading_stdout_last_time_resulted_in_exception, reading_stderr_last_time_resulted_in_exception)):
                 try:
                     while not q_stdout.empty():
-                        out_line:str=q_stdout.get_nowait()
-                        out_line=out_line.replace("\r","").replace("\n","")
+                        out_line: str = q_stdout.get_nowait()
+                        out_line = out_line.replace("\r", "").replace("\n", "")
                         if GeneralUtilities.string_has_content(out_line):
                             stdout_result.append(out_line)
                             reading_stdout_last_time_resulted_in_exception = False
@@ -1433,8 +1430,8 @@ class ScriptCollectionCore:
 
                 try:
                     while not q_stderr.empty():
-                        err_line:str=q_stderr.get_nowait()
-                        err_line=err_line.replace("\r","").replace("\n","")
+                        err_line: str = q_stderr.get_nowait()
+                        err_line = err_line.replace("\r", "").replace("\n", "")
                         if GeneralUtilities.string_has_content(err_line):
                             stderr_result.append(err_line)
                             reading_stderr_last_time_resulted_in_exception = False
@@ -1492,7 +1489,7 @@ class ScriptCollectionCore:
                     GeneralUtilities.ensure_file_exists(log_file)
                 pid = process.pid
 
-                outputs: tuple[list[str], list[str]] = ScriptCollectionCore.__read_popen_pipes(process,print_live_output,print_errors_as_information)
+                outputs: tuple[list[str], list[str]] = ScriptCollectionCore.__read_popen_pipes(process, print_live_output, print_errors_as_information)
 
                 for out_line_plain in outputs[0]:
                     if out_line_plain is not None:
@@ -1549,8 +1546,8 @@ class ScriptCollectionCore:
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def run_program_with_retry(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False,amount_of_attempts:int=5) -> tuple[int, str, str, int]:
-        return GeneralUtilities.retry_action(lambda: self.run_program(program, arguments,working_directory,verbosity,print_errors_as_information,log_file,timeoutInSeconds,addLogOverhead,title,log_namespace,arguments_for_log,throw_exception_if_exitcode_is_not_zero,custom_argument,interactive,print_live_output), amount_of_attempts)
+    def run_program_with_retry(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False, amount_of_attempts: int = 5) -> tuple[int, str, str, int]:
+        return GeneralUtilities.retry_action(lambda: self.run_program(program, arguments, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive, print_live_output), amount_of_attempts)
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
@@ -1850,49 +1847,46 @@ DNS                 = {domain}
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stdout(f"Check for updates in {csproj_filename}")
-        result = self.run_program_with_retry("dotnet", f"list {csproj_filename} package --outdated", folder,print_errors_as_information=True)
+        result = self.run_program_with_retry("dotnet", f"list {csproj_filename} package --outdated", folder, print_errors_as_information=True)
         for line in result[1].replace("\r", "").split("\n"):
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
                 package_name = line.replace(">", "").strip().split(" ")[0]
                 if not (package_name in ignored_dependencies):
                     GeneralUtilities.write_message_to_stdout(f"Update package {package_name}...")
-                    self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder,print_errors_as_information=True)
-
+                    self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def dotnet_package_is_available(self,package_name:str,package_version:str,source:str):
-        default_source_address="nuget.org"
-        if source==default_source_address:
+    def dotnet_package_is_available(self, package_name: str, package_version: str, source: str):
+        default_source_address = "nuget.org"
+        if source == default_source_address:
             GeneralUtilities.write_message_to_stdout(f"Wait until package {package_name} v{package_version} is available on {source}.")
             headers = {'Cache-Control': 'no-cache'}
-            r=requests.get(f"https://api.{default_source_address}/v3-flatcontainer/{package_name.lower()}/{package_version}/{package_name.lower()}.nuspec", timeout=5,headers=headers)
-            return r.status_code==200
+            r = requests.get(f"https://api.{default_source_address}/v3-flatcontainer/{package_name.lower()}/{package_version}/{package_name.lower()}.nuspec", timeout=5, headers=headers)
+            return r.status_code == 200
         else:
             raise ValueError(f"dotnet_package_is_available is not implemented yet for other sources than {default_source_address}.")
 
     @GeneralUtilities.check_arguments
-    def wait_until_dotnet_package_is_available(self,package_name:str,package_version:str,source:str):
-        while not self.dotnet_package_is_available(package_name,package_version,source):
+    def wait_until_dotnet_package_is_available(self, package_name: str, package_version: str, source: str):
+        while not self.dotnet_package_is_available(package_name, package_version, source):
             time.sleep(5)
 
-
     @GeneralUtilities.check_arguments
-    def python_package_is_available(self,package_name:str,package_version:str,source:str):
-        default_source_address="pypi.org"
-        if source==default_source_address:
+    def python_package_is_available(self, package_name: str, package_version: str, source: str):
+        default_source_address = "pypi.org"
+        if source == default_source_address:
             GeneralUtilities.write_message_to_stdout(f"Wait until package {package_name} v{package_version} is available on {source}.")
             headers = {'Cache-Control': 'no-cache'}
-            r=requests.get(f"https://{default_source_address}/pypi/{package_name}/{package_version}/json", timeout=5,headers=headers)
-            return r.status_code==200
+            r = requests.get(f"https://{default_source_address}/pypi/{package_name}/{package_version}/json", timeout=5, headers=headers)
+            return r.status_code == 200
         else:
             raise ValueError(f"python_package_is_available is not implemented yet for other sources than {default_source_address}.")
 
     @GeneralUtilities.check_arguments
-    def wait_until_python_package_is_available(self,package_name:str,package_version:str,source:str):
-        while not self.python_package_is_available(package_name,package_version,source):
+    def wait_until_python_package_is_available(self, package_name: str, package_version: str, source: str):
+        while not self.python_package_is_available(package_name, package_version, source):
             time.sleep(5)
-
 
     @GeneralUtilities.check_arguments
     def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
