@@ -379,6 +379,7 @@ def CreateChangelogEntry() -> int:
     parser.add_argument('-f', '--repositoryfolder', required=False, default=".")
     parser.add_argument('-m', '--message', required=False, default="Updates.")
     parser.add_argument('-c', '--commit', action='store_true', required=False, default=False)
+    parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
     args = parser.parse_args()
 
     folder: str = None
@@ -386,7 +387,7 @@ def CreateChangelogEntry() -> int:
         folder = args.repositoryfolder
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repositoryfolder, os.getcwd())
-    TasksForCommonProjectStructure().create_changelog_entry(folder, args.message, args.commit)
+    TasksForCommonProjectStructure().create_changelog_entry(folder, args.message, args.commit, args.force)
     return 0
 
 
@@ -538,18 +539,18 @@ def Copy() -> int:
     if os.path.isfile(args.target) or os.path.isdir(args.target):
         raise ValueError(f"Can not copy to '{args.target}' because the target already exists.")
 
-    source=args.source
+    source = args.source
     if not os.path.isabs(source):
-        source=GeneralUtilities.resolve_relative_path(source,os.getcwd())
-    target=args.target
+        source = GeneralUtilities.resolve_relative_path(source, os.getcwd())
+    target = args.target
     if not os.path.isabs(target):
-        target=GeneralUtilities.resolve_relative_path(target,os.getcwd())
+        target = GeneralUtilities.resolve_relative_path(target, os.getcwd())
 
     if os.path.isfile(source):
         shutil.copyfile(source, target)
     elif os.path.isdir(source):
         GeneralUtilities.ensure_directory_exists(target)
-        GeneralUtilities.copy_content_of_folder(source,target)
+        GeneralUtilities.copy_content_of_folder(source, target)
     else:
         raise ValueError(f"'{source}' can not be copied because the path does not exist.")
     return 0
@@ -575,26 +576,26 @@ def PrintCurrecntWorkingDirectory() -> int:
 def ListFolderContent() -> int:
     parser = argparse.ArgumentParser(description="This function lists folder-content.")
     parser.add_argument('-p', '--path', required=True)
-    parser.add_argument('-f', '--excludefiles', action='store_true', required=False,default=False)
-    parser.add_argument('-d', '--excludedirectories', action='store_true', required=False,default=False)
-    parser.add_argument('-n', '--printonlynamewithoutpath', action='store_true', required=False,default=False)
+    parser.add_argument('-f', '--excludefiles', action='store_true', required=False, default=False)
+    parser.add_argument('-d', '--excludedirectories', action='store_true', required=False, default=False)
+    parser.add_argument('-n', '--printonlynamewithoutpath', action='store_true', required=False, default=False)
     # TODO add option to also list transitively list subfolder
     # TODO add option to show only content which matches a filter by extension or regex or glob-pattern
-    args=parser.parse_args()
-    folder=args.path
+    args = parser.parse_args()
+    folder = args.path
     if not os.path.isabs(folder):
-        folder=GeneralUtilities.resolve_relative_path(folder,os.getcwd())
-    content=[]
+        folder = GeneralUtilities.resolve_relative_path(folder, os.getcwd())
+    content = []
     if not args.excludefiles:
-        content=content+GeneralUtilities.get_direct_files_of_folder(folder)
+        content = content+GeneralUtilities.get_direct_files_of_folder(folder)
     if not args.excludedirectories:
-        content=content+GeneralUtilities.get_direct_folders_of_folder(folder)
+        content = content+GeneralUtilities.get_direct_folders_of_folder(folder)
     for contentitem in content:
-        content_to_print:str=None
+        content_to_print: str = None
         if args.printonlynamewithoutpath:
-            content_to_print=os.path.basename(contentitem)
+            content_to_print = os.path.basename(contentitem)
         else:
-            content_to_print= contentitem
+            content_to_print = contentitem
         GeneralUtilities.write_message_to_stdout(content_to_print)
     return 0
 
