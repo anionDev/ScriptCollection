@@ -3028,6 +3028,7 @@ class TasksForCommonProjectStructure:
             self.__sc.git_checkout(repository_folder, merge_source_branch)
             reference_repo: str = os.path.join(build_repository_folder, "Submodules", f"{generic_create_release_arguments.product_name}Reference")
             self.__sc.git_commit(reference_repo, "Updated reference")
+            self.__sc.git_push_with_retry(reference_repo, generic_create_release_arguments.common_remote_name, "main", "main")
             self.__sc.git_commit(build_repository_folder, "Updated submodule")
 
             # create release
