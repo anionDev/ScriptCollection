@@ -1018,7 +1018,7 @@ class TasksForCommonProjectStructure:
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True, "Generate artifacts")# Generate artifacts after merge (because now are constants like commit-id of the new version available)
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True, "Generate artifacts")  # Generate artifacts after merge (because now are constants like commit-id of the new version available)
 
         reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
 
@@ -1252,7 +1252,7 @@ class TasksForCommonProjectStructure:
 
         self.__sc.git_checkout(repository_folder, source_branch)
         self.build_codeunits(repository_folder, verbosity, TasksForCommonProjectStructure.get_qualitycheck_environment_name(), additional_arguments_file, True, None, [], True, "Check if product is buildable")
-        self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None)
+        self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None, False, False)
         self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         self.__sc.git_checkout(repository_folder, target_branch)
         if fast_forward_source_branch:
@@ -1300,8 +1300,8 @@ class TasksForCommonProjectStructure:
         # hint: arguments can be overwritten by commandline_arguments
         folder_of_this_file = os.path.dirname(create_release_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        result=self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity {str(verbosity)}", folder_of_this_file,  verbosity=verbosity, log_file=logfile, addLogOverhead=addLogOverhead,print_live_output=True,throw_exception_if_exitcode_is_not_zero=False)
-        if result[0]!=0:
+        result = self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity {str(verbosity)}", folder_of_this_file,  verbosity=verbosity, log_file=logfile, addLogOverhead=addLogOverhead, print_live_output=True, throw_exception_if_exitcode_is_not_zero=False)
+        if result[0] != 0:
             raise ValueError(f"CreateRelease.py resulted in exitcode {result[0]}.")
 
     @GeneralUtilities.check_arguments
@@ -1315,7 +1315,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("git", "clean -dfx", information.repository,  verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
 
-        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")#verify hat codeunits are buildable with productive-config before merge
+        self.build_codeunits(information.repository, information.verbosity, information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")  # verify hat codeunits are buildable with productive-config before merge
 
         self.assert_no_uncommitted_changes(information.repository)
 
@@ -2445,11 +2445,11 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(repository_folder)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         codeunits = self.get_codeunits(repository_folder, False)
-        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes,note)
+        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes, note)
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None) -> None:
-        if verbosity>2:
+        if verbosity > 2:
             GeneralUtilities.write_message_to_stdout(f"Start building codeunits for repository '{repository_folder}'...")
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
@@ -2470,8 +2470,8 @@ class TasksForCommonProjectStructure:
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
-            result=self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder,throw_exception_if_exitcode_is_not_zero=False, print_live_output=True)
-            if result[0]!=0:
+            result = self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder, throw_exception_if_exitcode_is_not_zero=False, print_live_output=True)
+            if result[0] != 0:
                 raise ValueError(f"PrepareBuildCodeunits.py resulted in exitcode {result[0]}.")
 
         for subfolder in subfolders:
@@ -2903,7 +2903,7 @@ class TasksForCommonProjectStructure:
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
         if os.path.isfile(os.path.join(global_scripts_folder, update_dependencies_script_filename)):
-            self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder,print_live_output=True)
+            self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder, print_live_output=True)
 
         # update dependencies of codeunits
         for codeunit in codeunits:
@@ -2913,7 +2913,7 @@ class TasksForCommonProjectStructure:
                 codeunit_folder = os.path.join(repository_folder, codeunit)
                 update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
                 GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
-                self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity,print_live_output=True)
+                self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity, print_live_output=True)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     version_of_project = self.get_version_of_project(repository_folder)
                     changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
@@ -2961,9 +2961,13 @@ class TasksForCommonProjectStructure:
         # prepare
         self.assert_no_uncommitted_changes(repository_folder)
         self.assert_no_uncommitted_changes(reference_folder)
-        self.__sc.git_checkout(repository_folder, merge_source_branch)
+        self.assert_no_uncommitted_changes(build_repository_folder)
+        self.__sc.git_checkout(repository_folder, merge_source_branch, True)
+        self.__sc.git_checkout(reference_folder, "main", True)
+        self.__sc.git_checkout(build_repository_folder, "main", True)
         self.assert_no_uncommitted_changes(repository_folder)
         self.assert_no_uncommitted_changes(reference_folder)
+        self.__sc.git_commit(build_repository_folder, "Updated submodules")
 
         if "--dependencyupdate" in generic_prepare_new_release_arguments.commandline_arguments:
             self.generic_update_dependencies(repository_folder)
@@ -2984,7 +2988,6 @@ class TasksForCommonProjectStructure:
             self.merge_to_main_branch(repository_folder, merge_source_branch, verbosity=verbosity, fast_forward_source_branch=True)
             self.__sc.git_commit(build_repository_folder, "Updated submodule due to merge to main-branch.")
         GeneralUtilities.write_message_to_stdout(f"Finished prepare release for {generic_prepare_new_release_arguments.product_name}.")
-
 
     class GenericCreateReleaseArguments():
         current_file: str
@@ -3025,6 +3028,7 @@ class TasksForCommonProjectStructure:
             self.__sc.git_checkout(repository_folder, merge_source_branch)
             reference_repo: str = os.path.join(build_repository_folder, "Submodules", f"{generic_create_release_arguments.product_name}Reference")
             self.__sc.git_commit(reference_repo, "Updated reference")
+            self.__sc.git_push_with_retry(reference_repo, generic_create_release_arguments.common_remote_name, "main", "main")
             self.__sc.git_commit(build_repository_folder, "Updated submodule")
 
             # create release
@@ -3051,8 +3055,11 @@ class TasksForCommonProjectStructure:
             self.main_branch_name = "main"
 
     @GeneralUtilities.check_arguments
-    def create_changelog_entry(self, repositoryfolder: str, message: str, commit: bool):
+    def create_changelog_entry(self, repositoryfolder: str, message: str, commit: bool, force: bool):
         self.__sc.assert_is_git_repository(repositoryfolder)
+        random_file = os.path.join(repositoryfolder, str(uuid.uuid4()))
+        if force and not self.__sc.git_repository_has_uncommitted_changes(repositoryfolder):
+            GeneralUtilities.ensure_file_exists(random_file)
         current_version = self.get_version_of_project(repositoryfolder)
         changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
         if os.path.isdir(changelog_file):
@@ -3065,6 +3072,9 @@ class TasksForCommonProjectStructure:
 
 - {message}
 """)
+        GeneralUtilities.ensure_file_does_not_exist(random_file)
+        if commit:
+            self.__sc.git_commit(repositoryfolder, f"Added changelog-file for v{current_version}.")
 
     @GeneralUtilities.check_arguments
     def update_http_documentation(self, update_http_documentation_arguments: UpdateHTTPDocumentationArguments):
