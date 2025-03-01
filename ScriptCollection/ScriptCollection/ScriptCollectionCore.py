@@ -456,7 +456,7 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_checkout(self, directory: str, branch: str, undo_all_changes_after_checkout: bool = False) -> None:
+    def git_checkout(self, directory: str, branch: str, undo_all_changes_after_checkout: bool = True) -> None:
         self.assert_is_git_repository(directory)
         GeneralUtilities.assert_condition(self.git_repository_has_uncommitted_changes(directory), f"Repository '{directory}' has uncommitted changes..")
         self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
@@ -470,9 +470,9 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
-    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True, commit_message: str = None) -> str:
+    def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True, commit_message: str = None, undo_all_changes_after_checkout: bool = True) -> str:
         self.assert_is_git_repository(directory)
-        self.git_checkout(directory, targetbranch)
+        self.git_checkout(directory, targetbranch, undo_all_changes_after_checkout)
         args = ["merge"]
         if not commit:
             args.append("--no-commit")
