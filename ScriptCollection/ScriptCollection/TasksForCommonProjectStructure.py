@@ -3089,7 +3089,7 @@ class TasksForCommonProjectStructure:
         target = os.path.join(ref_repo, "Reference", update_http_documentation_arguments.product_name)
         GeneralUtilities.ensure_directory_does_not_exist(target)
         shutil.copytree(GeneralUtilities.resolve_relative_path(f"../../Submodules/{update_http_documentation_arguments.product_name}Reference/ReferenceContent", folder_of_this_file), target)
-        self.__sc.git_commit(ref_repo, f"Added reference of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version}")
+        self.__sc.git_commit(ref_repo, f"Added reference of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version} from repository")
 
         # Sync reference-repository
         self.__sc.git_fetch(ref_repo, update_http_documentation_arguments.common_remote_name)
