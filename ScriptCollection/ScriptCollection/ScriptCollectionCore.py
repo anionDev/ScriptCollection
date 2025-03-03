@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.90"
+version = "3.5.91"
 __version__ = version
 
 
@@ -112,10 +112,13 @@ class ScriptCollectionCore:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
     @GeneralUtilities.check_arguments
-    def push_nuget_build_artifact(self, nupkg_file: str, registry_address: str, api_key: str, verbosity: int = 1):
+    def push_nuget_build_artifact(self, nupkg_file: str, registry_address: str, api_key: str = None, verbosity: int = 1):
         nupkg_file_name = os.path.basename(nupkg_file)
         nupkg_file_folder = os.path.dirname(nupkg_file)
-        self.run_program("dotnet", f"nuget push {nupkg_file_name} --force-english-output --source {registry_address} --api-key {api_key}", nupkg_file_folder, verbosity)
+        argument = f"nuget push {nupkg_file_name} --force-english-output --source {registry_address}"
+        if api_key is not None:
+            argument = f"{argument} --api-key {api_key}"
+        self.run_program("dotnet", argument, nupkg_file_folder, verbosity)
 
     @GeneralUtilities.check_arguments
     def dotnet_build(self, folder: str, projectname: str, configuration: str):
