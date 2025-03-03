@@ -376,17 +376,17 @@ def GenerateARC42ReferenceTemplate() -> int:
 
 def CreateChangelogEntry() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--repositoryfolder', required=False, default=".")
+    parser.add_argument('-p', '--repositorypath', required=False, default=".")
     parser.add_argument('-m', '--message', required=False, default="Updates.")
     parser.add_argument('-c', '--commit', action='store_true', required=False, default=False)
     parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
     args = parser.parse_args()
 
     folder: str = None
-    if os.path.isabs(args.repositoryfolder):
-        folder = args.repositoryfolder
+    if os.path.isabs(args.repositorypath):
+        folder = args.repositorypath
     else:
-        folder = GeneralUtilities.resolve_relative_path(args.repositoryfolder, os.getcwd())
+        folder = GeneralUtilities.resolve_relative_path(args.repositorypath, os.getcwd())
     TasksForCommonProjectStructure().create_changelog_entry(folder, args.message, args.commit, args.force)
     return 0
 
