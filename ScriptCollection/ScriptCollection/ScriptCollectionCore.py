@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.87"
+version = "3.5.88"
 __version__ = version
 
 
@@ -1871,7 +1871,8 @@ DNS                 = {domain}
 
     @GeneralUtilities.check_arguments
     def wait_until_dotnet_package_is_available(self, package_name: str, package_version: str, source: str):
-        try:
+        return  # TODO fix this
+        try:  # pylint: disable=unreachable
             while not self.dotnet_package_is_available(package_name, package_version, source):
                 time.sleep(30)
         except:
@@ -1890,7 +1891,8 @@ DNS                 = {domain}
 
     @GeneralUtilities.check_arguments
     def wait_until_python_package_is_available(self, package_name: str, package_version: str, source: str):
-        try:
+        return  # TODO fix this
+        try:  # pylint: disable=unreachable
             while not self.python_package_is_available(package_name, package_version, source):
                 time.sleep(30)
         except:
