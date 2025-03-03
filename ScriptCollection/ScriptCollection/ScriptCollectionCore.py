@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.86"
+version = "3.5.87"
 __version__ = version
 
 
@@ -1871,8 +1871,11 @@ DNS                 = {domain}
 
     @GeneralUtilities.check_arguments
     def wait_until_dotnet_package_is_available(self, package_name: str, package_version: str, source: str):
-        while not self.dotnet_package_is_available(package_name, package_version, source):
-            time.sleep(5)
+        try:
+            while not self.dotnet_package_is_available(package_name, package_version, source):
+                time.sleep(30)
+        except:
+            pass
 
     @GeneralUtilities.check_arguments
     def python_package_is_available(self, package_name: str, package_version: str, source: str):
@@ -1887,8 +1890,11 @@ DNS                 = {domain}
 
     @GeneralUtilities.check_arguments
     def wait_until_python_package_is_available(self, package_name: str, package_version: str, source: str):
-        while not self.python_package_is_available(package_name, package_version, source):
-            time.sleep(5)
+        try:
+            while not self.python_package_is_available(package_name, package_version, source):
+                time.sleep(30)
+        except:
+            pass
 
     @GeneralUtilities.check_arguments
     def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
