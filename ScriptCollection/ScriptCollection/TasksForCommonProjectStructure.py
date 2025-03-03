@@ -1269,11 +1269,16 @@ class TasksForCommonProjectStructure:
         build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
         self.assert_no_uncommitted_changes(build_repository_folder)
 
-        self.__sc.git_checkout(build_repository_folder, createRelease_configuration.build_repository_branch)
-
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createRelease_configuration.repository_folder_name}", build_repository_folder)
-        self.__sc.assert_is_git_repository(repository_folder)
         mergeInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.additional_arguments_file, createRelease_configuration.artifacts_folder)
+        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.artifacts_folder, createRelease_configuration.projectname, createRelease_configuration.public_repository_url, mergeInformation.targetbranch, mergeInformation.additional_arguments_file, mergeInformation.export_target, createRelease_configuration.push_artifacts_scripts_folder)
+        createReleaseInformation.verbosity = createRelease_configuration.verbosity
+
+        self.__sc.git_checkout(build_repository_folder, createRelease_configuration.build_repository_branch)
+        self.__sc.git_checkout(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_branch_name)
+
+        self.__sc.assert_is_git_repository(repository_folder)
+        self.__sc.assert_is_git_repository(createReleaseInformation.reference_repository)
 
         # TODO check if repository_folder-merge-source-branch and repository_folder-merge-target-branch have different commits
         self.assert_no_uncommitted_changes(repository_folder)
@@ -1284,8 +1289,6 @@ class TasksForCommonProjectStructure:
         mergeInformation.push_source_branch_remote_name = createRelease_configuration.remotename
         new_project_version = self.__standardized_tasks_merge_to_stable_branch(mergeInformation)
 
-        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.artifacts_folder, createRelease_configuration.projectname, createRelease_configuration.public_repository_url, mergeInformation.targetbranch, mergeInformation.additional_arguments_file, mergeInformation.export_target, createRelease_configuration.push_artifacts_scripts_folder)
-        createReleaseInformation.verbosity = createRelease_configuration.verbosity
         self.__standardized_tasks_release_artifact(createReleaseInformation)
 
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
@@ -3089,7 +3092,7 @@ class TasksForCommonProjectStructure:
         target = os.path.join(ref_repo, "Reference", update_http_documentation_arguments.product_name)
         GeneralUtilities.ensure_directory_does_not_exist(target)
         shutil.copytree(GeneralUtilities.resolve_relative_path(f"../../Submodules/{update_http_documentation_arguments.product_name}Reference/ReferenceContent", folder_of_this_file), target)
-        self.__sc.git_commit(ref_repo, f"Added reference of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version} from repository")
+        self.__sc.git_commit(ref_repo, f"Copied reference of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version} from repository.")
 
         # Sync reference-repository
         self.__sc.git_fetch(ref_repo, update_http_documentation_arguments.common_remote_name)
