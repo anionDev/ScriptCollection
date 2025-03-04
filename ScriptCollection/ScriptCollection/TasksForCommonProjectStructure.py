@@ -1291,9 +1291,9 @@ class TasksForCommonProjectStructure:
 
         self.__standardized_tasks_release_artifact(createReleaseInformation)
 
+        GeneralUtilities.assert_condition(createRelease_configuration.reference_repository_remote_name is not None, "Remote for reference-repository not set.")
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
-        if createRelease_configuration.reference_repository_remote_name is not None:
-            self.__sc.git_push_with_retry(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name, createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name, verbosity=createRelease_configuration.verbosity)
+        self.__sc.git_push_with_retry(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name, createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name, verbosity=createRelease_configuration.verbosity)
         self.__sc.git_commit(build_repository_folder, f"Added {createRelease_configuration.projectname} release v{new_project_version}")
         GeneralUtilities.write_message_to_stdout(f"Finished release for project {createRelease_configuration.projectname} v{new_project_version} successfully.")
         return new_project_version
@@ -3065,8 +3065,8 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_file_exists(random_file)
         current_version = self.get_version_of_project(repositoryfolder)
         changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
-        if os.path.isdir(changelog_file):
-            raise ValueError(f"Changelogfile {changelog_file} already exists.")
+        if os.path.isfile(changelog_file):
+            GeneralUtilities.write_message_to_stdout(f"Changelog-file '{changelog_file}' already exists.")
         else:
             GeneralUtilities.ensure_file_exists(changelog_file)
             GeneralUtilities.write_text_to_file(changelog_file, f"""# Release notes
@@ -3092,7 +3092,7 @@ class TasksForCommonProjectStructure:
         target = os.path.join(ref_repo, "Reference", update_http_documentation_arguments.product_name)
         GeneralUtilities.ensure_directory_does_not_exist(target)
         shutil.copytree(GeneralUtilities.resolve_relative_path(f"../../Submodules/{update_http_documentation_arguments.product_name}Reference/ReferenceContent", folder_of_this_file), target)
-        self.__sc.git_commit(ref_repo, f"Copied reference of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version} from repository.")
+        self.__sc.git_commit(ref_repo, f"Added reference of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version}")
 
         # Sync reference-repository
         self.__sc.git_fetch(ref_repo, update_http_documentation_arguments.common_remote_name)
