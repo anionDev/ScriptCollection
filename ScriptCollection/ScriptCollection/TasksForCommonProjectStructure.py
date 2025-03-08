@@ -2691,7 +2691,7 @@ class TasksForCommonProjectStructure:
     def generate_svg_files_from_plantuml_files(self, target_folder: str) -> None:
         self.ensure_plantuml_is_available(target_folder)
         plant_uml_folder = os.path.join(target_folder, "Other", "Resources", "PlantUML")
-        files_folder = os.path.join(target_folder, "Other", "Reference")
+        files_folder = os.path.join(target_folder, "Other", "Resources", "Reference")
         sc = ScriptCollectionCore()
         for file in GeneralUtilities.get_all_files_of_folder(files_folder):
             if file.endswith(".plantuml"):
