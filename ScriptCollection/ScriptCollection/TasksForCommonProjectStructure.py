@@ -1527,6 +1527,8 @@ class TasksForCommonProjectStructure:
                 author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
                 expected_authors.append((author_name, author_emailaddress))
             actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name, verbosity)
+            # TODO refactor this check to only check commits which are behind this but which are not already on main
+            # TODO verify also if the commit is signed by a valid key of the author
             for actual_author in actual_authors:
                 if not (actual_author) in expected_authors:
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
