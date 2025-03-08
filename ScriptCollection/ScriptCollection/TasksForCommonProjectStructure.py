@@ -2699,6 +2699,41 @@ class TasksForCommonProjectStructure:
                 sc.run_program_argsasarray("java", argument, os.path.dirname(file), verbosity=0)
 
     @GeneralUtilities.check_arguments
+    def generate_codeunits_overview_diagram(self, repository_folder: str) -> None:
+        self.__sc.assert_is_git_repository(repository_folder)
+        project_name: str = os.path.basename(repository_folder)
+        target_folder = os.path.join(repository_folder, "Other", "Resources", "Reference", "Technical", "Diagrams")
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        target_file = os.path.join(target_folder, "CodeUnits-Overview.plantuml")
+        lines = ["@startuml CodeUnits-Overview"]
+        lines.append(f"title CodeUnits of {project_name}")
+
+        codeunits = self.get_codeunits(repository_folder)
+        for codeunitname in codeunits:
+            codeunit_file: str = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
+
+            description = self.get_codeunit_description(codeunit_file)
+
+            lines.append(f"")
+            lines.append(f"[{codeunitname}]")
+            lines.append(f"note as {codeunitname}Note")
+            lines.append(f"  {description}")
+            lines.append(f"end note")
+            lines.append(f"{codeunitname} .. {codeunitname}Note")
+
+        lines.append(f"")
+        for codeunitname in codeunits:
+            codeunit_file: str = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
+            dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+            for dependent_codeunit in dependent_codeunits:
+                lines.append(f"{codeunitname} --> {dependent_codeunit}")
+
+        lines.append(f"")
+        lines.append("@enduml")
+
+        GeneralUtilities.write_lines_to_file(target_file, lines)
+
+    @GeneralUtilities.check_arguments
     def load_deb_control_file_content(self, file: str, codeunitname: str, codeunitversion: str, installedsize: int, maintainername: str, maintaineremail: str, description: str,) -> str:
         content = GeneralUtilities.read_text_from_file(file)
         content = GeneralUtilities.replace_variable_in_string(content, "codeunitname", codeunitname)
