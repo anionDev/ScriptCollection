@@ -1727,7 +1727,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        # TODO
+        self.__sc.run_program("cyclonedx-npm", f" --output-format xml --output Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.bom.xml", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
