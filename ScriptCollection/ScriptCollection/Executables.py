@@ -619,3 +619,12 @@ def NpmI() -> int:
     t = TasksForCommonProjectStructure()
     t.do_npm_install(folder, args.force, 3 if args.verbose else 0)
     return 0
+
+
+def CurrentUserHasElevatedPrivileges() -> int:
+    parser = argparse.ArgumentParser(description="Returns 1 if the current user has elevated privileges. Otherwise this function returns 0.")
+    parser.parse_args()
+    if GeneralUtilities.current_user_has_elevated_privileges():
+        return 1
+    else:
+        return 0

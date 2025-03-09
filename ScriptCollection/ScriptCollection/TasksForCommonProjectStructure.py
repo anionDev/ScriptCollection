@@ -2564,6 +2564,8 @@ class TasksForCommonProjectStructure:
         security_txt_file = GeneralUtilities.resolve_relative_path(security_txt_file_relative, repository_folder)
         if not os.path.isfile(security_txt_file):
             raise ValueError(f"The repository does not contain a '{security_txt_file_relative}'-file. See https://securitytxt.org/ for more information.")
+        # TODO throw error if the date set in the file is expired
+        # TODO write wartning if the date set in the file expires soon
 
     @GeneralUtilities.check_arguments
     def __check_for_staged_or_committed_ignored_files(self, repository_folder: str) -> None:
