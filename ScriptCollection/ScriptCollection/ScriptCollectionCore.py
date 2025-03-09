@@ -12,6 +12,7 @@ import math
 import os
 from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from subprocess import Popen
 import re
@@ -32,7 +33,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.93"
+version = "3.5.94"
 __version__ = version
 
 
@@ -2052,7 +2053,7 @@ chmod {permission} {link_file}
         if productname is None:
             productname = os.path.basename(repository)
         if subfolder is None:
-            subfolder = "Other/Resources/Reference"
+            subfolder = "Other/Reference"
         reference_root_folder = f"{repository}/{subfolder}"
         reference_content_folder = reference_root_folder + "/Technical"
         if os.path.isdir(reference_root_folder):
@@ -2152,7 +2153,6 @@ TXDX
 - [Repository](TXDX)
 - [Productive-System](TXDX)
 - [QualityCheck-system](TXDX)
-
 """.replace("XDX", "ODO"))
 
     @GeneralUtilities.check_arguments
@@ -2242,3 +2242,10 @@ TXDX
                 raise ValueError(f"Folder '{folder}' does not exist.")
 
         GeneralUtilities.ensure_directory_exists(path)
+
+    @GeneralUtilities.check_arguments
+    def format_xml_file(self, file: str) -> None:
+        encoding = "utf-8"
+        element = ET.XML(GeneralUtilities.read_text_from_file(file, encoding))
+        ET.indent(element)
+        GeneralUtilities.write_text_to_file(file, ET.tostring(element, encoding="unicode"), encoding)
