@@ -307,6 +307,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def generate_bom_for_python_project(self, verbosity: int, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
+        repository_folder = os.path.dirname(codeunit_folder)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         codeunitversion = self.get_version_of_codeunit_folder(codeunit_folder)
         bom_folder = "Other/Artifacts/BOM"
@@ -316,9 +317,20 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Codeunit {codeunitname} does not have a 'requirements.txt'-file.")
         # TODO check that all values from setup.cfg are contained in requirements.txt
         result = self.__sc.run_program("cyclonedx-py", "requirements", codeunit_folder, verbosity=verbosity)
-        bom_file = os.path.join(codeunit_folder, f"{bom_folder}/{codeunitname}.{codeunitversion}.bom.json")
-        GeneralUtilities.ensure_file_exists(bom_file)
-        GeneralUtilities.write_text_to_file(bom_file, result[1])
+        bom_file_relative_json = f"{bom_folder}/{codeunitname}.{codeunitversion}.bom.json"
+        bom_file_relative_xml = f"{bom_folder}/{codeunitname}.{codeunitversion}.bom.xml"
+        bom_file_json = os.path.join(codeunit_folder, bom_file_relative_json)
+        bom_file_xml = os.path.join(codeunit_folder, bom_file_relative_xml)
+
+        GeneralUtilities.ensure_file_exists(bom_file_json)
+        GeneralUtilities.write_text_to_file(bom_file_json, result[1])
+        self.ensure_cyclonedxcli_is_available(repository_folder)
+        cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
+        if GeneralUtilities.current_system_is_windows():
+            cyclonedx_exe = cyclonedx_exe+".exe"
+        self.__sc.run_program(cyclonedx_exe, f"convert --input-file ./{codeunitname}/{bom_file_relative_json} --input-format json --output-file ./{codeunitname}/{bom_file_relative_xml} --output-format xml", repository_folder)
+        self.__sc.format_xml_file(bom_file_xml)
+        GeneralUtilities.ensure_file_does_not_exist(bom_file_json)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository: str, gpg_identity: str, verbosity: int) -> None:
@@ -759,7 +771,7 @@ class TasksForCommonProjectStructure:
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
         os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
-        # TODO format the sbom.xml-file
+        self.__sc.format_xml_file(target)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: int, args: list[str]):
@@ -1358,15 +1370,19 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.assert_file_exists(os.path.join(repository_folder, target_sbom_file))
         target_original_sbom_file = os.path.dirname(target_sbom_file)+"/"+os.path.basename(target_sbom_file)+".original.xml"
         os.rename(os.path.join(repository_folder, target_sbom_file), os.path.join(repository_folder, target_original_sbom_file))
-        ScriptCollectionCore().run_program("docker", f"run --rm -v {repository_folder}:/Repository cyclonedx/cyclonedx-cli merge --input-files /Repository/{source_sbom_file} /Repository/{target_original_sbom_file} --output-file /Repository/{target_sbom_file}")
+
+        self.ensure_cyclonedxcli_is_available(repository_folder)
+        cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
+        if GeneralUtilities.current_system_is_windows():
+            cyclonedx_exe = cyclonedx_exe+".exe"
+        self.__sc.run_program("cyclonedx_exe", f"merge --input-files {source_sbom_file} {target_original_sbom_file} --output-file {target_sbom_file}")
         GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file))
-        # TODO format the sbom.xml-file
+        self.__sc.format_xml_file(target_original_sbom_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
         use_cache: bool = False
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc: ScriptCollectionCore = ScriptCollectionCore()
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
         codeunitname_lower = codeunitname.lower()
@@ -1381,7 +1397,7 @@ class TasksForCommonProjectStructure:
             args.append("--no-cache")
         args.append(".")
         codeunit_content_folder = os.path.join(codeunit_folder)
-        sc.run_program_argsasarray("docker", args, codeunit_content_folder, verbosity=verbosity, print_errors_as_information=True)
+        self.__sc.run_program_argsasarray("docker", args, codeunit_content_folder, verbosity=verbosity, print_errors_as_information=True)
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
         app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
         GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
@@ -1400,7 +1416,7 @@ class TasksForCommonProjectStructure:
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         GeneralUtilities.ensure_directory_exists(sbom_folder)
         self.__sc.run_program_argsasarray("docker", ["sbom", "--format", "cyclonedx", f"{codeunitname_lower}:{codeunitversion}", "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
-        # TODO format the sbom.xml-file
+        self.__sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
@@ -1730,8 +1746,9 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        self.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml", codeunit_folder, verbosity=verbosity)
-        # TODO format the sbom.xml-file
+        relative_path_to_bom_file = f"Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
+        self.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file {relative_path_to_bom_file}", codeunit_folder, verbosity=verbosity)
+        self.__sc.format_xml_file(codeunit_folder+"/"+relative_path_to_bom_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
@@ -2536,11 +2553,10 @@ class TasksForCommonProjectStructure:
                     i = i+1
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
             self.__do_repository_checks(repository_folder, project_version)
-            line = "----------"
             for codeunit in sorted_codeunits:
-                GeneralUtilities.write_message_to_stdout(line)
+                GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_line())
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, assume_dependent_codeunits_are_already_built, commandline_arguments)
-            GeneralUtilities.write_message_to_stdout(line)
+            GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_line())
         contains_uncommitted_changes_at_end = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
         if contains_uncommitted_changes_at_end and not is_pre_merge:
             if contains_uncommitted_changes_at_begin:
@@ -2551,6 +2567,7 @@ class TasksForCommonProjectStructure:
                     GeneralUtilities.write_message_to_stderr(f"Warning: {message}")
                 else:
                     raise ValueError(message)
+
         if export_target_directory is not None:
             project_name = self.get_project_name(repository_folder)
             for codeunit in sorted_codeunits:
@@ -2574,8 +2591,13 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_if_changelog_exists(repository_folder, project_version)
         self.__check_whether_security_txt_exists(repository_folder)
+        self.__check_whether_general_reference_exists(repository_folder)
         self.__check_whether_workspace_file_exists(repository_folder)
         self.__check_for_staged_or_committed_ignored_files(repository_folder)
+
+    @GeneralUtilities.check_arguments
+    def __check_whether_general_reference_exists(self, repository_folder: str) -> None:
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, "Other", "Reference", "Reference.md"))
 
     @GeneralUtilities.check_arguments
     def __check_if_changelog_exists(self, repository_folder: str, project_version: str) -> None:
@@ -2694,6 +2716,17 @@ class TasksForCommonProjectStructure:
         self.ensure_file_from_github_assets_is_available(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
 
     @GeneralUtilities.check_arguments
+    def ensure_cyclonedxcli_is_available(self, target_folder: str) -> None:
+        local_filename = "cyclonedx-cli"
+        filename_on_github: str
+        if GeneralUtilities.current_system_is_windows():
+            filename_on_github = "cyclonedx-win-x64.exe"
+            local_filename = local_filename+".exe"
+        else:
+            filename_on_github = "cyclonedx-linux-x64"
+        self.ensure_file_from_github_assets_is_available(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github)
+
+    @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github) -> None:
         resource_folder = os.path.join(target_folder, "Other", "Resources", resource_name)
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
@@ -2703,11 +2736,11 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_does_not_exist(resource_folder)
             GeneralUtilities.ensure_directory_exists(resource_folder)
             headers = {'Cache-Control': 'no-cache'}
-            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest", timeout=5, headers=headers)
-            latest_version = response.json()["name"]
+            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest", timeout=10, headers=headers)
+            latest_version = response.json()["tag_name"]
             filename_on_github = get_filename_on_github(latest_version)
-            jar_link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
-            urllib.request.urlretrieve(jar_link, file)
+            link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
+            urllib.request.urlretrieve(link, file)
         else:
             if file_exists:
                 GeneralUtilities.write_message_to_stdout(f"Warning: Can not check for updates of {resource_name} due to missing internet-connection.")
@@ -2715,22 +2748,49 @@ class TasksForCommonProjectStructure:
                 raise ValueError(f"Can not download {resource_name}.")
 
     @GeneralUtilities.check_arguments
-    def generate_svg_files_from_plantuml_files(self, target_folder: str) -> None:
-        self.ensure_plantuml_is_available(target_folder)
-        plant_uml_folder = os.path.join(target_folder, "Other", "Resources", "PlantUML")
-        files_folder = os.path.join(target_folder, "Other", "Resources", "Reference")
+    def generate_svg_files_from_plantuml_files_for_repository(self, repository_folder: str) -> None:
+        self.__sc.assert_is_git_repository(repository_folder)
+        self.ensure_plantuml_is_available(repository_folder)
+        plant_uml_folder = os.path.join(repository_folder, "Other", "Resources", "PlantUML")
+        target_folder = os.path.join(repository_folder, "Other",  "Reference")
+        self.__generate_svg_files_from_plantuml(target_folder, plant_uml_folder)
+
+    @GeneralUtilities.check_arguments
+    def generate_svg_files_from_plantuml_files_for_codeunit(self, codeunit_folder: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        repository_folder = os.path.dirname(codeunit_folder)
+        self.ensure_plantuml_is_available(repository_folder)
+        plant_uml_folder = os.path.join(repository_folder, "Other", "Resources", "PlantUML")
+        target_folder = os.path.join(codeunit_folder, "Other", "Reference")
+        self.__generate_svg_files_from_plantuml(target_folder, plant_uml_folder)
+
+    @GeneralUtilities.check_arguments
+    def __generate_svg_files_from_plantuml(self, diagrams_files_folder: str, plant_uml_folder: str) -> None:
         sc = ScriptCollectionCore()
-        for file in GeneralUtilities.get_all_files_of_folder(files_folder):
+        for file in GeneralUtilities.get_all_files_of_folder(diagrams_files_folder):
             if file.endswith(".plantuml"):
-                argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', os.path.basename(file).replace("\\", "/"), '-tsvg']
-                sc.run_program_argsasarray("java", argument, os.path.dirname(file), verbosity=0)
-                # TODO format content of file
+                output_filename = self.get_output_filename_for_plantuml_filename(file)
+                argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', '-tsvg', os.path.basename(file)]
+                folder = os.path.dirname(file)
+                sc.run_program_argsasarray("java", argument, folder, verbosity=0)
+                result_file = folder+"/" + output_filename
+                GeneralUtilities.assert_file_exists(result_file)
+                self.__sc.format_xml_file(result_file)
+
+    @GeneralUtilities.check_arguments
+    def get_output_filename_for_plantuml_filename(self, plantuml_file: str) -> str:
+        for line in GeneralUtilities.read_lines_from_file(plantuml_file):
+            prefix = "@startuml "
+            if line.startswith(prefix):
+                title = line[len(prefix):]
+                return title+".svg"
+        return Path(plantuml_file).stem+".svg"
 
     @GeneralUtilities.check_arguments
     def generate_codeunits_overview_diagram(self, repository_folder: str) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
         project_name: str = os.path.basename(repository_folder)
-        target_folder = os.path.join(repository_folder, "Other", "Resources", "Reference", "Technical", "Diagrams")
+        target_folder = os.path.join(repository_folder, "Other", "Reference", "Technical", "Diagrams")
         GeneralUtilities.ensure_directory_exists(target_folder)
         target_file = os.path.join(target_folder, "CodeUnits-Overview.plantuml")
         lines = ["@startuml CodeUnits-Overview"]
