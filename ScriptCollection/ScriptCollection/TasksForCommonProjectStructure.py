@@ -759,6 +759,7 @@ class TasksForCommonProjectStructure:
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
         os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: int, args: list[str]):
@@ -1359,6 +1360,7 @@ class TasksForCommonProjectStructure:
         os.rename(os.path.join(repository_folder, target_sbom_file), os.path.join(repository_folder, target_original_sbom_file))
         ScriptCollectionCore().run_program("docker", f"run --rm -v {repository_folder}:/Repository cyclonedx/cyclonedx-cli merge --input-files /Repository/{source_sbom_file} /Repository/{target_original_sbom_file} --output-file /Repository/{target_sbom_file}")
         GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file))
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
@@ -1398,6 +1400,7 @@ class TasksForCommonProjectStructure:
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         GeneralUtilities.ensure_directory_exists(sbom_folder)
         self.__sc.run_program_argsasarray("docker", ["sbom", "--format", "cyclonedx", f"{codeunitname_lower}:{codeunitversion}", "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
@@ -1727,7 +1730,8 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        self.__sc.run_program("cyclonedx-npm", f" --output-format xml --output Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.bom.xml", codeunit_folder, verbosity=verbosity)
+        self.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml", codeunit_folder, verbosity=verbosity)
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
@@ -2718,6 +2722,7 @@ class TasksForCommonProjectStructure:
             if file.endswith(".plantuml"):
                 argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', os.path.basename(file).replace("\\", "/"), '-tsvg']
                 sc.run_program_argsasarray("java", argument, os.path.dirname(file), verbosity=0)
+                # TODO format content of file
 
     @GeneralUtilities.check_arguments
     def generate_codeunits_overview_diagram(self, repository_folder: str) -> None:
