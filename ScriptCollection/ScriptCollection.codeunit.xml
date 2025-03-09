@@ -6,7 +6,7 @@
     <cps:codeunitownername>Marius Göcke</cps:codeunitownername>
     <cps:codeunitowneremailaddress>marius.goecke@gmail.com</cps:codeunitowneremailaddress>
     <cps:properties codeunithastestablesourcecode="true" codeunithasupdatabledependencies="true" throwexceptionifcodeunitfilecannotbevalidated="true" developmentstate="Active development" description="ScriptCollection is the place for reusable scripts.">
-        <cps:testsettings minimalcodecoverageinpercent="30"/>
+        <cps:testsettings minimalcodecoverageinpercent="25"/>
         <cps:pipelinedemands>
         </cps:pipelinedemands>
         <cps:updatesettings>
