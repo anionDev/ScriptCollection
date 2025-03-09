@@ -1338,6 +1338,27 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str]) -> None:
         self.standardized_tasks_build_for_docker_project_with_additional_build_arguments(build_script_file, target_environment_type, verbosity, commandline_arguments, dict[str, str]())
+        self.generate_sbom_for_docker_image(build_script_file, verbosity, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def merge_sbom_file_from_dependent_codeunit_into_this(self, build_script_file: str, dependent_codeunit_name: str) -> None:
+        codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
+        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        dependent_codeunit_folder = os.path.join(repository_folder, dependent_codeunit_name).replace("\\", "/")
+        t = TasksForCommonProjectStructure()
+        sbom_file = f"{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{t.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
+        dependent_sbom_file = f"{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{t.get_version_of_codeunit_folder(dependent_codeunit_folder)}.sbom.xml"
+        self.merge_sbom_file(repository_folder, dependent_sbom_file, sbom_file)
+
+    @GeneralUtilities.check_arguments
+    def merge_sbom_file(self, repository_folder: str, source_sbom_file: str, target_sbom_file: str) -> None:
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, source_sbom_file))
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, target_sbom_file))
+        target_original_sbom_file = os.path.dirname(target_sbom_file)+"/"+os.path.basename(target_sbom_file)+".original.xml"
+        os.rename(os.path.join(repository_folder, target_sbom_file), os.path.join(repository_folder, target_original_sbom_file))
+        ScriptCollectionCore().run_program("docker", f"run --rm -v {repository_folder}:/Repository cyclonedx/cyclonedx-cli merge --input-files /Repository/{source_sbom_file} /Repository/{target_original_sbom_file} --output-file /Repository/{target_sbom_file}")
+        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
