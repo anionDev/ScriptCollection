@@ -759,6 +759,7 @@ class TasksForCommonProjectStructure:
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
         os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: int, args: list[str]):
@@ -1338,6 +1339,28 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str]) -> None:
         self.standardized_tasks_build_for_docker_project_with_additional_build_arguments(build_script_file, target_environment_type, verbosity, commandline_arguments, dict[str, str]())
+        self.generate_sbom_for_docker_image(build_script_file, verbosity, commandline_arguments)
+
+    @GeneralUtilities.check_arguments
+    def merge_sbom_file_from_dependent_codeunit_into_this(self, build_script_file: str, dependent_codeunit_name: str) -> None:
+        codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
+        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        dependent_codeunit_folder = os.path.join(repository_folder, dependent_codeunit_name).replace("\\", "/")
+        t = TasksForCommonProjectStructure()
+        sbom_file = f"{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{t.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
+        dependent_sbom_file = f"{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{t.get_version_of_codeunit_folder(dependent_codeunit_folder)}.sbom.xml"
+        self.merge_sbom_file(repository_folder, dependent_sbom_file, sbom_file)
+
+    @GeneralUtilities.check_arguments
+    def merge_sbom_file(self, repository_folder: str, source_sbom_file: str, target_sbom_file: str) -> None:
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, source_sbom_file))
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, target_sbom_file))
+        target_original_sbom_file = os.path.dirname(target_sbom_file)+"/"+os.path.basename(target_sbom_file)+".original.xml"
+        os.rename(os.path.join(repository_folder, target_sbom_file), os.path.join(repository_folder, target_original_sbom_file))
+        ScriptCollectionCore().run_program("docker", f"run --rm -v {repository_folder}:/Repository cyclonedx/cyclonedx-cli merge --input-files /Repository/{source_sbom_file} /Repository/{target_original_sbom_file} --output-file /Repository/{target_sbom_file}")
+        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file))
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
@@ -1377,6 +1400,7 @@ class TasksForCommonProjectStructure:
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         GeneralUtilities.ensure_directory_exists(sbom_folder)
         self.__sc.run_program_argsasarray("docker", ["sbom", "--format", "cyclonedx", f"{codeunitname_lower}:{codeunitversion}", "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, verbosity=verbosity, print_errors_as_information=True)
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
@@ -1527,6 +1551,8 @@ class TasksForCommonProjectStructure:
                 author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
                 expected_authors.append((author_name, author_emailaddress))
             actual_authors: list[tuple[str, str]] = self.__sc.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name, verbosity)
+            # TODO refactor this check to only check commits which are behind this but which are not already on main
+            # TODO verify also if the commit is signed by a valid key of the author
             for actual_author in actual_authors:
                 if not (actual_author) in expected_authors:
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
@@ -1704,7 +1730,8 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        # TODO
+        self.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml", codeunit_folder, verbosity=verbosity)
+        # TODO format the sbom.xml-file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
@@ -2564,6 +2591,8 @@ class TasksForCommonProjectStructure:
         security_txt_file = GeneralUtilities.resolve_relative_path(security_txt_file_relative, repository_folder)
         if not os.path.isfile(security_txt_file):
             raise ValueError(f"The repository does not contain a '{security_txt_file_relative}'-file. See https://securitytxt.org/ for more information.")
+        # TODO throw error if the date set in the file is expired
+        # TODO write wartning if the date set in the file expires soon
 
     @GeneralUtilities.check_arguments
     def __check_for_staged_or_committed_ignored_files(self, repository_folder: str) -> None:
@@ -2689,12 +2718,48 @@ class TasksForCommonProjectStructure:
     def generate_svg_files_from_plantuml_files(self, target_folder: str) -> None:
         self.ensure_plantuml_is_available(target_folder)
         plant_uml_folder = os.path.join(target_folder, "Other", "Resources", "PlantUML")
-        files_folder = os.path.join(target_folder, "Other", "Reference")
+        files_folder = os.path.join(target_folder, "Other", "Resources", "Reference")
         sc = ScriptCollectionCore()
         for file in GeneralUtilities.get_all_files_of_folder(files_folder):
             if file.endswith(".plantuml"):
                 argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', os.path.basename(file).replace("\\", "/"), '-tsvg']
                 sc.run_program_argsasarray("java", argument, os.path.dirname(file), verbosity=0)
+                # TODO format content of file
+
+    @GeneralUtilities.check_arguments
+    def generate_codeunits_overview_diagram(self, repository_folder: str) -> None:
+        self.__sc.assert_is_git_repository(repository_folder)
+        project_name: str = os.path.basename(repository_folder)
+        target_folder = os.path.join(repository_folder, "Other", "Resources", "Reference", "Technical", "Diagrams")
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        target_file = os.path.join(target_folder, "CodeUnits-Overview.plantuml")
+        lines = ["@startuml CodeUnits-Overview"]
+        lines.append(f"title CodeUnits of {project_name}")
+
+        codeunits = self.get_codeunits(repository_folder)
+        for codeunitname in codeunits:
+            codeunit_file: str = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
+
+            description = self.get_codeunit_description(codeunit_file)
+
+            lines.append(f"")
+            lines.append(f"[{codeunitname}]")
+            lines.append(f"note as {codeunitname}Note")
+            lines.append(f"  {description}")
+            lines.append(f"end note")
+            lines.append(f"{codeunitname} .. {codeunitname}Note")
+
+        lines.append(f"")
+        for codeunitname in codeunits:
+            codeunit_file: str = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
+            dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+            for dependent_codeunit in dependent_codeunits:
+                lines.append(f"{codeunitname} --> {dependent_codeunit}")
+
+        lines.append(f"")
+        lines.append("@enduml")
+
+        GeneralUtilities.write_lines_to_file(target_file, lines)
 
     @GeneralUtilities.check_arguments
     def load_deb_control_file_content(self, file: str, codeunitname: str, codeunitversion: str, installedsize: int, maintainername: str, maintaineremail: str, description: str,) -> str:

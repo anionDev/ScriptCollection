@@ -32,7 +32,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.92"
+version = "3.5.93"
 __version__ = version
 
 
@@ -2109,8 +2109,7 @@ TXDX
 
 ## Deployment-proecsses
 
-TXDX
-""")
+TXDX""")
         self.__add_chapter(main_reference_file, reference_content_folder, 8, 'Crosscutting Concepts', """TXDX""")
         self.__add_chapter(main_reference_file, reference_content_folder, 9, 'Architectural Decisions', """## Decision-board
 
