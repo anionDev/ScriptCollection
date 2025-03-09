@@ -2109,8 +2109,7 @@ TXDX
 
 ## Deployment-proecsses
 
-TXDX
-""")
+TXDX""")
         self.__add_chapter(main_reference_file, reference_content_folder, 8, 'Crosscutting Concepts', """TXDX""")
         self.__add_chapter(main_reference_file, reference_content_folder, 9, 'Architectural Decisions', """## Decision-board
 

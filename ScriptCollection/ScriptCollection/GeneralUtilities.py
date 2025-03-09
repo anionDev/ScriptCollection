@@ -348,29 +348,60 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def ends_with_newline_character(content: bytes) -> bool:
-        return content.endswith(b'\x0a')
+        result = content.endswith(GeneralUtilities.string_to_bytes("\n"))
+        return result
 
     @staticmethod
     @check_arguments
-    def __get_new_line_character_if_required(file: str) -> bool:
+    def file_ends_with_content(file: str) -> bool:
         content = GeneralUtilities.read_binary_from_file(file)
         if len(content) == 0:
-            return ""
+            return False
         else:
             if GeneralUtilities.ends_with_newline_character(content):
-                return ""
+                return False
             else:
-                return "\n"
+                return True
+
+    @staticmethod
+    @check_arguments
+    def get_new_line_character_for_textfile_if_required(file: str) -> bool:
+        if GeneralUtilities.file_ends_with_content(file):
+            return "\n"
+        else:
+            return ""
 
     @staticmethod
     @check_arguments
     def append_line_to_file(file: str, line: str, encoding: str = "utf-8") -> None:
-        line = GeneralUtilities.__get_new_line_character_if_required(file)+line
-        GeneralUtilities.append_to_file(file, line, encoding)
+        GeneralUtilities.append_lines_to_file(file, [line], encoding)
+
+    @staticmethod
+    @check_arguments
+    def append_lines_to_file(file: str, lines: list[str], encoding: str = "utf-8") -> None:
+        if len(lines) == 0:
+            return
+        is_first_line = True
+        for line in lines:
+            insert_linebreak: bool
+            if is_first_line:
+                insert_linebreak = GeneralUtilities.file_ends_with_content(file)
+            else:
+                insert_linebreak = True
+            line_to_write: str = None
+            if insert_linebreak:
+                line_to_write = "\n"+line
+            else:
+                line_to_write = line
+            with open(file, "r+b") as fileObject:
+                fileObject.seek(0, os.SEEK_END)
+                fileObject.write(GeneralUtilities.string_to_bytes(line_to_write, encoding))
+            is_first_line = False
 
     @staticmethod
     @check_arguments
     def append_to_file(file: str, content: str, encoding: str = "utf-8") -> None:
+        GeneralUtilities.assert_condition(not "\n" in content, "Appending multiple lines is not allowed. Use append_lines_to_file instead.")
         with open(file, "a", encoding=encoding) as fileObject:
             fileObject.write(content)
 
@@ -507,6 +538,11 @@ class GeneralUtilities:
     @check_arguments
     def read_lines_from_file(file: str, encoding="utf-8") -> list[str]:
         return [GeneralUtilities.strip_new_line_character(line) for line in GeneralUtilities.read_text_from_file(file, encoding).split('\n')]
+
+    @staticmethod
+    @check_arguments
+    def read_nonempty_lines_from_file(file: str, encoding="utf-8") -> list[str]:
+        return [line for line in GeneralUtilities.read_lines_from_file(file, encoding) if GeneralUtilities.string_has_content(line)]
 
     @staticmethod
     @check_arguments
@@ -960,20 +996,20 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def retry_action(action, amount_of_attempts: int,action_name:str=None) -> None:
+    def retry_action(action, amount_of_attempts: int, action_name: str = None) -> None:
         amount_of_fails = 0
         enabled = True
         while enabled:
             try:
-                result=action()
+                result = action()
                 return result
             except Exception:
                 amount_of_fails = amount_of_fails+1
                 GeneralUtilities.assert_condition(not (amount_of_attempts < amount_of_fails))
                 if amount_of_fails == amount_of_attempts:
-                    message=f"Action failed {amount_of_attempts} times."
+                    message = f"Action failed {amount_of_attempts} times."
                     if action_name is not None:
-                        message=f"{message} Name of action: {action_name}"
+                        message = f"{message} Name of action: {action_name}"
                     GeneralUtilities.write_message_to_stderr(message)
                     raise
         return None
