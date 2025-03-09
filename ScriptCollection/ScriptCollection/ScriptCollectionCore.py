@@ -2053,7 +2053,7 @@ chmod {permission} {link_file}
         if productname is None:
             productname = os.path.basename(repository)
         if subfolder is None:
-            subfolder = "Other/Resources/Reference"
+            subfolder = "Other/Reference"
         reference_root_folder = f"{repository}/{subfolder}"
         reference_content_folder = reference_root_folder + "/Technical"
         if os.path.isdir(reference_root_folder):
