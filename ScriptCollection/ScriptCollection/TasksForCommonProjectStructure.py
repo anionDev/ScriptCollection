@@ -2501,7 +2501,7 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
-        repository_name = os.path.dirname(repository_folder)
+        repository_name = os.path.basename(repository_folder)
         contains_uncommitted_changes_at_begin = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
         if contains_uncommitted_changes_at_begin:
             if is_pre_merge:
