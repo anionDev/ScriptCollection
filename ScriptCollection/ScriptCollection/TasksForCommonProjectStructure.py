@@ -2350,6 +2350,7 @@ class TasksForCommonProjectStructure:
                     command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
                 lines.append(f"  {name}:")
                 lines.append(f'    desc: "{description}"')
+                lines.append('    silent: true')
                 lines.append(f'    dir: "{cwd}"')
                 lines.append("    cmds:")
                 lines.append(f"      - {command_with_args}")
