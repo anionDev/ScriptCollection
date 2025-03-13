@@ -1486,7 +1486,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool, additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
-        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
+        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)#pylint: disable=unused-variable
         # assume_dependent_codeunits_are_already_built = self.get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments, assume_dependent_codeunits_are_already_built)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
