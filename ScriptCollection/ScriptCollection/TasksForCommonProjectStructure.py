@@ -1360,24 +1360,24 @@ class TasksForCommonProjectStructure:
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         dependent_codeunit_folder = os.path.join(repository_folder, dependent_codeunit_name).replace("\\", "/")
         t = TasksForCommonProjectStructure()
-        sbom_file = f"{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{t.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
-        dependent_sbom_file = f"{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{t.get_version_of_codeunit_folder(dependent_codeunit_folder)}.sbom.xml"
+        sbom_file = f"{repository_folder}/{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{t.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
+        dependent_sbom_file = f"{repository_folder}/{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{t.get_version_of_codeunit_folder(dependent_codeunit_folder)}.sbom.xml"
         self.merge_sbom_file(repository_folder, dependent_sbom_file, sbom_file)
 
     @GeneralUtilities.check_arguments
-    def merge_sbom_file(self, repository_folder: str, source_sbom_file: str, target_sbom_file: str) -> None:
-        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, source_sbom_file))
-        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, target_sbom_file))
-        target_original_sbom_file = os.path.dirname(target_sbom_file)+"/"+os.path.basename(target_sbom_file)+".original.xml"
-        os.rename(os.path.join(repository_folder, target_sbom_file), os.path.join(repository_folder, target_original_sbom_file))
+    def merge_sbom_file(self, repository_folder: str, source_sbom_file_relative: str, target_sbom_file_relative: str) -> None:
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, source_sbom_file_relative))
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, target_sbom_file_relative))
+        target_original_sbom_file_relative = os.path.dirname(target_sbom_file_relative)+"/"+os.path.basename(target_sbom_file_relative)+".original.xml"
+        os.rename(os.path.join(repository_folder, target_sbom_file_relative), os.path.join(repository_folder, target_original_sbom_file_relative))
 
         self.ensure_cyclonedxcli_is_available(repository_folder)
         cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
         if GeneralUtilities.current_system_is_windows():
             cyclonedx_exe = cyclonedx_exe+".exe"
-        self.__sc.run_program("cyclonedx_exe", f"merge --input-files {source_sbom_file} {target_original_sbom_file} --output-file {target_sbom_file}")
-        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file))
-        self.__sc.format_xml_file(target_original_sbom_file)
+        self.__sc.run_program(cyclonedx_exe, f"merge --input-files {source_sbom_file_relative} {target_original_sbom_file_relative} --output-file {target_sbom_file_relative}", repository_folder)
+        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file_relative))
+        self.__sc.format_xml_file(os.path.join(repository_folder, target_sbom_file_relative))
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
@@ -1487,7 +1487,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool, additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)
-        assume_dependent_codeunits_are_already_built = self.get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments, assume_dependent_codeunits_are_already_built)
+        # assume_dependent_codeunits_are_already_built = self.get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments, assume_dependent_codeunits_are_already_built)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
         if len(commandline_arguments) == 0:
@@ -1587,8 +1587,8 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # Get artifacts from dependent codeunits
-        if assume_dependent_codeunits_are_already_built:
-            self.build_dependent_code_units(repository_folder, codeunit_name, verbosity, target_environmenttype, additional_arguments_file, commandline_arguments)
+        # if assume_dependent_codeunits_are_already_built:
+        #    self.build_dependent_code_units(repository_folder, codeunit_name, verbosity, target_environmenttype, additional_arguments_file, commandline_arguments)
         self.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
         # Update codeunit-version
@@ -2450,7 +2450,19 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
     @GeneralUtilities.check_arguments
-    def get_sorted_codeunits(self, codeunits=dict[str, set[str]]) -> list[str]:
+    def get_sorted_codeunits(self, repository_folder: str) -> list[str]:
+        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
+        for subfolder in subfolders:
+            codeunit_name: str = os.path.basename(subfolder)
+            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
+            if os.path.exists(codeunit_file):
+                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
+        sorted_codeunits = self._internal_get_sorted_codeunits_by_dict(codeunits_with_dependent_codeunits)
+        return sorted_codeunits
+
+    @GeneralUtilities.check_arguments
+    def _internal_get_sorted_codeunits_by_dict(self, codeunits=dict[str, set[str]]) -> list[str]:
         result_typed = list(TopologicalSorter(codeunits).static_order())
         result = list()
         for item in result_typed:
@@ -2493,25 +2505,14 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(repository_folder)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
         codeunits = self.get_codeunits(repository_folder, False)
-        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes, note)
+        project_version = self.get_version_of_project(repository_folder)
 
-    @GeneralUtilities.check_arguments
-    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None) -> None:
-        if verbosity > 2:
-            GeneralUtilities.write_message_to_stdout(f"Start building codeunits for repository '{repository_folder}'...")
-        self.__sc.assert_is_git_repository(repository_folder)
-        self.__check_target_environmenttype(target_environmenttype)
-        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
-        repository_name = os.path.dirname(repository_folder)
-        contains_uncommitted_changes_at_begin = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
-        if contains_uncommitted_changes_at_begin:
-            if is_pre_merge:
-                raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
-        else:
-            if do_git_clean_when_no_changes:
-                self.__sc.run_program("git", "clean -dfx", repository_folder)
-        subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
-        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        now = datetime.now()
+        if not self.__suport_information_exists(repository_folder, project_version):
+            support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
+            until = now + support_time
+            until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
+            self.mark_current_version_as_supported(repository_folder, project_version, now, until_day)
 
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
@@ -2522,44 +2523,57 @@ class TasksForCommonProjectStructure:
             if result[0] != 0:
                 raise ValueError(f"PrepareBuildCodeunits.py resulted in exitcode {result[0]}.")
 
-        for subfolder in subfolders:
+        self.__do_repository_checks(repository_folder, project_version)
+        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes, note)
+
+    @GeneralUtilities.check_arguments
+    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
+        codeunits_list = {", ".join(codeunits)}
+        if verbosity > 2:
+            GeneralUtilities.write_message_to_stdout(f"Start building codeunits ({codeunits_list}) in repository '{repository_folder}'...")
+        self.__sc.assert_is_git_repository(repository_folder)
+        self.__check_target_environmenttype(target_environmenttype)
+        repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
+        repository_name = os.path.basename(repository_folder)
+        contains_uncommitted_changes_at_begin = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
+        if contains_uncommitted_changes_at_begin:
+            if is_pre_merge:
+                raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
+        else:
+            if do_git_clean_when_no_changes:
+                self.__sc.run_program("git", "clean -dfx", repository_folder)
+        codeunit_subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
+        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
+
+        for subfolder in codeunit_subfolders:
             codeunit_name: str = os.path.basename(subfolder)
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
-            if os.path.exists(codeunit_file):
-                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-            else:
-                raise ValueError(f"{repository_folder} does not have a codeunit with name {codeunit_name}.")
-        sorted_codeunits = self.get_sorted_codeunits(codeunits_with_dependent_codeunits)
+            GeneralUtilities.assert_condition(os.path.exists(codeunit_file), f"Codeunit-file '{codeunit_file}' does nost exist.")
+            codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
+        sorted_codeunits = self.get_sorted_codeunits(repository_folder)
+        sorted_codeunits = [codeunit for codeunit in sorted_codeunits if codeunit in codeunits]
         project_version = self.get_version_of_project(repository_folder)
 
-        now = datetime.now()
         message = f"Build codeunits in product {repository_name}..."
         if note is not None:
             message = f"{message} ({note})"
         GeneralUtilities.write_message_to_stdout(message)
 
-        if not self.__suport_information_exists(repository_folder, project_version):
-            support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
-            until = now + support_time
-            until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
-            self.mark_current_version_as_supported(repository_folder, project_version, now, until_day)
-
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
             if verbosity > 1:
-                GeneralUtilities.write_message_to_stdout(f"Attempt to build codeunits for version {project_version} in the following order:")
+                GeneralUtilities.write_message_to_stdout(f"Attempt to build codeunits ({codeunits_list}) for project version {project_version} in the following order:")
                 i = 0
                 for codeunit in sorted_codeunits:
                     i = i+1
                     GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
-            self.__do_repository_checks(repository_folder, project_version)
             for codeunit in sorted_codeunits:
                 GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_line())
                 self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, assume_dependent_codeunits_are_already_built, commandline_arguments)
             GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_line())
         contains_uncommitted_changes_at_end = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
-        if contains_uncommitted_changes_at_end and not is_pre_merge:
+        if contains_uncommitted_changes_at_end and (not is_pre_merge) and check_for_new_files:
             if contains_uncommitted_changes_at_begin:
                 GeneralUtilities.write_message_to_stdout(f'There are still uncommitted changes in the repository "{repository_folder}".')
             else:
@@ -2917,10 +2931,9 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout(f"Warning: Codeunit {codeunit_name} is disabled.")
             return
 
-        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {target_environmenttype}")
-        GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
+        self.__sc.run_program("git", "clean -dfx", codeunit_folder)
 
         verbosity_for_executed_programs = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
 
@@ -2996,6 +3009,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout('Run "OnBuildingFinished.py"...')
             self.__sc.run_program("python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
 
+        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         artifactsinformation_file = os.path.join(artifacts_folder, f"{codeunit_name}.artifactsinformation.xml")
         codeunit_version = self.get_version_of_codeunit(codeunit_file)
         GeneralUtilities.ensure_file_exists(artifactsinformation_file)
@@ -3025,9 +3039,10 @@ class TasksForCommonProjectStructure:
         # Prepare
         GeneralUtilities.write_message_to_stdout("Update dependencies...")
         self.__sc.assert_is_git_repository(repository_folder)
-        codeunits = self.get_codeunits(repository_folder)
+        codeunits = self.get_sorted_codeunits(repository_folder)
         update_dependencies_script_filename = "UpdateDependencies.py"
-        self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
+        target_environmenttype = "QualityCheck"
+        self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
@@ -3043,6 +3058,7 @@ class TasksForCommonProjectStructure:
                 update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
                 GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
                 self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity, print_live_output=True)
+                self.build_specific_codeunits(repository_folder, [codeunit], 0, target_environmenttype, None, False, None, True, [], False, "Build due to updated dependencies", False)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     version_of_project = self.get_version_of_project(repository_folder)
                     changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
