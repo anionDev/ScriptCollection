@@ -2517,6 +2517,9 @@ class TasksForCommonProjectStructure:
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
+        
+        if do_git_clean_when_no_changes:
+            self.__sc.run_program("git", "clean -dfx", repository_folder)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
             result = self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder, throw_exception_if_exitcode_is_not_zero=False, print_live_output=True)
@@ -2539,9 +2542,6 @@ class TasksForCommonProjectStructure:
         if contains_uncommitted_changes_at_begin:
             if is_pre_merge:
                 raise ValueError(f'Repository "{repository_folder}" has uncommitted changes.')
-        else:
-            if do_git_clean_when_no_changes:
-                self.__sc.run_program("git", "clean -dfx", repository_folder)
         codeunit_subfolders = [os.path.join(repository_folder, codeunit) for codeunit in codeunits]
         codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
 
