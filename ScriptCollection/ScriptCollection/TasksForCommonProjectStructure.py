@@ -3062,7 +3062,6 @@ class TasksForCommonProjectStructure:
                 update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
                 GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
                 self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity, print_live_output=True)
-                self.build_specific_codeunits(repository_folder, [codeunit], 0, target_environmenttype, None, False, None, True, [], False, "Build due to updated dependencies", False)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     version_of_project = self.get_version_of_project(repository_folder)
                     changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
@@ -3076,7 +3075,7 @@ class TasksForCommonProjectStructure:
                         GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
-        self.build_codeunits(repository_folder, target_environmenttype="QualityCheck", do_git_clean_when_no_changes=True, note="Check if product is buildable after dependency-update")
+                self.build_specific_codeunits(repository_folder, [codeunit], 0, target_environmenttype, None, False, None, True, [], False, f"Build codeunit {codeunit} due to updated dependencies", False)
         self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
