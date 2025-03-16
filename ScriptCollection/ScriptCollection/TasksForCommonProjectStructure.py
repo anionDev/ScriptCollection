@@ -2286,10 +2286,10 @@ class TasksForCommonProjectStructure:
         build_folder = os.path.join(codeunit_folder, "Other", "Build")
         self.__sc.run_program("python", "Build.py", build_folder, verbosity)
 
-        csproj_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.csproj")
-        self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity, ignored_dependencies)
         test_csproj_file = os.path.join(codeunit_folder, f"{codeunit_name}Tests", f"{codeunit_name}Tests.csproj")
         self.__sc.update_dependencies_of_dotnet_project(test_csproj_file, verbosity, ignored_dependencies)
+        csproj_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.csproj")
+        self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity, ignored_dependencies)
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
