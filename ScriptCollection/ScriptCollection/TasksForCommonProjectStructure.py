@@ -875,6 +875,10 @@ class TasksForCommonProjectStructure:
         content = re.sub("filename=\"([^\"]+)\"", lambda match: self.__standardized_tasks_run_testcases_for_dotnet_project_helper(source_base_path_in_coverage_file, codeunit_folder, match), content)
         GeneralUtilities.write_text_to_file(target_file, content)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, targetenvironmenttype, commandline_arguments)
+        artifacts_folder = os.path.join(repository_folder, codeunit_name, "Other", "Artifacts")
+        for subfolder in GeneralUtilities.get_direct_folders_of_folder(artifacts_folder):
+            if os.path.basename(subfolder).startswith("BuildResultTests_DotNet_"):
+                GeneralUtilities.ensure_directory_does_not_exist(subfolder)
 
     @GeneralUtilities.check_arguments
     def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -1486,7 +1490,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool, additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
         additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
-        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)#pylint: disable=unused-variable
+        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)  # pylint: disable=unused-variable
         # assume_dependent_codeunits_are_already_built = self.get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments, assume_dependent_codeunits_are_already_built)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
@@ -2227,7 +2231,7 @@ class TasksForCommonProjectStructure:
             shutil.copytree(artifacts_folder, target_folder)
 
     @GeneralUtilities.check_arguments
-    def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, commandline_arguments: list[str]) -> None:
+    def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, commandline_arguments: list[str], additional_attached_files: list[str]) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
         GeneralUtilities.write_message_to_stdout(f"Create GitHub-release for {productname}...")
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, 1)
@@ -2236,6 +2240,9 @@ class TasksForCommonProjectStructure:
         codeunits = self.get_codeunits(repository_folder)
         for codeunit in codeunits:
             artifact_files.append(self.__sc.find_file_by_extension(f"{build_artifacts_folder}\\{productname}\\{projectversion}\\{codeunit}", "Productive.Artifacts.zip"))
+        if additional_attached_files is not None:
+            for additional_attached_file in additional_attached_files:
+                artifact_files.append(additional_attached_file)
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{projectversion}.md")
         self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo, "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifact_files, verbosity=verbosity)
 
@@ -2517,7 +2524,7 @@ class TasksForCommonProjectStructure:
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
-        
+
         if do_git_clean_when_no_changes:
             self.__sc.run_program("git", "clean -dfx", repository_folder)
         if os.path.isfile(prepare_build_codeunits_scripts):
@@ -2742,9 +2749,9 @@ class TasksForCommonProjectStructure:
         self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github)
 
     @GeneralUtilities.check_arguments
-    def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github,amount_of_attempts:int=5) -> None:
+    def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5) -> None:
         GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(target_folder, githubuser, githubprojectname, resource_name, local_filename, get_filename_on_github), amount_of_attempts)
- 
+
     @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github) -> None:
         resource_folder = os.path.join(target_folder, "Other", "Resources", resource_name)
@@ -2870,6 +2877,17 @@ class TasksForCommonProjectStructure:
         installedsize = self.calculate_deb_package_size(binary_folder)
         control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit_folder(codeunit_folder), installedsize, maintainername, maintaineremail, description)
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
+
+    @GeneralUtilities.check_arguments
+    def create_zip_file_for_artifact(self, codeunit_folder: str, artifact_source_name: str, name_of_new_artifact: str, verbosity: int, cmd_arguments: list[str]) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        verbosity = self.get_verbosity_from_commandline_arguments(cmd_arguments, verbosity)
+        src_artifact_folder = GeneralUtilities.resolve_relative_path(f"Other/Artifacts/{artifact_source_name}", codeunit_folder)
+        shutil.make_archive(name_of_new_artifact, 'zip', src_artifact_folder)
+        archive_file = os.path.join(os.getcwd(), f"{name_of_new_artifact}.zip")
+        target_folder = GeneralUtilities.resolve_relative_path(f"Other/Artifacts/{name_of_new_artifact}", codeunit_folder)
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        shutil.move(archive_file, target_folder)
 
     @GeneralUtilities.check_arguments
     def update_year_in_license_file_in_common_scripts_file(self, common_tasks_scripts_file: str) -> None:
