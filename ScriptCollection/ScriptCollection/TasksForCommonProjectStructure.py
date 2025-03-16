@@ -2724,11 +2724,11 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def ensure_plantuml_is_available(self, target_folder: str) -> None:
-        self.ensure_file_from_github_assets_is_available(target_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar")
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar")
 
     @GeneralUtilities.check_arguments
     def ensure_androidappbundletool_is_available(self, target_folder: str) -> None:
-        self.ensure_file_from_github_assets_is_available(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
 
     @GeneralUtilities.check_arguments
     def ensure_cyclonedxcli_is_available(self, target_folder: str) -> None:
@@ -2739,8 +2739,12 @@ class TasksForCommonProjectStructure:
             local_filename = local_filename+".exe"
         else:
             filename_on_github = "cyclonedx-linux-x64"
-        self.ensure_file_from_github_assets_is_available(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github)
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github)
 
+    @GeneralUtilities.check_arguments
+    def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github,amount_of_attempts:int=5) -> None:
+        GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(target_folder, githubuser, githubprojectname, resource_name, local_filename, get_filename_on_github), amount_of_attempts)
+ 
     @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github) -> None:
         resource_folder = os.path.join(target_folder, "Other", "Resources", resource_name)
