@@ -952,6 +952,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def replace_variable_in_string(input_string: str, variable_name: str, variable_value: str) -> None:
+        GeneralUtilities.assert_condition(not "__" in variable_name, f"'{variable_name}' is an invalid variable name because it contains '__' which is treated as control-sequence.")
         return input_string.replace(f"__[{variable_name}]__", variable_value)
 
     @staticmethod
