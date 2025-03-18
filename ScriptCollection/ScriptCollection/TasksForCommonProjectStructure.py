@@ -2894,19 +2894,18 @@ class TasksForCommonProjectStructure:
         codeunit_version = self.get_version_of_codeunit_folder(codeunit_folder)
         build_folder = os.path.join(codeunit_folder, "Other", "Build")
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts", artifact_name_of_zip)
+        manifest_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "WinGet-Manifest")
         GeneralUtilities.assert_folder_exists(artifacts_folder)
         artifacts_file = ScriptCollectionCore().find_file_by_extension(artifacts_folder, "zip")
         winget_template_file = os.path.join(build_folder, "WinGet-Template.yaml")
-        winget_manifest_file = os.path.join(build_folder, "WinGet-Manifest.yaml")
+        winget_manifest_file = os.path.join(manifest_folder, "WinGet-Manifest.yaml")
         GeneralUtilities.assert_file_exists(winget_template_file)
+        GeneralUtilities.ensure_directory_exists(manifest_folder)
         GeneralUtilities.ensure_file_exists(winget_manifest_file)
         manifest_content = GeneralUtilities.read_text_from_file(winget_template_file)
         manifest_content = GeneralUtilities.replace_variable_in_string(manifest_content, "version", codeunit_version)
         manifest_content = GeneralUtilities.replace_variable_in_string(manifest_content, "sha256_hashvalue", GeneralUtilities.get_sha256_of_file(artifacts_file))
         GeneralUtilities.write_text_to_file(winget_manifest_file, manifest_content)
-        target_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "WinGet-Manifest")
-        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-        shutil.copy(winget_manifest_file, target_folder)
 
     @GeneralUtilities.check_arguments
     def update_year_in_license_file_in_common_scripts_file(self, common_tasks_scripts_file: str) -> None:
