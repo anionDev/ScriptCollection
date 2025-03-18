@@ -18,4 +18,4 @@ PyYAML>=6.0.2
 qrcode>=8.0
 send2trash>=1.8.3
 twine>=6.1.0
-xmlschema>=3.4.3
+xmlschema>=3.4.4
