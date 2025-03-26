@@ -2525,7 +2525,7 @@ class TasksForCommonProjectStructure:
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
 
-        if do_git_clean_when_no_changes:
+        if do_git_clean_when_no_changes and not self.__sc.git_repository_has_uncommitted_changes(repository_folder):
             self.__sc.run_program("git", "clean -dfx", repository_folder)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
@@ -2960,6 +2960,7 @@ class TasksForCommonProjectStructure:
         self.assert_is_codeunit_folder(codeunit_folder)
         now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
+        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
         if verbosity > 2:
             GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}")
@@ -2974,7 +2975,8 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {target_environmenttype}")
-        self.__sc.run_program("git", "clean -dfx", codeunit_folder)
+        if not self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+            self.__sc.run_program("git", "clean -dfx", codeunit_folder)
 
         verbosity_for_executed_programs = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
 
