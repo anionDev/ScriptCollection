@@ -33,7 +33,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.102"
+version = "3.5.103"
 __version__ = version
 
 
@@ -292,7 +292,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_push_with_retry(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0, amount_of_attempts: int = 5) -> None:
-        GeneralUtilities.retry_action(lambda: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags,verbosity), amount_of_attempts)
+        GeneralUtilities.retry_action(lambda: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags, verbosity), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
@@ -769,6 +769,74 @@ class ScriptCollectionCore:
             exit_code, _, stderr, _ = self.run_program_argsasarray("sccopy", ["--source", source, "--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
                 raise ValueError(f"Fatal error occurrs while copying '{source}' to '{target}'. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def create_file(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():
+            if not os.path.isabs(path):
+                path = os.path.join(os.getcwd(), path)
+
+            if os.path.isfile(path) and error_if_already_exists:
+                raise ValueError(f"File '{path}' already exists.")
+
+            # TODO maybe it should be checked if there is a folder with the same path which already exists.
+
+            folder = os.path.dirname(path)
+
+            if not os.path.isdir(folder):
+                if create_necessary_folder:
+                    GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
+                else:
+                    raise ValueError(f"Folder '{folder}' does not exist.")
+
+            GeneralUtilities.ensure_file_exists(path)
+        else:
+            arguments = ["--path", path]
+
+            if error_if_already_exists:
+                arguments = arguments+["--errorwhenexists"]
+
+            if create_necessary_folder:
+                arguments = arguments+["--createnecessaryfolder"]
+
+            exit_code, _, stderr, _ = self.run_program_argsasarray("sccreatefile", arguments, throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code != 0:
+                raise ValueError(f"Fatal error occurrs while create file '{path}'. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def create_folder(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():
+            if not os.path.isabs(path):
+                path = os.path.join(os.getcwd(), path)
+
+            if os.path.isdir(path) and error_if_already_exists:
+                raise ValueError(f"Folder '{path}' already exists.")
+
+            # TODO maybe it should be checked if there is a file with the same path which already exists.
+
+            folder = os.path.dirname(path)
+
+            if not os.path.isdir(folder):
+                if create_necessary_folder:
+                    GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
+                else:
+                    raise ValueError(f"Folder '{folder}' does not exist.")
+
+            GeneralUtilities.ensure_directory_exists(path)
+        else:
+            arguments = ["--path", path]
+
+            if error_if_already_exists:
+                arguments = arguments+["--errorwhenexists"]
+
+            if create_necessary_folder:
+                arguments = arguments+["--createnecessaryfolder"]
+
+            exit_code, _, stderr, _ = self.run_program_argsasarray("sccreatefolder", arguments, throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code != 0:
+                raise ValueError(f"Fatal error occurrs while create folder '{path}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def __sort_fmd(self, line: str):
@@ -2202,46 +2270,6 @@ TXDX
     @GeneralUtilities.check_arguments
     def create_local_docker_network(self, network_name: str) -> None:
         self.run_program("docker", f"network create {network_name}")
-
-    @GeneralUtilities.check_arguments
-    def create_file(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
-        if not os.path.isabs(path):
-            path = os.path.join(os.getcwd(), path)
-
-        if os.path.isfile(path) and error_if_already_exists:
-            raise ValueError(f"File '{path}' already exists.")
-
-        # TODO maybe it should be checked if there is a folder with the same path which already exists.
-
-        folder = os.path.dirname(path)
-
-        if not os.path.isdir(folder):
-            if create_necessary_folder:
-                GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
-            else:
-                raise ValueError(f"Folder '{folder}' does not exist.")
-
-        GeneralUtilities.ensure_file_exists(path)
-
-    @GeneralUtilities.check_arguments
-    def create_folder(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
-        if not os.path.isabs(path):
-            path = os.path.join(os.getcwd(), path)
-
-        if os.path.isdir(path) and error_if_already_exists:
-            raise ValueError(f"Folder '{path}' already exists.")
-
-        # TODO maybe it should be checked if there is a file with the same path which already exists.
-
-        folder = os.path.dirname(path)
-
-        if not os.path.isdir(folder):
-            if create_necessary_folder:
-                GeneralUtilities.ensure_directory_exists(folder)  # TODO check if this also create nested folders if required
-            else:
-                raise ValueError(f"Folder '{folder}' does not exist.")
-
-        GeneralUtilities.ensure_directory_exists(path)
 
     @GeneralUtilities.check_arguments
     def format_xml_file(self, file: str) -> None:

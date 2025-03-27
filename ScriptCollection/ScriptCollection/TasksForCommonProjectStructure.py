@@ -1237,18 +1237,17 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_codeunits(self, repository_folder: str, ignore_disabled_codeunits: bool = True) -> list[str]:
-        self.__sc.assert_is_git_repository(repository_folder)
-        result: list[str] = []
-        for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
-            subfoldername = os.path.basename(direct_subfolder)
-            codeunit_file = os.path.join(direct_subfolder, f"{subfoldername}.codeunit.xml")
-            if os.path.isfile(codeunit_file):
-                if (ignore_disabled_codeunits):
-                    if (self.codeunit_is_enabled(codeunit_file)):
-                        result.append(subfoldername)
-                else:
-                    result.append(subfoldername)
-        return result
+        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
+        for subfolder in subfolders:
+            codeunit_name: str = os.path.basename(subfolder)
+            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
+            if os.path.exists(codeunit_file):
+                if ignore_disabled_codeunits and not self.codeunit_is_enabled(codeunit_file):
+                    continue
+                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
+        sorted_codeunits = self._internal_get_sorted_codeunits_by_dict(codeunits_with_dependent_codeunits)
+        return sorted_codeunits
 
     @GeneralUtilities.check_arguments
     def codeunit_is_enabled(self, codeunit_file: str) -> bool:
@@ -2457,18 +2456,6 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
     @GeneralUtilities.check_arguments
-    def get_sorted_codeunits(self, repository_folder: str) -> list[str]:
-        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
-        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
-        for subfolder in subfolders:
-            codeunit_name: str = os.path.basename(subfolder)
-            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
-            if os.path.exists(codeunit_file):
-                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-        sorted_codeunits = self._internal_get_sorted_codeunits_by_dict(codeunits_with_dependent_codeunits)
-        return sorted_codeunits
-
-    @GeneralUtilities.check_arguments
     def _internal_get_sorted_codeunits_by_dict(self, codeunits=dict[str, set[str]]) -> list[str]:
         result_typed = list(TopologicalSorter(codeunits).static_order())
         result = list()
@@ -2557,7 +2544,7 @@ class TasksForCommonProjectStructure:
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             GeneralUtilities.assert_condition(os.path.exists(codeunit_file), f"Codeunit-file '{codeunit_file}' does nost exist.")
             codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-        sorted_codeunits = self.get_sorted_codeunits(repository_folder)
+        sorted_codeunits = self.get_codeunits(repository_folder)
         sorted_codeunits = [codeunit for codeunit in sorted_codeunits if codeunit in codeunits]
         project_version = self.get_version_of_project(repository_folder)
 
@@ -3081,7 +3068,7 @@ class TasksForCommonProjectStructure:
         # Prepare
         GeneralUtilities.write_message_to_stdout("Update dependencies...")
         self.__sc.assert_is_git_repository(repository_folder)
-        codeunits = self.get_sorted_codeunits(repository_folder)
+        codeunits = self.get_codeunits(repository_folder)
         update_dependencies_script_filename = "UpdateDependencies.py"
         target_environmenttype = "QualityCheck"
         self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
