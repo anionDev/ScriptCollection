@@ -1237,18 +1237,17 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_codeunits(self, repository_folder: str, ignore_disabled_codeunits: bool = True) -> list[str]:
-        self.__sc.assert_is_git_repository(repository_folder)
-        result: list[str] = []
-        for direct_subfolder in GeneralUtilities.get_direct_folders_of_folder(repository_folder):
-            subfoldername = os.path.basename(direct_subfolder)
-            codeunit_file = os.path.join(direct_subfolder, f"{subfoldername}.codeunit.xml")
-            if os.path.isfile(codeunit_file):
-                if (ignore_disabled_codeunits):
-                    if (self.codeunit_is_enabled(codeunit_file)):
-                        result.append(subfoldername)
-                else:
-                    result.append(subfoldername)
-        return result
+        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
+        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
+        for subfolder in subfolders:
+            codeunit_name: str = os.path.basename(subfolder)
+            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
+            if os.path.exists(codeunit_file):
+                if ignore_disabled_codeunits and not self.codeunit_is_enabled(codeunit_file):
+                    continue
+                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
+        sorted_codeunits = self._internal_get_sorted_codeunits_by_dict(codeunits_with_dependent_codeunits)
+        return sorted_codeunits
 
     @GeneralUtilities.check_arguments
     def codeunit_is_enabled(self, codeunit_file: str) -> bool:
@@ -2457,18 +2456,6 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
     @GeneralUtilities.check_arguments
-    def get_sorted_codeunits(self, repository_folder: str) -> list[str]:
-        codeunits_with_dependent_codeunits: dict[str, set[str]] = dict[str, set[str]]()
-        subfolders = GeneralUtilities.get_direct_folders_of_folder(repository_folder)
-        for subfolder in subfolders:
-            codeunit_name: str = os.path.basename(subfolder)
-            codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
-            if os.path.exists(codeunit_file):
-                codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-        sorted_codeunits = self._internal_get_sorted_codeunits_by_dict(codeunits_with_dependent_codeunits)
-        return sorted_codeunits
-
-    @GeneralUtilities.check_arguments
     def _internal_get_sorted_codeunits_by_dict(self, codeunits=dict[str, set[str]]) -> list[str]:
         result_typed = list(TopologicalSorter(codeunits).static_order())
         result = list()
@@ -2525,7 +2512,7 @@ class TasksForCommonProjectStructure:
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
 
-        if do_git_clean_when_no_changes:
+        if do_git_clean_when_no_changes and not self.__sc.git_repository_has_uncommitted_changes(repository_folder):
             self.__sc.run_program("git", "clean -dfx", repository_folder)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
@@ -2557,7 +2544,7 @@ class TasksForCommonProjectStructure:
             codeunit_file = os.path.join(subfolder, f"{codeunit_name}.codeunit.xml")
             GeneralUtilities.assert_condition(os.path.exists(codeunit_file), f"Codeunit-file '{codeunit_file}' does nost exist.")
             codeunits_with_dependent_codeunits[codeunit_name] = self.get_dependent_code_units(codeunit_file)
-        sorted_codeunits = self.get_sorted_codeunits(repository_folder)
+        sorted_codeunits = self.get_codeunits(repository_folder)
         sorted_codeunits = [codeunit for codeunit in sorted_codeunits if codeunit in codeunits]
         project_version = self.get_version_of_project(repository_folder)
 
@@ -2959,6 +2946,7 @@ class TasksForCommonProjectStructure:
         self.assert_is_codeunit_folder(codeunit_folder)
         now = datetime.now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
+        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
         if verbosity > 2:
             GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}")
@@ -2973,7 +2961,8 @@ class TasksForCommonProjectStructure:
 
         GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
         GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {target_environmenttype}")
-        self.__sc.run_program("git", "clean -dfx", codeunit_folder)
+        if not self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+            self.__sc.run_program("git", "clean -dfx", codeunit_folder)
 
         verbosity_for_executed_programs = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
 
@@ -3079,7 +3068,7 @@ class TasksForCommonProjectStructure:
         # Prepare
         GeneralUtilities.write_message_to_stdout("Update dependencies...")
         self.__sc.assert_is_git_repository(repository_folder)
-        codeunits = self.get_sorted_codeunits(repository_folder)
+        codeunits = self.get_codeunits(repository_folder)
         update_dependencies_script_filename = "UpdateDependencies.py"
         target_environmenttype = "QualityCheck"
         self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
