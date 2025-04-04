@@ -27,7 +27,7 @@ class CertificateUpdater:
     @GeneralUtilities.check_arguments
     def __get_latest_index_by_domain(self, domain: str) -> int:
         result = self.__get_latest_index_by_filelist(GeneralUtilities.get_all_files_of_folder(os.path.join(self.__letsencrypt_archive_folder, domain)))
-        GeneralUtilities.write_message_to_stdout(f"Debug: Latest found existing number for domain {domain}: {result}")
+        #GeneralUtilities.write_message_to_stdout(f"Debug: Latest found existing number for domain {domain}: {result}")
         return result
 
     @GeneralUtilities.check_arguments

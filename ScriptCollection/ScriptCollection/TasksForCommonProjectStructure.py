@@ -2354,10 +2354,11 @@ class TasksForCommonProjectStructure:
 
                 if append_cli_args_at_end:
                     command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
+                cwd_literal = cwd.replace("\\", "\\\\")
                 lines.append(f"  {name}:")
                 lines.append(f'    desc: "{description}"')
                 lines.append('    silent: true')
-                lines.append(f'    dir: "{cwd}"')
+                lines.append(f'    dir: "{cwd_literal}"')
                 lines.append("    cmds:")
                 lines.append(f"      - {command_with_args}")
                 lines.append('    aliases:')

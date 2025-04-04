@@ -21,6 +21,7 @@ from os.path import isfile, join, isdir
 from pathlib import Path
 from shutil import copyfile
 import typing
+import psutil
 from defusedxml.minidom import parse
 from OpenSSL import crypto
 
@@ -1027,3 +1028,38 @@ class GeneralUtilities:
         GeneralUtilities.assert_condition("." in plain_str)
         splitted: list[str] = plain_str.split(".")
         return splitted[0].zfill(leading_zeroplaces)+"."+splitted[1].ljust(trailing_zeroplaces, '0')
+
+    @staticmethod
+    @check_arguments
+    def process_is_running_by_name(process_name: str) -> bool:  
+        processes: list[psutil.Process] = list(psutil.process_iter())
+        for p in processes:
+            if p.name() == process_name:
+                return True
+        return False
+
+
+    @staticmethod
+    @check_arguments
+    def process_is_running_by_id(process_id: int) -> bool: 
+        processes: list[psutil.Process] = list(psutil.process_iter())
+        for p in processes:
+            if p.pid == process_id:
+                return True
+        return False
+
+
+    @staticmethod
+    @check_arguments
+    def kill_process(process_id:int,include_child_processes:bool) -> bool:  
+        if GeneralUtilities. process_is_running_by_id(process_id):
+            GeneralUtilities.write_message_to_stdout(f"Process with id {process_id} is running. Terminating it...")
+            process = psutil.Process(process_id)
+            if include_child_processes:
+                for child in process.children(recursive=True):
+                    if GeneralUtilities.process_is_running_by_id(child.pid):
+                        child.kill()
+            if GeneralUtilities.process_is_running_by_id(process_id):
+                process.kill()
+        else:
+            GeneralUtilities.write_message_to_stdout(f"Process with id {process_id} is not running anymore.")
