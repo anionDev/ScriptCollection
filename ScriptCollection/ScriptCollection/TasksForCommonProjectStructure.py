@@ -3300,7 +3300,7 @@ class TasksForCommonProjectStructure:
         self.__sc.install_requirementstxt_file(repository_folde+"/Other/requirements.txt", verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_iplocation_submodule(self, repository_folder: str, submodule_name:str):
+    def update_submodule(self, repository_folder: str, submodule_name:str):
         submodule_folder = GeneralUtilities.resolve_relative_path("Other/Resources/Submodules/"+submodule_name, repository_folder)
         self.__sc.git_fetch(submodule_folder, "origin")
         self.__sc.git_checkout(submodule_folder, "main")
