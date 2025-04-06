@@ -133,33 +133,34 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def copy_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, False)
+    def copy_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False,filtertext:str=None) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, False,filtertext)
 
     @staticmethod
     @check_arguments
-    def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True)
+    def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False,filtertext:str=None) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True,filtertext)
 
     @staticmethod
     @check_arguments
-    def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files, remove_source: bool) -> None:
+    def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files, remove_source: bool,filtertext:str=None) -> None:
         srcDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(source_directory)
         dstDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(target_directory)
         if (os.path.isdir(source_directory)):
             GeneralUtilities.ensure_directory_exists(target_directory)
             for file in GeneralUtilities.get_direct_files_of_folder(srcDirFull):
                 filename = os.path.basename(file)
-                targetfile = os.path.join(dstDirFull, filename)
-                if (os.path.isfile(targetfile)):
-                    if overwrite_existing_files:
-                        GeneralUtilities.ensure_file_does_not_exist(targetfile)
+                if filtertext is None or re.match(filtertext, file):
+                    targetfile = os.path.join(dstDirFull, filename)
+                    if (os.path.isfile(targetfile)):
+                        if overwrite_existing_files:
+                            GeneralUtilities.ensure_file_does_not_exist(targetfile)
+                        else:
+                            raise ValueError(f"Targetfile '{targetfile}' does already exist.")
+                    if remove_source:
+                        shutil.move(file, dstDirFull)
                     else:
-                        raise ValueError(f"Targetfile {targetfile} does already exist")
-                if remove_source:
-                    shutil.move(file, dstDirFull)
-                else:
-                    shutil.copy(file, dstDirFull)
+                        shutil.copy(file, dstDirFull)
             for sub_folder in GeneralUtilities.get_direct_folders_of_folder(srcDirFull):
                 foldername = os.path.basename(sub_folder)
                 sub_target = os.path.join(dstDirFull, foldername)
