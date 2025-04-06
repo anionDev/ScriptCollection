@@ -33,7 +33,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.104"
+version = "3.5.105"
 __version__ = version
 
 
@@ -1868,7 +1868,8 @@ DNS                 = {domain}
         self.run_program_argsasarray("openssl", ['pkcs12', '-export', '-out', f'{filename}.pfx', f'-inkey', f'{filename}.key', '-in', f'{filename}.crt', '-password', f'pass:{password}'], folder)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_python_in_requirementstxt_file(self, file: str, verbosity: int):
+    def update_dependencies_of_python_in_requirementstxt_file(self, file: str,ignored_dependencies:list[str], verbosity: int):
+        #TODO consider ignored_dependencies
         lines = GeneralUtilities.read_lines_from_file(file)
         new_lines = []
         for line in lines:
@@ -1898,7 +1899,8 @@ DNS                 = {domain}
             raise ValueError(f'Unexpected line in requirements-file: "{line}"')
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_python_in_setupcfg_file(self, setup_cfg_file: str, verbosity: int):
+    def update_dependencies_of_python_in_setupcfg_file(self, setup_cfg_file: str,ignored_dependencies:list[str], verbosity: int):
+        #TODO consider ignored_dependencies
         lines = GeneralUtilities.read_lines_from_file(setup_cfg_file)
         new_lines = []
         requirement_parsing_mode = False
@@ -2277,3 +2279,6 @@ TXDX
         element = ET.XML(GeneralUtilities.read_text_from_file(file, encoding))
         ET.indent(element)
         GeneralUtilities.write_text_to_file(file, ET.tostring(element, encoding="unicode"), encoding)
+
+    def install_requirementstxt_file(self,requirements_txt_file: str, folder: str, verbosity: int):
+        self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
