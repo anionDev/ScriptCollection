@@ -12,6 +12,7 @@ import stat
 import secrets
 import string as strin
 import sys
+from enum import Enum
 import traceback
 import warnings
 import functools
@@ -24,6 +25,12 @@ import typing
 import psutil
 from defusedxml.minidom import parse
 from OpenSSL import crypto
+
+
+class VersionEcholon(Enum):
+    Patch = 0
+    MinorOrPatch = 1
+    MajorOrMinorOrPatch = 2
 
 
 class GeneralUtilities:
@@ -133,17 +140,17 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def copy_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False,filtertext:str=None) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, False,filtertext)
+    def copy_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False, filtertext: str = None) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, False, filtertext)
 
     @staticmethod
     @check_arguments
-    def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False,filtertext:str=None) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True,filtertext)
+    def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False, filtertext: str = None) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True, filtertext)
 
     @staticmethod
     @check_arguments
-    def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files, remove_source: bool,filtertext:str=None) -> None:
+    def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files, remove_source: bool, filtertext: str = None) -> None:
         srcDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(source_directory)
         dstDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(target_directory)
         if (os.path.isdir(source_directory)):
@@ -1032,27 +1039,25 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def process_is_running_by_name(process_name: str) -> bool:  
+    def process_is_running_by_name(process_name: str) -> bool:
         processes: list[psutil.Process] = list(psutil.process_iter())
         for p in processes:
             if p.name() == process_name:
                 return True
         return False
 
-
     @staticmethod
     @check_arguments
-    def process_is_running_by_id(process_id: int) -> bool: 
+    def process_is_running_by_id(process_id: int) -> bool:
         processes: list[psutil.Process] = list(psutil.process_iter())
         for p in processes:
             if p.pid == process_id:
                 return True
         return False
 
-
     @staticmethod
     @check_arguments
-    def kill_process(process_id:int,include_child_processes:bool) -> bool:  
+    def kill_process(process_id: int, include_child_processes: bool) -> bool:
         if GeneralUtilities. process_is_running_by_id(process_id):
             GeneralUtilities.write_message_to_stdout(f"Process with id {process_id} is running. Terminating it...")
             process = psutil.Process(process_id)
