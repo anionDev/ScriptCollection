@@ -1025,8 +1025,9 @@ class TasksForCommonProjectStructure:
 
         if codeunit_has_testcases:
             source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
-            target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
-            shutil.copytree(source_testcoveragereport, target_testcoveragereport)
+            if os.path.isdir(source_testcoveragereport):  # check, because it is not a mandatory artifact. if the artifact is not available, the user gets already a warning.
+                target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
+                shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_release_artifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
@@ -1560,9 +1561,9 @@ class TasksForCommonProjectStructure:
             combined_file = os.path.join(codeunit_folder, file)
             if not os.path.isfile(combined_file):
                 raise ValueError(f'The mandatory file "{file}" does not exist in the codeunit-folder.')
-            
-        if os.path.isfile(os.path.join(codeunit_folder,"Other","requirements.txt")):
-            self.install_requirementstxt_for_codeunit(codeunit_folder,verbosity)
+
+        if os.path.isfile(os.path.join(codeunit_folder, "Other", "requirements.txt")):
+            self.install_requirementstxt_for_codeunit(codeunit_folder, verbosity)
 
         # Check developer
         if self.validate_developers_of_repository:
@@ -2271,9 +2272,9 @@ class TasksForCommonProjectStructure:
     def update_dependencies_of_typical_python_repository_requirements(self, repository_folder: str, verbosity: int, cmd_args: list[str]) -> None:
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
 
-        development_requirements_file = os.path.join(repository_folder, "Other","requirements.txt")
+        development_requirements_file = os.path.join(repository_folder, "Other", "requirements.txt")
         if (os.path.isfile(development_requirements_file)):
-            self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file,[], verbosity)
+            self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file, [], verbosity)
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
@@ -2282,17 +2283,17 @@ class TasksForCommonProjectStructure:
         # TODO consider ignored_dependencies
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
 
-        setup_cfg=os.path.join(codeunit_folder, "setup.cfg")
+        setup_cfg = os.path.join(codeunit_folder, "setup.cfg")
         if (os.path.isfile(setup_cfg)):
-            self.__sc.update_dependencies_of_python_in_setupcfg_file(setup_cfg,ignored_dependencies, verbosity)
+            self.__sc.update_dependencies_of_python_in_setupcfg_file(setup_cfg, ignored_dependencies, verbosity)
 
-        development_requirements_file = os.path.join(codeunit_folder, "requirements.txt")#required for codeunits which contain python-code which need third-party dependencies
+        development_requirements_file = os.path.join(codeunit_folder, "requirements.txt")  # required for codeunits which contain python-code which need third-party dependencies
         if (os.path.isfile(development_requirements_file)):
-            self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file,ignored_dependencies, verbosity)
+            self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file, ignored_dependencies, verbosity)
 
-        development_requirements_file2 = os.path.join(codeunit_folder, "Other","requirements.txt")#required for codeunits which contain python-scripts which needs third-party dependencies
+        development_requirements_file2 = os.path.join(codeunit_folder, "Other", "requirements.txt")  # required for codeunits which contain python-scripts which needs third-party dependencies
         if (os.path.isfile(development_requirements_file2)):
-            self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file2, ignored_dependencies,verbosity)
+            self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file2, ignored_dependencies, verbosity)
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
@@ -3292,15 +3293,15 @@ class TasksForCommonProjectStructure:
         self.__sc.git_commit(GeneralUtilities.resolve_relative_path("../..", folder_of_this_file), f"Updated content of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version} in {update_http_documentation_arguments.reference_repository_name}-submodule")
 
     @GeneralUtilities.check_arguments
-    def install_requirementstxt_for_codeunit(self,codeunit_folder:str,verbosity:int):
+    def install_requirementstxt_for_codeunit(self, codeunit_folder: str, verbosity: int):
         self.__sc.install_requirementstxt_file(codeunit_folder+"/Other/requirements.txt", verbosity)
 
     @GeneralUtilities.check_arguments
-    def install_requirementstxt_for_repository(self, repository_folde: str,verbosity:int):
+    def install_requirementstxt_for_repository(self, repository_folde: str, verbosity: int):
         self.__sc.install_requirementstxt_file(repository_folde+"/Other/requirements.txt", verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_submodule(self, repository_folder: str, submodule_name:str):
+    def update_submodule(self, repository_folder: str, submodule_name: str):
         submodule_folder = GeneralUtilities.resolve_relative_path("Other/Resources/Submodules/"+submodule_name, repository_folder)
         self.__sc.git_fetch(submodule_folder, "origin")
         self.__sc.git_checkout(submodule_folder, "main")
