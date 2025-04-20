@@ -2477,11 +2477,18 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
     @GeneralUtilities.check_arguments
-    def _internal_get_sorted_codeunits_by_dict(self, codeunits=dict[str, set[str]]) -> list[str]:
-        result_typed = list(TopologicalSorter(codeunits).static_order())
-        result = list()
-        for item in result_typed:
-            result.append(str(item))
+    def _internal_get_sorted_codeunits_by_dict(self, codeunits: dict[str, set[str]]) -> list[str]:
+        sorted_codeunits = {
+            node: sorted(codeunits[node])
+            for node in sorted(codeunits)
+        }
+
+        ts = TopologicalSorter()
+        for node, deps in sorted_codeunits.items():
+            ts.add(node, *deps)
+
+        result_typed = list(ts.static_order())
+        result = [str(item) for item in result_typed]
         return result
 
     @GeneralUtilities.check_arguments
