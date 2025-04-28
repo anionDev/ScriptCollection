@@ -33,7 +33,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.108"
+version = "3.5.109"
 __version__ = version
 
 
@@ -604,6 +604,12 @@ class ScriptCollectionCore:
         return self.run_program_argsasarray("git", ["rev-parse", "--verify", "HEAD"], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0] == 0
 
     @GeneralUtilities.check_arguments
+    def run_git_command_in_repository_and_submodules(self, repository_folder: str, arguments: list[str]) -> None:
+        self.assert_is_git_repository(repository_folder)
+        self.run_program_argsasarray("git", arguments, repository_folder)
+        self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder)
+
+    @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
         folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(folder)
         lines = list()
@@ -881,7 +887,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __create_thumbnails(self, filename: str, fps: str, folder: str, tempname_for_thumbnails: str) -> list[str]:
-        argument = ['-i', filename, '-r', str(fps), '-vf', 'scale=-1:120', '-vcodec', 'png', f'{tempname_for_thumbnails}-%002d.png']
+        argument = ['-i', filename, '-r', fps, '-vf', 'scale=-1:120', '-vcodec', 'png', f'{tempname_for_thumbnails}-%002d.png']
         self.run_program_argsasarray("ffmpeg", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
         files = GeneralUtilities.get_direct_files_of_folder(folder)
         result: list[str] = []
@@ -898,8 +904,17 @@ class ScriptCollectionCore:
     def __create_thumbnail(self, outputfilename: str, folder: str, length_in_seconds: float, tempname_for_thumbnails: str, amount_of_images: int) -> None:
         duration = timedelta(seconds=length_in_seconds)
         info = GeneralUtilities.timedelta_to_simple_string(duration)
-        rows: int = 5
-        columns: int = math.ceil(amount_of_images/rows)
+        next_square_number = GeneralUtilities.get_next_square_number(amount_of_images)
+        root = math.sqrt(next_square_number)
+        rows: int = root  # 5
+        columns: int = root  # math.ceil(amount_of_images/rows)
+        argument = ['-title', f'"{outputfilename} ({info})"', '-tile', f'{rows}x{columns}', f'{tempname_for_thumbnails}*.png', f'{outputfilename}.png']
+        self.run_program_argsasarray("montage", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+
+    @GeneralUtilities.check_arguments
+    def __create_thumbnail2(self, outputfilename: str, folder: str, length_in_seconds: float, rows: int, columns: int, tempname_for_thumbnails: str, amount_of_images: int) -> None:
+        duration = timedelta(seconds=length_in_seconds)
+        info = GeneralUtilities.timedelta_to_simple_string(duration)
         argument = ['-title', f'"{outputfilename} ({info})"', '-tile', f'{rows}x{columns}', f'{tempname_for_thumbnails}*.png', f'{outputfilename}.png']
         self.run_program_argsasarray("montage", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
 
@@ -912,7 +927,7 @@ class ScriptCollectionCore:
             return math.ceil(x * d) / d
 
     @GeneralUtilities.check_arguments
-    def generate_thumbnail(self, file: str, frames_per_second: str, tempname_for_thumbnails: str = None, hook=None) -> None:
+    def generate_thumbnail(self, file: str, frames_per_second: float, tempname_for_thumbnails: str = None, hook=None) -> None:
         if tempname_for_thumbnails is None:
             tempname_for_thumbnails = "t_"+str(uuid.uuid4())
 
@@ -923,21 +938,37 @@ class ScriptCollectionCore:
         preview_files: list[str] = []
         try:
             length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
-            if (frames_per_second.endswith("fps")):
-                # frames per second, example: frames_per_second="20fps" => 20 frames per second
-                frames_per_second = self.__roundup(float(frames_per_second[:-3]), 2)
-                frames_per_second_as_string = str(frames_per_second)
-                amounf_of_previewframes = int(math.floor(length_in_seconds*frames_per_second))
-            else:
-                # concrete amount of frame, examples: frames_per_second="16" => 16 frames for entire video
-                amounf_of_previewframes = int(float(frames_per_second))
-                # self.roundup((amounf_of_previewframes-2)/length_in_seconds, 2)
-                frames_per_second_as_string = f"{amounf_of_previewframes-2}/{length_in_seconds}"
+            # frames per second, example: frames_per_second="20fps" => 20 frames per second
+            frames_per_second = self.__roundup(float(frames_per_second[:-3]), 2)
+            frames_per_second_as_string = str(frames_per_second)
             preview_files = self.__create_thumbnails(filename, frames_per_second_as_string, folder, tempname_for_thumbnails)
             if hook is not None:
                 hook(file, preview_files)
             actual_amounf_of_previewframes = len(preview_files)
             self.__create_thumbnail(filename_without_extension, folder, length_in_seconds, tempname_for_thumbnails, actual_amounf_of_previewframes)
+        finally:
+            for thumbnail_to_delete in preview_files:
+                os.remove(thumbnail_to_delete)
+
+    @GeneralUtilities.check_arguments
+    def generate_thumbnail_by_amount_of_pictures(self, file: str, amount_of_columns: int, amount_of_rows: int, tempname_for_thumbnails: str = None, hook=None) -> None:
+        if tempname_for_thumbnails is None:
+            tempname_for_thumbnails = "t_"+str(uuid.uuid4())
+
+        file = GeneralUtilities.resolve_relative_path_from_current_working_directory(file)
+        filename = os.path.basename(file)
+        folder = os.path.dirname(file)
+        filename_without_extension = Path(file).stem
+        preview_files: list[str] = []
+        try:
+            length_in_seconds = self.__calculate_lengh_in_seconds(filename, folder)
+            amounf_of_previewframes = int(amount_of_columns*amount_of_rows)
+            frames_per_second_as_string = f"{amounf_of_previewframes-2}/{length_in_seconds}"
+            preview_files = self.__create_thumbnails(filename, frames_per_second_as_string, folder, tempname_for_thumbnails)
+            if hook is not None:
+                hook(file, preview_files)
+            actual_amounf_of_previewframes = len(preview_files)
+            self.__create_thumbnail2(filename_without_extension, folder, length_in_seconds, amount_of_rows, amount_of_columns, tempname_for_thumbnails, actual_amounf_of_previewframes)
         finally:
             for thumbnail_to_delete in preview_files:
                 os.remove(thumbnail_to_delete)
