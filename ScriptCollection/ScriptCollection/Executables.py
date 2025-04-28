@@ -628,3 +628,29 @@ def CurrentUserHasElevatedPrivileges() -> int:
         return 1
     else:
         return 0
+
+
+def Espoc() -> int:
+    GeneralUtilities.write_message_to_stdout("check...")
+    parser = argparse.ArgumentParser(description="Espoc (appreviation for 'exit started programs on close') is a tool to ensure the started processes of your program will also get terminated when the execution of your program is finished.")
+    parser.add_argument('-p', '--processid', required=True)
+    parser.add_argument('-f', '--file', required=True, help='Specifies the file where the process-ids of the started processes are stored (line by line). This file will be deleted when all started processes are terminated.')
+    args = parser.parse_args()
+    process_id = args.processid
+    process_list_file: str = args.file
+    if not os.path.isabs(process_list_file):
+        process_list_file = GeneralUtilities.resolve_relative_path(process_list_file, os.getcwd())
+    GeneralUtilities.assert_condition(GeneralUtilities.process_is_running_by_id(process_id), f"Process with id {process_id} is not running.")
+    while GeneralUtilities.process_is_running_by_id(process_id):
+        time.sleep(1)
+    GeneralUtilities.write_message_to_stdout(f"Process with id {process_id} is not running anymore. Start terminating remaining processes.")
+    if os.path.exists(process_list_file):
+        for line in GeneralUtilities.read_lines_from_file(process_list_file):
+            if GeneralUtilities.string_has_content(line):
+                current_process_id = int(line.strip())
+                GeneralUtilities.kill_process(current_process_id, True)
+        GeneralUtilities.ensure_file_does_not_exist(process_list_file)
+        GeneralUtilities.write_message_to_stdout("All started processes terminated.")
+    else:
+        GeneralUtilities.write_message_to_stdout(f"File '{process_list_file}' does not exist. No processes to terminate.")
+    return 0
