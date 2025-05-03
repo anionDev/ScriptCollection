@@ -636,7 +636,7 @@ def Espoc() -> int:
     parser.add_argument('-p', '--processid', required=True)
     parser.add_argument('-f', '--file', required=True, help='Specifies the file where the process-ids of the started processes are stored (line by line). This file will be deleted when all started processes are terminated.')
     args = parser.parse_args()
-    process_id = args.processid
+    process_id =int(args.processid)
     process_list_file: str = args.file
     if not os.path.isabs(process_list_file):
         process_list_file = GeneralUtilities.resolve_relative_path(process_list_file, os.getcwd())
