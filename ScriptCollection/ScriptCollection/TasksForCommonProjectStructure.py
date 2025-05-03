@@ -862,7 +862,7 @@ class TasksForCommonProjectStructure:
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
-        self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity)
+        self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity,print_live_output=True)
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
@@ -2477,11 +2477,18 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.copy_content_of_folder(ca_source_folder, ca_target_folder)
 
     @GeneralUtilities.check_arguments
-    def _internal_get_sorted_codeunits_by_dict(self, codeunits=dict[str, set[str]]) -> list[str]:
-        result_typed = list(TopologicalSorter(codeunits).static_order())
-        result = list()
-        for item in result_typed:
-            result.append(str(item))
+    def _internal_get_sorted_codeunits_by_dict(self, codeunits: dict[str, set[str]]) -> list[str]:
+        sorted_codeunits = {
+            node: sorted(codeunits[node])
+            for node in sorted(codeunits)
+        }
+
+        ts = TopologicalSorter()
+        for node, deps in sorted_codeunits.items():
+            ts.add(node, *deps)
+
+        result_typed = list(ts.static_order())
+        result = [str(item) for item in result_typed]
         return result
 
     @GeneralUtilities.check_arguments
@@ -2546,7 +2553,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
-        codeunits_list = {", ".join(codeunits)}
+        codeunits_list = "{"+", ".join(["a","b"])+"}"
         if verbosity > 2:
             GeneralUtilities.write_message_to_stdout(f"Start building codeunits ({codeunits_list}) in repository '{repository_folder}'...")
         self.__sc.assert_is_git_repository(repository_folder)
