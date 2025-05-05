@@ -2422,7 +2422,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
-    def start_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
+    def start_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str],env_file:str) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         folder = os.path.dirname(current_file)
         example_name = os.path.basename(folder)
@@ -2438,7 +2438,7 @@ class TasksForCommonProjectStructure:
                     container_names.append(match.group(1))
             GeneralUtilities.write_message_to_stdout(f"Ensure container of {docker_compose_file} do not exist...")
             for container_name in container_names:
-                GeneralUtilities.write_message_to_stdout(f"Ensure container of {container_name} does not exist")
+                GeneralUtilities.write_message_to_stdout(f"Ensure container {container_name} does not exist...")
                 self.__sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         if remove_volumes_folder:
             volumes_folder = os.path.join(folder, "Volumes")
@@ -2449,7 +2449,21 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
-        self.__sc.run_program("docker", f"compose --project-name {docker_project_name} up --detach", folder, verbosity=verbosity)
+        argument=f"compose --project-name {docker_project_name}"
+        if env_file is not None:
+            argument=f"{argument} --env-file {env_file}"
+        argument=f"{argument} up --detach"
+        self.__sc.run_program("docker", argument, folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def ensure_env_file_is_generated(self,current_file:str,env_file_name:str, env_values:dict[str,str]):
+        folder = os.path.dirname(current_file)
+        env_file=os.path.join(folder,env_file_name)
+        if not os.path.isfile(env_file):
+            lines=[]
+            for key,value in env_values.items():
+                lines.append(f"{key}={value}")
+            GeneralUtilities.write_lines_to_file(env_file,lines)
 
     @GeneralUtilities.check_arguments
     def stop_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:

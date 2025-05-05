@@ -38,6 +38,8 @@ class SCLog:
 
         if loglevel == LogLevel.Warning:
             message = f"Warning: {message}"
+        if loglevel == LogLevel.Debug:
+            message = f"Debug: {message}"
         if self.add_overhead:
             if loglevel == LogLevel.Error:
                 message = f"[Error] {message}"
