@@ -631,7 +631,6 @@ def CurrentUserHasElevatedPrivileges() -> int:
 
 
 def Espoc() -> int:
-    GeneralUtilities.write_message_to_stdout("check...")
     parser = argparse.ArgumentParser(description="Espoc (appreviation for 'exit started programs on close') is a tool to ensure the started processes of your program will also get terminated when the execution of your program is finished.")
     parser.add_argument('-p', '--processid', required=True)
     parser.add_argument('-f', '--file', required=True, help='Specifies the file where the process-ids of the started processes are stored (line by line). This file will be deleted when all started processes are terminated.')
