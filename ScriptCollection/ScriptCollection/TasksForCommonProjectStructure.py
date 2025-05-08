@@ -3114,7 +3114,7 @@ class TasksForCommonProjectStructure:
         update_dependencies_script_filename = "UpdateDependencies.py"
         target_environmenttype = "QualityCheck"
         self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
-        GeneralUtilities.assert_condition(not self.__sc.git_repository_has_uncommitted_changes(repository_folder), "There are uncommitted changes in the repository. Please commit or discard them before updating dependencies.")
+        GeneralUtilities.assert_condition(not self.__sc.git_repository_has_uncommitted_changes(repository_folder), "There are uncommitted changes in the repository.")
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
