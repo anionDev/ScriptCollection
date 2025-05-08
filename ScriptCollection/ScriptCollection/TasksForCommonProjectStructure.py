@@ -862,7 +862,7 @@ class TasksForCommonProjectStructure:
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
-        self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity,print_live_output=True)
+        self.__sc.run_program("dotnet", arg, codeunit_folder, verbosity=verbosity, print_live_output=True)
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
@@ -2422,7 +2422,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
-    def start_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str],env_file:str) -> None:
+    def start_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str], env_file: str) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         folder = os.path.dirname(current_file)
         example_name = os.path.basename(folder)
@@ -2449,21 +2449,21 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
         GeneralUtilities.write_message_to_stdout("Start docker-container...")
-        argument=f"compose --project-name {docker_project_name}"
+        argument = f"compose --project-name {docker_project_name}"
         if env_file is not None:
-            argument=f"{argument} --env-file {env_file}"
-        argument=f"{argument} up --detach"
+            argument = f"{argument} --env-file {env_file}"
+        argument = f"{argument} up --detach"
         self.__sc.run_program("docker", argument, folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def ensure_env_file_is_generated(self,current_file:str,env_file_name:str, env_values:dict[str,str]):
+    def ensure_env_file_is_generated(self, current_file: str, env_file_name: str, env_values: dict[str, str]):
         folder = os.path.dirname(current_file)
-        env_file=os.path.join(folder,env_file_name)
+        env_file = os.path.join(folder, env_file_name)
         if not os.path.isfile(env_file):
-            lines=[]
-            for key,value in env_values.items():
+            lines = []
+            for key, value in env_values.items():
                 lines.append(f"{key}={value}")
-            GeneralUtilities.write_lines_to_file(env_file,lines)
+            GeneralUtilities.write_lines_to_file(env_file, lines)
 
     @GeneralUtilities.check_arguments
     def stop_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
@@ -2567,7 +2567,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
-        codeunits_list = "{"+", ".join(["a","b"])+"}"
+        codeunits_list = "{"+", ".join(["a", "b"])+"}"
         if verbosity > 2:
             GeneralUtilities.write_message_to_stdout(f"Start building codeunits ({codeunits_list}) in repository '{repository_folder}'...")
         self.__sc.assert_is_git_repository(repository_folder)
@@ -3114,6 +3114,7 @@ class TasksForCommonProjectStructure:
         update_dependencies_script_filename = "UpdateDependencies.py"
         target_environmenttype = "QualityCheck"
         self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
+        GeneralUtilities.assert_condition(not self.__sc.git_repository_has_uncommitted_changes(repository_folder), "There are uncommitted changes in the repository. Please commit or discard them before updating dependencies.")
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
@@ -3121,6 +3122,7 @@ class TasksForCommonProjectStructure:
             self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder, print_live_output=True)
 
         # update dependencies of codeunits
+        something_was_updated = False
         for codeunit in codeunits:
             codeunit_file = os.path.join(repository_folder, codeunit, f"{codeunit}.codeunit.xml")
             codeunit_has_updatable_dependencies = self.codeunit_has_updatable_dependencies(codeunit_file)
@@ -3130,6 +3132,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
                 self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity, print_live_output=True)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+                    something_was_updated = True
                     version_of_project = self.get_version_of_project(repository_folder)
                     changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
                     if not os.path.isfile(changelog_file):
@@ -3142,8 +3145,10 @@ class TasksForCommonProjectStructure:
                         GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
                 else:
                     GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
-                self.build_specific_codeunits(repository_folder, [codeunit], 0, target_environmenttype, None, False, None, True, [], False, f"Build codeunit {codeunit} due to updated dependencies", False)
-        self.__sc.git_commit(repository_folder, "Updated dependencies")
+
+        if something_was_updated:
+            self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, False, f"Build codeunits due to updated dependencies")
+            self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
         current_file: str
