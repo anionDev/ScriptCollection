@@ -2548,7 +2548,8 @@ class TasksForCommonProjectStructure:
             support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
             until = now + support_time
             until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
-            self.mark_current_version_as_supported(repository_folder, project_version, now, until_day)
+            from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
+            self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
 
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
