@@ -1457,9 +1457,11 @@ class TasksForCommonProjectStructure:
             sc.run_program("docker-pushrm", f"{repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def get_dependent_code_units(self, codeunit_file: str) -> set[str]:
+    def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
         root: etree._ElementTree = etree.parse(codeunit_file)
-        return set(root.xpath('//cps:dependentcodeunit/text()', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'}))
+        result = set(root.xpath('//cps:dependentcodeunit/text()', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'}))
+        result = sorted(result)
+        return result
 
     @GeneralUtilities.check_arguments
     def dependent_codeunit_exists(self, repository: str, codeunit: str) -> None:
