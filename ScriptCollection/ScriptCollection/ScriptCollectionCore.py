@@ -33,7 +33,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.117"
+version = "3.5.118"
 __version__ = version
 
 
@@ -692,13 +692,12 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def list_content(self, path: str, include_files: bool, include_folder: bool, printonlynamewithoutpath: bool) -> list[str]:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        result: list[str] = []
         if self.program_runner.will_be_executed_locally():
-            result = []
             if include_files:
                 result = result + GeneralUtilities.get_direct_files_of_folder(path)
             if include_folder:
                 result = result + GeneralUtilities.get_direct_folders_of_folder(path)
-            return result
         else:
             arguments = ["--path", path]
             if not include_files:
@@ -709,13 +708,13 @@ class ScriptCollectionCore:
                 arguments = arguments+["--printonlynamewithoutpath"]
             exit_code, stdout, stderr, _ = self.run_program_argsasarray("sclistfoldercontent", arguments)
             if exit_code == 0:
-                result: list[str] = []
                 for line in stdout.split("\n"):
                     normalized_line = line.replace("\r", "")
                     result.append(normalized_line)
-                return result
             else:
                 raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
+        result = [item for item in result if GeneralUtilities.string_has_nonwhitespace_content(item)]
+        return result
 
     @GeneralUtilities.check_arguments
     def is_file(self, path: str) -> bool:
