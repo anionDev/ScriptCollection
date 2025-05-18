@@ -33,7 +33,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.116"
+version = "3.5.117"
 __version__ = version
 
 
@@ -474,9 +474,11 @@ class ScriptCollectionCore:
         if pull_first_if_there_are_no_uncommitted_changes:
             uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
             if not uncommitted_changes:
-                self.git_pull(repository_folder, remote, branch, branch)
-                uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
-                GeneralUtilities.assert_condition(not uncommitted_changes, f"Pulling remote \"{remote}\" in \"{repository_folder}\" caused new uncommitted files.")
+                is_pullable: bool = self.git_commit_is_ancestor(repository_folder, branch, f"{remote}/{branch}")
+                if is_pullable:
+                    self.git_pull(repository_folder, remote, branch, branch)
+                    uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
+                    GeneralUtilities.assert_condition(not uncommitted_changes, f"Pulling remote \"{remote}\" in \"{repository_folder}\" caused new uncommitted files.")
         self.git_checkout(repository_folder, branch)
         self.git_commit(repository_folder, "Automatic commit due to merge")
         self.git_fetch(repository_folder, remote)
