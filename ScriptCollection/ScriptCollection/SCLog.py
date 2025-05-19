@@ -29,7 +29,7 @@ class SCLog:
         self.log(f"Exception: {message}; Exception-details: {str(ex)}; Traceback:  {current_traceback.format_exc()}", LogLevel.Error)
 
     @GeneralUtilities.check_arguments
-    def log(self, message: str, loglevel: LogLevel):
+    def log(self, message: str, loglevel: LogLevel = None):
         if loglevel is None:
             loglevel = LogLevel.Information
 
