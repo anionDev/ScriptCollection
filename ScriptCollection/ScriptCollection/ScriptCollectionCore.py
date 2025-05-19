@@ -21,6 +21,7 @@ from typing import IO
 import uuid
 import tempfile
 import io
+from packaging import version as packaging_version
 import requests
 import ntplib
 import yaml
@@ -33,7 +34,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.119"
+version = "3.5.120"
 __version__ = version
 
 
@@ -2333,44 +2334,132 @@ TXDX
 
     @GeneralUtilities.check_arguments
     def update_all_services_in_docker_compose_file(self, dockercompose_file: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
+        self.update_services_in_docker_compose_file(dockercompose_file, self.get_services_from_docker_compose_file(dockercompose_file), version_echolon)
+
+    @GeneralUtilities.check_arguments
+    def update_services_in_docker_compose_file(self, dockercompose_file: str, service_names: list[str], version_echolon: VersionEcholon):
+        for service_name in service_names:
+            self.update_service_in_docker_compose_file(dockercompose_file, service_name, version_echolon)
 
     @GeneralUtilities.check_arguments
     def update_service_in_docker_compose_file(self, dockercompose_file: str, service_name: str, version_echolon: VersionEcholon):
+        existing_version, existing_tag = self.get_current_version_of_service_from_docker_compose_file(dockercompose_file, service_name)  # pylint:disable=unused-variable
+        newest_version, newest_tag = self.get_latest_version_of_service(service_name, version_echolon)  # pylint:disable=unused-variable
+        if packaging_version.parse(existing_version) < packaging_version.parse(newest_version):
+            pass  # TODO replace existing_tag in dockercompose_file for service service_name by newest_tag
+
+    @GeneralUtilities.check_arguments
+    def get_current_version_of_service_from_docker_compose_file(self, dockercompose_file: str, service_name: str) -> tuple[str, str]:  # returns (existing_version,existing_tag)
         raise ValueError("not implemented yet")
 
     @GeneralUtilities.check_arguments
-    def get_current_version_of_service_from_docker_compose_file(self, dockercompose_file: str, service_name: str):
+    def get_latest_version_of_service(self,  service_name: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
         raise ValueError("not implemented yet")
 
     @GeneralUtilities.check_arguments
-    def get_services_from_docker_compose_file(self, dockercompose_file: str):
+    def get_services_from_docker_compose_file(self, dockercompose_file: str) -> list[str]:
+        return []  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_all_available_tags(self, service: str, registry_address: str = None) -> list[str]:
         raise ValueError("not implemented yet")
 
     @GeneralUtilities.check_arguments
-    def get_next_version_for_nginx(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
+    def get_next_version_for_genericservice(self, registry_address: str, current_version: str, version_echolon: VersionEcholon, tag_prefix: str) -> tuple[str, str]:  # returns (newest_version,newest_tag)
         raise ValueError("not implemented yet")
 
     @GeneralUtilities.check_arguments
-    def get_next_version_for_prometheus(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
+    def get_next_version_for_genericservice_by_function(self, registry_address: str, current_version: str, version_echolon: VersionEcholon, f) -> tuple[str, str]:  # returns (newest_version,newest_tag)
         raise ValueError("not implemented yet")
 
     @GeneralUtilities.check_arguments
-    def get_next_version_for_blackbox_exporter(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
+    def get_next_version_for_nginx(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def get_next_version_for_gitlab(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
+    def get_next_version_for_apachehttp(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def get_next_version_for_nextcloud(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
+    def get_next_version_for_adminer(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def get_next_version_for_genericservice(self, registry_address: str, current_version: str, version_echolon: VersionEcholon, tag_prefix: str):
-        raise ValueError("not implemented yet")
+    def get_next_version_for_mariadb(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def get_all_available_tags(self, registry_address: str, service: str):
-        raise ValueError("not implemented yet")
+    def get_next_version_for_postgresql(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_prometheus(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_blackbox_exporter(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_nginx_exporter(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_node_exporter(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_gitlab(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_nextcloud(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_wordpress(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_ntfy(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_mailu(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_keycloak(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_openvpn(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_thanos(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_openhab(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_homeassistant(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_registry(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_vaultwarden(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_unificontroller(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
+
+    @GeneralUtilities.check_arguments
+    def get_next_version_for_grafana(self, registry_address: str, current_version: str, version_echolon: VersionEcholon) -> tuple[str, str]:  # returns (newest_version,newest_tag)
+        pass  # TODO
