@@ -77,9 +77,8 @@ class ImageUpdaterHelper:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_latest_version(version_strings: list[Version]) -> Version:
-        parsed = [v for v in version_strings]
-        result = max(parsed)
+    def get_latest_version(versions: list[Version]) -> Version:
+        result = max(versions)
         return result
 
     @staticmethod
@@ -447,6 +446,8 @@ class ImageUpdater:
                 else:
                     name, tag = image, 'latest'
                 return name, tag, self.get_docker_version_from_tag(name, tag)
+            else:
+                raise ValueError(f"Service '{service_name}' in '{dockercompose_file}'")
 
     @GeneralUtilities.check_arguments
     def __get_updater_for_image(self,  image: str) -> str:
@@ -474,7 +475,3 @@ class ImageUpdater:
             services = compose_data.get('services', {})
             result = list(services.keys())
             return result
-
-    @GeneralUtilities.check_arguments
-    def get_all_available_tags(self, service: str, registry_address: str = None) -> list[str]:
-        raise ValueError("not implemented yet")
