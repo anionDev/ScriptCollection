@@ -63,7 +63,7 @@ class SCLog:
                 raise ValueError("Unknown loglevel.")
             part3 = f"] {message}"
 
-        print_to_std_out: bool = (loglevel == LogLevel.Debug) or (loglevel == LogLevel.Information)
+        print_to_std_out: bool = loglevel in (LogLevel.Debug, LogLevel.Information)
         GeneralUtilities.print_text(part1, print_to_std_out)
         # if the control-characters for colors cause problems then maybe it can be checked with sys.stdout.isatty() if colors should be printed
         if loglevel == LogLevel.Information:
