@@ -340,15 +340,15 @@ class TasksForCommonProjectStructure:
         filename = os.path.basename(wheel_file)
 
         if gpg_identity is None:
-            gpg_identity_argument = ""
+            gpg_identity_argument = GeneralUtilities.empty_string
         else:
-            gpg_identity_argument = ""  # f" --sign --identity {gpg_identity}"
+            gpg_identity_argument = GeneralUtilities.empty_string  # f" --sign --identity {gpg_identity}"
             # disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
 
         if verbosity > 2:
             verbose_argument = " --verbose"
         else:
-            verbose_argument = ""
+            verbose_argument = GeneralUtilities.empty_string
 
         twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar"
         twine_argument = f"{twine_argument} --username __token__ --password {api_key}{verbose_argument}"
@@ -649,8 +649,8 @@ class TasksForCommonProjectStructure:
         filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stdout(f"Check {filename}...")
         file_content = GeneralUtilities.read_text_from_file(csproj_file)
-        regex = regex.replace("\r", "").replace("\n", "\\n")
-        file_content = file_content.replace("\r", "")
+        regex = regex.replace("\r", GeneralUtilities.empty_string).replace("\n", "\\n")
+        file_content = file_content.replace("\r", GeneralUtilities.empty_string)
         match = re.match(regex, file_content)
         return match is not None
 
@@ -972,13 +972,13 @@ class TasksForCommonProjectStructure:
         diff_target_file = os.path.join(diff_target_folder, "DiffReport.html")
         title = (f'Reference of codeunit {codeunitname} {codeunit_version_identifier} (contained in project <a href="{public_repository_url}">{projectname}</a> {project_version_identifier})')
         if public_repository_url is None:
-            repo_url_html = ""
+            repo_url_html = GeneralUtilities.empty_string
         else:
             repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
         if codeunit_has_testcases:
             coverage_report_link = '<a href="./TestCoverageReport/index.html">Test-coverage-report</a><br>'
         else:
-            coverage_report_link = ""
+            coverage_report_link = GeneralUtilities.empty_string
         index_file_for_reference = os.path.join(target_folder, "index.html")
 
         design_file = None
@@ -987,7 +987,7 @@ class TasksForCommonProjectStructure:
             design_file = GeneralUtilities.get_modest_dark_url()
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
-            design_html = ""
+            design_html = GeneralUtilities.empty_string
         else:
             design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
 
@@ -1095,7 +1095,7 @@ class TasksForCommonProjectStructure:
             if version_identifier_of_project == "Latest":
                 latest_version_hint = f" (v{project_version})"
             else:
-                latest_version_hint = ""
+                latest_version_hint = GeneralUtilities.empty_string
             reference_versions_html_lines.append(f'    <h2>{version_identifier_of_project}{latest_version_hint}</h2>')
             reference_versions_html_lines.append("    Contained codeunits:<br/>")
             reference_versions_html_lines.append("    <ul>")
@@ -1113,7 +1113,7 @@ class TasksForCommonProjectStructure:
             design_file = GeneralUtilities.get_modest_dark_url()
         # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
         if design_file is None:
-            design_html = ""
+            design_html = GeneralUtilities.empty_string
         else:
             design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
 
@@ -1423,7 +1423,7 @@ class TasksForCommonProjectStructure:
         self.__sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str) -> None:
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str,image_name:str=None) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         filename = os.path.basename(push_artifacts_file)
         codeunitname_regex: str = "([a-zA-Z0-9]+)"
@@ -1441,15 +1441,17 @@ class TasksForCommonProjectStructure:
         image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
         image_filename = os.path.basename(image_file)
         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-        image_tag_name = codeunitname.lower()
-        repo = f"{registry}/{image_tag_name}"
+        if image_name is None:
+            image_name = codeunitname
+        image_name=image_name.lower()
+        repo = f"{registry}/{image_name}"
         image_latest = f"{repo}:latest"
         image_version = f"{repo}:{codeunit_version}"
         GeneralUtilities.write_message_to_stdout("Load image...")
         sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Tag image...")
-        sc.run_program("docker", f"tag {image_tag_name}:{codeunit_version} {image_latest}", verbosity=verbosity)
-        sc.run_program("docker", f"tag {image_tag_name}:{codeunit_version} {image_version}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {image_name}:{codeunit_version} {image_latest}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {image_name}:{codeunit_version} {image_version}", verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Push image...")
         sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
         sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
@@ -1940,7 +1942,7 @@ class TasksForCommonProjectStructure:
     def set_constant(self, codeunit_folder: str, constantname: str, constant_value: str, documentationsummary: str = None, constants_valuefile: str = None) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         if documentationsummary is None:
-            documentationsummary = ""
+            documentationsummary = GeneralUtilities.empty_string
         constants_folder = os.path.join(codeunit_folder, "Other", "Resources", "Constants")
         GeneralUtilities.ensure_directory_exists(constants_folder)
         constants_metafile = os.path.join(constants_folder, f"{constantname}.constant.xml")
@@ -2259,7 +2261,7 @@ class TasksForCommonProjectStructure:
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
         root: etree._ElementTree = etree.parse(codeunit_file)
         ignoreddependencies = root.xpath('//cps:codeunit/cps:properties/cps:updatesettings/cps:ignoreddependencies/cps:ignoreddependency', namespaces=namespaces)
-        result = [x.text.replace("\\n", "").replace("\\r", "").replace("\n", "").replace("\r", "").strip() for x in ignoreddependencies]
+        result = [x.text.replace("\\n", GeneralUtilities.empty_string).replace("\\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).replace("\r", GeneralUtilities.empty_string).strip() for x in ignoreddependencies]
         if print_warnings_for_ignored_dependencies and len(result) > 0:
             GeneralUtilities.write_message_to_stderr(f"Warning: Codeunit {codeunit_name} contains the following dependencies which will are ignoed for automatic updates: "+', '.join(result))
         return result
@@ -2346,7 +2348,7 @@ class TasksForCommonProjectStructure:
         sc: ScriptCollectionCore = ScriptCollectionCore()
         workspace_file: str = sc.find_file_by_extension(repository_folder, "code-workspace")
         task_file: str = os.path.join(repository_folder, "Taskfile.yml")
-        lines: list[str] = ["version: '3'", "", "tasks:", ""]
+        lines: list[str] = ["version: '3'", GeneralUtilities.empty_string, "tasks:", GeneralUtilities.empty_string]
         workspace_file_content: str = GeneralUtilities.read_text_from_file(workspace_file)
         jsoncontent = json.loads(workspace_file_content)
         tasks = jsoncontent["tasks"]["tasks"]
@@ -2389,7 +2391,7 @@ class TasksForCommonProjectStructure:
                     aliases = task["aliases"]
                     for alias in aliases:
                         lines.append(f'      - {alias}')
-                lines.append("")
+                lines.append(GeneralUtilities.empty_string)
         GeneralUtilities.write_lines_to_file(task_file, lines)
 
     @GeneralUtilities.check_arguments
@@ -2860,21 +2862,21 @@ class TasksForCommonProjectStructure:
 
             description = self.get_codeunit_description(codeunit_file)
 
-            lines.append(f"")
+            lines.append(GeneralUtilities.empty_string)
             lines.append(f"[{codeunitname}]")
             lines.append(f"note as {codeunitname}Note")
             lines.append(f"  {description}")
             lines.append(f"end note")
             lines.append(f"{codeunitname} .. {codeunitname}Note")
 
-        lines.append(f"")
+        lines.append(GeneralUtilities.empty_string)
         for codeunitname in codeunits:
             codeunit_file: str = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
             dependent_codeunits = self.get_dependent_code_units(codeunit_file)
             for dependent_codeunit in dependent_codeunits:
                 lines.append(f"{codeunitname} --> {dependent_codeunit}")
 
-        lines.append(f"")
+        lines.append(GeneralUtilities.empty_string)
         lines.append("@enduml")
 
         GeneralUtilities.write_lines_to_file(target_file, lines)
@@ -3015,15 +3017,15 @@ class TasksForCommonProjectStructure:
         build_folder = os.path.join(other_folder, "Build")
         quality_folder = os.path.join(other_folder, "QualityCheck")
         reference_folder = os.path.join(other_folder, "Reference")
-        additional_arguments_c: str = ""
-        additional_arguments_b: str = ""
-        additional_arguments_r: str = ""
-        additional_arguments_l: str = ""
-        additional_arguments_g: str = ""
-        additional_arguments_f: str = ""
+        additional_arguments_c: str = GeneralUtilities.empty_string
+        additional_arguments_b: str = GeneralUtilities.empty_string
+        additional_arguments_r: str = GeneralUtilities.empty_string
+        additional_arguments_l: str = GeneralUtilities.empty_string
+        additional_arguments_g: str = GeneralUtilities.empty_string
+        additional_arguments_f: str = GeneralUtilities.empty_string
         general_argument = f' --overwrite_verbosity {str(verbosity)} --overwrite_targetenvironmenttype {target_environmenttype}'
 
-        c_additionalargumentsfile_argument = ""
+        c_additionalargumentsfile_argument = GeneralUtilities.empty_string
 
         if is_pre_merge:
             general_argument = general_argument+" --overwrite_is_pre_merge true"

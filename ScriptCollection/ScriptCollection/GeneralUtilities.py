@@ -38,6 +38,8 @@ class GeneralUtilities:
     __datetime_format: str = "%Y-%m-%dT%H:%M:%S"
     __date_format: str = "%Y-%m-%d"
 
+    empty_string: str = ""
+
     @staticmethod
     def get_modest_dark_url() -> str:
         return "https://aniondev.github.io/CDN/ScriptCollectionDesigns/ModestDark/Style.css"
@@ -45,6 +47,10 @@ class GeneralUtilities:
     @staticmethod
     def is_generic(t: typing.Type):
         return hasattr(t, "__origin__")
+
+    @staticmethod
+    def is_debugger_attached():
+        return sys.gettrace() is not None
 
     @staticmethod
     def check_arguments(function):
@@ -235,6 +241,32 @@ class GeneralUtilities:
         GeneralUtilities.write_text_to_file(file, text, encoding)
 
     @staticmethod
+    def print_text(text: str, print_to_stdout: bool = True):
+        GeneralUtilities.__print_text_to_console(text, print_to_stdout)
+
+    @staticmethod
+    def print_text_in_green(text: str, print_to_stdout: bool = True):
+        GeneralUtilities.__print_text_to_console(f"\033[32m{text}\033[0m", print_to_stdout)
+
+    @staticmethod
+    def print_text_in_yellow(text: str, print_to_stdout: bool = True):
+        GeneralUtilities.__print_text_to_console(f"\033[33m{text}\033[0m", print_to_stdout)
+
+    @staticmethod
+    def print_text_in_red(text: str, print_to_stdout: bool = True):
+        GeneralUtilities.__print_text_to_console(f"\033[31m{text}\033[0m", print_to_stdout)
+
+    @staticmethod
+    def print_text_in_cyan(text: str, print_to_stdout: bool = True):
+        GeneralUtilities.__print_text_to_console(f"\033[36m{text}\033[0m", print_to_stdout)
+
+    @staticmethod
+    def __print_text_to_console(text: str, print_to_stdout: bool = True):
+        output = sys.stdout if print_to_stdout else sys.stderr
+        output.write(text)
+        output.flush()
+
+    @staticmethod
     @check_arguments
     def reconfigure_standrd_input_and_outputs():
         sys.stdin.reconfigure(encoding='utf-8')
@@ -243,16 +275,29 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def write_message_to_stdout(message: str):
-        for line in GeneralUtilities.string_to_lines(message):
-            sys.stdout.write(GeneralUtilities.str_none_safe(line)+"\n")
+    def write_message_to_stdout_advanced(message: str, add_empty_lines: bool = True, adapt_lines: bool = True, append_linebreak: bool = True):
+        new_line_character: str = "\n" if append_linebreak else ""
+        for line in GeneralUtilities.string_to_lines(message, add_empty_lines, adapt_lines):
+            sys.stdout.write(GeneralUtilities.str_none_safe(line)+new_line_character)
             sys.stdout.flush()
 
     @staticmethod
     @check_arguments
+    def write_message_to_stdout(message: str):
+        GeneralUtilities.write_message_to_stdout_advanced(message, True, True, True)
+
+    @staticmethod
+    @check_arguments
+    def write_message_to_stderr_advanced(message: str, add_empty_lines: bool = True, adapt_lines: bool = True, append_linebreak: bool = True):
+        new_line_character: str = "\n" if append_linebreak else ""
+        for line in GeneralUtilities.string_to_lines(message, add_empty_lines, adapt_lines):
+            sys.stderr.write(GeneralUtilities.str_none_safe(line)+new_line_character)
+            sys.stderr.flush()
+
+    @staticmethod
+    @check_arguments
     def write_message_to_stderr(message: str):
-        sys.stderr.write(GeneralUtilities.str_none_safe(message)+"\n")
-        sys.stderr.flush()
+        GeneralUtilities.write_message_to_stderr_advanced(message, True, True, True)
 
     @staticmethod
     @check_arguments
@@ -260,7 +305,7 @@ class GeneralUtilities:
         if GeneralUtilities.string_has_content(os_error.filename2):
             secondpath = f" {os_error.filename2}"
         else:
-            secondpath = ""
+            secondpath = GeneralUtilities.empty_string
         return f"Related path(s): {os_error.filename}{secondpath}"
 
     @staticmethod
@@ -315,7 +360,7 @@ class GeneralUtilities:
             return True
         type_of_argument = type(argument)
         if type_of_argument == str:
-            return argument == ""
+            return argument == GeneralUtilities.empty_string
         else:
             raise ValueError(f"expected string-variable in argument of string_is_none_or_empty but the type was '{str(type_of_argument)}'")
 
@@ -325,7 +370,7 @@ class GeneralUtilities:
         if GeneralUtilities.string_is_none_or_empty(string):
             return True
         else:
-            return string.strip() == ""
+            return string.strip() == GeneralUtilities.empty_string
 
     @staticmethod
     @check_arguments
@@ -378,7 +423,7 @@ class GeneralUtilities:
         if GeneralUtilities.file_ends_with_content(file):
             return "\n"
         else:
-            return ""
+            return GeneralUtilities.empty_string
 
     @staticmethod
     @check_arguments
@@ -861,7 +906,7 @@ class GeneralUtilities:
         result = list()
         if list_as_string is not None:
             list_as_string = list_as_string.strip()
-            if list_as_string == "":
+            if list_as_string == GeneralUtilities.empty_string:
                 pass
             elif separator in list_as_string:
                 for item in list_as_string.split(separator):
@@ -922,7 +967,7 @@ class GeneralUtilities:
         if positive:
             return "✅"
         else:
-            return ""
+            return GeneralUtilities.empty_string
 
     @staticmethod
     @check_arguments

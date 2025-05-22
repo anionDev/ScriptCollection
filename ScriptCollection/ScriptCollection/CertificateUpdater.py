@@ -24,7 +24,7 @@ class CertificateUpdater:
 
     def __init__(self, domains: list[str], email: str, current_file: str, arguments: list[str]):
         self.__sc = ScriptCollectionCore()
-        self.maximal_age_of_certificates_in_days = 60
+        self.maximal_age_of_certificates_in_days = 15
         self.__domains = domains
         self.__email = email
         self.__current_folder = current_file
@@ -126,7 +126,7 @@ class CertificateUpdater:
     def __get_last_certificate_update_date(self) -> datetime:
         if os.path.exists(self.__last_update_timestamp_file):
             filecontent = GeneralUtilities.read_text_from_file(self.__last_update_timestamp_file)
-            return GeneralUtilities.string_to_datetime(filecontent.replace("\r", "").replace("\n", ""))
+            return GeneralUtilities.string_to_datetime(filecontent.replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string))
         else:
             return datetime(year=1970, month=1, day=1)
 
@@ -142,5 +142,8 @@ class CertificateUpdater:
         args = parser.parse_args(self.__arguments)
         now = datetime.now()
         if (self.__get_last_certificate_update_date()+timedelta(days=self.maximal_age_of_certificates_in_days)) < now or args.force:
+            GeneralUtilities.write_message_to_stdout(f"Update certificates...")
             self.__update_certificates()
             self.__set_last_certificate_update_date(now)
+        else:
+            GeneralUtilities.write_message_to_stdout(f"Certificates are already up to date.")

@@ -271,7 +271,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # arrange
         testfile = ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_emptylineandignorefirstline.txt"
         try:
-            example_input = ["line1", "", "line3"]
+            example_input = ["line1", GeneralUtilities.empty_string, "line3"]
             expected_output = ["line1", "line3"]
             GeneralUtilities.ensure_file_exists(testfile)
             GeneralUtilities.write_lines_to_file(testfile, example_input)
@@ -289,7 +289,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # arrange
         testfile = ScriptCollectionCoreTests.testfileprefix+"test_sc_organize_lines_in_file_test_emptyline.txt"
         try:
-            example_input = ["line1", "", "line3"]
+            example_input = ["line1", GeneralUtilities.empty_string, "line3"]
             expected_output = ["line1", "line3"]
             GeneralUtilities.ensure_file_exists(testfile)
             GeneralUtilities.write_lines_to_file(testfile, example_input)
@@ -347,7 +347,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         # assert
         assert exit_code == 0
         assert len(stdout) == 40
-        assert stderr == ""
+        assert stderr == GeneralUtilities.empty_string
 
     def test_file_is_git_ignored_1(self) -> None:
 
