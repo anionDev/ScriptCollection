@@ -28,7 +28,7 @@ import qrcode
 import pycdlib
 import send2trash
 from pypdf import PdfReader, PdfWriter
-from .GeneralUtilities import GeneralUtilities, VersionEcholon
+from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
@@ -2330,47 +2330,3 @@ TXDX
     @GeneralUtilities.check_arguments
     def install_requirementstxt_file(self, requirements_txt_file: str, folder: str, verbosity: int):
         self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
-
-    @GeneralUtilities.check_arguments
-    def update_all_services_in_docker_compose_file(self, dockercompose_file: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def update_service_in_docker_compose_file(self, dockercompose_file: str, service_name: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_current_version_of_service_from_docker_compose_file(self, dockercompose_file: str, service_name: str):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_services_from_docker_compose_file(self, dockercompose_file: str):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_next_version_for_nginx(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_next_version_for_prometheus(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_next_version_for_blackbox_exporter(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_next_version_for_gitlab(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_next_version_for_nextcloud(self, registry_address: str, current_version: str, version_echolon: VersionEcholon):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_next_version_for_genericservice(self, registry_address: str, current_version: str, version_echolon: VersionEcholon, tag_prefix: str):
-        raise ValueError("not implemented yet")
-
-    @GeneralUtilities.check_arguments
-    def get_all_available_tags(self, registry_address: str, service: str):
-        raise ValueError("not implemented yet")

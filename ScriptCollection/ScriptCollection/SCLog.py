@@ -30,41 +30,54 @@ class SCLog:
 
     @GeneralUtilities.check_arguments
     def log(self, message: str, loglevel: LogLevel = None):
+        for line in GeneralUtilities.string_to_lines(message, True, False):
+            self.__log_line(line, loglevel)
+
+    @GeneralUtilities.check_arguments
+    def __log_line(self, message: str, loglevel: LogLevel = None):
         if loglevel is None:
             loglevel = LogLevel.Information
 
         if int(loglevel) > int(self.loglevel):
             return
 
+        part1: str = ""
+        part2: str = ""
+        part3: str = message
+
         if loglevel == LogLevel.Warning:
-            message = f"Warning: {message}"
+            part3 = f"Warning: {message}"
         if loglevel == LogLevel.Debug:
-            message = f"Debug: {message}"
+            part3 = f"Debug: {message}"
         if self.add_overhead:
-            if loglevel == LogLevel.Error:
-                message = f"[Error] {message}"
+            part1 = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(datetime.now())}] ["
+            if loglevel == LogLevel.Information:
+                part2 = f"Information"
+            elif loglevel == LogLevel.Error:
+                part2 = f"Error"
             elif loglevel == LogLevel.Warning:
-                message = f"[Warning] {message}"
+                part2 = f"Warning"
             elif loglevel == LogLevel.Debug:
-                message = f"[Debug] {message}"
-            elif loglevel == LogLevel.Information:
-                message = f"[Information] {message}"
+                part2 = f"Debug"
             else:
                 raise ValueError("Unknown loglevel.")
+            part3 = f"] {message}"
 
-            message = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(datetime.now())}] {message}"
-
-        if loglevel == LogLevel.Error:
-            GeneralUtilities.write_message_to_stderr(message)
+        print_to_std_out: bool = (loglevel == LogLevel.Debug) or (loglevel == LogLevel.Information)
+        GeneralUtilities.print_text(part1, print_to_std_out)
+        # if the control-characters for colors cause problems then maybe it can be checked with sys.stdout.isatty() if colors should be printed
+        if loglevel == LogLevel.Information:
+            GeneralUtilities.print_text_in_green(part2, print_to_std_out)
+        elif loglevel == LogLevel.Error:
+            GeneralUtilities.print_text_in_red(part2, print_to_std_out)
         elif loglevel == LogLevel.Warning:
-            GeneralUtilities.write_message_to_stderr(message)
+            GeneralUtilities.print_text_in_yellow(part2, print_to_std_out)
         elif loglevel == LogLevel.Debug:
-            GeneralUtilities.write_message_to_stdout(message)
-        elif loglevel == LogLevel.Information:
-            GeneralUtilities.write_message_to_stdout(message)
+            GeneralUtilities.print_text_in_cyan(part2, print_to_std_out)
         else:
             raise ValueError("Unknown loglevel.")
+        GeneralUtilities.print_text(part3+"\n", print_to_std_out)
 
         if self.log_file is not None:
             GeneralUtilities.ensure_file_exists(self.log_file)
-            GeneralUtilities.append_line_to_file(self.log_file, message)
+            GeneralUtilities.append_line_to_file(self.log_file, part1+part2+part3)
