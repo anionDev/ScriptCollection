@@ -45,6 +45,9 @@ class SCLog:
         if int(loglevel) > int(self.loglevel):
             return
 
+        if message.endswith("\n"):
+            GeneralUtilities.write_message_to_stdout(f"invalid line: '{message}'")  # TODO remove this
+
         part1: str = GeneralUtilities.empty_string
         part2: str = GeneralUtilities.empty_string
         part3: str = message
