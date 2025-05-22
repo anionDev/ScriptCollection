@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.122"
+version = "3.5.123"
 __version__ = version
 
 
@@ -1543,7 +1543,7 @@ class ScriptCollectionCore:
                             reading_stdout_last_time_resulted_in_exception = False
                             if print_live_output:
                                 # print(out_line, end='\n', file=sys.stdout, flush=False)
-                                log.log(out_line+"\n", LogLevel.Information)
+                                log.log(out_line, LogLevel.Information)
                     # if print_live_output:
                     #    sys.stdout.flush()
                 except Empty:
@@ -1558,7 +1558,7 @@ class ScriptCollectionCore:
                             reading_stderr_last_time_resulted_in_exception = False
                             if print_live_output:
                                 # print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
-                                log.log(err_line+"\n", LogLevel.Error if print_errors_as_information else LogLevel.Information)
+                                log.log(err_line, LogLevel.Error if print_errors_as_information else LogLevel.Information)
                     # if print_live_output:
                     #    if print_errors_as_information:
                     #        sys.stdout.flush()
