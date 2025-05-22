@@ -245,7 +245,8 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def print_text(text: str, print_to_stdout: bool = True):
-        GeneralUtilities.__print_text_to_console(text, print_to_stdout)
+        stream: TextIO = sys.stdout if print_to_stdout else sys.stderr
+        GeneralUtilities.__print_text_to_console(text, stream)
 
     @staticmethod
     @check_arguments
@@ -273,11 +274,11 @@ class GeneralUtilities:
         stream: TextIO = sys.stdout if print_to_stdout else sys.stderr
         if print_as_color:
             text = f"\033[{colorcode}m{text}\033[0m"
-        GeneralUtilities.__print_text_to_console(text, stream, print_to_stdout)
+        GeneralUtilities.__print_text_to_console(text, stream)
 
     @staticmethod
     @check_arguments
-    def __print_text_to_console(text: str, stream: TextIO, print_to_stdout: bool = True):
+    def __print_text_to_console(text: str, stream: TextIO):
         stream.write(text)
         stream.flush()
 
