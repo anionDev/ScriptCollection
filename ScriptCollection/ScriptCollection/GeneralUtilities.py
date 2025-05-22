@@ -22,6 +22,7 @@ from os.path import isfile, join, isdir
 from pathlib import Path
 from shutil import copyfile
 import typing
+from typing import TextIO
 import psutil
 from defusedxml.minidom import parse
 from OpenSSL import crypto
@@ -211,6 +212,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def replace_xmltag_in_file(file: str, tag: str, new_value: str, encoding="utf-8") -> None:
+        GeneralUtilities.assert_condition(tag.isalnum(tag), f"Invalid tag: \"{tag}\"")
         GeneralUtilities.replace_regex_in_file(file, f"<{tag}>.*</{tag}>", f"<{tag}>{new_value}</{tag}>", encoding)
 
     @staticmethod
@@ -241,30 +243,43 @@ class GeneralUtilities:
         GeneralUtilities.write_text_to_file(file, text, encoding)
 
     @staticmethod
+    @check_arguments
     def print_text(text: str, print_to_stdout: bool = True):
         GeneralUtilities.__print_text_to_console(text, print_to_stdout)
 
     @staticmethod
-    def print_text_in_green(text: str, print_to_stdout: bool = True):
-        GeneralUtilities.__print_text_to_console(f"\033[32m{text}\033[0m", print_to_stdout)
+    @check_arguments
+    def print_text_in_green(text: str, print_to_stdout: bool = True, print_as_color: bool = True):
+        GeneralUtilities.print_text_in_color(text, 32, print_to_stdout, print_as_color)
 
     @staticmethod
-    def print_text_in_yellow(text: str, print_to_stdout: bool = True):
-        GeneralUtilities.__print_text_to_console(f"\033[33m{text}\033[0m", print_to_stdout)
+    @check_arguments
+    def print_text_in_yellow(text: str, print_to_stdout: bool = True, print_as_color: bool = True):
+        GeneralUtilities.print_text_in_color(text, 33, print_to_stdout, print_as_color)
 
     @staticmethod
-    def print_text_in_red(text: str, print_to_stdout: bool = True):
-        GeneralUtilities.__print_text_to_console(f"\033[31m{text}\033[0m", print_to_stdout)
+    @check_arguments
+    def print_text_in_red(text: str, print_to_stdout: bool = True, print_as_color: bool = True):
+        GeneralUtilities.print_text_in_color(text, 31, print_to_stdout, print_as_color)
 
     @staticmethod
-    def print_text_in_cyan(text: str, print_to_stdout: bool = True):
-        GeneralUtilities.__print_text_to_console(f"\033[36m{text}\033[0m", print_to_stdout)
+    @check_arguments
+    def print_text_in_cyan(text: str, print_to_stdout: bool = True, print_as_color: bool = True):
+        GeneralUtilities.print_text_in_color(text, 36, print_to_stdout, print_as_color)
 
     @staticmethod
-    def __print_text_to_console(text: str, print_to_stdout: bool = True):
-        output = sys.stdout if print_to_stdout else sys.stderr
-        output.write(text)
-        output.flush()
+    @check_arguments
+    def print_text_in_color(text: str, colorcode: int, print_to_stdout: bool = True, print_as_color: bool = True):
+        stream: TextIO = sys.stdout if print_to_stdout else sys.stderr
+        if print_as_color:
+            text = f"\033[{colorcode}m{text}\033[0m"
+        GeneralUtilities.__print_text_to_console(text, stream, print_to_stdout)
+
+    @staticmethod
+    @check_arguments
+    def __print_text_to_console(text: str, stream: TextIO, print_to_stdout: bool = True):
+        stream.write(text)
+        stream.flush()
 
     @staticmethod
     @check_arguments
@@ -276,7 +291,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def write_message_to_stdout_advanced(message: str, add_empty_lines: bool = True, adapt_lines: bool = True, append_linebreak: bool = True):
-        new_line_character: str = "\n" if append_linebreak else ""
+        new_line_character: str = "\n" if append_linebreak else GeneralUtilities.empty_string
         for line in GeneralUtilities.string_to_lines(message, add_empty_lines, adapt_lines):
             sys.stdout.write(GeneralUtilities.str_none_safe(line)+new_line_character)
             sys.stdout.flush()
@@ -289,7 +304,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def write_message_to_stderr_advanced(message: str, add_empty_lines: bool = True, adapt_lines: bool = True, append_linebreak: bool = True):
-        new_line_character: str = "\n" if append_linebreak else ""
+        new_line_character: str = "\n" if append_linebreak else GeneralUtilities.empty_string
         for line in GeneralUtilities.string_to_lines(message, add_empty_lines, adapt_lines):
             sys.stderr.write(GeneralUtilities.str_none_safe(line)+new_line_character)
             sys.stderr.flush()
@@ -532,6 +547,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def get_clusters_and_sectors_of_disk(diskpath: str) -> None:
+        GeneralUtilities.assert_condition(GeneralUtilities.current_system_is_windows(), "get_clusters_and_sectors_of_disk(diskpath) is only available on windows.")
         sectorsPerCluster = ctypes.c_ulonglong(0)
         bytesPerSector = ctypes.c_ulonglong(0)
         rootPathName = ctypes.c_wchar_p(diskpath)

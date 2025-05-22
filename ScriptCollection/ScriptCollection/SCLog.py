@@ -1,6 +1,6 @@
 
 from enum import Enum
-from datetime import datetime
+from datetime import datetime,  timezone
 from .GeneralUtilities import GeneralUtilities
 
 
@@ -19,11 +19,14 @@ class SCLog:
     loglevel: LogLevel
     log_file: str
     add_overhead: bool
+    print_as_color: bool
+    zone_of_time: timezone = None
 
-    def __init__(self, log_file: str = None, loglevel: LogLevel = None, add_overhead: bool = False):
+    def __init__(self, log_file: str = None, loglevel: LogLevel = None, add_overhead: bool = False, print_as_color: bool = True):
         self.log_file = log_file
         self.loglevel = loglevel
         self.add_overhead = add_overhead
+        self.print_as_color = print_as_color
 
     @GeneralUtilities.check_arguments
     def log_exception(self, message: str, ex: Exception, current_traceback):
@@ -42,8 +45,8 @@ class SCLog:
         if int(loglevel) > int(self.loglevel):
             return
 
-        part1: str = ""
-        part2: str = ""
+        part1: str = GeneralUtilities.empty_string
+        part2: str = GeneralUtilities.empty_string
         part3: str = message
 
         if loglevel == LogLevel.Warning:
@@ -51,7 +54,12 @@ class SCLog:
         if loglevel == LogLevel.Debug:
             part3 = f"Debug: {message}"
         if self.add_overhead:
-            part1 = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(datetime.now())}] ["
+            moment: datetime = None
+            if self.zone_of_time is None:
+                moment = datetime.now()
+            else:
+                moment = datetime.now(self.zone_of_time)
+            part1 = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(moment)}] ["
             if loglevel == LogLevel.Information:
                 part2 = f"Information"
             elif loglevel == LogLevel.Error:
@@ -66,15 +74,14 @@ class SCLog:
 
         print_to_std_out: bool = loglevel in (LogLevel.Debug, LogLevel.Information)
         GeneralUtilities.print_text(part1, print_to_std_out)
-        # if the control-characters for colors cause problems then maybe it can be checked with sys.stdout.isatty() if colors should be printed
         if loglevel == LogLevel.Information:
-            GeneralUtilities.print_text_in_green(part2, print_to_std_out)
+            GeneralUtilities.print_text_in_green(part2, print_to_std_out, self.print_as_color)
         elif loglevel == LogLevel.Error:
-            GeneralUtilities.print_text_in_red(part2, print_to_std_out)
+            GeneralUtilities.print_text_in_red(part2, print_to_std_out, self.print_as_color)
         elif loglevel == LogLevel.Warning:
-            GeneralUtilities.print_text_in_yellow(part2, print_to_std_out)
+            GeneralUtilities.print_text_in_yellow(part2, print_to_std_out, self.print_as_color)
         elif loglevel == LogLevel.Debug:
-            GeneralUtilities.print_text_in_cyan(part2, print_to_std_out)
+            GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
         else:
             raise ValueError("Unknown loglevel.")
         GeneralUtilities.print_text(part3+"\n", print_to_std_out)
