@@ -33,7 +33,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 
-version = "3.5.119"
+version = "3.5.120"
 __version__ = version
 
 
@@ -63,7 +63,7 @@ class ScriptCollectionCore:
         errors = list()
         filename = os.path.relpath(file, working_directory)
         if treat_warnings_as_errors:
-            errorsonly_argument = ""
+            errorsonly_argument = GeneralUtilities.empty_string
         else:
             errorsonly_argument = " --errors-only"
         (exit_code, stdout, stderr, _) = self.run_program("pylint", filename + errorsonly_argument, working_directory, throw_exception_if_exitcode_is_not_zero=False)
@@ -167,14 +167,14 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
         self.assert_is_git_repository(repository_folder)
-        return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", "").replace("\n", "").split(" ")
+        return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).split(" ")
 
     @GeneralUtilities.check_arguments
     def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None, verbosity: int = 1) -> list[tuple[str, str]]:
         self.assert_is_git_repository(repository_folder)
         space_character = "_"
         if subfolder is None:
-            subfolder_argument = ""
+            subfolder_argument = GeneralUtilities.empty_string
         else:
             subfolder_argument = f" -- {subfolder}"
         log_result = self.run_program("git", f'log --pretty=%aN{space_character}%aE%n%cN{space_character}%cE HEAD{subfolder_argument}', repository_folder, verbosity=0)
@@ -194,7 +194,7 @@ class ScriptCollectionCore:
         self.assert_is_git_repository(repository_folder)
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
-        result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", ""))
+        result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", GeneralUtilities.empty_string))
         if ignore_commits_which_are_not_in_history_of_head:
             result = [commit_id for commit_id in result if self.git_commit_is_ancestor(repository_folder, commit_id)]
         return result
@@ -557,19 +557,19 @@ class ScriptCollectionCore:
     def git_get_current_branch_name(self, repository: str) -> str:
         self.assert_is_git_repository(repository)
         result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        return result[1].replace("\r", "").replace("\n", "")
+        return result[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
 
     @GeneralUtilities.check_arguments
     def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
         self.assert_is_git_repository(repository)
         stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
-        result = stdout[1].replace("\r", "").replace("\n", "")
+        result = stdout[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
 
     @GeneralUtilities.check_arguments
     def git_get_tags(self, repository: str) -> list[str]:
         self.assert_is_git_repository(repository)
-        tags = [line.replace("\r", "") for line in self.run_program_argsasarray(
+        tags = [line.replace("\r", GeneralUtilities.empty_string) for line in self.run_program_argsasarray(
             "git", ["tag"], repository)[1].split("\n") if len(line) > 0]
         return tags
 
@@ -604,14 +604,14 @@ class ScriptCollectionCore:
     def get_latest_git_tag(self, repository_folder: str) -> str:
         self.assert_is_git_repository(repository_folder)
         result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
-        result = result[1].replace("\r", "").replace("\n", "")
+        result = result[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
 
     @GeneralUtilities.check_arguments
     def get_staged_or_committed_git_ignored_files(self, repository_folder: str) -> list[str]:
         self.assert_is_git_repository(repository_folder)
         temp_result = self.run_program_argsasarray("git", ["ls-files", "-i", "-c", "--exclude-standard"], repository_folder, verbosity=0)
-        temp_result = temp_result[1].replace("\r", "")
+        temp_result = temp_result[1].replace("\r", GeneralUtilities.empty_string)
         result = [line for line in temp_result.split("\n") if len(line) > 0]
         return result
 
@@ -1243,7 +1243,7 @@ class ScriptCollectionCore:
     def __adjust_folder_name(self, folder: str) -> str:
         result = os.path.dirname(folder).replace("\\", "/")
         if result == "/":
-            return ""
+            return GeneralUtilities.empty_string
         else:
             return result
 
@@ -1449,7 +1449,7 @@ class ScriptCollectionCore:
         GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(ls_result[1]), f"'ls -ld' of '{file_or_folder}' had an empty output. StdErr: '{ls_result[2]}'")
         GeneralUtilities.write_message_to_stdout(ls_result[1])
         output = ls_result[1]
-        result = output.replace("\n", "")
+        result = output.replace("\n", GeneralUtilities.empty_string)
         result = ' '.join(result.split())   # reduce multiple whitespaces to one
         return result
 
@@ -1538,7 +1538,7 @@ class ScriptCollectionCore:
                 try:
                     while not q_stdout.empty():
                         out_line: str = q_stdout.get_nowait()
-                        out_line = out_line.replace("\r", "").replace("\n", "")
+                        out_line = out_line.replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
                         if GeneralUtilities.string_has_content(out_line):
                             stdout_result.append(out_line)
                             reading_stdout_last_time_resulted_in_exception = False
@@ -1552,7 +1552,7 @@ class ScriptCollectionCore:
                 try:
                     while not q_stderr.empty():
                         err_line: str = q_stderr.get_nowait()
-                        err_line = err_line.replace("\r", "").replace("\n", "")
+                        err_line = err_line.replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
                         if GeneralUtilities.string_has_content(err_line):
                             stderr_result.append(err_line)
                             reading_stderr_last_time_resulted_in_exception = False
@@ -1600,8 +1600,8 @@ class ScriptCollectionCore:
                 GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
 
             exit_code: int = None
-            stdout: str = ""
-            stderr: str = ""
+            stdout: str = GeneralUtilities.empty_string
+            stderr: str = GeneralUtilities.empty_string
             pid: int = None
 
             with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
@@ -1971,10 +1971,10 @@ DNS                 = {domain}
         csproj_filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stdout(f"Check for updates in {csproj_filename}")
         result = self.run_program_with_retry("dotnet", f"list {csproj_filename} package --outdated", folder, print_errors_as_information=True)
-        for line in result[1].replace("\r", "").split("\n"):
+        for line in result[1].replace("\r", GeneralUtilities.empty_string).split("\n"):
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
-                package_name = line.replace(">", "").strip().split(" ")[0]
+                package_name = line.replace(">", GeneralUtilities.empty_string).strip().split(" ")[0]
                 if not (package_name in ignored_dependencies):
                     GeneralUtilities.write_message_to_stdout(f"Update package {package_name}...")
                     self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder, print_errors_as_information=True)

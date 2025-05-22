@@ -126,7 +126,7 @@ class CertificateUpdater:
     def __get_last_certificate_update_date(self) -> datetime:
         if os.path.exists(self.__last_update_timestamp_file):
             filecontent = GeneralUtilities.read_text_from_file(self.__last_update_timestamp_file)
-            return GeneralUtilities.string_to_datetime(filecontent.replace("\r", "").replace("\n", ""))
+            return GeneralUtilities.string_to_datetime(filecontent.replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string))
         else:
             return datetime(year=1970, month=1, day=1)
 

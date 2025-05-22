@@ -38,6 +38,8 @@ class GeneralUtilities:
     __datetime_format: str = "%Y-%m-%dT%H:%M:%S"
     __date_format: str = "%Y-%m-%d"
 
+    empty_string: str = ""
+
     @staticmethod
     def get_modest_dark_url() -> str:
         return "https://aniondev.github.io/CDN/ScriptCollectionDesigns/ModestDark/Style.css"
@@ -260,7 +262,7 @@ class GeneralUtilities:
         if GeneralUtilities.string_has_content(os_error.filename2):
             secondpath = f" {os_error.filename2}"
         else:
-            secondpath = ""
+            secondpath = GeneralUtilities.empty_string
         return f"Related path(s): {os_error.filename}{secondpath}"
 
     @staticmethod
@@ -315,7 +317,7 @@ class GeneralUtilities:
             return True
         type_of_argument = type(argument)
         if type_of_argument == str:
-            return argument == ""
+            return argument == GeneralUtilities.empty_string
         else:
             raise ValueError(f"expected string-variable in argument of string_is_none_or_empty but the type was '{str(type_of_argument)}'")
 
@@ -325,7 +327,7 @@ class GeneralUtilities:
         if GeneralUtilities.string_is_none_or_empty(string):
             return True
         else:
-            return string.strip() == ""
+            return string.strip() == GeneralUtilities.empty_string
 
     @staticmethod
     @check_arguments
@@ -378,7 +380,7 @@ class GeneralUtilities:
         if GeneralUtilities.file_ends_with_content(file):
             return "\n"
         else:
-            return ""
+            return GeneralUtilities.empty_string
 
     @staticmethod
     @check_arguments
@@ -861,7 +863,7 @@ class GeneralUtilities:
         result = list()
         if list_as_string is not None:
             list_as_string = list_as_string.strip()
-            if list_as_string == "":
+            if list_as_string == GeneralUtilities.empty_string:
                 pass
             elif separator in list_as_string:
                 for item in list_as_string.split(separator):
@@ -922,7 +924,7 @@ class GeneralUtilities:
         if positive:
             return "✅"
         else:
-            return ""
+            return GeneralUtilities.empty_string
 
     @staticmethod
     @check_arguments

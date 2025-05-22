@@ -11,7 +11,7 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
         # arrange
         test_string = "a\r\nb\n"
-        expected = ["a", "b", ""]
+        expected = ["a", "b", GeneralUtilities.empty_string]
 
         # act
         actual = GeneralUtilities.string_to_lines(test_string)
@@ -127,14 +127,14 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
     def test_string_is_none_or_whitespace(self) -> None:
         assert GeneralUtilities.string_is_none_or_whitespace(None)
-        assert GeneralUtilities.string_is_none_or_whitespace("")
+        assert GeneralUtilities.string_is_none_or_whitespace(GeneralUtilities.empty_string)
         assert GeneralUtilities.string_is_none_or_whitespace(" ")
         assert GeneralUtilities.string_is_none_or_whitespace("   ")
         assert not GeneralUtilities.string_is_none_or_whitespace("not empty string")
 
     def test_string_is_none_or_empty(self) -> None:
         assert GeneralUtilities.string_is_none_or_empty(None)
-        assert GeneralUtilities.string_is_none_or_empty("")
+        assert GeneralUtilities.string_is_none_or_empty(GeneralUtilities.empty_string)
         assert not GeneralUtilities.string_is_none_or_empty(" ")
         assert not GeneralUtilities.string_is_none_or_empty("   ")
         assert not GeneralUtilities.string_is_none_or_empty("not empty string")
@@ -177,7 +177,7 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
     def test_internal_ends_with_newline_character_empty_string(self) -> None:
         # pylint: disable=W0212
-        assert GeneralUtilities.ends_with_newline_character("".encode()) is False
+        assert GeneralUtilities.ends_with_newline_character(GeneralUtilities.empty_string.encode()) is False
 
     def test_internal_ends_with_newline_character_nonempty_string_true(self) -> None:
         # pylint: disable=W0212
