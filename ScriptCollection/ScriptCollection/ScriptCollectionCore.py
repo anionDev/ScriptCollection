@@ -1,4 +1,3 @@
-import sys
 from datetime import timedelta, datetime
 import json
 import binascii
@@ -32,8 +31,9 @@ from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
+from .SCLog import SCLog, LogLevel
 
-version = "3.5.120"
+version = "3.5.121"
 __version__ = version
 
 
@@ -47,11 +47,13 @@ class ScriptCollectionCore:
     __mocked_program_calls: list = None
     program_runner: ProgramRunnerBase = None
     call_program_runner_directly: bool = None
+    log: SCLog = None
 
     def __init__(self):
         self.program_runner = ProgramRunnerPopen()
         self.call_program_runner_directly = None
         self.__mocked_program_calls = list[ScriptCollectionCore.__MockProgramCall]()
+        self.log = SCLog(None, LogLevel.Quiet, False)
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -428,10 +430,10 @@ class ScriptCollectionCore:
                 self.git_stage_all_changes(directory)
         else:
             if no_changes_behavior == 0:
-                GeneralUtilities.write_message_to_stdout(f"Commit '{message}' will not be done because there are no changes to commit in repository '{directory}'")
+                self.log.log(f"Commit '{message}' will not be done because there are no changes to commit in repository '{directory}'", LogLevel.Debug)
                 do_commit = False
             elif no_changes_behavior == 1:
-                GeneralUtilities.write_message_to_stdout(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will be done anyway.")
+                self.log.log(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will be done anyway.", LogLevel.Debug)
                 do_commit = True
             elif no_changes_behavior == 2:
                 raise RuntimeError(f"There are no changes to commit in repository '{directory}'. Commit '{message}' will not be done.")
@@ -439,7 +441,7 @@ class ScriptCollectionCore:
                 raise ValueError(f"Unknown value for no_changes_behavior: {GeneralUtilities.str_none_safe(no_changes_behavior)}")
 
         if do_commit:
-            GeneralUtilities.write_message_to_stdout(f"Commit changes in '{directory}'")
+            self.log.log(f"Commit changes in '{directory}'", LogLevel.Information)
             self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
         return self.git_get_commit_id(directory)
@@ -581,7 +583,7 @@ class ScriptCollectionCore:
         counter = 0
         for tag in tags:
             counter = counter+1
-            GeneralUtilities.write_message_to_stdout(f"Process tag {counter}/{tags_count}.")
+            self.log.log(f"Process tag {counter}/{tags_count}.", LogLevel.Information)
             # tag is on source-branch
             if self.git_commit_is_ancestor(repository, tag, tag_source_branch):
                 commit_id_old = self.git_get_commitid_of_tag(repository, tag)
@@ -1048,10 +1050,10 @@ class ScriptCollectionCore:
                 elif (size_string.endswith("gib")):
                     size = int(size_string[:-3]) * pow(2, 30)
                 else:
-                    GeneralUtilities.write_message_to_stderr("Wrong format")
+                    self.log.log("Wrong format", LogLevel.Error)
                     return 1
             else:
-                GeneralUtilities.write_message_to_stderr("Wrong format")
+                self.log.log("Wrong format", LogLevel.Error)
                 return 1
         with open(name, "wb") as f:
             f.seek(size-1)
@@ -1115,7 +1117,7 @@ class ScriptCollectionCore:
 
             return 0
         else:
-            GeneralUtilities.write_message_to_stdout(f"File '{file}' does not exist")
+            self.log.log(f"File '{file}' does not exist.", LogLevel.Error)
             return 1
 
     @GeneralUtilities.check_arguments
@@ -1194,8 +1196,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def __print_qr_code_by_csv_line(self, displayname: str, website: str, emailaddress: str, key: str, period: str) -> None:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
-        GeneralUtilities.write_message_to_stdout(
-            f"{displayname} ({emailaddress}):")
+        GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
         qr = qrcode.QRCode()
         qr.add_data(qrcode_content)
@@ -1447,7 +1448,6 @@ class ScriptCollectionCore:
         ls_result = self.run_program_argsasarray("ls", ["-ld", file_or_folder])
         GeneralUtilities.assert_condition(ls_result[0] == 0, f"'ls -ld {file_or_folder}' resulted in exitcode {str(ls_result[0])}. StdErr: {ls_result[2]}")
         GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(ls_result[1]), f"'ls -ld' of '{file_or_folder}' had an empty output. StdErr: '{ls_result[2]}'")
-        GeneralUtilities.write_message_to_stdout(ls_result[1])
         output = ls_result[1]
         result = output.replace("\n", GeneralUtilities.empty_string)
         result = ' '.join(result.split())   # reduce multiple whitespaces to one
@@ -1460,7 +1460,6 @@ class ScriptCollectionCore:
         ls_result = self.run_program_argsasarray("ls", ["-la", file_or_folder])
         GeneralUtilities.assert_condition(ls_result[0] == 0, f"'ls -la {file_or_folder}' resulted in exitcode {str(ls_result[0])}. StdErr: {ls_result[2]}")
         GeneralUtilities.assert_condition(not GeneralUtilities.string_is_none_or_whitespace(ls_result[1]), f"'ls -la' of '{file_or_folder}' had an empty output. StdErr: '{ls_result[2]}'")
-        GeneralUtilities.write_message_to_stdout(ls_result[1])
         output = ls_result[1]
         result = output.split("\n")[3:]  # skip the lines with "Total", "." and ".."
         result = [' '.join(line.split()) for line in result]  # reduce multiple whitespaces to one
@@ -1520,7 +1519,7 @@ class ScriptCollectionCore:
         return False
 
     @staticmethod
-    def __read_popen_pipes(p: Popen, print_live_output: bool, print_errors_as_information: bool) -> tuple[list[str], list[str]]:
+    def __read_popen_pipes(p: Popen, print_live_output: bool, print_errors_as_information: bool, log: SCLog) -> tuple[list[str], list[str]]:
         p_id = p.pid
         with ThreadPoolExecutor(2) as pool:
             q_stdout = Queue()
@@ -1543,9 +1542,10 @@ class ScriptCollectionCore:
                             stdout_result.append(out_line)
                             reading_stdout_last_time_resulted_in_exception = False
                             if print_live_output:
-                                print(out_line, end='\n', file=sys.stdout, flush=False)
-                    if print_live_output:
-                        sys.stdout.flush()
+                                # print(out_line, end='\n', file=sys.stdout, flush=False)
+                                log.log(out_line+"\n", LogLevel.Information)
+                    # if print_live_output:
+                    #    sys.stdout.flush()
                 except Empty:
                     reading_stdout_last_time_resulted_in_exception = True
 
@@ -1557,12 +1557,13 @@ class ScriptCollectionCore:
                             stderr_result.append(err_line)
                             reading_stderr_last_time_resulted_in_exception = False
                             if print_live_output:
-                                print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
-                    if print_live_output:
-                        if print_errors_as_information:
-                            sys.stdout.flush()
-                        else:
-                            sys.stderr.flush()
+                                # print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
+                                log.log(err_line+"\n", LogLevel.Error if print_errors_as_information else LogLevel.Information)
+                    # if print_live_output:
+                    #    if print_errors_as_information:
+                    #        sys.stdout.flush()
+                    #    else:
+                    #        sys.stderr.flush()
                 except Empty:
                     reading_stderr_last_time_resulted_in_exception = True
 
@@ -1597,7 +1598,7 @@ class ScriptCollectionCore:
 
             verbose = verbosity > 2
             if verbose:
-                GeneralUtilities.write_message_to_stdout(f"Run '{info_for_log}'.")
+                self.log.log(f"Run '{info_for_log}'.", LogLevel.Debug)
 
             exit_code: int = None
             stdout: str = GeneralUtilities.empty_string
@@ -1610,7 +1611,7 @@ class ScriptCollectionCore:
                     GeneralUtilities.ensure_file_exists(log_file)
                 pid = process.pid
 
-                outputs: tuple[list[str], list[str]] = ScriptCollectionCore.__read_popen_pipes(process, print_live_output, print_errors_as_information)
+                outputs: tuple[list[str], list[str]] = ScriptCollectionCore.__read_popen_pipes(process, print_live_output, print_errors_as_information, self.log)
 
                 for out_line_plain in outputs[0]:
                     if out_line_plain is not None:
@@ -1655,7 +1656,7 @@ class ScriptCollectionCore:
             result_message = f"Program '{info_for_log}' resulted in exitcode {exit_code}."
 
             if verbose:
-                GeneralUtilities.write_message_to_stdout(result_message)
+                self.log.log(result_message, LogLevel.Debug)
 
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                 raise ValueError(f"{result_message} (StdOut: '{stdout}', StdErr: '{stderr}')")
@@ -1969,55 +1970,15 @@ DNS                 = {domain}
     def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int, ignored_dependencies: list[str]):
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
-        GeneralUtilities.write_message_to_stdout(f"Check for updates in {csproj_filename}")
+        self.log.log(f"Check for updates in {csproj_filename}", LogLevel.Information)
         result = self.run_program_with_retry("dotnet", f"list {csproj_filename} package --outdated", folder, print_errors_as_information=True)
         for line in result[1].replace("\r", GeneralUtilities.empty_string).split("\n"):
             # Relevant output-lines are something like "    > NJsonSchema             10.7.0        10.7.0      10.9.0"
             if ">" in line:
                 package_name = line.replace(">", GeneralUtilities.empty_string).strip().split(" ")[0]
                 if not (package_name in ignored_dependencies):
-                    GeneralUtilities.write_message_to_stdout(f"Update package {package_name}...")
+                    self.log.log(f"Update package {package_name}...", LogLevel.Debug)
                     self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder, print_errors_as_information=True)
-
-    @GeneralUtilities.check_arguments
-    def dotnet_package_is_available(self, package_name: str, package_version: str, source: str):
-        default_source_address = "nuget.org"
-        if source == default_source_address:
-            GeneralUtilities.write_message_to_stdout(f"Wait until package {package_name} v{package_version} is available on {source}.")
-            headers = {'Cache-Control': 'no-cache'}
-            r = requests.get(f"https://api.{default_source_address}/v3-flatcontainer/{package_name.lower()}/{package_version}/{package_name.lower()}.nuspec", timeout=5, headers=headers)
-            return r.status_code == 200
-        else:
-            raise ValueError(f"dotnet_package_is_available is not implemented yet for other sources than {default_source_address}.")
-
-    @GeneralUtilities.check_arguments
-    def wait_until_dotnet_package_is_available(self, package_name: str, package_version: str, source: str):
-        return  # TODO fix this
-        try:  # pylint: disable=unreachable
-            while not self.dotnet_package_is_available(package_name, package_version, source):
-                time.sleep(30)
-        except:
-            pass
-
-    @GeneralUtilities.check_arguments
-    def python_package_is_available(self, package_name: str, package_version: str, source: str):
-        default_source_address = "pypi.org"
-        if source == default_source_address:
-            GeneralUtilities.write_message_to_stdout(f"Wait until package {package_name} v{package_version} is available on {source}.")
-            headers = {'Cache-Control': 'no-cache'}
-            r = requests.get(f"https://{default_source_address}/pypi/{package_name}/{package_version}/json", timeout=5, headers=headers)
-            return r.status_code == 200
-        else:
-            raise ValueError(f"python_package_is_available is not implemented yet for other sources than {default_source_address}.")
-
-    @GeneralUtilities.check_arguments
-    def wait_until_python_package_is_available(self, package_name: str, package_version: str, source: str):
-        return  # TODO fix this
-        try:  # pylint: disable=unreachable
-            while not self.python_package_is_available(package_name, package_version, source):
-                time.sleep(30)
-        except:
-            pass
 
     @GeneralUtilities.check_arguments
     def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:

@@ -5,6 +5,7 @@ from .GeneralUtilities import GeneralUtilities
 
 
 class LogLevel(Enum):
+    Quiet = 0
     Error = 1
     Warning = 2
     Information = 3
@@ -19,10 +20,10 @@ class SCLog:
     log_file: str
     add_overhead: bool
 
-    def __init__(self, log_file: str = None):
-        self.add_overhead = False
-        self.loglevel = LogLevel.Information
+    def __init__(self, log_file: str = None, loglevel: LogLevel = None, add_overhead: bool = False):
         self.log_file = log_file
+        self.loglevel = loglevel
+        self.add_overhead = add_overhead
 
     @GeneralUtilities.check_arguments
     def log_exception(self, message: str, ex: Exception, current_traceback):
