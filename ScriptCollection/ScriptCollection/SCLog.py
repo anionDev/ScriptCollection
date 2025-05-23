@@ -24,7 +24,10 @@ class SCLog:
 
     def __init__(self, log_file: str = None, loglevel: LogLevel = None, add_overhead: bool = False, print_as_color: bool = True):
         self.log_file = log_file
-        self.loglevel = loglevel
+        if loglevel is None:
+            self.loglevel = loglevel
+        else:
+            self.loglevel = LogLevel.Information
         self.add_overhead = add_overhead
         self.print_as_color = print_as_color
 
