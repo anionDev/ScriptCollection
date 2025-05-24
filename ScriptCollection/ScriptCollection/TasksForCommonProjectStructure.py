@@ -3110,6 +3110,17 @@ class TasksForCommonProjectStructure:
         # TODO validate artifactsinformation_file against xsd
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name} without errors.")
 
+    def __add_changelog_file(self, repository_folder: str, version_of_project: str):
+        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
+        if not os.path.isfile(changelog_file):
+            GeneralUtilities.ensure_file_exists(changelog_file)
+            GeneralUtilities.write_text_to_file(changelog_file, """# Release notes
+
+## Changes
+
+- Updated dependencies.
+""")
+
     @GeneralUtilities.check_arguments
     def generic_update_dependencies(self, repository_folder: str, verbosity: int = 1):
         # Prepare
@@ -3118,42 +3129,35 @@ class TasksForCommonProjectStructure:
         codeunits = self.get_codeunits(repository_folder)
         update_dependencies_script_filename = "UpdateDependencies.py"
         target_environmenttype = "QualityCheck"
+        project_name: str = os.path.basename(repository_folder)
+        GeneralUtilities.assert_condition(not self.__sc.git_repository_has_uncommitted_changes(repository_folder), "There are uncommitted changes in the repository.")
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
         if os.path.isfile(os.path.join(global_scripts_folder, update_dependencies_script_filename)):
             self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
-            GeneralUtilities.assert_condition(not self.__sc.git_repository_has_uncommitted_changes(repository_folder), "There are uncommitted changes in the repository.")
             self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder, print_live_output=True)
+            version_of_project = self.get_version_of_project(repository_folder)
+            self.__add_changelog_file(repository_folder, version_of_project)
+            GeneralUtilities.write_message_to_stdout(f"Updated global dependencies of {project_name}.")
+            self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated dependencies")
 
-            # update dependencies of codeunits
-            something_was_updated = False
-            for codeunit in codeunits:
-                codeunit_file = os.path.join(repository_folder, codeunit, f"{codeunit}.codeunit.xml")
-                codeunit_has_updatable_dependencies = self.codeunit_has_updatable_dependencies(codeunit_file)
-                if codeunit_has_updatable_dependencies:
-                    codeunit_folder = os.path.join(repository_folder, codeunit)
-                    update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
-                    GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
-                    self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity, print_live_output=True)
-                    if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
-                        something_was_updated = True
-                        version_of_project = self.get_version_of_project(repository_folder)
-                        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
-                        if not os.path.isfile(changelog_file):
-                            GeneralUtilities.write_text_to_file(changelog_file, """# Release notes
+        # update dependencies of codeunits
+        for codeunit in codeunits:
+            codeunit_file = os.path.join(repository_folder, codeunit, f"{codeunit}.codeunit.xml")
+            codeunit_has_updatable_dependencies = self.codeunit_has_updatable_dependencies(codeunit_file)
+            if codeunit_has_updatable_dependencies:
+                codeunit_folder = os.path.join(repository_folder, codeunit)
+                update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
+                GeneralUtilities.ensure_directory_exists(os.path.join(update_dependencies_script_folder, "Resources", "CodeAnalysisResult"))
+                self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity, print_live_output=True)
+                if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+                    version_of_project = self.get_version_of_project(repository_folder)
+                    self.__add_changelog_file(repository_folder, version_of_project)
+                    GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
+                    self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated dependencies")
 
-    ## Changes
-
-    - Updated dependencies.
-    """)
-                            GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
-                    else:
-                        GeneralUtilities.write_message_to_stdout(f"There are no dependencies to update in codeunit {codeunit}.")
-
-            if something_was_updated:
-                self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, f"Build codeunits due to updated dependencies")
-                self.__sc.git_commit(repository_folder, "Updated dependencies")
+        self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
         current_file: str
