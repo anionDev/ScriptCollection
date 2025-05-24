@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.130"
+version = "3.5.131"
 __version__ = version
 
 
@@ -1547,6 +1547,9 @@ class ScriptCollectionCore:
                                 if out_line.startswith("Debug: "):
                                     loglevel = LogLevel.Debug
                                     out_line = out_line[len("Debug: "):]
+                                if out_line.startswith("Diagnostic: "):
+                                    loglevel = LogLevel.Diagnostic
+                                    out_line = out_line[len("Diagnostic: "):]
                                 log.log(out_line, loglevel)
                     # if print_live_output:
                     #    sys.stdout.flush()
@@ -1609,6 +1612,7 @@ class ScriptCollectionCore:
             verbose = verbosity > 2
             if verbose:
                 self.log.log(f"Run '{info_for_log}'.", LogLevel.Debug)
+                self.log.log(f"Run '{info_for_log}' with the following properties: verbosity={verbosity}; timeoutInSeconds={timeoutInSeconds}, print_live_output={print_live_output}.", LogLevel.Diagnostic)
 
             exit_code: int = None
             stdout: str = GeneralUtilities.empty_string
