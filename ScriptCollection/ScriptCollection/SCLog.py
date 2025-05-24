@@ -10,6 +10,7 @@ class LogLevel(Enum):
     Warning = 2
     Information = 3
     Debug = 4
+    Diagnostic = 5
 
     def __int__(self):
         return self.value
@@ -59,6 +60,8 @@ class SCLog:
             part3 = f"Warning: {message}"
         if loglevel == LogLevel.Debug:
             part3 = f"Debug: {message}"
+        if loglevel == LogLevel.Diagnostic:
+            part3 = f"Diagnostic: {message}"
         if self.add_overhead:
             moment: datetime = None
             if self.zone_of_time is None:
@@ -74,6 +77,8 @@ class SCLog:
                 part2 = f"Warning"
             elif loglevel == LogLevel.Debug:
                 part2 = f"Debug"
+            elif loglevel == LogLevel.Diagnostic:
+                part2 = f"Diagnostic"
             else:
                 raise ValueError("Unknown loglevel.")
             part3 = f"] {message}"
@@ -86,6 +91,8 @@ class SCLog:
             GeneralUtilities.print_text_in_red(part2, print_to_std_out, self.print_as_color)
         elif loglevel == LogLevel.Warning:
             GeneralUtilities.print_text_in_yellow(part2, print_to_std_out, self.print_as_color)
+        elif loglevel == LogLevel.Debug:
+            GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
         elif loglevel == LogLevel.Debug:
             GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
         else:
