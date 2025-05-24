@@ -20,6 +20,7 @@ from OpenSSL import crypto
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
+from .SCLog import SCLog, LogLevel
 from .ProgramRunnerEpew import ProgramRunnerEpew
 
 
@@ -113,6 +114,14 @@ class TasksForCommonProjectStructure:
     validate_developers_of_repository: bool = True
     dotnet_runsettings_file = "runsettings.xml"
 
+    def __init__(self, sc: ScriptCollectionCore = None):
+        if sc is None:
+            log: SCLog = SCLog()
+            log.loglevel = LogLevel.Information
+            sc = ScriptCollectionCore()
+            sc.log = log
+        self.__sc = sc
+
     @GeneralUtilities.check_arguments
     def assert_is_codeunit_folder(self, codeunit_folder: str) -> str:
         repo_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
@@ -137,11 +146,6 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_productive_environment_name() -> str:
         return "Productive"
-
-    def __init__(self, sc: ScriptCollectionCore = None):
-        if sc is None:
-            sc = ScriptCollectionCore()
-        self.__sc = sc
 
     @GeneralUtilities.check_arguments
     def get_build_folder(self, repository_folder: str, codeunit_name: str) -> str:
