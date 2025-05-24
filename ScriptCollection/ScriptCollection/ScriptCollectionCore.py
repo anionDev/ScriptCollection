@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.129"
+version = "3.5.130"
 __version__ = version
 
 
@@ -53,7 +53,7 @@ class ScriptCollectionCore:
         self.program_runner = ProgramRunnerPopen()
         self.call_program_runner_directly = None
         self.__mocked_program_calls = list[ScriptCollectionCore.__MockProgramCall]()
-        self.log = SCLog(None, LogLevel.Quiet, False)
+        self.log = SCLog(None, LogLevel.Warning, False)
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -1563,9 +1563,9 @@ class ScriptCollectionCore:
                             if print_live_output:
                                 # print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
                                 loglevel = LogLevel.Error
-                                if out_line.startswith("Warning: "):
+                                if err_line.startswith("Warning: "):
                                     loglevel = LogLevel.Warning
-                                    out_line = out_line[len("Warning: "):]
+                                    err_line = err_line[len("Warning: "):]
                                 if print_errors_as_information:  # "errors" in "print_errors_as_information" means: all what is written to std-err
                                     loglevel = LogLevel.Information
                                 log.log(err_line, loglevel)
