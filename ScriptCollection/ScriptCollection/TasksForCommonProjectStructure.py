@@ -1423,7 +1423,7 @@ class TasksForCommonProjectStructure:
         self.__sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str,image_name:str=None) -> None:
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str, image_name: str = None) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         filename = os.path.basename(push_artifacts_file)
         codeunitname_regex: str = "([a-zA-Z0-9]+)"
@@ -1443,7 +1443,7 @@ class TasksForCommonProjectStructure:
         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         if image_name is None:
             image_name = codeunitname
-        image_name=image_name.lower()
+        image_name = image_name.lower()
         repo = f"{registry}/{image_name}"
         image_latest = f"{repo}:latest"
         image_version = f"{repo}:{codeunit_version}"
@@ -3195,8 +3195,11 @@ class TasksForCommonProjectStructure:
         self.__sc.git_commit(build_repository_folder, "Updated submodules")
 
         if "--dependencyupdate" in generic_prepare_new_release_arguments.commandline_arguments:
+            GeneralUtilities.write_message_to_stdout("Debug: Update dependencies...")
             self.generic_update_dependencies(repository_folder)
             self.assert_no_uncommitted_changes(repository_folder)
+        else:
+            GeneralUtilities.write_message_to_stdout("Debug: Dependency-update skipped.")
 
         GeneralUtilities.write_message_to_stdout(f"Check reference-repository...")
         now = datetime.now()
