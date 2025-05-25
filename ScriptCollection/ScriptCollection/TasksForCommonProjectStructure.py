@@ -1427,7 +1427,7 @@ class TasksForCommonProjectStructure:
         self.__sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str, image_name: str = None) -> None:
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str, remote_image_name: str = None) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         filename = os.path.basename(push_artifacts_file)
         codeunitname_regex: str = "([a-zA-Z0-9]+)"
@@ -1445,22 +1445,23 @@ class TasksForCommonProjectStructure:
         image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
         image_filename = os.path.basename(image_file)
         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
-        if image_name is None:
-            image_name = codeunitname
-        image_name = image_name.lower()
-        repo = f"{registry}/{image_name}"
-        image_latest = f"{repo}:latest"
-        image_version = f"{repo}:{codeunit_version}"
+        if remote_image_name is None:
+            remote_image_name = codeunitname
+        remote_image_name = remote_image_name.lower()
+        local_image_name = codeunitname.lower()
+        remote_repo = f"{registry}/{remote_image_name}"
+        remote_image_latest = f"{remote_repo}:latest"
+        remote_image_version = f"{remote_repo}:{codeunit_version}"
         GeneralUtilities.write_message_to_stdout("Load image...")
         sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Tag image...")
-        sc.run_program("docker", f"tag {image_name}:{codeunit_version} {image_latest}", verbosity=verbosity)
-        sc.run_program("docker", f"tag {image_name}:{codeunit_version} {image_version}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}", verbosity=verbosity)
+        sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}", verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Push image...")
-        sc.run_program("docker", f"push {image_latest}", verbosity=verbosity)
-        sc.run_program("docker", f"push {image_version}", verbosity=verbosity)
+        sc.run_program("docker", f"push {remote_image_latest}", verbosity=verbosity)
+        sc.run_program("docker", f"push {remote_image_version}", verbosity=verbosity)
         if push_readme:
-            sc.run_program("docker-pushrm", f"{repo}", codeunit_folder, verbosity=verbosity)
+            sc.run_program("docker-pushrm", f"{remote_repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
