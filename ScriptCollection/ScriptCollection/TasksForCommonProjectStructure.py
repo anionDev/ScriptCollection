@@ -3151,6 +3151,8 @@ class TasksForCommonProjectStructure:
         for codeunit in codeunits:
             codeunit_file = os.path.join(repository_folder, codeunit, f"{codeunit}.codeunit.xml")
             codeunit_has_updatable_dependencies = self.codeunit_has_updatable_dependencies(codeunit_file)
+            codeunit_folder: str = os.path.join(repository_folder, codeunit)
+            self.build_codeunit(codeunit_folder, verbosity, "QualityCheck", None, False, None, False, [])
             if codeunit_has_updatable_dependencies:
                 codeunit_folder = os.path.join(repository_folder, codeunit)
                 update_dependencies_script_folder = os.path.join(codeunit_folder, "Other")
@@ -3160,8 +3162,8 @@ class TasksForCommonProjectStructure:
                     version_of_project = self.get_version_of_project(repository_folder)
                     self.__add_changelog_file(repository_folder, version_of_project)
                     GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
-                    self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated dependencies")
 
+        self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated dependencies")
         self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
