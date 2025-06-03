@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.135"
+version = "3.5.136"
 __version__ = version
 
 
@@ -714,7 +714,7 @@ class ScriptCollectionCore:
         target_folder:str = repository_folder + ".git"
         GeneralUtilities.ensure_directory_exists(target_folder)
         GeneralUtilities.move_content_of_folder(git_folder, target_folder)
-        #GeneralUtilities.ensure_directory_does_not_exist(git_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(repository_folder)
         self.run_program_argsasarray("git", ["config", "--bool", "core.bare", "true"], target_folder)
 
     @GeneralUtilities.check_arguments
