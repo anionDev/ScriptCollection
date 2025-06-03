@@ -653,3 +653,11 @@ def Espoc() -> int:
     else:
         GeneralUtilities.write_message_to_stdout(f"File '{process_list_file}' does not exist. No processes to terminate.")
     return 0
+
+def ConvertGitRepositoryToBareRepository()->int:
+    parser = argparse.ArgumentParser(description="Converts a local git-repository to a bare repository.")
+    parser.add_argument('-f', '--folder', required=True, help='Git-repository-folder which should be converted.')
+    args = parser.parse_args()
+    sc=ScriptCollectionCore()
+    sc.convert_git_repository_to_bare_repository(args.folder)
+    return 0
