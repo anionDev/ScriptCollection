@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.136"
+version = "3.5.137"
 __version__ = version
 
 
@@ -690,13 +690,18 @@ class ScriptCollectionCore:
         return self.is_folder(git_folder_path) or self.is_file(git_folder_path)
     
     @GeneralUtilities.check_arguments
-    def is_git_or_bare_git_repository(self, folder: str) -> bool:
+    def is_bare_git_repository(self, folder: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if folder.endswith("/") or folder.endswith("\\"):
             folder = folder[:-1]
         if not self.is_folder(folder):
             raise ValueError(f"Folder '{folder}' does not exist.")
-        return self.is_git_repository(folder) or self.is_folder(folder + ".git") 
+        return folder.endswith(".git")
+    
+    @GeneralUtilities.check_arguments
+    def is_git_or_bare_git_repository(self, folder: str) -> bool:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        return self.is_git_repository(folder) or self.is_bare_git_repository(folder) 
 
     @GeneralUtilities.check_arguments
     def assert_is_git_repository(self, folder: str) -> str:
