@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.137"
+version = "3.5.138"
 __version__ = version
 
 
@@ -154,7 +154,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def commit_is_signed_by_key(self, repository_folder: str, revision_identifier: str, key: str) -> bool:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         result = self.run_program("git", f"verify-commit {revision_identifier}", repository_folder, throw_exception_if_exitcode_is_not_zero=False)
         if (result[0] != 0):
             return False
@@ -168,12 +168,12 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_parent_commit_ids_of_commit(self, repository_folder: str, commit_id: str) -> str:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).split(" ")
 
     @GeneralUtilities.check_arguments
     def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None, verbosity: int = 1) -> list[tuple[str, str]]:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         space_character = "_"
         if subfolder is None:
             subfolder_argument = GeneralUtilities.empty_string
@@ -193,7 +193,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         since_as_string = self.__datetime_to_string_for_git(since)
         until_as_string = self.__datetime_to_string_for_git(until)
         result = filter(lambda line: not GeneralUtilities.string_is_none_or_whitespace(line), self.run_program("git", f'log --since "{since_as_string}" --until "{until_as_string}" --pretty=format:"%H" --no-patch', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].split("\n").replace("\r", GeneralUtilities.empty_string))
@@ -207,7 +207,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_commit_is_ancestor(self, repository_folder: str,  ancestor: str, descendant: str = "HEAD") -> bool:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         result = self.run_program_argsasarray("git", ["merge-base", "--is-ancestor", ancestor, descendant], repository_folder, throw_exception_if_exitcode_is_not_zero=False)
         exit_code = result[0]
         if exit_code == 0:
@@ -261,13 +261,13 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
         date_as_string = result[1].replace('\n', '')
         result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
@@ -279,17 +279,17 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
-        self.assert_is_git_repository(folder)
+        self.is_git_or_bare_git_repository(folder)
         self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
-        self.assert_is_git_repository(folder)
+        self.is_git_or_bare_git_repository(folder)
         self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
     def git_remove_branch(self, folder: str, branchname: str) -> None:
-        self.assert_is_git_repository(folder)
+        self.is_git_or_bare_git_repository(folder)
         self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
@@ -298,7 +298,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
-        self.assert_is_git_repository(folder)
+        self.is_git_or_bare_git_repository(folder)
         argument = ["push", "--recurse-submodules=on-demand", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
@@ -313,7 +313,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False) -> None:
-        self.assert_is_git_repository(folder)
+        self.is_git_or_bare_git_repository(folder)
         argument = f"pull {remote} {remotebranchname}:{localbranchname}"
         if force:
             argument = f"{argument} --force"
@@ -321,7 +321,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_list_remote_branches(self, folder: str, remote: str, fetch: bool) -> list[str]:
-        self.assert_is_git_repository(folder)
+        self.is_git_or_bare_git_repository(folder)
         if fetch:
             self.git_fetch(folder, remote)
         run_program_result = self.run_program("git", f"branch -rl {remote}/*", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
@@ -355,19 +355,19 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_all_remote_names(self, directory: str) -> list[str]:
-        self.assert_is_git_repository(directory)
+        self.is_git_or_bare_git_repository(directory)
         result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result
 
     @GeneralUtilities.check_arguments
     def git_get_remote_url(self, directory: str, remote_name: str) -> str:
-        self.assert_is_git_repository(directory)
+        self.is_git_or_bare_git_repository(directory)
         result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
         return result[0].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def repository_has_remote_with_specific_name(self, directory: str, remote_name: str) -> bool:
-        self.assert_is_git_repository(directory)
+        self.is_git_or_bare_git_repository(directory)
         return remote_name in self.git_get_all_remote_names(directory)
 
     @GeneralUtilities.check_arguments
@@ -448,7 +448,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
-        self.assert_is_git_repository(directory)
+        self.is_git_or_bare_git_repository(directory)
         argument = ["tag", tag, target_for_tag]
         if sign:
             if message is None:
@@ -458,7 +458,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_delete_tag(self, directory: str, tag: str) -> None:
-        self.assert_is_git_repository(directory)
+        self.is_git_or_bare_git_repository(directory)
         self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
 
     @GeneralUtilities.check_arguments
@@ -532,7 +532,7 @@ class ScriptCollectionCore:
                     self.git_clone(target_repository, source_repository, include_submodules=True, mirror=True)
 
     def get_git_submodules(self, directory: str) -> list[str]:
-        self.assert_is_git_repository(directory)
+        self.is_git_or_bare_git_repository(directory)
         e = self.run_program("git", "submodule status", directory)
         result = []
         for submodule_line in GeneralUtilities.string_to_lines(e[1], False, True):
@@ -541,7 +541,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
-        self.assert_is_git_repository(repositorybasefolder)
+        self.is_git_or_bare_git_repository(repositorybasefolder)
         exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False, verbosity=0)[0]
         if (exit_code == 0):
             return True
@@ -563,21 +563,21 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
-        self.assert_is_git_repository(repository)
+        self.is_git_or_bare_git_repository(repository)
         stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
         result = stdout[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
 
     @GeneralUtilities.check_arguments
     def git_get_tags(self, repository: str) -> list[str]:
-        self.assert_is_git_repository(repository)
+        self.is_git_or_bare_git_repository(repository)
         tags = [line.replace("\r", GeneralUtilities.empty_string) for line in self.run_program_argsasarray(
             "git", ["tag"], repository)[1].split("\n") if len(line) > 0]
         return tags
 
     @GeneralUtilities.check_arguments
     def git_move_tags_to_another_branch(self, repository: str, tag_source_branch: str, tag_target_branch: str, sign: bool = False, message: str = None) -> None:
-        self.assert_is_git_repository(repository)
+        self.is_git_or_bare_git_repository(repository)
         tags = self.git_get_tags(repository)
         tags_count = len(tags)
         counter = 0
@@ -598,13 +598,13 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def get_current_git_branch_has_tag(self, repository_folder: str) -> bool:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
         return result[0] == 0
 
     @GeneralUtilities.check_arguments
     def get_latest_git_tag(self, repository_folder: str) -> str:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
         result = result[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
@@ -624,7 +624,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def run_git_command_in_repository_and_submodules(self, repository_folder: str, arguments: list[str]) -> None:
-        self.assert_is_git_repository(repository_folder)
+        self.is_git_or_bare_git_repository(repository_folder)
         self.run_program_argsasarray("git", arguments, repository_folder)
         self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder)
 
