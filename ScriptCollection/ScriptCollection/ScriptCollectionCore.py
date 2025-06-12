@@ -2337,7 +2337,7 @@ TXDX
         self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> None:  # serviceaddress = None means local executable
+    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> None:
         GeneralUtilities.write_message_to_stdout("Starting OCR analysis of folder " + folder)
         supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
         if extensions is None:
@@ -2352,9 +2352,9 @@ TXDX
             self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions, languages)
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> None:  # serviceaddress = None means local executable
+    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> None:
         GeneralUtilities.write_message_to_stdout("Do OCR analysis of file " + file)
-        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
+        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp', 'gif', 'pdf', 'rtf', 'docx', 'doc', 'odt', 'xlsx', 'xls', 'ods', 'pptx', 'ppt', 'odp']
         for extension in supported_extensions:
             if file.lower().endswith("."+extension):
                 raise ValueError(f"Extension '{extension}' is not supported. Supported extensions are: {', '.join(supported_extensions)}")
@@ -2367,11 +2367,16 @@ TXDX
                 return
         ocr_content = self.get_ocr_content_of_file(file, serviceaddress, languages)
         GeneralUtilities.ensure_file_exists(target_file)
-        GeneralUtilities.write_text_to_file(file, f"""Name of file: {os.path.basename(file)}
+        GeneralUtilities.write_text_to_file(file, f"""Name of file: \"{os.path.basename(file)}\""
 Hash of file: {hash_of_current_file}
 OCR-content:
-{ocr_content}""")
+\"{ocr_content}\"""")
 
     @GeneralUtilities.check_arguments
     def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> str:  # serviceaddress = None means local executable
-        return "TODO"  # TODO
+        result: str = None
+        if serviceaddress is None:
+            result = ""  # TODO call local executable
+        else:
+            result = ""  # TODO call remote service
+        return result
