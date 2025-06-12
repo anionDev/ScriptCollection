@@ -635,7 +635,7 @@ def Espoc() -> int:
     parser.add_argument('-p', '--processid', required=True)
     parser.add_argument('-f', '--file', required=True, help='Specifies the file where the process-ids of the started processes are stored (line by line). This file will be deleted when all started processes are terminated.')
     args = parser.parse_args()
-    process_id =int(args.processid)
+    process_id = int(args.processid)
     process_list_file: str = args.file
     if not os.path.isabs(process_list_file):
         process_list_file = GeneralUtilities.resolve_relative_path(process_list_file, os.getcwd())
@@ -654,10 +654,40 @@ def Espoc() -> int:
         GeneralUtilities.write_message_to_stdout(f"File '{process_list_file}' does not exist. No processes to terminate.")
     return 0
 
-def ConvertGitRepositoryToBareRepository()->int:
+
+def ConvertGitRepositoryToBareRepository() -> int:
     parser = argparse.ArgumentParser(description="Converts a local git-repository to a bare repository.")
     parser.add_argument('-f', '--folder', required=True, help='Git-repository-folder which should be converted.')
     args = parser.parse_args()
-    sc=ScriptCollectionCore()
+    sc = ScriptCollectionCore()
     sc.convert_git_repository_to_bare_repository(args.folder)
+    return 0
+
+
+def OCRAnalysisOfFolder() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--serviceaddress', required=False, default=None)
+    parser.add_argument('-e', '--extensions', required=False, default=None)
+    parser.add_argument('-f', '--folder', required=False, default=None)
+    args = parser.parse_args()
+    sc = ScriptCollectionCore()
+    if args.folder is None:
+        args.folder = os.getcwd()
+    extensions_value: str = None
+    if args.extensions is not None:
+        if "," in args.extensions:
+            extensions_value = args.extensions.split(",")
+        else:
+            extensions_value = [args.extensions]
+    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions_value)
+    return 0
+
+
+def OCRAnalysisOfFile() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--serviceaddress', required=False, default=None)
+    parser.add_argument('-f', '--file', required=True)
+    args = parser.parse_args()
+    sc = ScriptCollectionCore()
+    sc.ocr_analysis_of_file(args.file, args.serviceaddress)
     return 0

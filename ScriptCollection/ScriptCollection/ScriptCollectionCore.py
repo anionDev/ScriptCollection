@@ -688,7 +688,7 @@ class ScriptCollectionCore:
             raise ValueError(f"Folder '{folder}' does not exist.")
         git_folder_path = f"{folder}/.git"
         return self.is_folder(git_folder_path) or self.is_file(git_folder_path)
-    
+
     @GeneralUtilities.check_arguments
     def is_bare_git_repository(self, folder: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
@@ -697,26 +697,25 @@ class ScriptCollectionCore:
         if not self.is_folder(folder):
             raise ValueError(f"Folder '{folder}' does not exist.")
         return folder.endswith(".git")
-    
+
     @GeneralUtilities.check_arguments
     def is_git_or_bare_git_repository(self, folder: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
-        return self.is_git_repository(folder) or self.is_bare_git_repository(folder) 
+        return self.is_git_repository(folder) or self.is_bare_git_repository(folder)
 
     @GeneralUtilities.check_arguments
     def assert_is_git_repository(self, folder: str) -> str:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         GeneralUtilities.assert_condition(self.is_git_repository(folder), f"'{folder}' is not a git-repository.")
 
-
     @GeneralUtilities.check_arguments
-    def convert_git_repository_to_bare_repository(self,repository_folder:str):
-        repository_folder=repository_folder.replace("\\", "/")
+    def convert_git_repository_to_bare_repository(self, repository_folder: str):
+        repository_folder = repository_folder.replace("\\", "/")
         self.assert_is_git_repository(repository_folder)
-        git_folder=repository_folder+ "/.git"
+        git_folder = repository_folder + "/.git"
         if not self.is_folder(git_folder):
             raise ValueError(f"Converting '{repository_folder}' to a bare repository not possible. The folder '{git_folder}' does not exist. Converting is currently only supported when the git-folder is a direct folder in a repository and not a reference to another location.")
-        target_folder:str = repository_folder + ".git"
+        target_folder: str = repository_folder + ".git"
         GeneralUtilities.ensure_directory_exists(target_folder)
         GeneralUtilities.move_content_of_folder(git_folder, target_folder)
         GeneralUtilities.ensure_directory_does_not_exist(repository_folder)
@@ -2336,3 +2335,20 @@ TXDX
     @GeneralUtilities.check_arguments
     def install_requirementstxt_file(self, requirements_txt_file: str, folder: str, verbosity: int):
         self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str]) -> str:  # serviceaddress = None means local executable
+        if extensions is None:
+            extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
+        for file in GeneralUtilities.get_direct_files_of_folder(folder):
+            file_lower = file.lower()
+            for extension in extensions:
+                if file_lower.endswith("."+extension):
+                    self.ocr_analysis_of_file(file, serviceaddress)
+                    break
+        for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
+            self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions)
+
+    @GeneralUtilities.check_arguments
+    def ocr_analysis_of_file(self, file: str, serviceaddress: str) -> str:  # serviceaddress = None means local executable
+        pass  # TODO
