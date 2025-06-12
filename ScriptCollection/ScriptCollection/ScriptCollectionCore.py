@@ -2337,18 +2337,41 @@ TXDX
         self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str]) -> str:  # serviceaddress = None means local executable
+    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> None:  # serviceaddress = None means local executable
+        GeneralUtilities.write_message_to_stdout("Starting OCR analysis of folder " + folder)
+        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
         if extensions is None:
-            extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
+            extensions = supported_extensions
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
             file_lower = file.lower()
             for extension in extensions:
                 if file_lower.endswith("."+extension):
-                    self.ocr_analysis_of_file(file, serviceaddress)
+                    self.ocr_analysis_of_file(file, serviceaddress, languages)
                     break
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
-            self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions)
+            self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions, languages)
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_file(self, file: str, serviceaddress: str) -> str:  # serviceaddress = None means local executable
-        pass  # TODO
+    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> None:  # serviceaddress = None means local executable
+        GeneralUtilities.write_message_to_stdout("Do OCR analysis of file " + file)
+        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
+        for extension in supported_extensions:
+            if file.lower().endswith("."+extension):
+                raise ValueError(f"Extension '{extension}' is not supported. Supported extensions are: {', '.join(supported_extensions)}")
+        target_file = file+".ocr.txt"
+        hash_of_current_file: str = GeneralUtilities. get_sha256_of_file(file)
+        if os.path.isfile(target_file):
+            lines = GeneralUtilities.read_lines_from_file(target_file)
+            previous_hash_of_current_file: str = lines[1].split(":")[1].strip()
+            if hash_of_current_file == previous_hash_of_current_file:
+                return
+        ocr_content = self.get_ocr_content_of_file(file, serviceaddress, languages)
+        GeneralUtilities.ensure_file_exists(target_file)
+        GeneralUtilities.write_text_to_file(file, f"""Name of file: {os.path.basename(file)}
+Hash of file: {hash_of_current_file}
+OCR-content:
+{ocr_content}""")
+
+    @GeneralUtilities.check_arguments
+    def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> str:  # serviceaddress = None means local executable
+        return "TODO"  # TODO

@@ -668,6 +668,7 @@ def OCRAnalysisOfFolder() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--serviceaddress', required=False, default=None)
     parser.add_argument('-e', '--extensions', required=False, default=None)
+    parser.add_argument('-l', '--languages', required=False, default="en")
     parser.add_argument('-f', '--folder', required=False, default=None)
     args = parser.parse_args()
     sc = ScriptCollectionCore()
@@ -679,15 +680,16 @@ def OCRAnalysisOfFolder() -> int:
             extensions_value = args.extensions.split(",")
         else:
             extensions_value = [args.extensions]
-    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions_value)
+    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions_value, args.languages)
     return 0
 
 
 def OCRAnalysisOfFile() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--serviceaddress', required=False, default=None)
+    parser.add_argument('-l', '--languages', required=False, default="en")
     parser.add_argument('-f', '--file', required=True)
     args = parser.parse_args()
     sc = ScriptCollectionCore()
-    sc.ocr_analysis_of_file(args.file, args.serviceaddress)
+    sc.ocr_analysis_of_file(args.file, args.serviceaddress, args.languages)
     return 0
