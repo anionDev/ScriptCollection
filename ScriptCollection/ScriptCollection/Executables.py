@@ -693,3 +693,23 @@ def OCRAnalysisOfFile() -> int:
     sc = ScriptCollectionCore()
     sc.ocr_analysis_of_file(args.file, args.serviceaddress, args.languages)
     return 0
+
+
+def OCRAnalysisOfRepository() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--serviceaddress', required=False, default=None)
+    parser.add_argument('-e', '--extensions', required=False, default=None)
+    parser.add_argument('-l', '--languages', required=False, default="en")
+    parser.add_argument('-f', '--folder', required=False, default=None)
+    args = parser.parse_args()
+    sc = ScriptCollectionCore()
+    if args.folder is None:
+        args.folder = os.getcwd()
+    extensions_value: str = None
+    if args.extensions is not None:
+        if "," in args.extensions:
+            extensions_value = args.extensions.split(",")
+        else:
+            extensions_value = [args.extensions]
+    sc.ocr_analysis_of_repository(args.folder, args.serviceaddress, extensions_value, args.languages)
+    return 0
