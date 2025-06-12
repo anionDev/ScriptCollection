@@ -3115,7 +3115,7 @@ class TasksForCommonProjectStructure:
         # TODO validate artifactsinformation_file against xsd
         GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name} without errors.")
 
-    def __add_changelog_file(self, repository_folder: str, version_of_project: str):
+    def __ensure_changelog_file_is_added(self, repository_folder: str, version_of_project: str):
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
         if not os.path.isfile(changelog_file):
             GeneralUtilities.ensure_file_exists(changelog_file)
@@ -3136,16 +3136,16 @@ class TasksForCommonProjectStructure:
         target_environmenttype = "QualityCheck"
         project_name: str = os.path.basename(repository_folder)
         GeneralUtilities.assert_condition(not self.__sc.git_repository_has_uncommitted_changes(repository_folder), "There are uncommitted changes in the repository.")
+        self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
         if os.path.isfile(os.path.join(global_scripts_folder, update_dependencies_script_filename)):
-            self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
             self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder, print_live_output=True)
             version_of_project = self.get_version_of_project(repository_folder)
-            self.__add_changelog_file(repository_folder, version_of_project)
+            self.__ensure_changelog_file_is_added(repository_folder, version_of_project)
             GeneralUtilities.write_message_to_stdout(f"Updated global dependencies of {project_name}.")
-            self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated dependencies")
+            self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated product-wide dependencies")
 
         # update dependencies of codeunits
         for codeunit in codeunits:
@@ -3160,10 +3160,10 @@ class TasksForCommonProjectStructure:
                 self.__sc.run_program("python", update_dependencies_script_filename, update_dependencies_script_folder, verbosity, print_live_output=True)
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     version_of_project = self.get_version_of_project(repository_folder)
-                    self.__add_changelog_file(repository_folder, version_of_project)
+                    self.__ensure_changelog_file_is_added(repository_folder, version_of_project)
                     GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
 
-        self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated dependencies")
+        self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build all codeunits due to updated dependencies")
         self.__sc.git_commit(repository_folder, "Updated dependencies")
 
     class GenericPrepareNewReleaseArguments:
