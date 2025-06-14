@@ -8,6 +8,7 @@ import keyboard
 from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
+from .ImageUpdater import ImageUpdater, VersionEcholon
 
 
 def FilenameObfuscator() -> int:
@@ -712,4 +713,16 @@ def OCRAnalysisOfRepository() -> int:
         else:
             extensions_value = [args.extensions]
     sc.ocr_analysis_of_repository(args.folder, args.serviceaddress, extensions_value, args.languages)
+    return 0
+
+
+def UpdateImagesInDockerComposeFile() -> int:
+    iu: ImageUpdater = ImageUpdater()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--file', required=False, default=None)
+    # TODO add option to specify ignored services and versionecholon
+    args = parser.parse_args()
+    if args.file is None:
+        args.file = os.path.join(os.getcwd(), "docker-compose.yml")
+    iu.update_all_services_in_docker_compose_file(args.file, VersionEcholon.LatestPatch, [])
     return 0
