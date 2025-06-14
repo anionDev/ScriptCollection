@@ -11,7 +11,7 @@ from .GeneralUtilities import GeneralUtilities
 
 
 class VersionEcholon(Enum):
-    Patch = 0
+    LatestPatch = 0
     LatestPatchOrLatestMinor = 1
     LatestPatchOrLatestMinorOrNextMajor = 2
     Newest = 3
@@ -63,8 +63,8 @@ class ImageUpdaterHelper:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def filter_considering_echolog(newer_versions: list[Version], current_version: Version, version_echolon: VersionEcholon) -> Version:
-        if version_echolon == VersionEcholon.Patch:
+    def filter_considering_echolon(newer_versions: list[Version], current_version: Version, version_echolon: VersionEcholon) -> Version:
+        if version_echolon == VersionEcholon.LatestPatch:
             return ImageUpdaterHelper._internal_get_latest_patch_version(newer_versions, current_version)
         elif version_echolon == VersionEcholon.LatestPatchOrLatestMinor:
             return ImageUpdaterHelper._internal_get_latest_patch_or_latest_minor_version(newer_versions, current_version)
@@ -137,11 +137,14 @@ class ConcreteImageUpdaterForNginx(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"{version.major}.{version.minor}.{version.micro}"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        raise NotImplementedError
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
@@ -149,14 +152,36 @@ class ConcreteImageUpdaterForNginx(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
-        raise NotImplementedError
+        return ve.parse(tag)
+
+
+class ConcreteImageUpdaterForWordpress(ConcreteImageUpdater):
+
+    @GeneralUtilities.check_arguments
+    def version_to_tag(self,  version: Version) -> str:
+        return f"{version.major}.{version.minor}.{version.micro}"
+
+    @GeneralUtilities.check_arguments
+    def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_supported_images(self) -> list[str]:
+        return ["wordpress"]
+
+    @GeneralUtilities.check_arguments
+    def get_version_from_tag(self, image: str, tag: str) -> Version:
+        return ve.parse(tag)
 
 
 class ConcreteImageUpdaterForGitLab(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"{version.major}.{version.minor}.{version.micro}-ce.0"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
@@ -175,96 +200,111 @@ class ConcreteImageUpdaterForRegistry(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"{version.major}.{version.minor}.{version.micro}"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        raise NotImplementedError
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
 
     @abstractmethod
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return []  # TODO
+        return ["registry"]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
-        raise NotImplementedError
+        return ve.parse(tag)
 
 
 class ConcreteImageUpdaterForPrometheus(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"v{version.major}.{version.minor}.{version.micro}"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        raise NotImplementedError
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return []  # TODO
+        return ["prom/prometheus"]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
-        raise NotImplementedError
+        return ve.parse(tag[1:])
 
 
 class ConcreteImageUpdaterForPrometheusBlackboxExporter(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"v{version.major}.{version.minor}.{version.micro}"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        raise NotImplementedError
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return []  # TODO
+        return ["prom/blackbox-exporter"]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
-        raise NotImplementedError
+        return ve.parse(tag[1:])
 
 
 class ConcreteImageUpdaterForPrometheusNginxExporter(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"v{version.major}.{version.minor}.{version.micro}"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        raise NotImplementedError
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return []  # TODO
+        return ["prom/nginx-prometheus-exporter"]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
-        raise NotImplementedError
+        return ve.parse(tag[1:])
 
 
 class ConcreteImageUpdaterForPrometheusNodeExporter(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"v{version.major}.{version.minor}.{version.micro}"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        raise NotImplementedError
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return []  # TODO
+        return ["prom/node-exporter"]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
-        raise NotImplementedError
+        return ve.parse(tag[1:])
 
 
 class ConcreteImageUpdaterForKeycloak(ConcreteImageUpdater):
@@ -296,7 +336,7 @@ class ConcreteImageUpdaterForMariaDB(ConcreteImageUpdater):
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
         versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
-        result = ImageUpdaterHelper.filter_considering_echolog(newer_versions, current_version, version_echolon)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
 
     @GeneralUtilities.check_arguments
@@ -312,19 +352,22 @@ class ConcreteImageUpdaterForPostgreSQL(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
-        raise NotImplementedError
+        return f"{version.major}.{version.minor}"
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        raise NotImplementedError
+        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+$", 999)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return []  # TODO
+        return ["postgres"]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
-        raise NotImplementedError
+        return ve.parse(tag+".0")
 
 
 class ConcreteImageUpdaterForAdminer(ConcreteImageUpdater):
@@ -337,7 +380,7 @@ class ConcreteImageUpdaterForAdminer(ConcreteImageUpdater):
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
         versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
-        result = ImageUpdaterHelper.filter_considering_echolog(newer_versions, current_version, version_echolon)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
 
     @GeneralUtilities.check_arguments
@@ -358,6 +401,7 @@ class ImageUpdater:
 
     def add_default_mapper(self) -> None:
         self.updater.append(ConcreteImageUpdaterForNginx())
+        self.updater.append(ConcreteImageUpdaterForWordpress())
         self.updater.append(ConcreteImageUpdaterForGitLab())
         self.updater.append(ConcreteImageUpdaterForRegistry())
         self.updater.append(ConcreteImageUpdaterForPrometheus())
@@ -415,6 +459,7 @@ class ImageUpdater:
         result = self.get_latest_version_of_image(imagename, version_echolon, existing_version)
         newest_version = result[0]
         newest_tag = result[1]
+        # TODO write info to console if there is a newwer version available if versionecoholon==latest would have been chosen
         if existing_version < newest_version:
 
             with open(dockercompose_file, 'r', encoding="utf-8") as f:

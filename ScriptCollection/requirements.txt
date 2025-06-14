@@ -1,6 +1,6 @@
 autopep8>=2.3.2
 build>=1.2.2.post1
-coverage>=7.8.2
+coverage>=7.9.1
 cyclonedx-bom>=6.1.1
 defusedxml>=0.7.1
 keyboard>=0.13.5
@@ -19,4 +19,4 @@ PyYAML>=6.0.2
 qrcode>=8.2
 send2trash>=1.8.3
 twine>=6.1.0
-xmlschema>=4.0.1
+xmlschema>=4.1.0

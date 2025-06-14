@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.138"
+version = "3.5.139"
 __version__ = version
 
 
@@ -688,7 +688,7 @@ class ScriptCollectionCore:
             raise ValueError(f"Folder '{folder}' does not exist.")
         git_folder_path = f"{folder}/.git"
         return self.is_folder(git_folder_path) or self.is_file(git_folder_path)
-    
+
     @GeneralUtilities.check_arguments
     def is_bare_git_repository(self, folder: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
@@ -697,26 +697,25 @@ class ScriptCollectionCore:
         if not self.is_folder(folder):
             raise ValueError(f"Folder '{folder}' does not exist.")
         return folder.endswith(".git")
-    
+
     @GeneralUtilities.check_arguments
     def is_git_or_bare_git_repository(self, folder: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
-        return self.is_git_repository(folder) or self.is_bare_git_repository(folder) 
+        return self.is_git_repository(folder) or self.is_bare_git_repository(folder)
 
     @GeneralUtilities.check_arguments
     def assert_is_git_repository(self, folder: str) -> str:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         GeneralUtilities.assert_condition(self.is_git_repository(folder), f"'{folder}' is not a git-repository.")
 
-
     @GeneralUtilities.check_arguments
-    def convert_git_repository_to_bare_repository(self,repository_folder:str):
-        repository_folder=repository_folder.replace("\\", "/")
+    def convert_git_repository_to_bare_repository(self, repository_folder: str):
+        repository_folder = repository_folder.replace("\\", "/")
         self.assert_is_git_repository(repository_folder)
-        git_folder=repository_folder+ "/.git"
+        git_folder = repository_folder + "/.git"
         if not self.is_folder(git_folder):
             raise ValueError(f"Converting '{repository_folder}' to a bare repository not possible. The folder '{git_folder}' does not exist. Converting is currently only supported when the git-folder is a direct folder in a repository and not a reference to another location.")
-        target_folder:str = repository_folder + ".git"
+        target_folder: str = repository_folder + ".git"
         GeneralUtilities.ensure_directory_exists(target_folder)
         GeneralUtilities.move_content_of_folder(git_folder, target_folder)
         GeneralUtilities.ensure_directory_does_not_exist(repository_folder)
@@ -2336,3 +2335,74 @@ TXDX
     @GeneralUtilities.check_arguments
     def install_requirementstxt_file(self, requirements_txt_file: str, folder: str, verbosity: int):
         self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
+        GeneralUtilities.write_message_to_stdout("Starting OCR analysis of folder " + folder)
+        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
+        changes_files: list[str] = []
+        if extensions is None:
+            extensions = supported_extensions
+        for file in GeneralUtilities.get_direct_files_of_folder(folder):
+            file_lower = file.lower()
+            for extension in extensions:
+                if file_lower.endswith("."+extension):
+                    if self.ocr_analysis_of_file(file, serviceaddress, languages):
+                        changes_files.append(file)
+                    break
+        for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
+            for file in self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions, languages):
+                changes_files.append(file)
+        return changes_files
+
+    @GeneralUtilities.check_arguments
+    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> bool:  # Returns true if the ocr-file was generated or updated. Returns false if the existing ocr-file was not changed.
+        GeneralUtilities.write_message_to_stdout("Do OCR analysis of file " + file)
+        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp', 'gif', 'pdf', 'rtf', 'docx', 'doc', 'odt', 'xlsx', 'xls', 'ods', 'pptx', 'ppt', 'odp']
+        for extension in supported_extensions:
+            if file.lower().endswith("."+extension):
+                raise ValueError(f"Extension '{extension}' is not supported. Supported extensions are: {', '.join(supported_extensions)}")
+        target_file = file+".ocr.txt"
+        hash_of_current_file: str = GeneralUtilities. get_sha256_of_file(file)
+        if os.path.isfile(target_file):
+            lines = GeneralUtilities.read_lines_from_file(target_file)
+            previous_hash_of_current_file: str = lines[1].split(":")[1].strip()
+            if hash_of_current_file == previous_hash_of_current_file:
+                return False
+        ocr_content = self.get_ocr_content_of_file(file, serviceaddress, languages)
+        GeneralUtilities.ensure_file_exists(target_file)
+        GeneralUtilities.write_text_to_file(file, f"""Name of file: \"{os.path.basename(file)}\""
+Hash of file: {hash_of_current_file}
+OCR-content:
+\"{ocr_content}\"""")
+        return True
+
+    @GeneralUtilities.check_arguments
+    def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> str:  # serviceaddress = None means local executable
+        result: str = None
+        if serviceaddress is None:
+            result = ""  # TODO call local executable
+        else:
+            result = ""  # TODO call remote service
+        return result
+
+    @GeneralUtilities.check_arguments
+    def ocr_analysis_of_repository(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> None:
+        self.assert_is_git_repository(folder)
+        changed_files = self.ocr_analysis_of_folder(folder, serviceaddress, extensions, languages)
+        for changed_ocr_file in changed_files:
+            GeneralUtilities.assert_condition(changed_ocr_file.endswith(".ocr.txt"), f"File '{changed_ocr_file}' is not an OCR-file. It should end with '.ocr.txt'.")
+            base_file = changed_ocr_file[:-len(".ocr.txt")]
+            GeneralUtilities.assert_condition(os.path.isfile(base_file), f"Base file '{base_file}' does not exist. The OCR-file '{changed_ocr_file}' is not valid.")
+            base_file_relative_path = os.path.relpath(base_file, folder)
+            base_file_diff_program_result = self.run_program("git", f"diff --quiet -- \"{base_file_relative_path}\"", folder, throw_exception_if_exitcode_is_not_zero=False)
+            has_staged_changes: bool = None
+            if base_file_diff_program_result[0] == 0:
+                has_staged_changes = False
+            elif base_file_diff_program_result[0] == 1:
+                has_staged_changes = True
+            else:
+                raise RuntimeError(f"Unexpected exit code {base_file_diff_program_result[0]} when checking for staged changes of file '{base_file_relative_path}'.")
+            if has_staged_changes:
+                changed_ocr_file_relative_path = os.path.relpath(changed_ocr_file, folder)
+                self.run_program_argsasarray("git", ["add", changed_ocr_file_relative_path], folder)
