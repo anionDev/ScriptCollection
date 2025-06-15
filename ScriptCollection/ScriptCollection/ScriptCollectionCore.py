@@ -2380,11 +2380,13 @@ OCR-content:
     @GeneralUtilities.check_arguments
     def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> str:  # serviceaddress = None means local executable
         result: str = None
+        extension = Path(file).suffix
         if serviceaddress is None:
             program_result = self.run_program_argsasarray("simpleocr", ["--File", file, "--Languages", "+".join(languages)] + languages)
             result = program_result[1]
         else:
-            package_url: str = f"https://{serviceaddress}/GetOCRContent?"
+            languages_for_url = '%2B'.join(languages)
+            package_url: str = f"https://{serviceaddress}/GetOCRContent?languages={languages_for_url}&fileType={extension}"
             headers = {'Cache-Control': 'no-cache'}
             r = requests.put(package_url, timeout=5, headers=headers, data=GeneralUtilities.read_binary_from_file(file))
             if r.status_code != 200:
