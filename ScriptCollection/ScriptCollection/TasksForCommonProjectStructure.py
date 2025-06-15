@@ -2560,7 +2560,14 @@ class TasksForCommonProjectStructure:
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
 
-        # TODO write current version in package.json-file
+        package_json_file = os.path.join(repository_folder, "package.json")
+        if os.path.isfile(package_json_file):
+            with open(package_json_file, "r", encoding="utf-8") as f1:
+                package_json_data = json.load(f1)
+                package_json_data["version"] = project_version
+                with open(package_json_file, "w", encoding="utf-8") as f2:
+                    json.dump(package_json_data, f2, indent=2)
+
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
