@@ -2789,7 +2789,7 @@ class TasksForCommonProjectStructure:
             def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
                 resource_name: str = f"MediaMTX_{osname}"
                 zip_filename: str = f"{resource_name}.{extension}"
-                t.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}")
+                self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}")
                 resource_folder: str = os.path.join(target_folder, "Other", "Resources", resource_name)
                 target_folder_extracted = os.path.join(resource_folder, "MediaMTX")
                 local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
