@@ -33,7 +33,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.139"
+version = "3.5.140"
 __version__ = version
 
 
@@ -309,7 +309,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_pull_with_retry(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False, amount_of_attempts: int = 5) -> None:
-        GeneralUtilities.retry_action(lambda: self.git_pull_with_retry(folder, remote, localbranchname, remotebranchname), amount_of_attempts)
+        GeneralUtilities.retry_action(lambda: self.git_pull(folder, remote, localbranchname, remotebranchname), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
     def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False) -> None:
@@ -2380,10 +2380,18 @@ OCR-content:
     @GeneralUtilities.check_arguments
     def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> str:  # serviceaddress = None means local executable
         result: str = None
+        extension = Path(file).suffix
         if serviceaddress is None:
-            result = ""  # TODO call local executable
+            program_result = self.run_program_argsasarray("simpleocr", ["--File", file, "--Languages", "+".join(languages)] + languages)
+            result = program_result[1]
         else:
-            result = ""  # TODO call remote service
+            languages_for_url = '%2B'.join(languages)
+            package_url: str = f"https://{serviceaddress}/GetOCRContent?languages={languages_for_url}&fileType={extension}"
+            headers = {'Cache-Control': 'no-cache'}
+            r = requests.put(package_url, timeout=5, headers=headers, data=GeneralUtilities.read_binary_from_file(file))
+            if r.status_code != 200:
+                raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
+            result = GeneralUtilities.bytes_to_string(r.content)
         return result
 
     @GeneralUtilities.check_arguments
