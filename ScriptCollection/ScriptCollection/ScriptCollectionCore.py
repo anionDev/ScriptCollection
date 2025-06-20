@@ -309,7 +309,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def git_pull_with_retry(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False, amount_of_attempts: int = 5) -> None:
-        GeneralUtilities.retry_action(lambda: self.git_pull_with_retry(folder, remote, localbranchname, remotebranchname), amount_of_attempts)
+        GeneralUtilities.retry_action(lambda: self.git_pull(folder, remote, localbranchname, remotebranchname), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
     def git_pull(self, folder: str, remote: str, localbranchname: str, remotebranchname: str, force: bool = False) -> None:

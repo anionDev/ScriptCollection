@@ -2360,6 +2360,7 @@ class TasksForCommonProjectStructure:
         tasks.sort(key=lambda x: x["label"].split("/")[-1], reverse=False)  # sort by the label of the task
         for task in tasks:
             if task["type"] == "shell":
+
                 description: str = task["label"]
                 name: str = GeneralUtilities.to_pascal_case(description)
                 command = task["command"]
@@ -2381,11 +2382,18 @@ class TasksForCommonProjectStructure:
                     if len(args) > 1:
                         command_with_args = f"{command_with_args} {' '.join(args)}"
 
+                if "description" in task:
+                    additional_description = task["description"]
+                    description = f"{description} ({additional_description})"
+
                 if append_cli_args_at_end:
                     command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
-                cwd_literal = cwd.replace("\\", "\\\\")
+
+                cwd_literal = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+                description_literal = description.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+
                 lines.append(f"  {name}:")
-                lines.append(f'    desc: "{description}"')
+                lines.append(f'    desc: "{description_literal}"')
                 lines.append('    silent: true')
                 lines.append(f'    dir: "{cwd_literal}"')
                 lines.append("    cmds:")
@@ -2397,6 +2405,7 @@ class TasksForCommonProjectStructure:
                     for alias in aliases:
                         lines.append(f'      - {alias}')
                 lines.append(GeneralUtilities.empty_string)
+
         GeneralUtilities.write_lines_to_file(task_file, lines)
 
     @GeneralUtilities.check_arguments
