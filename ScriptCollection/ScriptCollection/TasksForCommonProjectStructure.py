@@ -1513,7 +1513,7 @@ class TasksForCommonProjectStructure:
         project_version = self.get_version_of_project(repository_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
 
-        # Check codeunit-conformity
+        # check codeunit-conformity
         # TODO check if foldername=="<codeunitname>[.codeunit.xml]" == <codeunitname> in file
         supported_codeunitspecificationversion = "2.9.4"  # should always be the latest version of the ProjectTemplates-repository
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
@@ -1523,7 +1523,7 @@ class TasksForCommonProjectStructure:
         namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',  'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         root: etree._ElementTree = etree.parse(codeunit_file)
 
-        # Check codeunit-spcecification-version
+        # check codeunit-spcecification-version
         try:
             codeunit_file_version = root.xpath('//cps:codeunit/@codeunitspecificationversion', namespaces=namespaces)[0]
             if codeunit_file_version != supported_codeunitspecificationversion:
@@ -1538,27 +1538,27 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stderr(f'Warning: Codeunitfile "{codeunit_file}" can not be validated due to the following exception:')
                 GeneralUtilities.write_exception_to_stderr(exception)
 
-        # Check codeunit-name
+        # check codeunit-name
         codeunit_name_in_codeunit_file = root.xpath('//cps:codeunit/cps:name/text()', namespaces=namespaces)[0]
         if codeunit_name != codeunit_name_in_codeunit_file:
             raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
 
-        # Check owner-name
+        # check owner-name
         codeunit_ownername_in_codeunit_file = self. get_codeunit_owner_name(codeunit_file)
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_ownername_in_codeunit_file), "No valid name for codeunitowner given.")
 
-        # Check owner-emailaddress
+        # check owner-emailaddress
         codeunit_owneremailaddress_in_codeunit_file = self.get_codeunit_owner_emailaddress(codeunit_file)
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_owneremailaddress_in_codeunit_file), "No valid email-address for codeunitowner given.")
 
-        # Check development-state
+        # check development-state
         developmentstate = root.xpath('//cps:properties/@developmentstate', namespaces=namespaces)[0]
         developmentstate_active = "Active development"
         developmentstate_maintenance = "Maintenance-updates only"
         developmentstate_inactive = "Inactive"
         GeneralUtilities.assert_condition(developmentstate in (developmentstate_active, developmentstate_maintenance, developmentstate_inactive), f"Invalid development-state. Must be '{developmentstate_active}' or '{developmentstate_maintenance}' or '{developmentstate_inactive}' but was '{developmentstate}'.")
 
-        # Check for mandatory files
+        # check for mandatory files
         files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
         if self.codeunit_has_testable_sourcecode(codeunit_file):
             # TODO check if the testsettings-section appears in the codeunit-file
@@ -1574,7 +1574,7 @@ class TasksForCommonProjectStructure:
         if os.path.isfile(os.path.join(codeunit_folder, "Other", "requirements.txt")):
             self.install_requirementstxt_for_codeunit(codeunit_folder, verbosity)
 
-        # Check developer
+        # check developer
         if self.validate_developers_of_repository:
             expected_authors: list[tuple[str, str]] = []
             expected_authors_in_xml = root.xpath('//cps:codeunit/cps:developerteam/cps:developer', namespaces=namespaces)
@@ -1597,18 +1597,29 @@ class TasksForCommonProjectStructure:
 
         # TODO implement cycle-check for dependent codeunits
 
-        # Clear previously builded artifacts if desired:
+        # clear previously builded artifacts if desired:
         if clear_artifacts_folder:
             artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
             GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
-        # Get artifacts from dependent codeunits
+        # get artifacts from dependent codeunits
         # if assume_dependent_codeunits_are_already_built:
         #    self.build_dependent_code_units(repository_folder, codeunit_name, verbosity, target_environmenttype, additional_arguments_file, commandline_arguments)
         self.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
-        # Update codeunit-version
+        # update codeunit-version
         self.update_version_of_codeunit(common_tasks_scripts_file, codeunit_version)
+
+        # set project version
+        package_json_file = os.path.join(repository_folder, "package.json")  # TDOO move this to a general project-specific (and codeunit-independent-script)
+        if os.path.isfile(package_json_file):
+            package_json_data: str = None
+            with open(package_json_file, "r", encoding="utf-8") as f1:
+                package_json_data = json.load(f1)
+                package_json_data["version"] = project_version
+            with open(package_json_file, "w", encoding="utf-8") as f2:
+                json.dump(package_json_data, f2, indent=2)
+            GeneralUtilities.write_text_to_file(package_json_file, GeneralUtilities.read_text_from_file(package_json_file).replace("\r", ""))
 
         # set default constants
         self.set_default_constants(os.path.join(codeunit_folder))
@@ -2569,14 +2580,6 @@ class TasksForCommonProjectStructure:
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
 
-        package_json_file = os.path.join(repository_folder, "package.json")
-        if os.path.isfile(package_json_file):
-            with open(package_json_file, "r", encoding="utf-8") as f1:
-                package_json_data = json.load(f1)
-                package_json_data["version"] = project_version
-                with open(package_json_file, "w", encoding="utf-8") as f2:
-                    json.dump(package_json_data, f2, indent=2)
-
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
@@ -2665,7 +2668,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(message2)
 
     @GeneralUtilities.check_arguments
-    def __do_repository_checks(self, repository_folder: str, project_version: str) -> None:
+    def __do_repository_checks(self, repository_folder: str, project_version: str) -> None:  # TDOO move this to a general project-specific (and codeunit-independent-script)
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_if_changelog_exists(repository_folder, project_version)
         self.__check_whether_security_txt_exists(repository_folder)
