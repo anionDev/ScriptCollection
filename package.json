@@ -2,5 +2,6 @@
   "name": "ScriptCollection",
   "scripts": {
     "prepare": "husky"
-  }
+  },
+  "version": "3.5.142"
 }
