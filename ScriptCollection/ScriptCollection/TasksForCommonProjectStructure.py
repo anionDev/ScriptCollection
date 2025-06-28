@@ -5,6 +5,7 @@ from pathlib import Path
 from functools import cmp_to_key
 import shutil
 import math
+import tarfile
 import re
 import urllib.request
 import zipfile
@@ -22,6 +23,7 @@ from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 from .SCLog import SCLog, LogLevel
 from .ProgramRunnerEpew import ProgramRunnerEpew
+from .ImageUpdater import ImageUpdater, VersionEcholon
 
 
 class CreateReleaseConfiguration():
@@ -2133,6 +2135,27 @@ class TasksForCommonProjectStructure:
             shutil.copyfile(yamlfile1, yamlfile3)
 
     @GeneralUtilities.check_arguments
+    def get_latest_version_of_openapigenerator(self) -> None:
+        github_api_releases_link = "https://api.github.com/repos/OpenAPITools/openapi-generator/releases"
+        with urllib.request.urlopen(github_api_releases_link) as release_information_url:
+            latest_release_infos = json.load(release_information_url)[0]
+            latest_version = latest_release_infos["tag_name"][1:]
+            return latest_version
+
+    @GeneralUtilities.check_arguments
+    def set_version_of_openapigenerator_by_update_dependencies_file(self, update_dependencies_script_file: str, used_version: str = None) -> None:
+        codeunit_folder: str = GeneralUtilities.resolve_relative_path("../..", update_dependencies_script_file)
+        self.set_version_of_openapigenerator(codeunit_folder, used_version)
+
+    @GeneralUtilities.check_arguments
+    def set_version_of_openapigenerator(self, codeunit_folder: str, used_version: str = None) -> None:
+        version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
+        if used_version is None:
+            used_version = self.get_latest_version_of_openapigenerator()
+        GeneralUtilities.ensure_file_exists(version_file)
+        GeneralUtilities.write_text_to_file(version_file, used_version)
+
+    @GeneralUtilities.check_arguments
     def ensure_openapigenerator_is_available(self, codeunit_folder: str) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         openapigenerator_folder = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator")
@@ -2141,14 +2164,12 @@ class TasksForCommonProjectStructure:
         jar_file = f"{openapigenerator_folder}/{filename}"
         jar_file_exists = os.path.isfile(jar_file)
         if internet_connection_is_available:  # Load/Update
-            github_api_releases_link = "https://api.github.com/repos/OpenAPITools/openapi-generator/releases"
-            with urllib.request.urlopen(github_api_releases_link) as release_information_url:
-                latest_release_infos = json.load(release_information_url)[0]
-                latest_version = latest_release_infos["tag_name"][1:]
-                download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{latest_version}/openapi-generator-cli-{latest_version}.jar"
-                GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
-                GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
-                urllib.request.urlretrieve(download_link, jar_file)
+            version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
+            used_version = GeneralUtilities.read_text_from_file(version_file)
+            download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
+            GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
+            GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
+            urllib.request.urlretrieve(download_link, jar_file)
         else:
             if jar_file_exists:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
@@ -2797,6 +2818,30 @@ class TasksForCommonProjectStructure:
         self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
 
     @GeneralUtilities.check_arguments
+    def ensure_mediamtx_is_available(self, target_folder: str) -> None:
+        def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
+            resource_name: str = f"MediaMTX_{osname}"
+            zip_filename: str = f"{resource_name}.{extension}"
+            self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}")
+            resource_folder: str = os.path.join(target_folder, "Other", "Resources", resource_name)
+            target_folder_extracted = os.path.join(resource_folder, "MediaMTX")
+            local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
+            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
+            if extension == "zip":
+                with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
+                    zip_ref.extractall(target_folder_extracted)
+            elif extension == "tar.gz":
+                with tarfile.open(local_zip_file, "r:gz") as tar:
+                    tar.extractall(path=target_folder_extracted)
+            else:
+                raise ValueError(f"Unknown extension: \"{extension}\"")
+            GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
+
+        download_and_extract("Windows", "windows", "zip")
+        download_and_extract("Linux", "linux", "tar.gz")
+        download_and_extract("MacOS", "darwin", "tar.gz")
+
+    @GeneralUtilities.check_arguments
     def ensure_cyclonedxcli_is_available(self, target_folder: str) -> None:
         local_filename = "cyclonedx-cli"
         filename_on_github: str
@@ -3381,3 +3426,12 @@ class TasksForCommonProjectStructure:
 
 - Updated geo-ip-database.
 """)
+
+    @GeneralUtilities.check_arguments
+    def update_images_in_example(self, codeunit_folder: str):
+        iu = ImageUpdater()
+        iu.add_default_mapper()
+        dockercomposefile: str = f"{codeunit_folder}\\Other\\Reference\\ReferenceContent\\Examples\\MinimalDockerComposeFile\\docker-compose.yml"
+        excluded = ["opendms"]
+        iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
+        iu.check_for_newest_version(dockercomposefile, excluded)
