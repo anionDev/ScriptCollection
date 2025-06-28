@@ -2817,7 +2817,7 @@ class TasksForCommonProjectStructure:
         self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
 
     @GeneralUtilities.check_arguments
-    def ensure_mediamtx_is_available(self: TasksForCommonProjectStructure, target_folder: str) -> None:
+    def ensure_mediamtx_is_available(self, target_folder: str) -> None:
         def download_and_extract( osname: str, osname_in_github_asset: str, extension: str):
             resource_name: str = f"MediaMTX_{osname}"
             zip_filename: str = f"{resource_name}.{extension}"
@@ -2836,9 +2836,9 @@ class TasksForCommonProjectStructure:
                 raise ValueError(f"Unknown extension: \"{extension}\"")
             GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
 
-        download_and_extract(t,"Windows", "windows", "zip")
-        download_and_extract(t,"Linux", "linux", "tar.gz")
-        download_and_extract(t,"MacOS", "darwin", "tar.gz")
+        download_and_extract("Windows", "windows", "zip")
+        download_and_extract("Linux", "linux", "tar.gz")
+        download_and_extract("MacOS", "darwin", "tar.gz")
 
     @GeneralUtilities.check_arguments
     def ensure_cyclonedxcli_is_available(self, target_folder: str) -> None:
