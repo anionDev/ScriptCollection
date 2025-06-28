@@ -2816,29 +2816,29 @@ class TasksForCommonProjectStructure:
     def ensure_androidappbundletool_is_available(self, target_folder: str) -> None:
         self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
 
-        @GeneralUtilities.check_arguments
-        def ensure_mediamtx_is_available(self, target_folder: str) -> None:
-            def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
-                resource_name: str = f"MediaMTX_{osname}"
-                zip_filename: str = f"{resource_name}.{extension}"
-                self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}")
-                resource_folder: str = os.path.join(target_folder, "Other", "Resources", resource_name)
-                target_folder_extracted = os.path.join(resource_folder, "MediaMTX")
-                local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
-                GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
-                if extension == "zip":
-                    with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
-                        zip_ref.extractall(target_folder_extracted)
-                elif extension == "tar.gz":
-                    with tarfile.open(local_zip_file, "r:gz") as tar:
-                        tar.extractall(path=target_folder_extracted)
-                else:
-                    raise ValueError(f"Unknown extension: \"{extension}\"")
-                GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
+    @GeneralUtilities.check_arguments
+    def ensure_mediamtx_is_available(self: TasksForCommonProjectStructure, target_folder: str) -> None:
+        def download_and_extract( osname: str, osname_in_github_asset: str, extension: str):
+            resource_name: str = f"MediaMTX_{osname}"
+            zip_filename: str = f"{resource_name}.{extension}"
+            self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}")
+            resource_folder: str = os.path.join(target_folder, "Other", "Resources", resource_name)
+            target_folder_extracted = os.path.join(resource_folder, "MediaMTX")
+            local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
+            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
+            if extension == "zip":
+                with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
+                    zip_refs.extractall(target_folder_extracted)
+            elif extension == "tar.gz":
+                with tarfile.open(local_zip_file, "r:gz") as tar:
+                    tar.extractall(path=target_folder_extracted)
+            else:
+                raise ValueError(f"Unknown extension: \"{extension}\"")
+            GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
 
-            download_and_extract("Windows", "windows", "zip")
-            download_and_extract("Linux", "linux", "tar.gz")
-            download_and_extract("MacOS", "darwin", "tar.gz")
+        download_and_extract(t,"Windows", "windows", "zip")
+        download_and_extract(t,"Linux", "linux", "tar.gz")
+        download_and_extract(t,"MacOS", "darwin", "tar.gz")
 
     @GeneralUtilities.check_arguments
     def ensure_cyclonedxcli_is_available(self, target_folder: str) -> None:
