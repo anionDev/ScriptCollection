@@ -2149,9 +2149,11 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def set_version_of_openapigenerator(self, codeunit_folder: str, used_version: str = None) -> None:
-        version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
+        target_folder: str = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator")
+        version_file = os.path.join(target_folder, "Version.txt")
         if used_version is None:
             used_version = self.get_latest_version_of_openapigenerator()
+        GeneralUtilities.ensure_directory_exists(target_folder)
         GeneralUtilities.ensure_file_exists(version_file)
         GeneralUtilities.write_text_to_file(version_file, used_version)
 
