@@ -24,7 +24,7 @@ class SCLog:
     print_as_color: bool
     zone_of_time: timezone = None
 
-    def __init__(self, log_file: str = None, loglevel: LogLevel = None,print_as_color: bool = True):
+    def __init__(self, log_file: str = None, loglevel: LogLevel = None, print_as_color: bool = True):
         self.log_file = log_file
         if loglevel is None:
             self.loglevel = LogLevel.Information
@@ -46,8 +46,8 @@ class SCLog:
     @GeneralUtilities.check_arguments
     def __log_line(self, message: str, loglevel: LogLevel = None):
 
-        print_to_console:bool=True
-        print_to_logfile:bool=self.log_file is not None
+        print_to_console: bool = True
+        print_to_logfile: bool = self.log_file is not None
 
         if loglevel is None:
             loglevel = LogLevel.Information
@@ -91,8 +91,8 @@ class SCLog:
         part3 = f"] {message}"
 
         if print_to_console:
+            print_to_std_out: bool = loglevel in (LogLevel.Debug, LogLevel.Information)
             if self.add_overhead_to_console:
-                print_to_std_out: bool = loglevel in (LogLevel.Debug, LogLevel.Information)
                 GeneralUtilities.print_text(part1, print_to_std_out)
                 if loglevel == LogLevel.Information:
                     GeneralUtilities.print_text_in_green(part2, print_to_std_out, self.print_as_color)
@@ -109,7 +109,6 @@ class SCLog:
                 GeneralUtilities.print_text(part3+"\n", print_to_std_out)
             else:
                 GeneralUtilities.print_text(message+"\n", print_to_std_out)
-
 
         if print_to_logfile:
             GeneralUtilities.ensure_file_exists(self.log_file)
