@@ -2383,64 +2383,67 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generate_tasksfile_from_workspace_file(self, repository_folder: str, append_cli_args_at_end: bool = False) -> None:
-        self.__sc.assert_is_git_repository(repository_folder)
-        sc: ScriptCollectionCore = ScriptCollectionCore()
-        workspace_file: str = sc.find_file_by_extension(repository_folder, "code-workspace")
-        task_file: str = os.path.join(repository_folder, "Taskfile.yml")
-        lines: list[str] = ["version: '3'", GeneralUtilities.empty_string, "tasks:", GeneralUtilities.empty_string]
-        workspace_file_content: str = GeneralUtilities.read_text_from_file(workspace_file)
-        jsoncontent = json.loads(workspace_file_content)
-        tasks = jsoncontent["tasks"]["tasks"]
-        tasks.sort(key=lambda x: x["label"].split("/")[-1], reverse=False)  # sort by the label of the task
-        for task in tasks:
-            if task["type"] == "shell":
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.__sc.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
+            self.__sc.assert_is_git_repository(repository_folder)
+            workspace_file: str = self.__sc.find_file_by_extension(repository_folder, "code-workspace")
+            task_file: str = repository_folder + "/Taskfile.yml"
+            lines: list[str] = ["version: '3'", GeneralUtilities.empty_string, "tasks:", GeneralUtilities.empty_string]
+            workspace_file_content: str = self.__sc.get_file_content(workspace_file)
+            jsoncontent = json.loads(workspace_file_content)
+            tasks = jsoncontent["tasks"]["tasks"]
+            tasks.sort(key=lambda x: x["label"].split("/")[-1], reverse=False)  # sort by the label of the task
+            for task in tasks:
+                if task["type"] == "shell":
 
-                description: str = task["label"]
-                name: str = GeneralUtilities.to_pascal_case(description)
-                command = task["command"]
-                relative_script_file = task["command"]
+                    description: str = task["label"]
+                    name: str = GeneralUtilities.to_pascal_case(description)
+                    command = task["command"]
+                    relative_script_file = task["command"]
 
-                relative_script_file = "."
-                if "options" in task:
-                    options = task["options"]
-                    if "cwd" in options:
-                        cwd: str = options["cwd"]
-                        cwd = cwd.replace("${workspaceFolder}", ".")
-                        relative_script_file = cwd
-                if len(relative_script_file) == 0:
                     relative_script_file = "."
+                    if "options" in task:
+                        options = task["options"]
+                        if "cwd" in options:
+                            cwd: str = options["cwd"]
+                            cwd = cwd.replace("${workspaceFolder}", ".")
+                            relative_script_file = cwd
+                    if len(relative_script_file) == 0:
+                        relative_script_file = "."
 
-                command_with_args = command
-                if "args" in task:
-                    args = task["args"]
-                    if len(args) > 1:
-                        command_with_args = f"{command_with_args} {' '.join(args)}"
+                    command_with_args = command
+                    if "args" in task:
+                        args = task["args"]
+                        if len(args) > 1:
+                            command_with_args = f"{command_with_args} {' '.join(args)}"
 
-                if "description" in task:
-                    additional_description = task["description"]
-                    description = f"{description} ({additional_description})"
+                    if "description" in task:
+                        additional_description = task["description"]
+                        description = f"{description} ({additional_description})"
 
-                if append_cli_args_at_end:
-                    command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
+                    if append_cli_args_at_end:
+                        command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
 
-                cwd_literal = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
-                description_literal = description.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+                    cwd_literal = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+                    description_literal = description.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
 
-                lines.append(f"  {name}:")
-                lines.append(f'    desc: "{description_literal}"')
-                lines.append('    silent: true')
-                lines.append(f'    dir: "{cwd_literal}"')
-                lines.append("    cmds:")
-                lines.append(f"      - {command_with_args}")
-                lines.append('    aliases:')
-                lines.append(f'      - {name.lower()}')
-                if "aliases" in task:
-                    aliases = task["aliases"]
-                    for alias in aliases:
-                        lines.append(f'      - {alias}')
-                lines.append(GeneralUtilities.empty_string)
+                    lines.append(f"  {name}:")
+                    lines.append(f'    desc: "{description_literal}"')
+                    lines.append('    silent: true')
+                    lines.append(f'    dir: "{cwd_literal}"')
+                    lines.append("    cmds:")
+                    lines.append(f"      - {command_with_args}")
+                    lines.append('    aliases:')
+                    lines.append(f'      - {name.lower()}')
+                    if "aliases" in task:
+                        aliases = task["aliases"]
+                        for alias in aliases:
+                            lines.append(f'      - {alias}')
+                    lines.append(GeneralUtilities.empty_string)
 
-        GeneralUtilities.write_lines_to_file(task_file, lines)
+            self.__sc.set_file_content(task_file, "\n".join(lines))
+        else:
+            self.__sc.run_program("scgeneratetasksfilefromworkspacefile", f"--repositoryfolder {repository_folder}")
 
     @GeneralUtilities.check_arguments
     def start_local_test_service(self, file: str):
