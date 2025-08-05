@@ -8,6 +8,7 @@ import time
 from io import BytesIO
 import itertools
 import math
+import base64
 import os
 from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor
@@ -130,7 +131,8 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def find_file_by_extension(self, folder: str, extension_without_dot: str):
-        result = [file for file in GeneralUtilities.get_direct_files_of_folder(folder) if file.endswith(f".{extension_without_dot}")]
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        result = [file for file in self.list_content(folder, True, False, False) if file.endswith(f".{extension_without_dot}")]
         result_length = len(result)
         if result_length == 0:
             raise FileNotFoundError(f"No file available in folder '{folder}' with extension '{extension_without_dot}'.")
@@ -777,6 +779,26 @@ class ScriptCollectionCore:
             elif exit_code == 2:
                 return False
             raise ValueError(f"Fatal error occurrs while checking whether folder '{path}' exists. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def get_file_content(self, path: str, encoding: str = "utf-8") -> str:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():
+            return GeneralUtilities.read_text_from_file(path, encoding)
+        else:
+            result = self.run_program_argsasarray("scprintfilecontent", ["--path", path, "--encofing", encoding])  # works platform-indepent
+            return result[1].replace("\\n", "\n")
+
+    @GeneralUtilities.check_arguments
+    def set_file_content(self, path: str, content: str, encoding: str = "utf-8") -> None:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():
+            GeneralUtilities.write_text_to_file(path, content, encoding)
+        else:
+            content_bytes = content.encode('utf-8')
+            base64_bytes = base64.b64encode(content_bytes)
+            base64_string = base64_bytes.decode('utf-8')
+            self.run_program_argsasarray("scsetfilecontent", ["--path", path, "--argumentisinbase64", "--content", base64_string])  # works platform-indepent
 
     @GeneralUtilities.check_arguments
     def remove(self, path: str) -> None:
