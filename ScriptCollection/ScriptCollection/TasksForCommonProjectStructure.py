@@ -3416,11 +3416,11 @@ class TasksForCommonProjectStructure:
         self.__sc.install_requirementstxt_file(repository_folde+"/Other/requirements.txt", verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_submodule(self, repository_folder: str, submodule_name: str):
+    def update_submodule(self, repository_folder: str, submodule_name: str,local_branch:str="main",remote_branch:str="main",remote:str="origin"):
         submodule_folder = GeneralUtilities.resolve_relative_path("Other/Resources/Submodules/"+submodule_name, repository_folder)
-        self.__sc.git_fetch(submodule_folder, "origin")
-        self.__sc.git_checkout(submodule_folder, "main")
-        self.__sc.git_pull(submodule_folder, "origin", "main", "main", True)
+        self.__sc.git_fetch(submodule_folder, remote)
+        self.__sc.git_checkout(submodule_folder, local_branch)
+        self.__sc.git_pull(submodule_folder, remote, local_branch, remote_branch, True)
         current_version = self.__sc.get_semver_version_from_gitversion(repository_folder)
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{current_version}.md")
         if (not os.path.isfile(changelog_file)):
