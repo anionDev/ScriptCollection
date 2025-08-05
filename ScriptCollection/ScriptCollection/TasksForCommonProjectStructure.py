@@ -125,6 +125,17 @@ class TasksForCommonProjectStructure:
         self.__sc = sc
 
     @GeneralUtilities.check_arguments
+    def is_codeunit_folder(self, codeunit_folder: str) -> bool:
+        repo_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        if not self.__sc.is_git_repository(repo_folder):
+            return False
+        codeunit_name = os.path.basename(codeunit_folder)
+        codeunit_file: str = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
+        if not os.path.isfile(codeunit_file):
+            return False
+        return True
+
+    @GeneralUtilities.check_arguments
     def assert_is_codeunit_folder(self, codeunit_folder: str) -> str:
         repo_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         if not self.__sc.is_git_repository(repo_folder):
@@ -1884,7 +1895,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str, force: bool, verbosity: int) -> None:
+    def do_npm_install(self, package_json_folder: str, force: bool, verbosity: int = 1) -> None:
         argument1 = "install"
         if force:
             argument1 = f"{argument1} --force"
@@ -2088,6 +2099,14 @@ class TasksForCommonProjectStructure:
     def copy_resources_from_dependent_codeunit(self, codeunit_folder: str, resource_name: str, source_codeunit_name: str) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         source_folder: str = GeneralUtilities.resolve_relative_path(f"../{source_codeunit_name}/Other/Resources/{resource_name}", codeunit_folder)
+        target_folder: str = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
+        shutil.copytree(source_folder, target_folder)
+
+    @GeneralUtilities.check_arguments
+    def copy_resources_from_global_project_resources(self, codeunit_folder: str, resource_name: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        source_folder: str = GeneralUtilities.resolve_relative_path(f"../Other/Resources/{resource_name}", codeunit_folder)
         target_folder: str = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
         GeneralUtilities.ensure_directory_does_not_exist(target_folder)
         shutil.copytree(source_folder, target_folder)
@@ -2354,16 +2373,18 @@ class TasksForCommonProjectStructure:
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity, ignored_dependencies)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_node_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
-        codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
-        ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(codeunit_folder, True)
+    def update_dependencies_of_package_json(self, folder: str, verbosity: int, cmd_args: list[str]) -> None:
+        if self.is_codeunit_folder(folder):
+            ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(folder, True)
+        else:
+            ignored_dependencies = []
         # TODO consider ignored_dependencies
-        result = self.run_with_epew("npm", "outdated", codeunit_folder, verbosity, throw_exception_if_exitcode_is_not_zero=False)
+        result = self.run_with_epew("npm", "outdated", folder, verbosity, throw_exception_if_exitcode_is_not_zero=False)
         if result[0] == 0:
             return  # all dependencies up to date
         elif result[0] == 1:
             package_json_content = None
-            package_json_file = f"{codeunit_folder}/package.json"
+            package_json_file = f"{folder}/package.json"
             with open(package_json_file, "r", encoding="utf-8") as package_json_file_object:
                 package_json_content = json.load(package_json_file_object)
                 lines = GeneralUtilities.string_to_lines(result[1])[1:][:-1]
@@ -2377,7 +2398,7 @@ class TasksForCommonProjectStructure:
                         package_json_content["devDependencies"][package] = latest_version
             with open(package_json_file, "w", encoding="utf-8") as package_json_file_object:
                 json.dump(package_json_content, package_json_file_object, indent=4)
-            self.do_npm_install(codeunit_folder, True, verbosity)
+            self.do_npm_install(folder, True, verbosity)
         else:
             GeneralUtilities.write_message_to_stderr("Update dependencies resulted in an error.")
 
@@ -3416,7 +3437,7 @@ class TasksForCommonProjectStructure:
         self.__sc.install_requirementstxt_file(repository_folde+"/Other/requirements.txt", verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_submodule(self, repository_folder: str, submodule_name: str,local_branch:str="main",remote_branch:str="main",remote:str="origin"):
+    def update_submodule(self, repository_folder: str, submodule_name: str, local_branch: str = "main", remote_branch: str = "main", remote: str = "origin"):
         submodule_folder = GeneralUtilities.resolve_relative_path("Other/Resources/Submodules/"+submodule_name, repository_folder)
         self.__sc.git_fetch(submodule_folder, remote)
         self.__sc.git_checkout(submodule_folder, local_branch)
