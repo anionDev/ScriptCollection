@@ -1,3 +1,4 @@
+import base64
 import os
 import argparse
 import time
@@ -412,12 +413,6 @@ def FolderExists() -> int:
         return 2
 
 
-def SetContentOfFile() -> int:
-    GeneralUtilities.write_message_to_stderr("This function is not implemented yet.")
-    # TODO implement function
-    return 1
-
-
 def PrintFileContent() -> int:
     parser = argparse.ArgumentParser(description="This function prints the size of a file")
     parser.add_argument('-p', '--path', required=True)
@@ -725,4 +720,31 @@ def UpdateImagesInDockerComposeFile() -> int:
     if args.file is None:
         args.file = os.path.join(os.getcwd(), "docker-compose.yml")
     iu.update_all_services_in_docker_compose_file(args.file, VersionEcholon.LatestPatch, [])
+    return 0
+
+
+def SetFileContent() -> int:
+    parser = argparse.ArgumentParser(description="This function writes content into a file.")
+    parser.add_argument('-p', '--path', required=True)
+    parser.add_argument('-b', '--argumentisinbase64', action='store_true', required=False, default=False)
+    parser.add_argument('-c', '--content', required=True)
+    parser.add_argument('-e', '--encoding', required=False, default="utf-8")
+    args = parser.parse_args()
+    sc = ScriptCollectionCore()
+    content = args.content
+    if args.argumentisinbase64:
+        base64_string: str = args.content
+        base64_bytes = base64_string.encode('utf-8')
+        original_bytes = base64.b64decode(base64_bytes)
+        content = original_bytes.decode('utf-8')
+    sc.set_file_content(args.path, content, args.encoding)
+    return 0
+
+
+def GenerateTaskfileFromWorkspacefile() -> int:
+    parser = argparse.ArgumentParser(description="Generates a taskfile.yml-file from a .code-workspace-file")
+    parser.add_argument('-f', '--repositoryfolder', required=True)
+    args = parser.parse_args()
+    t = TasksForCommonProjectStructure()
+    t.generate_tasksfile_from_workspace_file(args.repositoryfolder)
     return 0
