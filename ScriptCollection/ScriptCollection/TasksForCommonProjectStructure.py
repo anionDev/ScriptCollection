@@ -485,8 +485,7 @@ class TasksForCommonProjectStructure:
         self.write_version_to_codeunit_file(codeunit_file, current_version)
 
     @GeneralUtilities.check_arguments
-    def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int):
-        sc = ScriptCollectionCore()
+    def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int,ignore_git_ignored_files:bool=True):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", commontasks_script_file_of_current_file)
         self.__ensure_grylibrary_is_available(codeunit_folder)
         repository_folder: str = os.path.dirname(codeunit_folder)
@@ -494,9 +493,51 @@ class TasksForCommonProjectStructure:
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         for search_result in Path(codeunit_folder).glob('**/*.tt'):
             tt_file = str(search_result)
-            relative_path_to_tt_file = str(Path(tt_file).relative_to(codeunit_folder))
-            argument = [f"--parameter=repositoryFolder={repository_folder}", f"--parameter=codeUnitName={codeunitname}", relative_path_to_tt_file]
-            sc.run_program_argsasarray("t4", argument, codeunit_folder, verbosity=verbosity)
+            relative_path_to_tt_file_from_repository = str(Path(tt_file).relative_to(repository_folder))
+            if (not ignore_git_ignored_files) or (ignore_git_ignored_files and not self.__sc.file_is_git_ignored(relative_path_to_tt_file_from_repository,repository_folder)):
+                relative_path_to_tt_file_from_codeunit_file = str(Path(tt_file).relative_to(codeunit_folder))
+                argument = [f"--parameter=repositoryFolder={repository_folder}", f"--parameter=codeUnitName={codeunitname}", relative_path_to_tt_file_from_codeunit_file]
+                self.__sc.run_program_argsasarray("t4", argument, codeunit_folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def get_resource_from_global_resource(self,codeunit_folder:str,resource_name:str):
+        repository_folder:str= GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        source_folder:str=os.path.join(repository_folder,"Other","Resources",resource_name)
+        target_folder:str=os.path.join(codeunit_folder,"Other","Resources",resource_name)
+        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+        GeneralUtilities.copy_content_of_folder(source_folder, target_folder)
+
+    @GeneralUtilities.check_arguments
+    def clone_repository_as_resource(self,local_repository_folder:str,remote_repository_link:str, resource_name:str,repository_subname:str=None)->str:
+        commit_id:str=None
+        target_folder:str=os.path.join(local_repository_folder,"Other","Resources",resource_name)
+        if repository_subname is not None:
+            target_folder=os.path.join(target_folder,repository_subname)
+        if not os.path.isdir(target_folder):
+            GeneralUtilities.ensure_directory_exists(target_folder)
+            GeneralUtilities.write_message_to_stdout(f"Clone {remote_repository_link} into {target_folder}...")
+            self.__sc.run_program("git",f"clone --recurse-submodules {remote_repository_link} {target_folder}")
+
+            self.__sc.git_get_commit_id(target_folder)
+
+            git_folders:list[str]=[]
+            git_files:list[str]=[]
+            for dirpath, dirnames, filenames in os.walk(target_folder):
+                for dirname in dirnames:
+                    if dirname == ".git":
+                        full_path = os.path.join(dirpath, dirname)
+                        git_folders.append(full_path)
+                for filename in filenames:
+                    if filename == ".git":
+                        full_path = os.path.join(dirpath, filename)
+                        git_files.append(full_path)
+            for git_folder in git_folders:
+                if os.path.isdir(git_folder):
+                    GeneralUtilities.ensure_directory_does_not_exist(git_folder)
+            for git_file in git_files:
+                if os.path.isdir(git_file):
+                    GeneralUtilities.ensure_file_does_not_exist(git_file)
+        return commit_id
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
