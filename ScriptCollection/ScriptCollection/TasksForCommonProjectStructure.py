@@ -240,10 +240,9 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def copy_source_files_to_output_directory(self, buildscript_file: str) -> None:
         GeneralUtilities.write_message_to_stdout("Copy sourcecode...")
-        sc = ScriptCollectionCore()
         folder = os.path.dirname(os.path.realpath(buildscript_file))
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", folder)
-        result = sc.run_program_argsasarray("git", ["ls-tree", "-r", "HEAD", "--name-only"], codeunit_folder)
+        result = self.__sc.run_program_argsasarray("git", ["ls-tree", "-r", "HEAD", "--name-only"], codeunit_folder)
         files = [f for f in result[1].split('\n') if len(f) > 0]
         for file in files:
             full_source_file = os.path.join(codeunit_folder, file)
@@ -271,7 +270,6 @@ class TasksForCommonProjectStructure:
         }
         for target in targets:
             GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target_names[target]}...")
-            sc = ScriptCollectionCore()
             self.run_with_epew("flutter", f"build {target}", src_folder, verbosity)
             if target == "web":
                 web_relase_folder = os.path.join(src_folder, "build/web")
@@ -300,7 +298,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_directory_does_not_exist(apk_folder)
                 GeneralUtilities.ensure_directory_exists(apk_folder)
                 apks_file = f"{apk_folder}/{codeunit_name}.apks"
-                sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder, verbosity)
+                self.__sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder, verbosity)
                 with zipfile.ZipFile(apks_file, "r") as zip_ref:
                     zip_ref.extract("universal.apk", apk_folder)
                 GeneralUtilities.ensure_file_does_not_exist(apks_file)
@@ -485,8 +483,7 @@ class TasksForCommonProjectStructure:
         self.write_version_to_codeunit_file(codeunit_file, current_version)
 
     @GeneralUtilities.check_arguments
-    def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int):
-        sc = ScriptCollectionCore()
+    def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int, ignore_git_ignored_files: bool = True):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", commontasks_script_file_of_current_file)
         self.__ensure_grylibrary_is_available(codeunit_folder)
         repository_folder: str = os.path.dirname(codeunit_folder)
@@ -494,9 +491,19 @@ class TasksForCommonProjectStructure:
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         for search_result in Path(codeunit_folder).glob('**/*.tt'):
             tt_file = str(search_result)
-            relative_path_to_tt_file = str(Path(tt_file).relative_to(codeunit_folder))
-            argument = [f"--parameter=repositoryFolder={repository_folder}", f"--parameter=codeUnitName={codeunitname}", relative_path_to_tt_file]
-            sc.run_program_argsasarray("t4", argument, codeunit_folder, verbosity=verbosity)
+            relative_path_to_tt_file_from_repository = str(Path(tt_file).relative_to(repository_folder))
+            if (not ignore_git_ignored_files) or (ignore_git_ignored_files and not self.__sc.file_is_git_ignored(relative_path_to_tt_file_from_repository, repository_folder)):
+                relative_path_to_tt_file_from_codeunit_file = str(Path(tt_file).relative_to(codeunit_folder))
+                argument = [f"--parameter=repositoryFolder={repository_folder}", f"--parameter=codeUnitName={codeunitname}", relative_path_to_tt_file_from_codeunit_file]
+                self.__sc.run_program_argsasarray("t4", argument, codeunit_folder, verbosity=verbosity)
+
+    @GeneralUtilities.check_arguments
+    def get_resource_from_global_resource(self, codeunit_folder: str, resource_name: str):
+        repository_folder: str = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        source_folder: str = os.path.join(repository_folder, "Other", "Resources", resource_name)
+        target_folder: str = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
+        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+        GeneralUtilities.copy_content_of_folder(source_folder, target_folder)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -780,10 +787,9 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout("Generate SBOM...")
         self.assert_is_codeunit_folder(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
-        sc = ScriptCollectionCore()
         bomfile_folder = "Other\\Artifacts\\BOM"
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
-        sc.run_program_argsasarray("dotnet", ["CycloneDX", f"{codeunit_name}\\{codeunit_name}.csproj", "-o", bomfile_folder, "--disable-github-licenses"], codeunit_folder, verbosity=verbosity)
+        self.__sc.run_program_argsasarray("dotnet", ["CycloneDX", f"{codeunit_name}\\{codeunit_name}.csproj", "-o", bomfile_folder, "--disable-github-licenses"], codeunit_folder, verbosity=verbosity)
         codeunitversion = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml"))
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
@@ -1454,8 +1460,7 @@ class TasksForCommonProjectStructure:
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         artifacts_folder = self.get_artifacts_folder(repository_folder, codeunitname)
         applicationimage_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
-        sc = ScriptCollectionCore()
-        image_file = sc.find_file_by_extension(applicationimage_folder, "tar")
+        image_file = self.__sc.find_file_by_extension(applicationimage_folder, "tar")
         image_filename = os.path.basename(image_file)
         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         if remote_image_name is None:
@@ -1466,15 +1471,15 @@ class TasksForCommonProjectStructure:
         remote_image_latest = f"{remote_repo}:latest"
         remote_image_version = f"{remote_repo}:{codeunit_version}"
         GeneralUtilities.write_message_to_stdout("Load image...")
-        sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
+        self.__sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Tag image...")
-        sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}", verbosity=verbosity)
-        sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}", verbosity=verbosity)
+        self.__sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}", verbosity=verbosity)
+        self.__sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}", verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Push image...")
-        sc.run_program("docker", f"push {remote_image_latest}", verbosity=verbosity)
-        sc.run_program("docker", f"push {remote_image_version}", verbosity=verbosity)
+        self.__sc.run_program("docker", f"push {remote_image_latest}", verbosity=verbosity)
+        self.__sc.run_program("docker", f"push {remote_image_version}", verbosity=verbosity)
         if push_readme:
-            sc.run_program("docker-pushrm", f"{remote_repo}", codeunit_folder, verbosity=verbosity)
+            self.__sc.run_program("docker-pushrm", f"{remote_repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
@@ -1756,7 +1761,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def get_version_of_project(self, repository_folder: str) -> str:
         self.__sc.assert_is_git_repository(repository_folder)
-        return ScriptCollectionCore().get_semver_version_from_gitversion(repository_folder)
+        return self.__sc.get_semver_version_from_gitversion(repository_folder)
 
     @GeneralUtilities.check_arguments
     def replace_common_variables_in_nuspec_file(self, codeunit_folder: str) -> None:
@@ -2207,7 +2212,7 @@ class TasksForCommonProjectStructure:
         openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
         GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-        ScriptCollectionCore().run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
+        self.__sc.run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
 
     @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_dotnet(self, file: str, name_of_api_providing_codeunit: str, base_namespace: str) -> None:
@@ -2225,7 +2230,7 @@ class TasksForCommonProjectStructure:
         openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
         GeneralUtilities.ensure_directory_exists(target_folder)
-        ScriptCollectionCore().run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis {additional_properties}', codeunit_folder)
+        self.__sc.run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis {additional_properties}', codeunit_folder)
 
         # move docs to correct folder
         target_folder_docs = os.path.join(target_folder, "docs")
@@ -2922,13 +2927,12 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __generate_svg_files_from_plantuml(self, diagrams_files_folder: str, plant_uml_folder: str) -> None:
-        sc = ScriptCollectionCore()
         for file in GeneralUtilities.get_all_files_of_folder(diagrams_files_folder):
             if file.endswith(".plantuml"):
                 output_filename = self.get_output_filename_for_plantuml_filename(file)
                 argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', '-tsvg', os.path.basename(file)]
                 folder = os.path.dirname(file)
-                sc.run_program_argsasarray("java", argument, folder, verbosity=0)
+                self.__sc.run_program_argsasarray("java", argument, folder, verbosity=0)
                 result_file = folder+"/" + output_filename
                 GeneralUtilities.assert_file_exists(result_file)
                 self.__sc.format_xml_file(result_file)
@@ -3026,7 +3030,7 @@ class TasksForCommonProjectStructure:
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts", artifact_name_of_zip)
         manifest_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "WinGet-Manifest")
         GeneralUtilities.assert_folder_exists(artifacts_folder)
-        artifacts_file = ScriptCollectionCore().find_file_by_extension(artifacts_folder, "zip")
+        artifacts_file = self.__sc.find_file_by_extension(artifacts_folder, "zip")
         winget_template_file = os.path.join(build_folder, "WinGet-Template.yaml")
         winget_manifest_file = os.path.join(manifest_folder, "WinGet-Manifest.yaml")
         GeneralUtilities.assert_file_exists(winget_template_file)
@@ -3461,3 +3465,57 @@ class TasksForCommonProjectStructure:
         excluded = ["opendms"]
         iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
         iu.check_for_newest_version(dockercomposefile, excluded)
+
+
+    @GeneralUtilities.check_arguments
+    def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None) -> None:
+        resrepo_commit_id_folder: str = os.path.join(local_repository_folder, "Other", "Resources", f"{resource_name}Version")
+        resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resource_name}Version.txt")
+        latest_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)
+        resrepo_data_folder: str = os.path.join(local_repository_folder, "Other", "Resources", resource_name).replace("\\", "/")
+        current_version: str = None
+        resrepo_data_version: str = os.path.join(resrepo_data_folder, f"{resource_name}Version.txt")
+        if os.path.isdir(resrepo_data_folder):
+            if os.path.isfile(resrepo_data_version):
+                current_version = GeneralUtilities.read_text_from_file(resrepo_data_version)
+        if (current_version is None) or (current_version != latest_version):
+            target_folder: str = resrepo_data_folder
+            if repository_subname is not None:
+                target_folder = f"{resrepo_data_folder}/{repository_subname}"
+            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+            self.__sc.run_program("git", f"clone --recurse-submodules {remote_repository_link} {target_folder}")
+            self.__sc.run_program("git", f"checkout {latest_version}", target_folder)
+            GeneralUtilities.write_text_to_file(resrepo_data_version, latest_version)
+
+            git_folders: list[str] = []
+            git_files: list[str] = []
+            for dirpath, dirnames, filenames in os.walk(target_folder):
+                for dirname in dirnames:
+                    if dirname == ".git":
+                        full_path = os.path.join(dirpath, dirname)
+                        git_folders.append(full_path)
+                for filename in filenames:
+                    if filename == ".git":
+                        full_path = os.path.join(dirpath, filename)
+                        git_files.append(full_path)
+            for git_folder in git_folders:
+                if os.path.isdir(git_folder):
+                    GeneralUtilities.ensure_directory_does_not_exist(git_folder)
+            for git_file in git_files:
+                if os.path.isdir(git_file):
+                    GeneralUtilities.ensure_file_does_not_exist(git_file)
+
+    def set_latest_version_for_clone_repository_as_resource(self, resourcename: str, github_link: str, branch: str = "main"):
+        current_file = str(Path(__file__).absolute())
+        repository_folder = GeneralUtilities.resolve_relative_path("../../..", current_file)
+
+        resrepo_commit_id_folder: str = os.path.join(repository_folder, "Other", "Resources", f"{resourcename}Version")
+        resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resourcename}Version.txt")
+        current_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)
+
+        stdOut = [l.split("\t") for l in GeneralUtilities.string_to_lines(self.__sc.run_program("git", f"ls-remote {github_link}")[1])]
+        stdOut = [l for l in stdOut if l[1] == f"refs/heads/{branch}"]
+        GeneralUtilities.assert_condition(len(stdOut) == 1)
+        latest_version: str = stdOut[0][0]
+        if current_version != latest_version:
+            GeneralUtilities.write_text_to_file(resrepo_commit_id_file, latest_version)
