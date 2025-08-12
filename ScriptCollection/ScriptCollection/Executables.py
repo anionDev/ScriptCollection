@@ -715,11 +715,14 @@ def UpdateImagesInDockerComposeFile() -> int:
     iu: ImageUpdater = ImageUpdater()
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', required=False, default=None)
-    # TODO add option to specify ignored services and versionecholon
+    parser.add_argument('-v', '--versionecholon', required=False, default=VersionEcholon.Newest.name, dest="Possible values are: " + ", ".join([e.name for e in VersionEcholon]))
+    parser.add_argument("-s", "--servicename", required=True, default=None)
+    parser.add_argument("-u", "--updatertype", required=True, default=None)
     args = parser.parse_args()
     if args.file is None:
         args.file = os.path.join(os.getcwd(), "docker-compose.yml")
-    iu.update_all_services_in_docker_compose_file(args.file, VersionEcholon.LatestPatch, [])
+    versionecholonTyped = VersionEcholon[args.versionecholon]
+    iu.update_services_in_docker_compose_file(args.file, [args.servicename], versionecholonTyped, args.updatertype)
     return 0
 
 
