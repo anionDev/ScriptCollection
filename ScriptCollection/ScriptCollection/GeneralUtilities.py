@@ -352,13 +352,21 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def datetime_to_string_for_logfile_name(datetime_object: datetime) -> str:
-        return datetime_object.strftime('%Y-%m-%d_%H-%M-%S')
+    def datetime_to_string_for_logfile_name(datetime_object: datetime, add_timezone_info_to_log: bool = True) -> str:
+        base_pattern: str = "%Y-%m-%d_%H-%M-%S"
+        if add_timezone_info_to_log:
+            return datetime_object.strftime(f'{base_pattern}_%z')
+        else:
+            return datetime_object.strftime(base_pattern)
 
     @staticmethod
     @check_arguments
-    def datetime_to_string_for_logfile_entry(datetime_object: datetime) -> str:
-        return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
+    def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_timezone_info_to_log: bool = True) -> str:
+        base_pattern: str = "%Y-%m-%d %H:%M:%S"
+        if add_timezone_info_to_log:
+            return datetime_object.strftime(f'{base_pattern} %z')
+        else:
+            return datetime_object.strftime(base_pattern)
 
     @staticmethod
     @check_arguments
