@@ -3470,6 +3470,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None) -> None:
+        GeneralUtilities.write_message_to_stdout(f'Clone resource {resource_name}...')
         resrepo_commit_id_folder: str = os.path.join(local_repository_folder, "Other", "Resources", f"{resource_name}Version")
         resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resource_name}Version.txt")
         latest_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)
