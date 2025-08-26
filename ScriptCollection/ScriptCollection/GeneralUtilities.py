@@ -35,6 +35,7 @@ class VersionEcholon(Enum):
 
 class GeneralUtilities:
 
+    __datetime_format_with_offset: str = "%Y-%m-%d %H:%M:%S %z"
     __datetime_format: str = "%Y-%m-%dT%H:%M:%S"
     __date_format: str = "%Y-%m-%d"
 
@@ -132,6 +133,11 @@ class GeneralUtilities:
     def datetime_to_string(value: datetime) -> str:
         value = datetime(year=value.year, month=value.month, day=value.day, hour=value.hour, minute=value.minute, second=value.second)
         return value.strftime(GeneralUtilities.__datetime_format)  # returns "2022-10-06T19:26:01" for example
+
+    @staticmethod
+    @check_arguments
+    def datetime_to_string_with_timezone(value: datetime) -> str:
+        return value.strftime(GeneralUtilities.__datetime_format_with_offset)  # returns "2025-08-21 15:30:00 +0200" for example
 
     @staticmethod
     @check_arguments
@@ -352,13 +358,21 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def datetime_to_string_for_logfile_name(datetime_object: datetime) -> str:
-        return datetime_object.strftime('%Y-%m-%d_%H-%M-%S')
+    def datetime_to_string_for_logfile_name(datetime_object: datetime, add_timezone_info_to_log: bool = True) -> str:
+        base_pattern: str = "%Y-%m-%d_%H-%M-%S"
+        if add_timezone_info_to_log:
+            return datetime_object.strftime(f'{base_pattern}_%z')
+        else:
+            return datetime_object.strftime(base_pattern)
 
     @staticmethod
     @check_arguments
-    def datetime_to_string_for_logfile_entry(datetime_object: datetime) -> str:
-        return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
+    def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_timezone_info_to_log: bool = True) -> str:
+        base_pattern: str = "%Y-%m-%d %H:%M:%S"
+        if add_timezone_info_to_log:
+            return datetime_object.strftime(f'{base_pattern} %z')
+        else:
+            return datetime_object.strftime(base_pattern)
 
     @staticmethod
     @check_arguments

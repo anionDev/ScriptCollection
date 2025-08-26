@@ -715,11 +715,14 @@ def UpdateImagesInDockerComposeFile() -> int:
     iu: ImageUpdater = ImageUpdater()
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', required=False, default=None)
-    # TODO add option to specify ignored services and versionecholon
+    parser.add_argument('-v', '--versionecholon', required=False, default=VersionEcholon.Newest.name, dest="Possible values are: " + ", ".join([e.name for e in VersionEcholon]))
+    parser.add_argument("-s", "--servicename", required=True, default=None)
+    parser.add_argument("-u", "--updatertype", required=True, default=None)
     args = parser.parse_args()
     if args.file is None:
         args.file = os.path.join(os.getcwd(), "docker-compose.yml")
-    iu.update_all_services_in_docker_compose_file(args.file, VersionEcholon.LatestPatch, [])
+    versionecholonTyped = VersionEcholon[args.versionecholon]
+    iu.update_services_in_docker_compose_file(args.file, [args.servicename], versionecholonTyped, args.updatertype)
     return 0
 
 
@@ -747,4 +750,13 @@ def GenerateTaskfileFromWorkspacefile() -> int:
     args = parser.parse_args()
     t = TasksForCommonProjectStructure()
     t.generate_tasksfile_from_workspace_file(args.repositoryfolder)
+    return 0
+
+
+def UpdateTimestampInFile() -> int:
+    parser = argparse.ArgumentParser(description="Update the timestamp in a comment in a file")
+    parser.add_argument('-f', '--file', required=True)
+    args = parser.parse_args()
+    sc = ScriptCollectionCore()
+    sc.update_timestamp_in_file(args.file)
     return 0

@@ -1,3 +1,4 @@
+import traceback
 from datetime import timedelta, datetime
 import json
 import binascii
@@ -34,7 +35,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.152"
+version = "3.5.153"
 __version__ = version
 
 
@@ -2436,3 +2437,28 @@ OCR-content:
             if has_staged_changes:
                 changed_ocr_file_relative_path = os.path.relpath(changed_ocr_file, folder)
                 self.run_program_argsasarray("git", ["add", changed_ocr_file_relative_path], folder)
+
+    @GeneralUtilities.check_arguments
+    def update_timestamp_in_file(self, target_file: str) -> None:
+        lines = GeneralUtilities.read_lines_from_file(target_file)
+        new_lines = []
+        prefix: str = "# last update: "
+        for line in lines:
+            if line.startswith(prefix):
+                new_lines.append(prefix+GeneralUtilities.datetime_to_string_with_timezone(datetime.now()))
+            else:
+                new_lines.append(line)
+        GeneralUtilities.write_lines_to_file(target_file, new_lines)
+
+    def do_and_log_task(self,name_of_task:str,task):
+        try:
+            self.log.log(f"Start {name_of_task}", LogLevel.Information)
+            result= task()
+            if result is None:
+                result=0
+            return result
+        except Exception as e:
+            self.log.log_exception(f"Error while {name_of_task}.", e, traceback)
+            return 1
+        finally:
+            self.log.log(f"Finished {name_of_task}.", LogLevel.Information)

@@ -2428,11 +2428,13 @@ class TasksForCommonProjectStructure:
                     relative_script_file = task["command"]
 
                     relative_script_file = "."
+                    cwd: str = None
                     if "options" in task:
                         options = task["options"]
                         if "cwd" in options:
-                            cwd: str = options["cwd"]
+                            cwd = options["cwd"]
                             cwd = cwd.replace("${workspaceFolder}", ".")
+                            cwd = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
                             relative_script_file = cwd
                     if len(relative_script_file) == 0:
                         relative_script_file = "."
@@ -2450,15 +2452,16 @@ class TasksForCommonProjectStructure:
                     if append_cli_args_at_end:
                         command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
 
-                    cwd_literal = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
                     description_literal = description.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+                    command_with_args = command_with_args.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
 
                     lines.append(f"  {name}:")
                     lines.append(f'    desc: "{description_literal}"')
                     lines.append('    silent: true')
-                    lines.append(f'    dir: "{cwd_literal}"')
+                    if cwd is not None:
+                        lines.append(f'    dir: "{cwd}"')
                     lines.append("    cmds:")
-                    lines.append(f"      - {command_with_args}")
+                    lines.append(f'      - "{command_with_args}"')
                     lines.append('    aliases:')
                     lines.append(f'      - {name.lower()}')
                     if "aliases" in task:
@@ -2649,6 +2652,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
+        now_begin: datetime = datetime.now()
         codeunits_list = "{"+", ".join(["a", "b"])+"}"
         if verbosity > 2:
             GeneralUtilities.write_message_to_stdout(f"Start building codeunits ({codeunits_list}) in repository '{repository_folder}'...")
@@ -2672,7 +2676,7 @@ class TasksForCommonProjectStructure:
         sorted_codeunits = [codeunit for codeunit in sorted_codeunits if codeunit in codeunits]
         project_version = self.get_version_of_project(repository_folder)
 
-        message = f"Build codeunits in product {repository_name}..."
+        message = f"Build codeunits in product {repository_name}... (Started: {GeneralUtilities.datetime_to_string(now_begin)})"
         if note is not None:
             message = f"{message} ({note})"
         GeneralUtilities.write_message_to_stdout(message)
@@ -2714,7 +2718,8 @@ class TasksForCommonProjectStructure:
                 archive_file = os.path.join(os.getcwd(), f"{filename_without_extension}.zip")
                 shutil.move(archive_file, target_folder)
 
-        message2 = f"Finished build codeunits in product {repository_name}."
+        now_end: datetime = datetime.now()
+        message2 = f"Finished build codeunits in product {repository_name}. (Finished: {GeneralUtilities.datetime_to_string(now_end)})"
         if note is not None:
             message2 = f"{message2} ({note})"
         GeneralUtilities.write_message_to_stdout(message2)
@@ -3466,9 +3471,9 @@ class TasksForCommonProjectStructure:
         iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
         iu.check_for_newest_version(dockercomposefile, excluded)
 
-
     @GeneralUtilities.check_arguments
     def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None) -> None:
+        GeneralUtilities.write_message_to_stdout(f'Clone resource {resource_name}...')
         resrepo_commit_id_folder: str = os.path.join(local_repository_folder, "Other", "Resources", f"{resource_name}Version")
         resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resource_name}Version.txt")
         latest_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)

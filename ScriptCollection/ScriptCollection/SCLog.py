@@ -1,6 +1,6 @@
 
 from enum import Enum
-from datetime import datetime,  timezone
+from datetime import datetime
 from .GeneralUtilities import GeneralUtilities
 
 
@@ -22,7 +22,6 @@ class SCLog:
     add_overhead_to_console: bool
     add_overhead_to_logfile: bool
     print_as_color: bool
-    zone_of_time: timezone = None
 
     def __init__(self, log_file: str = None, loglevel: LogLevel = None, print_as_color: bool = True):
         self.log_file = log_file
@@ -69,13 +68,9 @@ class SCLog:
         if loglevel == LogLevel.Diagnostic:
             part3 = f"Diagnostic: {message}"
 
-        moment: datetime = None
-        if self.zone_of_time is None:
-            moment = datetime.now()
-        else:
-            moment = datetime.now(self.zone_of_time)
+        moment: datetime = datetime.now(datetime.now().astimezone().tzinfo)
 
-        part1 = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(moment)}] ["
+        part1 = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(moment, True)}] ["
         if loglevel == LogLevel.Information:
             part2 = f"Information"
         elif loglevel == LogLevel.Error:
