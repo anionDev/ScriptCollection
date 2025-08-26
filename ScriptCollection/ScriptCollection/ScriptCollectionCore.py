@@ -35,7 +35,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.153"
+version = "3.5.154"
 __version__ = version
 
 
@@ -2450,15 +2450,15 @@ OCR-content:
                 new_lines.append(line)
         GeneralUtilities.write_lines_to_file(target_file, new_lines)
 
-    def do_and_log_task(self,name_of_task:str,task):
+    def do_and_log_task(self, name_of_task: str, task):
         try:
-            self.log.log(f"Start {name_of_task}", LogLevel.Information)
-            result= task()
+            self.log.log(f"Start action \"{name_of_task}\".", LogLevel.Information)
+            result = task()
             if result is None:
-                result=0
+                result = 0
             return result
         except Exception as e:
-            self.log.log_exception(f"Error while {name_of_task}.", e, traceback)
+            self.log.log_exception(f"Error while running action \"{name_of_task}\".", e, traceback)
             return 1
         finally:
-            self.log.log(f"Finished {name_of_task}.", LogLevel.Information)
+            self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)

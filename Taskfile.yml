@@ -7,7 +7,7 @@ tasks:
     silent: true
     dir: "."
     cmds:
-      - scbuildcodeunits
+      - "scbuildcodeunits"
     aliases:
       - basebuildallcodeunits
       - bb
