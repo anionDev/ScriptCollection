@@ -2428,11 +2428,13 @@ class TasksForCommonProjectStructure:
                     relative_script_file = task["command"]
 
                     relative_script_file = "."
+                    cwd: str = None
                     if "options" in task:
                         options = task["options"]
                         if "cwd" in options:
-                            cwd: str = options["cwd"]
+                            cwd = options["cwd"]
                             cwd = cwd.replace("${workspaceFolder}", ".")
+                            cwd = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
                             relative_script_file = cwd
                     if len(relative_script_file) == 0:
                         relative_script_file = "."
@@ -2450,15 +2452,16 @@ class TasksForCommonProjectStructure:
                     if append_cli_args_at_end:
                         command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
 
-                    cwd_literal = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
                     description_literal = description.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+                    command_with_args = command_with_args.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
 
                     lines.append(f"  {name}:")
                     lines.append(f'    desc: "{description_literal}"')
                     lines.append('    silent: true')
-                    lines.append(f'    dir: "{cwd_literal}"')
+                    if cwd is not None:
+                        lines.append(f'    dir: "{cwd}"')
                     lines.append("    cmds:")
-                    lines.append(f"      - {command_with_args}")
+                    lines.append(f'      - "{command_with_args}"')
                     lines.append('    aliases:')
                     lines.append(f'      - {name.lower()}')
                     if "aliases" in task:

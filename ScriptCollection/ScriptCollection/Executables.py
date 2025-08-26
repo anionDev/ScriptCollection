@@ -751,3 +751,12 @@ def GenerateTaskfileFromWorkspacefile() -> int:
     t = TasksForCommonProjectStructure()
     t.generate_tasksfile_from_workspace_file(args.repositoryfolder)
     return 0
+
+
+def UpdateTimestampInFile() -> int:
+    parser = argparse.ArgumentParser(description="Update the timestamp in a comment in a file")
+    parser.add_argument('-f', '--file', required=True)
+    args = parser.parse_args()
+    sc = ScriptCollectionCore()
+    sc.update_timestamp_in_file(args.file)
+    return 0
