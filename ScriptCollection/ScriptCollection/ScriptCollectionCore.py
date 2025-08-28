@@ -2356,8 +2356,10 @@ TXDX
         GeneralUtilities.write_text_to_file(file, ET.tostring(element, encoding="unicode"), encoding)
 
     @GeneralUtilities.check_arguments
-    def install_requirementstxt_file(self, requirements_txt_file: str, folder: str, verbosity: int):
-        self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
+    def install_requirementstxt_file(self, requirements_txt_file: str, verbosity: int):
+        folder:str=os.path.dirname(requirements_txt_file)
+        filename:str=os.path.basename(requirements_txt_file)
+        self.run_program_argsasarray("pip", ["install", "-r", filename], folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
