@@ -35,7 +35,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.153"
+version = "3.5.154"
 __version__ = version
 
 
@@ -2356,8 +2356,10 @@ TXDX
         GeneralUtilities.write_text_to_file(file, ET.tostring(element, encoding="unicode"), encoding)
 
     @GeneralUtilities.check_arguments
-    def install_requirementstxt_file(self, requirements_txt_file: str, folder: str, verbosity: int):
-        self.run_program_argsasarray("pip", ["install", "-r", requirements_txt_file], folder, verbosity=verbosity)
+    def install_requirementstxt_file(self, requirements_txt_file: str, verbosity: int):
+        folder:str=os.path.dirname(requirements_txt_file)
+        filename:str=os.path.basename(requirements_txt_file)
+        self.run_program_argsasarray("pip", ["install", "-r", filename], folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
@@ -2450,15 +2452,15 @@ OCR-content:
                 new_lines.append(line)
         GeneralUtilities.write_lines_to_file(target_file, new_lines)
 
-    def do_and_log_task(self,name_of_task:str,task):
+    def do_and_log_task(self, name_of_task: str, task):
         try:
-            self.log.log(f"Start {name_of_task}", LogLevel.Information)
-            result= task()
+            self.log.log(f"Start action \"{name_of_task}\".", LogLevel.Information)
+            result = task()
             if result is None:
-                result=0
+                result = 0
             return result
         except Exception as e:
-            self.log.log_exception(f"Error while {name_of_task}.", e, traceback)
+            self.log.log_exception(f"Error while running action \"{name_of_task}\".", e, traceback)
             return 1
         finally:
-            self.log.log(f"Finished {name_of_task}.", LogLevel.Information)
+            self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
