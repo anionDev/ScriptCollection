@@ -1684,13 +1684,13 @@ class TasksForCommonProjectStructure:
             return result
         entries = GeneralUtilities.read_csv_file(file, True)
         for entry in entries:
-            d1=GeneralUtilities.string_to_datetime(entry[1])
+            d1 = GeneralUtilities.string_to_datetime(entry[1])
             if d1.tzinfo is None:
-                d1=d1.replace(tzinfo=timezone.utc)
-            d2= GeneralUtilities.string_to_datetime(entry[2])
+                d1 = d1.replace(tzinfo=timezone.utc)
+            d2 = GeneralUtilities.string_to_datetime(entry[2])
             if d2.tzinfo is None:
-                d1=d2.replace(tzinfo=timezone.utc)
-            result.append((entry[0], d1,d2))
+                d2 = d2.replace(tzinfo=timezone.utc)
+            result.append((entry[0], d1, d2))
         return result
 
     @GeneralUtilities.check_arguments
