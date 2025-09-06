@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from graphlib import TopologicalSorter
 import os
 from pathlib import Path
@@ -1175,7 +1175,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def ensure_certificate_authority_for_development_purposes_is_generated(self, product_folder: str):
         product_name: str = os.path.basename(product_folder)
-        now = datetime.now()
+        now = GeneralUtilities.get_now()
         ca_name = f"{product_name}CA_{now.year:04}{now.month:02}{now.day:02}{now.hour:02}{now.min:02}{now.second:02}"
         ca_folder = os.path.join(product_folder, "Other", "Resources", "CA")
         generate_certificate = True
@@ -1675,31 +1675,37 @@ class TasksForCommonProjectStructure:
         return False
 
     @GeneralUtilities.check_arguments
-    def get_versions(self, repository_folder: str) -> list[(str, datetime, datetime)]:
+    def get_versions(self, repository_folder: str) -> list[tuple[str, datetime, datetime]]:
         self.__sc.assert_is_git_repository(repository_folder)
         folder = os.path.join(repository_folder, "Other", "Resources", "Support")
         file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
-        result: list[str] = list[(str, datetime, datetime)]()
+        result: list[(str, datetime, datetime)] = list[(str, datetime, datetime)]()
         if not os.path.isfile(file):
             return result
         entries = GeneralUtilities.read_csv_file(file, True)
         for entry in entries:
-            result.append((entry[0], GeneralUtilities.string_to_datetime(entry[1]), GeneralUtilities.string_to_datetime(entry[2])))
+            d1 = GeneralUtilities.string_to_datetime(entry[1])
+            if d1.tzinfo is None:
+                d1 = d1.replace(tzinfo=timezone.utc)
+            d2 = GeneralUtilities.string_to_datetime(entry[2])
+            if d2.tzinfo is None:
+                d2 = d2.replace(tzinfo=timezone.utc)
+            result.append((entry[0], d1, d2))
         return result
 
     @GeneralUtilities.check_arguments
-    def get_supported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+    def get_supported_versions(self, repository_folder: str, moment: datetime) -> list[tuple[str, datetime, datetime]]:
         self.__sc.assert_is_git_repository(repository_folder)
-        result: list[str] = list[(str, datetime, datetime)]()
+        result: list[tuple[str, datetime, datetime]] = list[tuple[str, datetime, datetime]]()
         for entry in self.get_versions(repository_folder):
             if entry[1] <= moment and moment <= entry[2]:
                 result.append(entry)
         return result
 
     @GeneralUtilities.check_arguments
-    def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+    def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[tuple[str, datetime, datetime]]:
         self.__sc.assert_is_git_repository(repository_folder)
-        result: list[str] = list[(str, datetime, datetime)]()
+        result: list[tuple[str, datetime, datetime]] = list[tuple[str, datetime, datetime]]()
         for entry in self.get_versions(repository_folder):
             if not (entry[1] <= moment and moment <= entry[2]):
                 result.append(entry)
@@ -2628,7 +2634,7 @@ class TasksForCommonProjectStructure:
         codeunits = self.get_codeunits(repository_folder, False)
         project_version = self.get_version_of_project(repository_folder)
 
-        now = datetime.now()
+        now = GeneralUtilities.get_now()
 
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
@@ -2650,23 +2656,29 @@ class TasksForCommonProjectStructure:
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes, note)
-        self.__save_lines_of_code(repository_folder)
+        self.__save_lines_of_code(repository_folder, project_version)
 
     @GeneralUtilities.check_arguments
-    def __save_lines_of_code(self, repository_folder: str) -> None:
-        loc = self.__sc.get_lines_of_code(repository_folder)
+    def __save_lines_of_code(self, repository_folder: str, project_version: str) -> None:
+        loc = self.__sc.get_lines_of_code_with_default_excluded_patterns(repository_folder)
         loc_metric_folder = os.path.join(repository_folder, "Other", "Metrics")
         GeneralUtilities.ensure_directory_exists(loc_metric_folder)
-        loc_metric_file = os.path.join(loc_metric_folder, "LinesOfCode.txt")
+        loc_metric_file = os.path.join(loc_metric_folder, "LinesOfCode.csv")
         GeneralUtilities.ensure_file_exists(loc_metric_file)
-        GeneralUtilities.write_text_to_file(loc_metric_file, str(loc))
+        old_lines = GeneralUtilities.read_lines_from_file(loc_metric_file)
+        new_lines = []
+        for line in old_lines:
+            if not line.startswith(f"v{project_version};"):
+                new_lines.append(line)
+        new_lines.append(f"v{project_version};{loc}")
+        GeneralUtilities.write_lines_to_file(loc_metric_file, new_lines)
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
-        now_begin: datetime = datetime.now()
-        codeunits_list = "{"+", ".join(["a", "b"])+"}"
+        now_begin: datetime = GeneralUtilities.get_now()
+        codeunits_list = "{"+", ".join(codeunits)+"}"
         if verbosity > 2:
-            GeneralUtilities.write_message_to_stdout(f"Start building codeunits ({codeunits_list}) in repository '{repository_folder}'...")
+            GeneralUtilities.write_message_to_stdout(f"Start building codeunits {codeunits_list} in repository '{repository_folder}'...")
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
@@ -2729,7 +2741,7 @@ class TasksForCommonProjectStructure:
                 archive_file = os.path.join(os.getcwd(), f"{filename_without_extension}.zip")
                 shutil.move(archive_file, target_folder)
 
-        now_end: datetime = datetime.now()
+        now_end: datetime = GeneralUtilities.get_now()
         message2 = f"Finished build codeunits in product {repository_name}. (Finished: {GeneralUtilities.datetime_to_string_for_logfile_entry(now_end)})"
         if note is not None:
             message2 = f"{message2} ({note})"
@@ -3107,7 +3119,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, assume_dependent_codeunits_are_already_built: bool = False, commandline_arguments: list[str] = []) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
-        now = datetime.now()
+        now = GeneralUtilities.get_now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
@@ -3324,9 +3336,9 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_message_to_stdout("Debug: Dependency-update skipped.")
 
         GeneralUtilities.write_message_to_stdout(f"Check reference-repository...")
-        now = datetime.now()
+        now = GeneralUtilities.get_now()
         for unsupported_version in self.get_unsupported_versions(repository_folder, now):
-            reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version}"
+            reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version[0]}"
             GeneralUtilities.ensure_directory_does_not_exist(reference_folder)
         self.__sc.git_commit(reference_folder, "Removed reference of outdated versions.")
 
