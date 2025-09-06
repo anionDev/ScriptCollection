@@ -2469,7 +2469,7 @@ OCR-content:
     def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
         return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc, False)
 
-    default_excluded_patterns_for_loc: list[str] = [".txt", ".md",".vscode", "Resources", "Reference", ".gitignore", ".gitattributes"]
+    default_excluded_patterns_for_loc: list[str] = [".txt", ".md",".vscode", "Resources", "Reference", ".gitignore", ".gitattributes", "Other/Metrics"]
 
     def get_lines_of_code(self, repository: str, excluded_pattern: list[str], verbose: bool) -> int:
         self.assert_is_git_repository(repository)
