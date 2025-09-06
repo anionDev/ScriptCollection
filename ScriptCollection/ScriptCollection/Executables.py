@@ -760,3 +760,17 @@ def UpdateTimestampInFile() -> int:
     sc = ScriptCollectionCore()
     sc.update_timestamp_in_file(args.file)
     return 0
+
+
+def LOC() -> int:
+    parser = argparse.ArgumentParser(description="Counts the lines of code in a git-repository")
+    parser.add_argument('-r', '--repository', required=True)
+    args = parser.parse_args()
+    sc = ScriptCollectionCore()
+    folder: str = None
+    if os.path.isabs(args.repository):
+        folder = args.repository
+    else:
+        folder = GeneralUtilities.resolve_relative_path(args.repository, os.getcwd())
+    GeneralUtilities.write_message_to_stdout(sc.get_lines_of_code(folder))
+    return 0

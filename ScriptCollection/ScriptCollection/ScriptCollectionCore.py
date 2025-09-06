@@ -2465,12 +2465,13 @@ OCR-content:
         finally:
             self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
-    def get_lines_of_code(self,repository:str)->int
+    def get_lines_of_code(self,repository:str)->int:
+        self.assert_is_git_repository(repository)
         result:int=0
-        result=self.runprogram("git","ls-files",repository)
+        result=self.run_program("git","ls-files",repository)
         files:list[str]=GeneralUtilities.string_to_lines(result[1])
         for file in files:
             full_file:str=os.path.join(repository,file)
-            if not GeneralUtilities.is_binary_file(full_file)
+            if not GeneralUtilities.is_binary_file(full_file):
                 result=result+len(GeneralUtilities.read_nonempty_lines_from_file(full_file))
         return result

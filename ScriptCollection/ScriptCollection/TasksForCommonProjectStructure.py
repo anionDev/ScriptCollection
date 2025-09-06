@@ -2658,6 +2658,7 @@ class TasksForCommonProjectStructure:
         loc_metric_folder = os.path.join(repository_folder, "Other", "Metrics")
         GeneralUtilities.ensure_directory_exists(loc_metric_folder)
         loc_metric_file = os.path.join(loc_metric_folder, "LinesOfCode.txt")
+        GeneralUtilities.ensure_file_exists(loc_metric_file)
         GeneralUtilities.write_text_to_file(loc_metric_file, str(loc))
 
     @GeneralUtilities.check_arguments
