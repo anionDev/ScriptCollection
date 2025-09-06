@@ -19,6 +19,7 @@ from subprocess import Popen
 import re
 import shutil
 from typing import IO
+import fnmatch
 import uuid
 import tempfile
 import io
@@ -35,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.157"
+version = "3.5.158"
 __version__ = version
 
 
@@ -1861,7 +1862,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def system_time_equals_internet_time(self, maximal_tolerance_difference: timedelta) -> bool:
-        return abs(datetime.now() - self.get_internet_time()) < maximal_tolerance_difference
+        return abs(GeneralUtilities.get_now() - self.get_internet_time()) < maximal_tolerance_difference
 
     @GeneralUtilities.check_arguments
     def system_time_equals_internet_time_with_default_tolerance(self) -> bool:
@@ -2122,7 +2123,7 @@ chmod {permission} {link_file}
 
     @GeneralUtilities.check_arguments
     def update_year_in_copyright_tags(self, file: str) -> None:
-        current_year = str(datetime.now().year)
+        current_year = str(GeneralUtilities.get_now().year)
         lines = GeneralUtilities.read_lines_from_file(file)
         lines_result = []
         for line in lines:
@@ -2137,7 +2138,7 @@ chmod {permission} {link_file}
 
     @GeneralUtilities.check_arguments
     def update_year_in_first_line_of_file(self, file: str) -> None:
-        current_year = str(datetime.now().year)
+        current_year = str(GeneralUtilities.get_now().year)
         lines = GeneralUtilities.read_lines_from_file(file)
         lines[0] = re.sub("\\d\\d\\d\\d", current_year, lines[0])
         GeneralUtilities.write_lines_to_file(file, lines)
@@ -2357,8 +2358,8 @@ TXDX
 
     @GeneralUtilities.check_arguments
     def install_requirementstxt_file(self, requirements_txt_file: str, verbosity: int):
-        folder:str=os.path.dirname(requirements_txt_file)
-        filename:str=os.path.basename(requirements_txt_file)
+        folder: str = os.path.dirname(requirements_txt_file)
+        filename: str = os.path.basename(requirements_txt_file)
         self.run_program_argsasarray("pip", ["install", "-r", filename], folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
@@ -2447,7 +2448,7 @@ OCR-content:
         prefix: str = "# last update: "
         for line in lines:
             if line.startswith(prefix):
-                new_lines.append(prefix+GeneralUtilities.datetime_to_string_with_timezone(datetime.now()))
+                new_lines.append(prefix+GeneralUtilities.datetime_to_string_with_timezone(GeneralUtilities.get_now()))
             else:
                 new_lines.append(line)
         GeneralUtilities.write_lines_to_file(target_file, new_lines)
@@ -2465,13 +2466,39 @@ OCR-content:
         finally:
             self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
-    def get_lines_of_code(self,repository:str)->int:
+    def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
+        return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc, False)
+
+    default_excluded_patterns_for_loc: list[str] = [".txt", ".md",".vscode", "Resources", "Reference", ".gitignore", ".gitattributes"]
+
+    def get_lines_of_code(self, repository: str, excluded_pattern: list[str], verbose: bool) -> int:
         self.assert_is_git_repository(repository)
-        result:int=0
-        result=self.run_program("git","ls-files",repository)
-        files:list[str]=GeneralUtilities.string_to_lines(result[1])
+        result: int = 0
+        if verbose:
+            GeneralUtilities.write_message_to_stdout(f"Calculate lines of code in repository '{repository}' with excluded patterns: {', '.join(excluded_pattern)}")
+        git_response = self.run_program("git", "ls-files", repository)
+        files: list[str] = GeneralUtilities.string_to_lines(git_response[1])
+        very_verbose: bool = False
+        if very_verbose:
+            verbose = True
         for file in files:
-            full_file:str=os.path.join(repository,file)
-            if not GeneralUtilities.is_binary_file(full_file):
-                result=result+len(GeneralUtilities.read_nonempty_lines_from_file(full_file))
+            if self.__is_excluded_by_glob_pattern(file, excluded_pattern):
+                if very_verbose:
+                    GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it matches an excluded pattern.")
+            else:
+                full_file: str = os.path.join(repository, file)
+                if GeneralUtilities.is_binary_file(full_file):
+                    if very_verbose:
+                        GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it is a binary-file.")
+                else:
+                    if verbose:
+                        GeneralUtilities.write_message_to_stdout(f"Count lines of file '{file}'.")
+                    length = len(GeneralUtilities.read_nonempty_lines_from_file(full_file))
+                    result = result+length
         return result
+
+    def __is_excluded_by_glob_pattern(self, file: str, excluded_patterns: list[str]) -> bool:
+        for pattern in excluded_patterns:
+            if fnmatch.fnmatch(file, f"*{pattern}*"):
+                return True
+        return False

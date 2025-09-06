@@ -16,7 +16,7 @@ def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
 Caution: This script can cause harm if you pass a wrong inputfolder-argument.''')
 
-    parser.add_argument('--printtableheadline', type=GeneralUtilities.string_to_boolean, const=True, default=True, nargs='?',                        help='Prints column-titles in the name-mapping-csv-file')
+    parser.add_argument('--printtableheadline', type=GeneralUtilities.string_to_boolean, const=True, default=True, nargs='?', help='Prints column-titles in the name-mapping-csv-file')
     parser.add_argument('--namemappingfile', default="NameMapping.csv", help='Specifies the file where the name-mapping will be written to')
     parser.add_argument('--extensions', default="exe,py,sh",
                         help='Comma-separated list of file-extensions of files where this tool should be applied. Use "*" to obfuscate all')
@@ -763,14 +763,24 @@ def UpdateTimestampInFile() -> int:
 
 
 def LOC() -> int:
-    parser = argparse.ArgumentParser(description="Counts the lines of code in a git-repository")
-    parser.add_argument('-r', '--repository', required=True)
-    args = parser.parse_args()
     sc = ScriptCollectionCore()
+    default_patterns: list[str] = sc.default_excluded_patterns_for_loc
+    default_patterns_joined = ",".join(default_patterns)
+    parser = argparse.ArgumentParser(description=f"Counts the lines of code in a git-repository. Default patterns are: {default_patterns_joined}")
+    parser.add_argument('-r', '--repository', required=True)
+    parser.add_argument('-e', '--excluded_pattern', nargs='+')
+    parser.add_argument('-d', '--do_not_add_default_pattern', action='store_true', default=False)
+    parser.add_argument('-v', '--verbose', action='store_true', default=False)
+    args = parser.parse_args()
     folder: str = None
     if os.path.isabs(args.repository):
         folder = args.repository
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repository, os.getcwd())
-    GeneralUtilities.write_message_to_stdout(sc.get_lines_of_code(folder))
+    excluded_patterns: list[str] = []
+    if not args.do_not_add_default_pattern:
+        excluded_patterns = excluded_patterns + sc.default_excluded_patterns_for_loc
+    if args.excluded_pattern is not None:
+        excluded_patterns = excluded_patterns + args.excluded_pattern
+    GeneralUtilities.write_message_to_stdout(str(sc.get_lines_of_code(folder, excluded_patterns, args.verbose)))
     return 0
