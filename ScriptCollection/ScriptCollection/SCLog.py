@@ -22,6 +22,7 @@ class SCLog:
     add_overhead_to_console: bool
     add_overhead_to_logfile: bool
     print_as_color: bool
+    add_milliseconds_to_logfile_entry: bool
 
     def __init__(self, log_file: str = None, loglevel: LogLevel = None, print_as_color: bool = True):
         self.log_file = log_file
@@ -31,6 +32,7 @@ class SCLog:
             self.loglevel = loglevel
         self.add_overhead_to_console = False
         self.add_overhead_to_logfile = False
+        self.add_milliseconds_to_logfile_entry = False
         self.print_as_color = print_as_color
 
     @GeneralUtilities.check_arguments
@@ -70,7 +72,7 @@ class SCLog:
 
         moment: datetime = datetime.now(datetime.now().astimezone().tzinfo)
 
-        part1 = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(moment, True)}] ["
+        part1 = f"[{GeneralUtilities.datetime_to_string_for_logfile_entry(moment, self.add_milliseconds_to_logfile_entry)}] ["
         if loglevel == LogLevel.Information:
             part2 = f"Information"
         elif loglevel == LogLevel.Error:

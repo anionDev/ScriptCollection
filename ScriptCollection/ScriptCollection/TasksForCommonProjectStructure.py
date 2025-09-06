@@ -2629,12 +2629,6 @@ class TasksForCommonProjectStructure:
         project_version = self.get_version_of_project(repository_folder)
 
         now = datetime.now()
-        if not self.__suport_information_exists(repository_folder, project_version):
-            support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
-            until = now + support_time
-            until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
-            from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
-            self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
 
         project_resources_folder = os.path.join(repository_folder, "Other", "Scripts")
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
@@ -2649,6 +2643,12 @@ class TasksForCommonProjectStructure:
                 raise ValueError(f"PrepareBuildCodeunits.py resulted in exitcode {result[0]}.")
 
         self.__do_repository_checks(repository_folder, project_version)
+        if not self.__suport_information_exists(repository_folder, project_version):
+            support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
+            until = now + support_time
+            until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
+            from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
+            self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes, note)
 
     @GeneralUtilities.check_arguments
