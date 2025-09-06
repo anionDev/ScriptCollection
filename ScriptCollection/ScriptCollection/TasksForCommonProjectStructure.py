@@ -1675,11 +1675,11 @@ class TasksForCommonProjectStructure:
         return False
 
     @GeneralUtilities.check_arguments
-    def get_versions(self, repository_folder: str) -> list[(str, datetime, datetime)]:
+    def get_versions(self, repository_folder: str) -> list[tuple[str, datetime, datetime]]:
         self.__sc.assert_is_git_repository(repository_folder)
         folder = os.path.join(repository_folder, "Other", "Resources", "Support")
         file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
-        result: list[str] = list[(str, datetime, datetime)]()
+        result: list[(str, datetime, datetime)] = list[(str, datetime, datetime)]()
         if not os.path.isfile(file):
             return result
         entries = GeneralUtilities.read_csv_file(file, True)
@@ -1694,18 +1694,18 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
-    def get_supported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+    def get_supported_versions(self, repository_folder: str, moment: datetime) -> list[tuple[str, datetime, datetime]]:
         self.__sc.assert_is_git_repository(repository_folder)
-        result: list[str] = list[(str, datetime, datetime)]()
+        result: list[tuple[str, datetime, datetime]] = list[tuple[str, datetime, datetime]]()
         for entry in self.get_versions(repository_folder):
             if entry[1] <= moment and moment <= entry[2]:
                 result.append(entry)
         return result
 
     @GeneralUtilities.check_arguments
-    def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[(str, datetime, datetime)]:
+    def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[tuple[str, datetime, datetime]]:
         self.__sc.assert_is_git_repository(repository_folder)
-        result: list[str] = list[(str, datetime, datetime)]()
+        result: list[tuple[str, datetime, datetime]] = list[tuple[str, datetime, datetime]]()
         for entry in self.get_versions(repository_folder):
             if not (entry[1] <= moment and moment <= entry[2]):
                 result.append(entry)
@@ -3338,7 +3338,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Check reference-repository...")
         now = GeneralUtilities.get_now()
         for unsupported_version in self.get_unsupported_versions(repository_folder, now):
-            reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version}"
+            reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version[0]}"
             GeneralUtilities.ensure_directory_does_not_exist(reference_folder)
         self.__sc.git_commit(reference_folder, "Removed reference of outdated versions.")
 
