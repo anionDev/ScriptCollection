@@ -622,6 +622,10 @@ class GeneralUtilities:
             file_object.write(content)
 
     @staticmethod
+    def is_binary_file(path:str):
+        return b'\x00' in GeneralUtilities.read_binary_from_file(path)
+
+    @staticmethod
     @check_arguments
     def read_lines_from_file(file: str, encoding="utf-8") -> list[str]:
         return [GeneralUtilities.strip_new_line_character(line) for line in GeneralUtilities.read_text_from_file(file, encoding).split('\n')]

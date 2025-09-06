@@ -2650,6 +2650,15 @@ class TasksForCommonProjectStructure:
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
         self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes, note)
+        self.__save_lines_of_code(repository_folder)
+
+    @GeneralUtilities.check_arguments
+    def __save_lines_of_code(self, repository_folder: str) -> None:
+        loc = self.__sc.get_lines_of_code(repository_folder)
+        loc_metric_folder = os.path.join(repository_folder, "Other", "Metrics")
+        GeneralUtilities.ensure_directory_exists(loc_metric_folder)
+        loc_metric_file = os.path.join(loc_metric_folder, "LinesOfCode.txt")
+        GeneralUtilities.write_text_to_file(loc_metric_file, str(loc))
 
     @GeneralUtilities.check_arguments
     def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
