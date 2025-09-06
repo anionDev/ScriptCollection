@@ -35,7 +35,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.157"
+version = "3.5.158"
 __version__ = version
 
 
@@ -2468,8 +2468,8 @@ OCR-content:
     def get_lines_of_code(self,repository:str)->int:
         self.assert_is_git_repository(repository)
         result:int=0
-        result=self.run_program("git","ls-files",repository)
-        files:list[str]=GeneralUtilities.string_to_lines(result[1])
+        git_result=self.run_program("git","ls-files",repository)
+        files:list[str]=GeneralUtilities.string_to_lines(git_result[1])
         for file in files:
             full_file:str=os.path.join(repository,file)
             if not GeneralUtilities.is_binary_file(full_file):
