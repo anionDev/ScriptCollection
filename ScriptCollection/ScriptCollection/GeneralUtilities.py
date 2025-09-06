@@ -368,11 +368,10 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_timezone_info_to_log: bool = True) -> str:
-        base_pattern: str = "%Y-%m-%d %H:%M:%S"
         if add_timezone_info_to_log:
-            return datetime_object.strftime(f'{base_pattern} %z')
+            return datetime_object.isoformat()
         else:
-            return datetime_object.strftime(base_pattern)
+            return datetime_object.strftime("%Y-%m-%d %H:%M:%S")
 
     @staticmethod
     @check_arguments

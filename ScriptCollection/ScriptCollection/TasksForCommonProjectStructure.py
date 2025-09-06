@@ -2677,7 +2677,7 @@ class TasksForCommonProjectStructure:
         sorted_codeunits = [codeunit for codeunit in sorted_codeunits if codeunit in codeunits]
         project_version = self.get_version_of_project(repository_folder)
 
-        message = f"Build codeunits in product {repository_name}... (Started: {GeneralUtilities.datetime_to_string(now_begin)})"
+        message = f"Build codeunits in product {repository_name}... (Started: {GeneralUtilities.datetime_to_string_for_logfile_entry(now_begin)})"
         if note is not None:
             message = f"{message} ({note})"
         GeneralUtilities.write_message_to_stdout(message)
@@ -2720,7 +2720,7 @@ class TasksForCommonProjectStructure:
                 shutil.move(archive_file, target_folder)
 
         now_end: datetime = datetime.now()
-        message2 = f"Finished build codeunits in product {repository_name}. (Finished: {GeneralUtilities.datetime_to_string(now_end)})"
+        message2 = f"Finished build codeunits in product {repository_name}. (Finished: {GeneralUtilities.datetime_to_string_for_logfile_entry(now_end)})"
         if note is not None:
             message2 = f"{message2} ({note})"
         GeneralUtilities.write_message_to_stdout(message2)
