@@ -16,7 +16,7 @@ from enum import Enum
 import traceback
 import warnings
 import functools
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, timezone, date
 from os import listdir
 from os.path import isfile, join, isdir
 from pathlib import Path
@@ -369,7 +369,9 @@ class GeneralUtilities:
     @check_arguments
     def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_timezone_info_to_log: bool = True) -> str:
         if add_timezone_info_to_log:
-            return datetime_object.isoformat()
+            s = datetime_object.strftime("%Y-%m-%dT%H:%M:%S%z")
+            s = s[:-2] + ":" + s[-2:]
+            return s
         else:
             return datetime_object.strftime("%Y-%m-%d %H:%M:%S")
 

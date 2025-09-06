@@ -201,7 +201,7 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
     def test_datetime_to_string_for_logfile_entry_without_timezone(self) -> None:
         # arrange
-        input_value = datetime(2025, 9, 2, 20, 30, 5, tzinfo=timezone(timedelta(hours=2)))
+        input_value = datetime(2025, 9, 2, 20, 30, 5, 123, tzinfo=timezone(timedelta(hours=2)))
         expected = "2025-09-02 20:30:05"
 
         # act
@@ -212,7 +212,7 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
     def test_datetime_to_string_for_logfile_entry_with_timezone(self) -> None:
         # arrange
-        input_value = datetime(2025, 9, 2, 20, 30, 5, tzinfo=timezone(timedelta(hours=2)))
+        input_value = datetime(2025, 9, 2, 20, 30, 5, 123, tzinfo=timezone(timedelta(hours=2)))
         expected = "2025-09-02T20:30:05+02:00"
 
         # act
