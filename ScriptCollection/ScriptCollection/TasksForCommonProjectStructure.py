@@ -2662,7 +2662,7 @@ class TasksForCommonProjectStructure:
         old_lines = GeneralUtilities.read_lines_from_file(loc_metric_file)
         new_lines = []
         for line in old_lines:
-            if not line.startswith(f"{project_version};"):
+            if not line.startswith(f"v{project_version};"):
                 new_lines.append(line)
         new_lines.append(f"v{project_version};{loc}")
         GeneralUtilities.write_lines_to_file(loc_metric_file, new_lines)
