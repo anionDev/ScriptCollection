@@ -16,7 +16,7 @@ from enum import Enum
 import traceback
 import warnings
 import functools
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from os import listdir
 from os.path import isfile, join, isdir
 from pathlib import Path
@@ -368,6 +368,8 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_milliseconds: bool = False) -> str:
+        if datetime_object.tzinfo is None:
+            datetime_object=datetime_object.replace(tzinfo=timezone.utc)#assume utc when no timezone is given
         pattern: str = None
         if add_milliseconds:
             pattern = "%Y-%m-%dT%H:%M:%S.%f%z"
@@ -607,7 +609,7 @@ class GeneralUtilities:
     @check_arguments
     def write_lines_to_file(file: str, lines: list, encoding="utf-8") -> None:
         lines = [GeneralUtilities.strip_new_line_character(line) for line in lines]
-        content = os.linesep.join(lines)
+        content = "\n".join(lines)
         GeneralUtilities.write_text_to_file(file, content, encoding)
 
     @staticmethod
@@ -622,13 +624,22 @@ class GeneralUtilities:
             file_object.write(content)
 
     @staticmethod
-    def is_binary_file(path:str):
-        return b'\x00' in GeneralUtilities.read_binary_from_file(path)
+    def is_binary_file(path: str):
+        content = GeneralUtilities.read_binary_from_file(path)
+        binary_content_indicators = [b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x0E', b'\x1F']
+        for binary_content_indicator in binary_content_indicators:
+            if binary_content_indicator in content:
+                return True
+        return False
 
     @staticmethod
     @check_arguments
     def read_lines_from_file(file: str, encoding="utf-8") -> list[str]:
-        return [GeneralUtilities.strip_new_line_character(line) for line in GeneralUtilities.read_text_from_file(file, encoding).split('\n')]
+        content=GeneralUtilities.read_text_from_file(file, encoding)
+        if len(content)==0:
+            return []
+        else:
+            return [GeneralUtilities.strip_new_line_character(line) for line in content.split('\n')]
 
     @staticmethod
     @check_arguments
@@ -847,16 +858,18 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def get_time_based_logfile_by_folder(folder: str, name: str = "Log", in_utc: bool = False) -> str:
-        return os.path.join(GeneralUtilities.resolve_relative_path_from_current_working_directory(folder), f"{GeneralUtilities.get_time_based_logfilename(name, in_utc)}.log")
+    def get_time_based_logfile_by_folder(folder: str, name: str = "Log") -> str:
+        return os.path.join(GeneralUtilities.resolve_relative_path_from_current_working_directory(folder), f"{GeneralUtilities.get_time_based_logfilename(name)}.log")
 
     @staticmethod
     @check_arguments
-    def get_time_based_logfilename(name: str = "Log", in_utc: bool = False) -> str:
-        if (in_utc):
-            d = datetime.utcnow()
-        else:
-            d = datetime.now()
+    def get_now() -> datetime:
+        return datetime.now().astimezone()
+
+    @staticmethod
+    @check_arguments
+    def get_time_based_logfilename(name: str = "Log") -> str:
+        d=GeneralUtilities.get_now()
         return f"{name}_{GeneralUtilities.datetime_to_string_for_logfile_name(d)}"
 
     @staticmethod
@@ -1027,7 +1040,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def certificate_is_expired(certificate_file: str) -> bool:
-        return GeneralUtilities.get_certificate_expiry_date(certificate_file) < datetime.now()
+        return GeneralUtilities.get_certificate_expiry_date(certificate_file) <GeneralUtilities.get_now()
 
     @staticmethod
     @check_arguments
