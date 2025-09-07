@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.158"
+version = "3.5.159"
 __version__ = version
 
 
@@ -2469,7 +2469,7 @@ OCR-content:
     def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
         return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc, False)
 
-    default_excluded_patterns_for_loc: list[str] = [".txt", ".md",".vscode", "Resources", "Reference", ".gitignore", ".gitattributes", "Other/Metrics"]
+    default_excluded_patterns_for_loc: list[str] = [".txt", ".md", ".vscode", "Resources", "Reference", ".gitignore", ".gitattributes", "Other/Metrics"]
 
     def get_lines_of_code(self, repository: str, excluded_pattern: list[str], verbose: bool) -> int:
         self.assert_is_git_repository(repository)
@@ -2482,19 +2482,23 @@ OCR-content:
         if very_verbose:
             verbose = True
         for file in files:
-            if self.__is_excluded_by_glob_pattern(file, excluded_pattern):
-                if very_verbose:
-                    GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it matches an excluded pattern.")
-            else:
-                full_file: str = os.path.join(repository, file)
-                if GeneralUtilities.is_binary_file(full_file):
+            if os.path.isfile(os.path.join(repository, file)):
+                if self.__is_excluded_by_glob_pattern(file, excluded_pattern):
                     if very_verbose:
-                        GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it is a binary-file.")
+                        GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it matches an excluded pattern.")
                 else:
-                    if verbose:
-                        GeneralUtilities.write_message_to_stdout(f"Count lines of file '{file}'.")
-                    length = len(GeneralUtilities.read_nonempty_lines_from_file(full_file))
-                    result = result+length
+                    full_file: str = os.path.join(repository, file)
+                    if GeneralUtilities.is_binary_file(full_file):
+                        if very_verbose:
+                            GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it is a binary-file.")
+                    else:
+                        if verbose:
+                            GeneralUtilities.write_message_to_stdout(f"Count lines of file '{file}'.")
+                        length = len(GeneralUtilities.read_nonempty_lines_from_file(full_file))
+                        result = result+length
+            else:
+                if verbose:
+                    GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it does not exist.")
         return result
 
     def __is_excluded_by_glob_pattern(self, file: str, excluded_patterns: list[str]) -> bool:
