@@ -1827,14 +1827,59 @@ class TasksForCommonProjectStructure:
         coverage_file_relative = f"{test_coverage_folder_relative}/TestCoverage.xml"
         coverage_file = GeneralUtilities.resolve_relative_path(coverage_file_relative, codeunit_folder)
         self.run_with_epew("lcov_cobertura", f"coverage/lcov.info --base-dir . --excludes test --output ../{coverage_file_relative} --demangle", src_folder, verbosity)
+
+        # format correctly
         content = GeneralUtilities.read_text_from_file(coverage_file)
         content = re.sub('<![^<]+>', '', content)
         content = re.sub('\\\\', '/', content)
         content = re.sub('\\ name=\\"lib\\"', '', content)
-        content = re.sub('<package ', f'<package name="{codeunit_name}" ', content)
         content = re.sub('\\ filename=\\"lib/', f' filename="{package_name}/lib/', content)
         GeneralUtilities.write_text_to_file(coverage_file, content)
+        self.__testcoverage_for_flutter_project_merge_packages(coverage_file)
+        self.__testcoverage_for_flutter_project_calculate_line_rate(coverage_file)
+
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, args)
+
+    def __testcoverage_for_flutter_project_merge_packages(self, coverage_file: str):
+        tree = etree.parse(coverage_file)
+        root = tree.getroot()
+
+        packages = root.findall("./packages/package")
+
+        all_classes = []
+        for pkg in packages:
+            classes = pkg.find("classes")
+            if classes is not None:
+                all_classes.extend(classes.findall("class"))
+        new_package = etree.Element("package", name="Malno")
+        new_classes = etree.SubElement(new_package, "classes")
+        for cls in all_classes:
+            new_classes.append(cls)
+        packages_node = root.find("./packages")
+        packages_node.clear()
+        packages_node.append(new_package)
+        tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+
+    def __testcoverage_for_flutter_project_calculate_line_rate(self, coverage_file: str):
+        tree = etree.parse(coverage_file)
+        root = tree.getroot()
+        package = root.find("./packages/package")
+        if package is None:
+            raise RuntimeError("No <package>-Element found")
+
+        line_elements = package.findall(".//line")
+
+        amount_of_lines = 0
+        amount_of_hited_lines = 0
+
+        for line in line_elements:
+            amount_of_lines += 1
+            hits = int(line.get("hits", "0"))
+            if hits > 0:
+                amount_of_hited_lines += 1
+        line_rate = amount_of_hited_lines / amount_of_lines if amount_of_lines > 0 else 0.0
+        package.set("line-rate", str(line_rate))
+        tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool, verbosity: int, commandline_arguments: list[str]) -> None:
