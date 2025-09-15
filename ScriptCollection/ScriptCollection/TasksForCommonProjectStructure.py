@@ -256,10 +256,14 @@ class TasksForCommonProjectStructure:
                 shutil.copyfile(full_source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, build_script_file: str, verbosity: int, targets: list[str], args: list[str], package_name: str):
+    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, build_script_file: str, verbosity: int, targets: list[str], args: list[str], package_name: str = None):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", build_script_file)
         codeunit_name = os.path.basename(codeunit_folder)
-        src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
+        src_folder: str = None
+        if package_name is None:
+            src_folder=codeunit_folder
+        else:
+            src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         verbosity = self.get_verbosity_from_commandline_arguments(args, verbosity)
         target_names: dict[str, str] = {
@@ -269,7 +273,7 @@ class TasksForCommonProjectStructure:
             "appbundle": "Android",
         }
         for target in targets:
-            GeneralUtilities.write_message_to_stdout(f"Build package {package_name} for target {target_names[target]}...")
+            GeneralUtilities.write_message_to_stdout(f"Build flutter-codeunit {codeunit_name} for target {target_names[target]}...")
             self.run_with_epew("flutter", f"build {target}", src_folder, verbosity)
             if target == "web":
                 web_relase_folder = os.path.join(src_folder, "build/web")
