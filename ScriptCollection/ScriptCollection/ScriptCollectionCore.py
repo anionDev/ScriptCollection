@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.160"
+version = "3.5.161"
 __version__ = version
 
 
@@ -2046,6 +2046,7 @@ DNS                 = {domain}
                 package_name = line.replace(">", GeneralUtilities.empty_string).strip().split(" ")[0]
                 if not (package_name in ignored_dependencies):
                     self.log.log(f"Update package {package_name}...", LogLevel.Debug)
+                    time.sleep(1.1)  # attempt to prevent rate-limit
                     self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
