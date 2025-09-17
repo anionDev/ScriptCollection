@@ -7,6 +7,7 @@ import re
 import os
 import subprocess
 import shutil
+import time
 import urllib
 import stat
 import secrets
@@ -369,7 +370,7 @@ class GeneralUtilities:
     @check_arguments
     def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_milliseconds: bool = False) -> str:
         if datetime_object.tzinfo is None:
-            datetime_object=datetime_object.replace(tzinfo=timezone.utc)#assume utc when no timezone is given
+            datetime_object = datetime_object.replace(tzinfo=timezone.utc)  # assume utc when no timezone is given
         pattern: str = None
         if add_milliseconds:
             pattern = "%Y-%m-%dT%H:%M:%S.%f%z"
@@ -635,8 +636,8 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def read_lines_from_file(file: str, encoding="utf-8") -> list[str]:
-        content=GeneralUtilities.read_text_from_file(file, encoding)
-        if len(content)==0:
+        content = GeneralUtilities.read_text_from_file(file, encoding)
+        if len(content) == 0:
             return []
         else:
             return [GeneralUtilities.strip_new_line_character(line) for line in content.split('\n')]
@@ -869,7 +870,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def get_time_based_logfilename(name: str = "Log") -> str:
-        d=GeneralUtilities.get_now()
+        d = GeneralUtilities.get_now()
         return f"{name}_{GeneralUtilities.datetime_to_string_for_logfile_name(d)}"
 
     @staticmethod
@@ -1040,7 +1041,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def certificate_is_expired(certificate_file: str) -> bool:
-        return GeneralUtilities.get_certificate_expiry_date(certificate_file) <GeneralUtilities.get_now()
+        return GeneralUtilities.get_certificate_expiry_date(certificate_file) < GeneralUtilities.get_now()
 
     @staticmethod
     @check_arguments
@@ -1109,14 +1110,14 @@ class GeneralUtilities:
                 result = action()
                 return result
             except Exception:
+                time.sleep(1.1)
                 amount_of_fails = amount_of_fails+1
                 GeneralUtilities.assert_condition(not (amount_of_attempts < amount_of_fails))
-                if amount_of_fails == amount_of_attempts:
-                    message = f"Action failed {amount_of_attempts} times."
-                    if action_name is not None:
-                        message = f"{message} Name of action: {action_name}"
-                    GeneralUtilities.write_message_to_stderr(message)
-                    raise
+                message = f"Action failed {amount_of_attempts} times."
+                if action_name is not None:
+                    message = f"{message} Name of action: {action_name}"
+                GeneralUtilities.write_message_to_stderr(message)
+                raise
         return None
 
     @staticmethod
