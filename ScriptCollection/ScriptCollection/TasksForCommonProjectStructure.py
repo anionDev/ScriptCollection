@@ -261,7 +261,7 @@ class TasksForCommonProjectStructure:
         codeunit_name = os.path.basename(codeunit_folder)
         src_folder: str = None
         if package_name is None:
-            src_folder=codeunit_folder
+            src_folder = codeunit_folder
         else:
             src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
@@ -1478,13 +1478,13 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout("Load image...")
         self.__sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Tag image...")
-        self.__sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}", verbosity=verbosity)
-        self.__sc.run_program("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}", verbosity=verbosity)
+        self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}", verbosity=verbosity)
+        self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}", verbosity=verbosity)
         GeneralUtilities.write_message_to_stdout("Push image...")
-        self.__sc.run_program("docker", f"push {remote_image_latest}", verbosity=verbosity)
-        self.__sc.run_program("docker", f"push {remote_image_version}", verbosity=verbosity)
+        self.__sc.run_program_with_retry("docker", f"push {remote_image_latest}", verbosity=verbosity)
+        self.__sc.run_program_with_retry("docker", f"push {remote_image_version}", verbosity=verbosity)
         if push_readme:
-            self.__sc.run_program("docker-pushrm", f"{remote_repo}", codeunit_folder, verbosity=verbosity)
+            self.__sc.run_program_with_retry("docker-pushrm", f"{remote_repo}", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:

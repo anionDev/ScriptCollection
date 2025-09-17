@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.161"
+version = "3.5.162"
 __version__ = version
 
 
@@ -2047,7 +2047,7 @@ DNS                 = {domain}
                 if not (package_name in ignored_dependencies):
                     self.log.log(f"Update package {package_name}...", LogLevel.Debug)
                     time.sleep(1.1)  # attempt to prevent rate-limit
-                    self.run_program("dotnet", f"add {csproj_filename} package {package_name}", folder, print_errors_as_information=True)
+                    self.run_program_with_retry("dotnet", f"add {csproj_filename} package {package_name}", folder, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
     def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
