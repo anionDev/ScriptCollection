@@ -532,17 +532,19 @@ class TasksForCommonProjectStructure:
 
         csproj_project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, csproj_project_name, csproj_project_name+".csproj")
-        result1: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version)
+        result1: tuple[bool, str, list[str]] = self.__standardized_task_verify_standard_format_for_project_csproj_file(csproj_file, codeunit_folder, codeunit_name, codeunit_version)
         if not result1[0]:
-            raise ValueError(f"'{csproj_file}' with content '{GeneralUtilities.read_text_from_file(csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result1[1]}'.")
+            hints: str = "\n".join(result1[2])
+            raise ValueError(f"'{csproj_file}' with content '{GeneralUtilities.read_text_from_file(csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result1[1]}'.\n{hints}")
 
         test_csproj_project_name = csproj_project_name+"Tests"
         test_csproj_file = os.path.join(codeunit_folder, test_csproj_project_name, test_csproj_project_name+".csproj")
-        result2: tuple[bool, str] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version)
+        result2: tuple[bool, str, list[str]] = self.__standardized_task_verify_standard_format_for_test_csproj_file(test_csproj_file, codeunit_name, codeunit_version)
         if not result2[0]:
-            raise ValueError(f"'{test_csproj_file}' with content '{GeneralUtilities.read_text_from_file(test_csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result2[1]}'.")
+            hints: str = "\n".join(result2[2])
+            raise ValueError(f"'{test_csproj_file}' with content '{GeneralUtilities.read_text_from_file(test_csproj_file)}' does not match the standardized .csproj-file-format which is defined by the regex '{result2[1]}'.\n{hints}")
 
-    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
+    def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str, str]:
         self.assert_is_codeunit_folder(codeunit_folder)
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
@@ -608,9 +610,10 @@ class TasksForCommonProjectStructure:
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
 <\\/Project>$"""
-        return (self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file), regex)
+        result = self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+        return (result[0], regex, result[1])
 
-    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str]:
+    def __standardized_task_verify_standard_format_for_test_csproj_file(self, csproj_file: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str, str]:
         codeunit_name_regex = re.escape(codeunit_name)
         codeunit_version_regex = re.escape(codeunit_version)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
@@ -671,16 +674,41 @@ class TasksForCommonProjectStructure:
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
 <\\/Project>$"""
-        return (self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file), regex)
+        result = self.__standardized_task_verify_standard_format_for_csproj_files(regex, csproj_file)
+        return (result[0], regex, result[1])
 
-    def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> bool:
+    def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> tuple[bool, list[str]]:
         filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stdout(f"Check {filename}...")
         file_content = GeneralUtilities.read_text_from_file(csproj_file)
         regex = regex.replace("\r", GeneralUtilities.empty_string).replace("\n", "\\n")
         file_content = file_content.replace("\r", GeneralUtilities.empty_string)
         match = re.match(regex, file_content)
-        return match is not None
+        result = match is not None
+        hints = None
+        if not result:
+            hints = self.get_hints_for_csproj()
+        return (result, hints)
+
+    @GeneralUtilities.check_arguments
+    def get_hints_for_csproj(self) -> list[str]:
+        result: list[str] = []
+        with open("string.txt", "r", encoding="utf-8") as f:
+            strings = [line.rstrip("\n") for line in f]
+
+        with open("regex.txt", "r", encoding="utf-8") as f:
+            regexes = [line.rstrip("\n") for line in f]
+
+        amount_of_lines = len(regexes)
+        if len(strings) < amount_of_lines:
+            result.append("csproj-file has less lines than the regex requires.")
+            return result
+        for i in range(amount_of_lines - 1):
+            s = strings[i]
+            r = regexes[i]
+            if not re.match(r, s):
+                result.append(f"Line {i+1} does not match: Regex='{r}' String='{s}'")
+        return result
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str, verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]) -> None:

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<coverage version="1.0" date="2025-09-20_23-08-52" tag="v3.5.164">
+  <assembly name="ScriptCollection">
+    <class name="CertificateUpdater.py" coveredlines="0" coverablelines="129" totallines="149" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="Executables.py" coveredlines="0" coverablelines="596" totallines="786" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="GeneralUtilities.py" coveredlines="594" coverablelines="983" totallines="1167" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="ImageUpdater.py" coveredlines="259" coverablelines="506" totallines="656" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProcessesRunner.py" coveredlines="0" coverablelines="31" totallines="41" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerBase.py" coveredlines="25" coverablelines="32" totallines="52" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerEpew.py" coveredlines="42" coverablelines="106" totallines="126" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="ProgramRunnerPopen.py" coveredlines="26" coverablelines="43" totallines="57" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="SCLog.py" coveredlines="33" coverablelines="90" totallines="115" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="ScriptCollectionCore.py" coveredlines="672" coverablelines="1927" totallines="2509" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+    <class name="TasksForCommonProjectStructure.py" coveredlines="547" coverablelines="2872" totallines="3626" coveredbranches="0" totalbranches="0" coveredcodeelements="0" fullcoveredcodeelements="0" totalcodeelements="0" />
+  </assembly>
+</coverage>
