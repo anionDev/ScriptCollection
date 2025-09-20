@@ -681,24 +681,20 @@ class TasksForCommonProjectStructure:
         filename = os.path.basename(csproj_file)
         GeneralUtilities.write_message_to_stdout(f"Check {filename}...")
         file_content = GeneralUtilities.read_text_from_file(csproj_file)
-        regex = regex.replace("\r", GeneralUtilities.empty_string).replace("\n", "\\n")
+        regex_for_check = regex.replace("\r", GeneralUtilities.empty_string).replace("\n", "\\n")
         file_content = file_content.replace("\r", GeneralUtilities.empty_string)
-        match = re.match(regex, file_content)
+        match = re.match(regex_for_check, file_content)
         result = match is not None
         hints = None
         if not result:
-            hints = self.get_hints_for_csproj()
+            hints = self.get_hints_for_csproj(regex,file_content)
         return (result, hints)
 
     @GeneralUtilities.check_arguments
-    def get_hints_for_csproj(self) -> list[str]:
+    def get_hints_for_csproj(self,regex:str,file_content:str) -> list[str]:
         result: list[str] = []
-        with open("string.txt", "r", encoding="utf-8") as f:
-            strings = [line.rstrip("\n") for line in f]
-
-        with open("regex.txt", "r", encoding="utf-8") as f:
-            regexes = [line.rstrip("\n") for line in f]
-
+        strings = GeneralUtilities.string_to_lines(regex)
+        regexes = GeneralUtilities.string_to_lines(file_content)
         amount_of_lines = len(regexes)
         if len(strings) < amount_of_lines:
             result.append("csproj-file has less lines than the regex requires.")
