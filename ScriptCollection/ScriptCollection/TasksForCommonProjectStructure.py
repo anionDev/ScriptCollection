@@ -573,7 +573,7 @@ class TasksForCommonProjectStructure:
         <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
         <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
         <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
-        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win-x64<\\/OutputPath>
+        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResult_DotNet_win\\-x64<\\/OutputPath>
         <PlatformTarget>([^<]+)<\\/PlatformTarget>
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
@@ -637,13 +637,13 @@ class TasksForCommonProjectStructure:
         <PackageRequireLicenseAcceptance>true<\\/PackageRequireLicenseAcceptance>
         <GenerateSerializationAssemblies>Off<\\/GenerateSerializationAssemblies>
         <AppendTargetFrameworkToOutputPath>false<\\/AppendTargetFrameworkToOutputPath>
-        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win-x64<\\/OutputPath>
+        <OutputPath>\\.\\.\\\\Other\\\\Artifacts\\\\BuildResultTests_DotNet_win\\-x64<\\/OutputPath>
         <PlatformTarget>([^<]+)<\\/PlatformTarget>
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
-        <SignAssembly>True<\\/SignAssembly>
+        <SignAssembly>true<\\/SignAssembly>
         <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\([^<]+)PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
-        <DelaySign>True<\\/DelaySign>
+        <DelaySign>true<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
         <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}Tests\\.sarif<\\/ErrorLog>
