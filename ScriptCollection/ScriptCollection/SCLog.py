@@ -99,7 +99,7 @@ class SCLog:
                     GeneralUtilities.print_text_in_yellow(part2, print_to_std_out, self.print_as_color)
                 elif loglevel == LogLevel.Debug:
                     GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
-                elif loglevel == LogLevel.Debug:
+                elif loglevel == LogLevel.Diagnostic:
                     GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
                 else:
                     raise ValueError("Unknown loglevel.")

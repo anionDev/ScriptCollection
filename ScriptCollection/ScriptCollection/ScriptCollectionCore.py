@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.165"
+version = "3.5.166"
 __version__ = version
 
 
@@ -1565,11 +1565,9 @@ class ScriptCollectionCore:
         #    return False
 
         if not q_stdout.empty():
-            GeneralUtilities.write_message_to_stdout(f"xx "+str(q_stdout.qsize()))
             return True
 
         if not q_stderr.empty():
-            GeneralUtilities.write_message_to_stdout(f"xy "+str(q_stdout.qsize()))
             return True
 
         return False

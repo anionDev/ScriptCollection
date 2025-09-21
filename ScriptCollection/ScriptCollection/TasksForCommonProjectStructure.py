@@ -7,6 +7,7 @@ import shutil
 import math
 import tarfile
 import re
+import sys
 import urllib.request
 import zipfile
 import json
@@ -115,6 +116,7 @@ class TasksForCommonProjectStructure:
     reference_latest_version_of_xsd_when_generating_xml: bool = True
     validate_developers_of_repository: bool = True
     dotnet_runsettings_file = "runsettings.xml"
+    __log:SCLog=None
 
     def __init__(self, sc: ScriptCollectionCore = None):
         if sc is None:
@@ -123,6 +125,7 @@ class TasksForCommonProjectStructure:
             sc = ScriptCollectionCore()
             sc.log = log
         self.__sc = sc
+        self.__log=sc.log #TODO replace writing to stdout/stderr by writing to log-object everywhere
 
     @GeneralUtilities.check_arguments
     def is_codeunit_folder(self, codeunit_folder: str) -> bool:
@@ -310,6 +313,7 @@ class TasksForCommonProjectStructure:
             else:
                 raise ValueError(f"Not supported target: {target}")
         self.copy_source_files_to_output_directory(build_script_file)
+        #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
@@ -322,6 +326,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("python", f"-m build --wheel --outdir {target_directory}", codeunit_folder, verbosity=verbosity)
         self.generate_bom_for_python_project(verbosity, codeunit_folder, codeunitname, commandline_arguments)
         self.copy_source_files_to_output_directory(buildscript_file)
+        #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
     def generate_bom_for_python_project(self, verbosity: int, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]) -> None:
@@ -687,11 +692,11 @@ class TasksForCommonProjectStructure:
         result = match is not None
         hints = None
         if not result:
-            hints = self.get_hints_for_csproj(regex,file_content)
+            hints = self.get_hints_for_csproj(regex, file_content)
         return (result, hints)
 
     @GeneralUtilities.check_arguments
-    def get_hints_for_csproj(self,regex:str,file_content:str) -> list[str]:
+    def get_hints_for_csproj(self, regex: str, file_content: str) -> list[str]:
         result: list[str] = []
         strings = GeneralUtilities.string_to_lines(regex)
         regexes = GeneralUtilities.string_to_lines(file_content)
@@ -750,6 +755,7 @@ class TasksForCommonProjectStructure:
                 sarif_target_file = os.path.join(sarif_folder_target, sarif_filename)
                 GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
                 shutil.copyfile(sarif_source_file, sarif_target_file)
+        #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]) -> None:
@@ -1414,9 +1420,8 @@ class TasksForCommonProjectStructure:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         dependent_codeunit_folder = os.path.join(repository_folder, dependent_codeunit_name).replace("\\", "/")
-        t = TasksForCommonProjectStructure()
-        sbom_file = f"{repository_folder}/{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{t.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
-        dependent_sbom_file = f"{repository_folder}/{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{t.get_version_of_codeunit_folder(dependent_codeunit_folder)}.sbom.xml"
+        sbom_file = f"{repository_folder}/{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{self.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
+        dependent_sbom_file = f"{repository_folder}/{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{self.get_version_of_codeunit_folder(dependent_codeunit_folder)}.sbom.xml"
         self.merge_sbom_file(repository_folder, dependent_sbom_file, sbom_file)
 
     @GeneralUtilities.check_arguments
@@ -1545,8 +1550,8 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool, additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
-        additional_arguments_file = self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
-        target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)  # pylint: disable=unused-variable
+        additional_arguments_file :str= self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
+        target_environmenttype :str= self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)  # pylint: disable=unused-variable
         # assume_dependent_codeunits_are_already_built = self.get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments, assume_dependent_codeunits_are_already_built)
         if commandline_arguments is None:
             raise ValueError('The "commandline_arguments"-parameter is not defined.')
@@ -1689,6 +1694,8 @@ class TasksForCommonProjectStructure:
         # Generate diff-report
         self.generate_diff_report(repository_folder, codeunit_name, codeunit_version)
 
+        # TODO check for secrets using TruffleHog
+
     @GeneralUtilities.check_arguments
     def __suport_information_exists(self, repository_folder: str, version_of_product: str) -> bool:
         self.__sc.assert_is_git_repository(repository_folder)
@@ -1821,6 +1828,7 @@ class TasksForCommonProjectStructure:
         self.run_with_epew("npm", f"run build-{build_environment_target_type}", codeunit_folder, verbosity=verbosity)
         self.standardized_tasks_build_bom_for_node_project(codeunit_folder, verbosity, commandline_arguments)
         self.copy_source_files_to_output_directory(build_script_file)
+        #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
@@ -2242,7 +2250,7 @@ class TasksForCommonProjectStructure:
     def get_latest_version_of_openapigenerator(self) -> None:
         headers = {'Cache-Control': 'no-cache'}
         self.__add_github_api_key_if_available(headers)
-        response = requests.get(f"https://api.github.com/repos/OpenAPITools/openapi-generator/releases",headers=headers, timeout=(10,10))
+        response = requests.get(f"https://api.github.com/repos/OpenAPITools/openapi-generator/releases", headers=headers, timeout=(10, 10))
         latest_version = response.json()["tag_name"]
         GeneralUtilities.write_message_to_stdout("xx oapiv "+str(latest_version))
         return latest_version
@@ -2283,15 +2291,15 @@ class TasksForCommonProjectStructure:
             else:
                 raise ValueError("Can not download OpenAPIGenerator.")
 
-    def __add_github_api_key_if_available(self,header:dict):
+    def __add_github_api_key_if_available(self, headers: dict):
         token = os.getenv("GITHUB_TOKEN")
         if token is not None:
             headers["Authorization"] = f"Bearer {token}"
-        else: 
-            user_folder =str( Path.home())
-            github_token_file:str=os.path.join(user_folder,".gihub","token.txt")
+        else:
+            user_folder = str(Path.home())
+            github_token_file: str = str(os.path.join(user_folder, ".github", "token.txt"))
             if os.path.isfile(github_token_file):
-                token=GeneralUtilities.read_text_from_file(github_token_file)
+                token = GeneralUtilities.read_text_from_file(github_token_file)
                 headers["Authorization"] = f"Bearer {token}"
         return headers
 
@@ -2713,7 +2721,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docker", f"run --volume {repository_folder}:/Workspace/Repository " + f"-e repositoryfolder=/Workspace/Repository -e verbosity={verbosity} -e targetenvironment={target_environmenttype} {image}", repository_folder)
 
     @GeneralUtilities.check_arguments
-    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None) -> None:
+    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes_on_productive_build: bool = False, note: str = None) -> None:
         self.__check_target_environmenttype(target_environmenttype)
         self.__sc.assert_is_git_repository(repository_folder)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
@@ -2726,14 +2734,14 @@ class TasksForCommonProjectStructure:
         PrepareBuildCodeunits_script_name = "PrepareBuildCodeunits.py"
         prepare_build_codeunits_scripts = os.path.join(project_resources_folder, PrepareBuildCodeunits_script_name)
 
-        if do_git_clean_when_no_changes and not self.__sc.git_repository_has_uncommitted_changes(repository_folder):
+        if (do_git_clean_when_no_changes_on_productive_build) and (target_environmenttype == "Productive") and( not self.__sc.git_repository_has_uncommitted_changes(repository_folder)):
             self.__sc.run_program("git", "clean -dfx", repository_folder)
         if os.path.isfile(prepare_build_codeunits_scripts):
             GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
             result = self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder, throw_exception_if_exitcode_is_not_zero=False, print_live_output=True)
             if result[0] != 0:
                 raise ValueError(f"PrepareBuildCodeunits.py resulted in exitcode {result[0]}.")
-
+  
         self.__do_repository_checks(repository_folder, project_version)
         if not self.__suport_information_exists(repository_folder, project_version):
             support_time = timedelta(days=365*2+30*3+1)  # TODO make this configurable
@@ -2741,7 +2749,7 @@ class TasksForCommonProjectStructure:
             until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
-        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes, note)
+        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes_on_productive_build, note)
         self.__save_lines_of_code(repository_folder, project_version)
 
     @GeneralUtilities.check_arguments
@@ -3007,25 +3015,38 @@ class TasksForCommonProjectStructure:
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         file = f"{resource_folder}/{local_filename}"
         file_exists = os.path.isfile(file)
-        GeneralUtilities.write_message_to_stdout("xx 1")
+        self.__log.log(f"Download Asset \"{githubuser}/{githubprojectname}: {resource_name}\" from GitHub...", LogLevel.Debug)
         if internet_connection_is_available:  # Load/Update
             GeneralUtilities.ensure_directory_does_not_exist(resource_folder)
             GeneralUtilities.ensure_directory_exists(resource_folder)
-            headers = {'Cache-Control': 'no-cache'}
+            headers = {'Cache-Control': 'no-cache', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.96 Safari/537.36'}
             self.__add_github_api_key_if_available(headers)
-            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest",headers=headers, timeout=(10,10))
+            url = f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest"
+            self.__log.log(f"Download \"{url}\"...", LogLevel.Diagnostic)
+            response = requests.get(url, headers=headers, allow_redirects=True, timeout=(10, 10))
             latest_version = response.json()["tag_name"]
             filename_on_github = get_filename_on_github(latest_version)
             link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
-            urllib.request.urlretrieve(link, file)
-            GeneralUtilities.write_message_to_stdout("xx 3")
+            with requests.get(link, headers=headers, stream=True, allow_redirects=True,  timeout=(5, 300)) as r:
+                r.raise_for_status()
+                total_size = int(r.headers.get("Content-Length", 0))
+                downloaded = 0
+                with open(file, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                        show_progress: bool = False
+                        if show_progress:
+                            downloaded += len(chunk)
+                            if total_size:
+                                percent = downloaded / total_size * 100
+                                sys.stdout.write(f"\rDownload: {percent:.2f}%")
+                                sys.stdout.flush()
+            self.__log.log(f"Downloaded \"{url}\".", LogLevel.Diagnostic)
         else:
-            GeneralUtilities.write_message_to_stdout("xx 4")
             if file_exists:
-                GeneralUtilities.write_message_to_stdout(f"Warning: Can not check for updates of {resource_name} due to missing internet-connection.")
+                self.__log.log(f"Can not check for updates of {resource_name} due to missing internet-connection.", LogLevel.Warning)
             else:
                 raise ValueError(f"Can not download {resource_name}.")
-        GeneralUtilities.write_message_to_stdout("xx 2")
 
     @GeneralUtilities.check_arguments
     def generate_svg_files_from_plantuml_files_for_repository(self, repository_folder: str) -> None:
@@ -3350,7 +3371,7 @@ class TasksForCommonProjectStructure:
         target_environmenttype = "QualityCheck"
         project_name: str = os.path.basename(repository_folder)
         GeneralUtilities.assert_condition(not self.__sc.git_repository_has_uncommitted_changes(repository_folder), "There are uncommitted changes in the repository.")
-        self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
+        self.build_codeunits(repository_folder, target_environmenttype=target_environmenttype, do_git_clean_when_no_changes_on_productive_build=True, note="Prepare dependency-update")  # Required because update dependencies is not always possible for not-buildet codeunits (depends on the programming language or package manager)
 
         # update dependencies of resources
         global_scripts_folder = os.path.join(repository_folder, "Other", "Scripts")
