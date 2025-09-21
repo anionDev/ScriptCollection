@@ -9,6 +9,7 @@ import keyboard
 from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
+from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
 
 
@@ -259,37 +260,43 @@ def HealthCheck() -> int:
 def BuildCodeUnit() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--codeunitfolder', required=False, default=".")
-    parser.add_argument('-v', '--verbosity', required=False, default=1)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
+    t=TasksForCommonProjectStructure(log_level=LogLevel(int(args.verbosity)))
+    t.build_codeunit(args.codeunitfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
     return 0
 
 
 def BuildCodeUnits() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repositoryfolder', required=False, default=".")
-    parser.add_argument('-v', '--verbosity', required=False, default=1)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv, args.removeuncommittedfiles)
+    t=TasksForCommonProjectStructure(log_level=LogLevel(int(args.verbosity)))
+    t.build_codeunits(args.repositoryfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv, args.removeuncommittedfiles)
     return 0
 
 
 def BuildCodeUnitsC() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repositoryfolder', required=False, default=".")
-    parser.add_argument('-v', '--verbosity', required=False, default=1)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, sys.argv)
+    t=TasksForCommonProjectStructure(log_level=LogLevel(int(args.verbosity)))
+    t.build_codeunitsC(args.repositoryfolder, args.image, args.targetenvironment, args.additionalargumentsfile, sys.argv)
     return 0
 
 
@@ -389,7 +396,8 @@ def CreateChangelogEntry() -> int:
         folder = args.repositorypath
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repositorypath, os.getcwd())
-    TasksForCommonProjectStructure().create_changelog_entry(folder, args.message, args.commit, args.force)
+    t=TasksForCommonProjectStructure()
+    t.create_changelog_entry(folder, args.message, args.commit, args.force)
     return 0
 
 

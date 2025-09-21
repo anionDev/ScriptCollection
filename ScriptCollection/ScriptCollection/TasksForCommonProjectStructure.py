@@ -32,7 +32,7 @@ class CreateReleaseConfiguration():
     remotename: str
     artifacts_folder: str
     push_artifacts_scripts_folder: str
-    verbosity: int
+    verbosity: LogLevel
     reference_repository_remote_name: str = None
     reference_repository_branch_name: str = "main"
     build_repository_branch: str = "main"
@@ -42,7 +42,7 @@ class CreateReleaseConfiguration():
     repository_folder: str = None
     __sc: ScriptCollectionCore = None
 
-    def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str, verbosity: int, repository_folder: str, additional_arguments_file: str, repository_folder_name: str):
+    def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str, verbosity: LogLevel, repository_folder: str, additional_arguments_file: str, repository_folder_name: str):
         self.__sc = ScriptCollectionCore()
         self.projectname = projectname
         self.remotename = remotename
@@ -63,7 +63,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
     projectname: str
     repository: str
     artifacts_folder: str
-    verbosity: int = 1
+    verbosity: LogLevel = 1
     reference_repository: str = None
     public_repository_url: str = None
     target_branch_name: str = None
@@ -103,7 +103,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
     push_target_branch: bool = False
     push_target_branch_remote_name: str = None
 
-    verbosity: int = 1
+    verbosity: LogLevel = 1
 
     def __init__(self, repository: str, additional_arguments_file: str, export_target: str):
         self.repository = repository
@@ -118,14 +118,14 @@ class TasksForCommonProjectStructure:
     dotnet_runsettings_file = "runsettings.xml"
     __log:SCLog=None
 
-    def __init__(self, sc: ScriptCollectionCore = None):
+    def __init__(self, sc: ScriptCollectionCore = None,log_level:LogLevel=LogLevel.Information):
         if sc is None:
             log: SCLog = SCLog()
-            log.loglevel = LogLevel.Information
+            log.loglevel = log_level
             sc = ScriptCollectionCore()
             sc.log = log
         self.__sc = sc
-        self.__log=sc.log #TODO replace writing to stdout/stderr by writing to log-object everywhere
+        self.__log=sc.log
 
     @GeneralUtilities.check_arguments
     def is_codeunit_folder(self, codeunit_folder: str) -> bool:
@@ -206,7 +206,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def check_testcoverage(self, testcoverage_file_in_cobertura_format: str, repository_folder: str, codeunitname: str) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
-        GeneralUtilities.write_message_to_stdout("Check testcoverage..")
+        self.__log.log("Check testcoverage..")
         root: etree._ElementTree = etree.parse(testcoverage_file_in_cobertura_format)
         if len(root.xpath('//coverage/packages/package')) != 1:
             raise ValueError(f"'{testcoverage_file_in_cobertura_format}' must contain exactly 1 package.")
@@ -226,7 +226,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"", GeneralUtilities.read_text_from_file(file)))
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_python_codeunit(self, run_testcases_file: str, generate_badges: bool, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_run_testcases_for_python_codeunit(self, run_testcases_file: str, generate_badges: bool, verbosity: LogLevel, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         codeunitname: str = Path(os.path.dirname(run_testcases_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(run_testcases_file)).parent.parent.parent.absolute())
@@ -242,7 +242,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def copy_source_files_to_output_directory(self, buildscript_file: str) -> None:
-        GeneralUtilities.write_message_to_stdout("Copy sourcecode...")
+        self.__log.log("Copy sourcecode...")
         folder = os.path.dirname(os.path.realpath(buildscript_file))
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", folder)
         result = self.__sc.run_program_argsasarray("git", ["ls-tree", "-r", "HEAD", "--name-only"], codeunit_folder)
@@ -259,7 +259,7 @@ class TasksForCommonProjectStructure:
                 shutil.copyfile(full_source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, build_script_file: str, verbosity: int, targets: list[str], args: list[str], package_name: str = None):
+    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, build_script_file: str, verbosity: LogLevel, targets: list[str], args: list[str], package_name: str = None):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", build_script_file)
         codeunit_name = os.path.basename(codeunit_folder)
         src_folder: str = None
@@ -276,7 +276,7 @@ class TasksForCommonProjectStructure:
             "appbundle": "Android",
         }
         for target in targets:
-            GeneralUtilities.write_message_to_stdout(f"Build flutter-codeunit {codeunit_name} for target {target_names[target]}...")
+            self.__log.log(f"Build flutter-codeunit {codeunit_name} for target {target_names[target]}...")
             self.run_with_epew("flutter", f"build {target}", src_folder, verbosity)
             if target == "web":
                 web_relase_folder = os.path.join(src_folder, "build/web")
@@ -316,7 +316,7 @@ class TasksForCommonProjectStructure:
         #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_build_for_python_codeunit(self, buildscript_file: str, verbosity: LogLevel, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         codeunitname: str = Path(os.path.dirname(buildscript_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         codeunit_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute())
@@ -329,7 +329,7 @@ class TasksForCommonProjectStructure:
         #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
-    def generate_bom_for_python_project(self, verbosity: int, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]) -> None:
+    def generate_bom_for_python_project(self, verbosity: LogLevel, codeunit_folder: str, codeunitname: str, commandline_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -357,7 +357,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.ensure_file_does_not_exist(bom_file_json)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository: str, gpg_identity: str, verbosity: int) -> None:
+    def standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository: str, gpg_identity: str, verbosity: LogLevel) -> None:
         # repository-value when PyPi should be used: "pypi"
         # gpg_identity-value when wheel-file should not be signed: None
         folder = os.path.dirname(wheel_file)
@@ -369,7 +369,7 @@ class TasksForCommonProjectStructure:
             gpg_identity_argument = GeneralUtilities.empty_string  # f" --sign --identity {gpg_identity}"
             # disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
 
-        if verbosity > 2:
+        if LogLevel.Information<verbosity:
             verbose_argument = " --verbose"
         else:
             verbose_argument = GeneralUtilities.empty_string
@@ -379,7 +379,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("twine", twine_argument, folder, verbosity=verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def push_wheel_build_artifact(self, push_build_artifacts_file, product_name, codeunitname, repository: str, apikey: str, gpg_identity: str, verbosity: int, commandline_arguments: list[str], repository_folder_name: str) -> None:
+    def push_wheel_build_artifact(self, push_build_artifacts_file, product_name, codeunitname, repository: str, apikey: str, gpg_identity: str, verbosity: LogLevel, commandline_arguments: list[str], repository_folder_name: str) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
@@ -431,12 +431,12 @@ class TasksForCommonProjectStructure:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str],  default_value: int) -> int:
+    def get_verbosity_from_commandline_arguments(commandline_arguments: list[str],  default_value: int) -> LogLevel:
         result = TasksForCommonProjectStructure.get_property_from_commandline_arguments(commandline_arguments, "verbosity")
         if result is None:
             return default_value
         else:
-            return int(result)
+            return LogLevel(int(result))
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -492,7 +492,7 @@ class TasksForCommonProjectStructure:
         self.write_version_to_codeunit_file(codeunit_file, current_version)
 
     @GeneralUtilities.check_arguments
-    def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: int, ignore_git_ignored_files: bool = True):
+    def t4_transform(self, commontasks_script_file_of_current_file: str, verbosity: LogLevel, ignore_git_ignored_files: bool = True):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", commontasks_script_file_of_current_file)
         self.__ensure_grylibrary_is_available(codeunit_folder)
         repository_folder: str = os.path.dirname(codeunit_folder)
@@ -515,8 +515,8 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.copy_content_of_folder(source_folder, target_folder)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
+    def standardized_tasks_generate_reference_by_docfx(self, generate_reference_script_file: str, verbosity: LogLevel, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+        log_level = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         folder_of_current_file = os.path.dirname(generate_reference_script_file)
         generated_reference_folder = GeneralUtilities.resolve_relative_path("../Artifacts/Reference", folder_of_current_file)
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
@@ -524,7 +524,7 @@ class TasksForCommonProjectStructure:
         obj_folder = os.path.join(folder_of_current_file, "obj")
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
         GeneralUtilities.ensure_directory_exists(obj_folder)
-        self.__sc.run_program("docfx", "docfx.json", folder_of_current_file, verbosity=verbosity)
+        self.__sc.run_program("docfx", "docfx.json", folder_of_current_file, verbosity=log_level)
         # TODO generate also a darkmode-variant (darkFX for example, see https://dotnet.github.io/docfx/extensions/templates.html )
         GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
 
@@ -684,7 +684,7 @@ class TasksForCommonProjectStructure:
 
     def __standardized_task_verify_standard_format_for_csproj_files(self, regex: str, csproj_file: str) -> tuple[bool, list[str]]:
         filename = os.path.basename(csproj_file)
-        GeneralUtilities.write_message_to_stdout(f"Check {filename}...")
+        self.__log.log(f"Check {filename}...")
         file_content = GeneralUtilities.read_text_from_file(csproj_file)
         regex_for_check = regex.replace("\r", GeneralUtilities.empty_string).replace("\n", "\\n")
         file_content = file_content.replace("\r", GeneralUtilities.empty_string)
@@ -712,10 +712,10 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str, verbosity: int, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]) -> None:
+    def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str, verbosity: LogLevel, runtimes: list[str], target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str, commandline_arguments: list[str]) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
         csproj_filename = os.path.basename(csproj_file)
-        GeneralUtilities.write_message_to_stdout(f"Build {csproj_filename}...")
+        self.__log.log(f"Build {csproj_filename}...")
         dotnet_build_configuration: str = target_environmenttype_mapping[target_environmenttype]
         verbosity = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
@@ -758,7 +758,7 @@ class TasksForCommonProjectStructure:
         #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, default_target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds an exe
         target_environmenttype = self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, default_target_environmenttype)
@@ -766,7 +766,7 @@ class TasksForCommonProjectStructure:
             buildscript_file, target_environmenttype_mapping, default_target_environmenttype, verbosity, target_environmenttype,  runtimes, True, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_library_project(self, buildscript_file: str, default_target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: int, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_build_for_dotnet_library_project(self, buildscript_file: str, default_target_environmenttype: str, target_environmenttype_mapping:  dict[str, str], runtimes: list[str], verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         # hint: arguments can be overwritten by commandline_arguments
         # this function builds a dll and converts it to a nupkg-file
 
@@ -783,7 +783,7 @@ class TasksForCommonProjectStructure:
         }
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str], default_target_environment_type: str,  verbosity: int, target_environment_type: str, runtimes: list[str], copy_license_file_to_target_folder: bool, commandline_arguments: list[str]) -> None:
+    def __standardized_tasks_build_for_dotnet_project(self, buildscript_file: str, target_environmenttype_mapping:  dict[str, str], default_target_environment_type: str,  verbosity: LogLevel, target_environment_type: str, runtimes: list[str], copy_license_file_to_target_folder: bool, commandline_arguments: list[str]) -> None:
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         files_to_sign: dict[str, str] = TasksForCommonProjectStructure.get_filestosign_from_commandline_arguments(commandline_arguments,  dict())
@@ -799,7 +799,7 @@ class TasksForCommonProjectStructure:
         self.copy_source_files_to_output_directory(buildscript_file)
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: int, commandline_arguments: list[str]) -> None:
+    def __standardized_tasks_build_nupkg_for_dotnet_create_package(self, buildscript_file: str, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         codeunitname: str = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
@@ -817,8 +817,8 @@ class TasksForCommonProjectStructure:
         os.rename(nupkg_file, f"{outputfolder}/{nupkg_filename}")
 
     @GeneralUtilities.check_arguments
-    def generate_sbom_for_dotnet_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
-        GeneralUtilities.write_message_to_stdout("Generate SBOM...")
+    def generate_sbom_for_dotnet_project(self, codeunit_folder: str, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
+        self.__log.log("Generate SBOM...")
         self.assert_is_codeunit_folder(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         bomfile_folder = "Other\\Artifacts\\BOM"
@@ -831,40 +831,40 @@ class TasksForCommonProjectStructure:
         self.__sc.format_xml_file(target)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: int, args: list[str]):
+    def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str, default_verbosity: LogLevel, args: list[str]):
         pass  # TODO
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_python_codeunit(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_linting_for_python_codeunit(self, linting_script_file: str, verbosity: LogLevel, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         codeunitname: str = Path(os.path.dirname(linting_script_file)).parent.parent.name
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         repository_folder: str = str(Path(os.path.dirname(linting_script_file)).parent.parent.parent.absolute())
         errors_found = False
-        GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in codeunit {codeunitname}.")
+        self.__log.log(f"Check for linting-issues in codeunit {codeunitname}.")
         src_folder = os.path.join(repository_folder, codeunitname, codeunitname)
         tests_folder = src_folder+"Tests"
         # TODO check if there are errors in sarif-file
         for file in GeneralUtilities.get_all_files_of_folder(src_folder)+GeneralUtilities.get_all_files_of_folder(tests_folder):
             relative_file_path_in_repository = os.path.relpath(file, repository_folder)
             if file.endswith(".py") and os.path.getsize(file) > 0 and not self.__sc.file_is_git_ignored(relative_file_path_in_repository, repository_folder):
-                GeneralUtilities.write_message_to_stdout(f"Check for linting-issues in {os.path.relpath(file, os.path.join(repository_folder, codeunitname))}.")
+                self.__log.log(f"Check for linting-issues in {os.path.relpath(file, os.path.join(repository_folder, codeunitname))}.")
                 linting_result = self.__sc.python_file_has_errors(file, repository_folder)
                 if (linting_result[0]):
                     errors_found = True
                     for error in linting_result[1]:
-                        GeneralUtilities.write_message_to_stderr(error)
+                        self.__log.log(error, LogLevel.Warning)
         if errors_found:
             raise ValueError("Linting-issues occurred.")
         else:
-            GeneralUtilities.write_message_to_stdout("No linting-issues found.")
+            self.__log.log("No linting-issues found.")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str, commandline_arguments: list[str], add_testcoverage_history_entry: bool = None) -> None:
+    def standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, verbosity: LogLevel, generate_badges: bool, targetenvironmenttype: str, commandline_arguments: list[str], add_testcoverage_history_entry: bool = None) -> None:
         """This function expects that the file '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverage/TestCoverage.xml'
         which contains a test-coverage-report in the cobertura-format exists.
         This script expectes that the testcoverage-reportfolder is '<repositorybasefolder>/<codeunitname>/Other/Artifacts/TestCoverageReport'.
         This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
-        GeneralUtilities.write_message_to_stdout("Generate testcoverage report..")
+        self.__log.log("Generate testcoverage report..")
         self.__sc.assert_is_git_repository(repository_folder)
         codeunit_version = self.get_version_of_codeunit(os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml"))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -904,8 +904,8 @@ class TasksForCommonProjectStructure:
             self.__sc.run_program("reportgenerator", f"-reports:Other/Artifacts/TestCoverage/TestCoverage.xml -targetdir:{testcoverageubfolger} -reporttypes:Badges --verbosity:{verbose_argument_for_reportgenerator}", os.path.join(repository_folder, codeunitname), verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: int, generate_badges: bool, target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]) -> None:
-        GeneralUtilities.write_message_to_stdout("Run testcases...")
+    def standardized_tasks_run_testcases_for_dotnet_project(self, runtestcases_file: str, targetenvironmenttype: str, verbosity: LogLevel, generate_badges: bool, target_environmenttype_mapping:  dict[str, str], commandline_arguments: list[str]) -> None:
+        self.__log.log("Run testcases...")
         dotnet_build_configuration: str = target_environmenttype_mapping[targetenvironmenttype]
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
@@ -938,7 +938,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_directory_does_not_exist(subfolder)
 
     @GeneralUtilities.check_arguments
-    def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: int, generate_badges: bool, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+    def run_testcases_common_post_task(self, repository_folder: str, codeunit_name: str, verbosity: LogLevel, generate_badges: bool, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         coveragefiletarget = os.path.join(coverage_file_folder,  "TestCoverage.xml")
@@ -949,7 +949,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def update_path_of_source_in_testcoverage_file(self, repository_folder: str, codeunitname: str) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
-        GeneralUtilities.write_message_to_stdout("Update paths of source files in testcoverage files..")
+        self.__log.log("Update paths of source files in testcoverage files..")
         folder = f"{repository_folder}/{codeunitname}/Other/Artifacts/TestCoverage"
         filename = "TestCoverage.xml"
         full_file = os.path.join(folder, filename)
@@ -1006,8 +1006,8 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'.")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_dotnet_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
-        GeneralUtilities.write_message_to_stdout("Run linting...")
+    def standardized_tasks_linting_for_dotnet_project(self, linting_script_file: str, verbosity: LogLevel, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+        self.__log.log("Run linting...")
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO check if there are errors in sarif-file
 
@@ -1088,7 +1088,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_release_artifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
-        GeneralUtilities.write_message_to_stdout("Release artifacts...")
+        self.__log.log("Release artifacts...")
         project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
         GeneralUtilities.ensure_directory_exists(target_folder_base)
@@ -1100,11 +1100,11 @@ class TasksForCommonProjectStructure:
         for codeunitname in self.get_codeunits(information.repository):
             # Push artifacts to registry
             if information.verbosity > 2:
-                GeneralUtilities.write_message_to_stdout(f"Push artifacts of {codeunitname}...")
+                self.__log.log(f"Push artifacts of {codeunitname}...")
             scriptfilename = f"PushArtifacts.{codeunitname}.py"
             push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
             if os.path.isfile(push_artifact_to_registry_script):
-                GeneralUtilities.write_message_to_stdout(f"Push artifacts of codeunit {codeunitname}...")
+                self.__log.log(f"Push artifacts of codeunit {codeunitname}...")
                 self.__sc.run_program("python", push_artifact_to_registry_script, information.push_artifacts_scripts_folder, verbosity=information.verbosity, throw_exception_if_exitcode_is_not_zero=True)
 
             # Copy reference of codeunit to reference-repository
@@ -1266,7 +1266,7 @@ class TasksForCommonProjectStructure:
         if generate_new_certificate:
             GeneralUtilities.ensure_directory_does_not_exist(certificate_folder)
             GeneralUtilities.ensure_directory_exists(certificate_folder)
-            GeneralUtilities.write_message_to_stdout("Generate TLS-certificate for development-purposes.")
+            self.__log.log("Generate TLS-certificate for development-purposes.")
             self.__sc.generate_certificate(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             self.__sc.generate_certificate_sign_request(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             ca_name = os.path.basename(self.__sc.find_last_file_by_extension(ca_folder, "crt"))[:-4]
@@ -1313,10 +1313,10 @@ class TasksForCommonProjectStructure:
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:codeunit/@enabled', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
 
     @GeneralUtilities.check_arguments
-    def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release", target_branch: str = "main", verbosity: int = 1, additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
+    def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release", target_branch: str = "main", verbosity: LogLevel = 1, additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
         # This is an automatization for automatic merges. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
         # (like GitHub, GitLab or Azure DevOps)
-        GeneralUtilities.write_message_to_stdout(f"Merge to main-branch...")
+        self.__log.log(f"Merge to main-branch...")
         self.__sc.assert_is_git_repository(repository_folder)
         self.assert_no_uncommitted_changes(repository_folder)
 
@@ -1335,8 +1335,8 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfiguration):
 
-        GeneralUtilities.write_message_to_stdout(f"Create release for project {createRelease_configuration.projectname}.")
-        GeneralUtilities.write_message_to_stdout(f"Merge to stable-branch...")
+        self.__log.log(f"Create release for project {createRelease_configuration.projectname}.")
+        self.__log.log(f"Merge to stable-branch...")
         self.__sc.assert_is_git_repository(createRelease_configuration.repository_folder)
         folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
 
@@ -1369,11 +1369,11 @@ class TasksForCommonProjectStructure:
         self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
         self.__sc.git_push_with_retry(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name, createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name, verbosity=createRelease_configuration.verbosity)
         self.__sc.git_commit(build_repository_folder, f"Added {createRelease_configuration.projectname} release v{new_project_version}")
-        GeneralUtilities.write_message_to_stdout(f"Finished release for project {createRelease_configuration.projectname} v{new_project_version} successfully.")
+        self.__log.log(f"Finished release for project {createRelease_configuration.projectname} v{new_project_version} successfully.")
         return new_project_version
 
     @GeneralUtilities.check_arguments
-    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile: str, verbosity: int, addLogOverhead: bool, commandline_arguments: list[str]):
+    def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile: str, verbosity: LogLevel, addLogOverhead: bool, commandline_arguments: list[str]):
         # hint: arguments can be overwritten by commandline_arguments
         folder_of_this_file = os.path.dirname(create_release_file)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -1400,17 +1400,17 @@ class TasksForCommonProjectStructure:
         self.__sc.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
 
         if information.push_source_branch:
-            GeneralUtilities.write_message_to_stdout("Push source-branch...")
+            self.__log.log("Push source-branch...")
             self.__sc.git_push_with_retry(information.repository, information.push_source_branch_remote_name, information.sourcebranch, information.sourcebranch, pushalltags=True, verbosity=information.verbosity)
 
         if information.push_target_branch:
-            GeneralUtilities.write_message_to_stdout("Push target-branch...")
+            self.__log.log("Push target-branch...")
             self.__sc.git_push_with_retry(information.repository, information.push_target_branch_remote_name, information.targetbranch, information.targetbranch, pushalltags=True, verbosity=information.verbosity)
 
         return project_version
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str] = None) -> None:
+    def standardized_tasks_build_for_docker_project(self, build_script_file: str, target_environment_type: str, verbosity: LogLevel, commandline_arguments: list[str], custom_arguments: dict[str, str] = None) -> None:
         self.standardized_tasks_build_for_docker_project_with_additional_build_arguments(build_script_file, target_environment_type, verbosity, commandline_arguments, custom_arguments)
         self.generate_sbom_for_docker_image(build_script_file, verbosity, commandline_arguments)
 
@@ -1440,7 +1440,7 @@ class TasksForCommonProjectStructure:
         self.__sc.format_xml_file(os.path.join(repository_folder, target_sbom_file_relative))
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: int, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
+    def standardized_tasks_build_for_docker_project_with_additional_build_arguments(self, build_script_file: str, target_environment_type: str, verbosity: LogLevel, commandline_arguments: list[str], custom_arguments: dict[str, str]) -> None:
         use_cache: bool = False
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
@@ -1467,7 +1467,7 @@ class TasksForCommonProjectStructure:
         self.copy_source_files_to_output_directory(build_script_file)
 
     @GeneralUtilities.check_arguments
-    def generate_sbom_for_docker_image(self, build_script_file: str, verbosity: int, commandline_arguments: list[str]) -> None:
+    def generate_sbom_for_docker_image(self, build_script_file: str, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
@@ -1480,7 +1480,7 @@ class TasksForCommonProjectStructure:
         self.__sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: int, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str, remote_image_name: str = None) -> None:
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, verbosity: LogLevel, push_readme: bool, commandline_arguments: list[str], repository_folder_name: str, remote_image_name: str = None) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         filename = os.path.basename(push_artifacts_file)
         codeunitname_regex: str = "([a-zA-Z0-9]+)"
@@ -1504,12 +1504,12 @@ class TasksForCommonProjectStructure:
         remote_repo = f"{registry}/{remote_image_name}"
         remote_image_latest = f"{remote_repo}:latest"
         remote_image_version = f"{remote_repo}:{codeunit_version}"
-        GeneralUtilities.write_message_to_stdout("Load image...")
+        self.__log.log("Load image...")
         self.__sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder, verbosity=verbosity)
-        GeneralUtilities.write_message_to_stdout("Tag image...")
+        self.__log.log("Tag image...")
         self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}", verbosity=verbosity)
         self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}", verbosity=verbosity)
-        GeneralUtilities.write_message_to_stdout("Push image...")
+        self.__log.log("Push image...")
         self.__sc.run_program_with_retry("docker", f"push {remote_image_latest}", verbosity=verbosity)
         self.__sc.run_program_with_retry("docker", f"push {remote_image_version}", verbosity=verbosity)
         if push_readme:
@@ -1528,7 +1528,7 @@ class TasksForCommonProjectStructure:
         return os.path.isfile(codeunit_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_docker_project(self, linting_script_file: str, verbosity: int, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_linting_for_docker_project(self, linting_script_file: str, verbosity: LogLevel, targetenvironmenttype: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments,  verbosity)
         # TODO check if there are errors in sarif-file
 
@@ -1549,7 +1549,7 @@ class TasksForCommonProjectStructure:
         shutil.copyfile(source_file, target_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: int,  targetenvironmenttype: str,  clear_artifacts_folder: bool, additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_do_common_tasks(self, common_tasks_scripts_file: str, codeunit_version: str, verbosity: LogLevel,  targetenvironmenttype: str,  clear_artifacts_folder: bool, additional_arguments_file: str, assume_dependent_codeunits_are_already_built: bool, commandline_arguments: list[str]) -> None:
         additional_arguments_file :str= self.get_additionalargumentsfile_from_commandline_arguments(commandline_arguments, additional_arguments_file)
         target_environmenttype :str= self.get_targetenvironmenttype_from_commandline_arguments(commandline_arguments, targetenvironmenttype)  # pylint: disable=unused-variable
         # assume_dependent_codeunits_are_already_built = self.get_assume_dependent_codeunits_are_already_built_from_commandline_arguments(commandline_arguments, assume_dependent_codeunits_are_already_built)
@@ -1587,7 +1587,7 @@ class TasksForCommonProjectStructure:
             if self.codeunit_throws_exception_if_codeunitfile_is_not_validatable(codeunit_file):
                 raise exception
             else:
-                GeneralUtilities.write_message_to_stderr(f'Warning: Codeunitfile "{codeunit_file}" can not be validated due to the following exception:')
+                self.__log.log(f'Codeunitfile "{codeunit_file}" can not be validated due to the following exception:', LogLevel.Warning)
                 GeneralUtilities.write_exception_to_stderr(exception)
 
         # check codeunit-name
@@ -1814,14 +1814,14 @@ class TasksForCommonProjectStructure:
         self.__sc.replace_version_in_nuspec_file(nuspec_file, codeunit_version)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_angular_codeunit(self, build_script_file: str, build_environment_target_type: str, verbosity: int, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_build_for_angular_codeunit(self, build_script_file: str, build_environment_target_type: str, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         build_script_folder = os.path.dirname(build_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
         GeneralUtilities.ensure_directory_does_not_exist(f"{codeunit_folder}/.angular")
         self.standardized_tasks_build_for_node_codeunit(build_script_file, build_environment_target_type, verbosity, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_node_codeunit(self, build_script_file: str, build_environment_target_type: str, verbosity: int, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_build_for_node_codeunit(self, build_script_file: str, build_environment_target_type: str, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(build_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
@@ -1831,7 +1831,7 @@ class TasksForCommonProjectStructure:
         #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: int, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         relative_path_to_bom_file = f"Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
@@ -1839,18 +1839,18 @@ class TasksForCommonProjectStructure:
         self.__sc.format_xml_file(codeunit_folder+"/"+relative_path_to_bom_file)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, verbosity: LogLevel, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
         self.standardized_tasks_linting_for_node_codeunit(linting_script_file, verbosity, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_node_codeunit(self, linting_script_file: str, verbosity: int, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_linting_for_node_codeunit(self, linting_script_file: str, verbosity: LogLevel, build_environment_target_type: str, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         build_script_folder = os.path.dirname(linting_script_file)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
         self.run_with_epew("ng", "lint", codeunit_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, verbosity: int, args: list[str], package_name: str, build_environment_target_type: str, generate_badges: bool):
+    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, verbosity: LogLevel, args: list[str], package_name: str, build_environment_target_type: str, generate_badges: bool):
         codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", script_file)
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
@@ -1918,7 +1918,7 @@ class TasksForCommonProjectStructure:
         tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool, verbosity: int, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         # prepare
         codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
@@ -1973,7 +1973,7 @@ class TasksForCommonProjectStructure:
         self.run_testcases_common_post_task(repository_folder, codeunit_name, verbosity, generate_badges, build_environment_target_type, commandline_arguments)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_node_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool, verbosity: int, commandline_arguments: list[str]) -> None:
+    def standardized_tasks_run_testcases_for_node_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool, verbosity: LogLevel, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
         self.run_with_epew("npm", f"run test-{build_environment_target_type}", codeunit_folder, verbosity=verbosity)
@@ -1988,7 +1988,7 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str, force: bool, verbosity: int = 1) -> None:
+    def do_npm_install(self, package_json_folder: str, force: bool, verbosity: LogLevel = 1) -> None:
         argument1 = "install"
         if force:
             argument1 = f"{argument1} --force"
@@ -2005,7 +2005,7 @@ class TasksForCommonProjectStructure:
         self.run_with_epew("npm", argument3, package_json_folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
-    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
+    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, verbosity: LogLevel = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
         sc: ScriptCollectionCore = ScriptCollectionCore()
         sc.program_runner = ProgramRunnerEpew()
         return sc.run_program(program, argument, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive)
@@ -2205,8 +2205,8 @@ class TasksForCommonProjectStructure:
         shutil.copytree(source_folder, target_folder)
 
     @GeneralUtilities.check_arguments
-    def generate_openapi_file(self, buildscript_file: str, runtime: str, verbosity: int, commandline_arguments: list[str], swagger_document_name: str = "APISpecification") -> None:
-        GeneralUtilities.write_message_to_stdout("Generate OpenAPI-specification-file...")
+    def generate_openapi_file(self, buildscript_file: str, runtime: str, verbosity: LogLevel, commandline_arguments: list[str], swagger_document_name: str = "APISpecification") -> None:
+        self.__log.log("Generate OpenAPI-specification-file...")
         codeunitname = os.path.basename(str(Path(os.path.dirname(buildscript_file)).parent.parent.absolute()))
         repository_folder = str(Path(os.path.dirname(buildscript_file)).parent.parent.parent.absolute())
         codeunit_folder = os.path.join(repository_folder, codeunitname)
@@ -2252,7 +2252,6 @@ class TasksForCommonProjectStructure:
         self.__add_github_api_key_if_available(headers)
         response = requests.get(f"https://api.github.com/repos/OpenAPITools/openapi-generator/releases", headers=headers, timeout=(10, 10))
         latest_version = response.json()["tag_name"]
-        GeneralUtilities.write_message_to_stdout("xx oapiv "+str(latest_version))
         return latest_version
 
     @GeneralUtilities.check_arguments
@@ -2287,7 +2286,7 @@ class TasksForCommonProjectStructure:
             urllib.request.urlretrieve(download_link, jar_file)
         else:
             if jar_file_exists:
-                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
+                self.__log.log("Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
             else:
                 raise ValueError("Can not download OpenAPIGenerator.")
 
@@ -2373,25 +2372,25 @@ class TasksForCommonProjectStructure:
             json.dump(data, f, indent=2)
 
     @GeneralUtilities.check_arguments
-    def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: int, target_environmenttype: str, additional_arguments_file: str, commandlinearguments: list[str]) -> None:
+    def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, verbosity: LogLevel, target_environmenttype: str, additional_arguments_file: str, commandlinearguments: list[str]) -> None:
         verbosity = self.get_verbosity_from_commandline_arguments(commandlinearguments, verbosity)
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
         if 0 < len(dependent_codeunits):
-            GeneralUtilities.write_message_to_stdout(f"Start building dependent codeunits for codeunit {codeunit_name}.")
+            self.__log.log(f"Start building dependent codeunits for codeunit {codeunit_name}.")
         for dependent_codeunit in dependent_codeunits:
             self.__build_codeunit(os.path.join(repo_folder, dependent_codeunit), verbosity, target_environmenttype, additional_arguments_file, False, False, commandlinearguments)
         if 0 < len(dependent_codeunits):
-            GeneralUtilities.write_message_to_stdout(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
+            self.__log.log(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
     def copy_artifacts_from_dependent_code_units(self, repo_folder: str, codeunit_name: str) -> None:
         codeunit_file = os.path.join(repo_folder, codeunit_name, codeunit_name + ".codeunit.xml")
         dependent_codeunits = self.get_dependent_code_units(codeunit_file)
         if len(dependent_codeunits) > 0:
-            GeneralUtilities.write_message_to_stdout(f"Get dependent artifacts for codeunit {codeunit_name}.")
+            self.__log.log(f"Get dependent artifacts for codeunit {codeunit_name}.")
         dependent_codeunits_folder = os.path.join(repo_folder, codeunit_name, "Other", "Resources", "DependentCodeUnits")
         GeneralUtilities.ensure_directory_does_not_exist(dependent_codeunits_folder)
         for dependent_codeunit in dependent_codeunits:
@@ -2404,7 +2403,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, commandline_arguments: list[str], additional_attached_files: list[str]) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
-        GeneralUtilities.write_message_to_stdout(f"Create GitHub-release for {productname}...")
+        self.__log.log(f"Create GitHub-release for {productname}...")
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, 1)
         github_repo = f"{github_username}/{productname}"
         artifact_files = []
@@ -2427,17 +2426,17 @@ class TasksForCommonProjectStructure:
         ignoreddependencies = root.xpath('//cps:codeunit/cps:properties/cps:updatesettings/cps:ignoreddependencies/cps:ignoreddependency', namespaces=namespaces)
         result = [x.text.replace("\\n", GeneralUtilities.empty_string).replace("\\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).replace("\r", GeneralUtilities.empty_string).strip() for x in ignoreddependencies]
         if print_warnings_for_ignored_dependencies and len(result) > 0:
-            GeneralUtilities.write_message_to_stderr(f"Warning: Codeunit {codeunit_name} contains the following dependencies which will are ignoed for automatic updates: "+', '.join(result))
+            self.__log.log(f"Codeunit {codeunit_name} contains the following dependencies which will are ignoed for automatic updates: "+', '.join(result), LogLevel.Warning)
         return result
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_flutter_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
+    def update_dependencies_of_typical_flutter_codeunit(self, update_script_file: str, verbosity: LogLevel, cmd_args: list[str]) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(codeunit_folder, True)
         # TODO implement
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_python_repository_requirements(self, repository_folder: str, verbosity: int, cmd_args: list[str]) -> None:
+    def update_dependencies_of_typical_python_repository_requirements(self, repository_folder: str, verbosity: LogLevel, cmd_args: list[str]) -> None:
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
 
         development_requirements_file = os.path.join(repository_folder, "Other", "requirements.txt")
@@ -2445,7 +2444,7 @@ class TasksForCommonProjectStructure:
             self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file, [], verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
+    def update_dependencies_of_typical_python_codeunit(self, update_script_file: str, verbosity: LogLevel, cmd_args: list[str]) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(codeunit_folder, True)
         # TODO consider ignored_dependencies
@@ -2464,7 +2463,7 @@ class TasksForCommonProjectStructure:
             self.__sc.update_dependencies_of_python_in_requirementstxt_file(development_requirements_file2, ignored_dependencies, verbosity)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: int, cmd_args: list[str]) -> None:
+    def update_dependencies_of_typical_dotnet_codeunit(self, update_script_file: str, verbosity: LogLevel, cmd_args: list[str]) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("..", os.path.dirname(update_script_file))
         ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(codeunit_folder, True)
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_args, verbosity)
@@ -2479,7 +2478,7 @@ class TasksForCommonProjectStructure:
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, verbosity, ignored_dependencies)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_package_json(self, folder: str, verbosity: int, cmd_args: list[str]) -> None:
+    def update_dependencies_of_package_json(self, folder: str, verbosity: LogLevel, cmd_args: list[str]) -> None:
         if self.is_codeunit_folder(folder):
             ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(folder, True)
         else:
@@ -2506,7 +2505,7 @@ class TasksForCommonProjectStructure:
                 json.dump(package_json_content, package_json_file_object, indent=4)
             self.do_npm_install(folder, True, verbosity)
         else:
-            GeneralUtilities.write_message_to_stderr("Update dependencies resulted in an error.")
+            self.__log.log("Update dependencies resulted in an error.", LogLevel.Error)
 
     @GeneralUtilities.check_arguments
     def generate_tasksfile_from_workspace_file(self, repository_folder: str, append_cli_args_at_end: bool = False) -> None:
@@ -2607,7 +2606,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
-    def start_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str], env_file: str) -> None:
+    def start_dockerfile_example(self, current_file: str, verbosity: LogLevel, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str], env_file: str) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         folder = os.path.dirname(current_file)
         example_name = os.path.basename(folder)
@@ -2621,19 +2620,19 @@ class TasksForCommonProjectStructure:
             for line in lines:
                 if match := re.search("container_name:\\s*'?([^']+)'?", line):
                     container_names.append(match.group(1))
-            GeneralUtilities.write_message_to_stdout(f"Ensure container of {docker_compose_file} do not exist...")
+            self.__log.log(f"Ensure container of {docker_compose_file} do not exist...")
             for container_name in container_names:
-                GeneralUtilities.write_message_to_stdout(f"Ensure container {container_name} does not exist...")
-                self.__sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
+                self.__log.log(f"Ensure container {container_name} does not exist...")
+                self.__sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, verbosity=LogLevel.Quiet, throw_exception_if_exitcode_is_not_zero=False)
         if remove_volumes_folder:
             volumes_folder = os.path.join(folder, "Volumes")
-            GeneralUtilities.write_message_to_stdout(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
+            self.__log.log(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
             GeneralUtilities.ensure_directory_does_not_exist(volumes_folder)
             GeneralUtilities.ensure_directory_exists(volumes_folder)
-        GeneralUtilities.write_message_to_stdout("Load docker-image...")
+        self.__log.log("Load docker-image...")
         self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder, verbosity=verbosity)
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
-        GeneralUtilities.write_message_to_stdout("Start docker-container...")
+        self.__log.log("Start docker-container...")
         argument = f"compose --project-name {docker_project_name}"
         if env_file is not None:
             argument = f"{argument} --env-file {env_file}"
@@ -2651,13 +2650,13 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_lines_to_file(env_file, lines)
 
     @GeneralUtilities.check_arguments
-    def stop_dockerfile_example(self, current_file: str, verbosity: int, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
+    def stop_dockerfile_example(self, current_file: str, verbosity: LogLevel, remove_old_container: bool, remove_volumes_folder: bool, commandline_arguments: list[str]) -> None:
         verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
         folder = os.path.dirname(current_file)
         example_name = os.path.basename(folder)
         codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
-        GeneralUtilities.write_message_to_stdout("Stop docker-container...")
+        self.__log.log("Stop docker-container...")
         self.__sc.run_program("docker", f"compose --project-name {docker_project_name} down", folder, verbosity=verbosity)
 
     @GeneralUtilities.check_arguments
@@ -2704,14 +2703,14 @@ class TasksForCommonProjectStructure:
             raise ValueError(f"Invalid target-environmenttype: '{target_environmenttype}'")
 
     @GeneralUtilities.check_arguments
-    def build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = False, commandlinearguments: list[str] = []) -> None:
+    def build_codeunit(self, codeunit_folder: str, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = False, commandlinearguments: list[str] = []) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
-        self.build_specific_codeunits(repository_folder, [codeunit_name], verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built, commandlinearguments, False)
+        self.build_specific_codeunits(repository_folder, [codeunit_name],  target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, assume_dependent_codeunits_are_already_built, commandlinearguments, False)
 
     @GeneralUtilities.check_arguments
-    def build_codeunitsC(self, repository_folder: str, image: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, commandlinearguments: list[str] = []) -> None:
+    def build_codeunitsC(self, repository_folder: str, image: str,  target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, commandlinearguments: list[str] = []) -> None:
         self.__sc.assert_is_git_repository(repository_folder)
         if target_environmenttype == "Development":
             raise ValueError(f"build_codeunitsC is not available for target_environmenttype {target_environmenttype}.")
@@ -2721,7 +2720,7 @@ class TasksForCommonProjectStructure:
         self.__sc.run_program("docker", f"run --volume {repository_folder}:/Workspace/Repository " + f"-e repositoryfolder=/Workspace/Repository -e verbosity={verbosity} -e targetenvironment={target_environmenttype} {image}", repository_folder)
 
     @GeneralUtilities.check_arguments
-    def build_codeunits(self, repository_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes_on_productive_build: bool = False, note: str = None) -> None:
+    def build_codeunits(self, repository_folder: str,  target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, commandline_arguments: list[str] = [], do_git_clean_when_no_changes_on_productive_build: bool = False, note: str = None) -> None:
         self.__check_target_environmenttype(target_environmenttype)
         self.__sc.assert_is_git_repository(repository_folder)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
@@ -2737,7 +2736,7 @@ class TasksForCommonProjectStructure:
         if (do_git_clean_when_no_changes_on_productive_build) and (target_environmenttype == "Productive") and( not self.__sc.git_repository_has_uncommitted_changes(repository_folder)):
             self.__sc.run_program("git", "clean -dfx", repository_folder)
         if os.path.isfile(prepare_build_codeunits_scripts):
-            GeneralUtilities.write_message_to_stdout(f'Run "{PrepareBuildCodeunits_script_name}"')
+            self.__log.log(f'Run "{PrepareBuildCodeunits_script_name}"')
             result = self.__sc.run_program("python", f"{PrepareBuildCodeunits_script_name}", project_resources_folder, throw_exception_if_exitcode_is_not_zero=False, print_live_output=True)
             if result[0] != 0:
                 raise ValueError(f"PrepareBuildCodeunits.py resulted in exitcode {result[0]}.")
@@ -2749,7 +2748,7 @@ class TasksForCommonProjectStructure:
             until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.mark_current_version_as_supported(repository_folder, project_version, from_day, until_day)
-        self.build_specific_codeunits(repository_folder, codeunits, verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes_on_productive_build, note)
+        self.build_specific_codeunits(repository_folder, codeunits, target_environmenttype, additional_arguments_file, is_pre_merge, export_target_directory, False, commandline_arguments, do_git_clean_when_no_changes_on_productive_build, note)
         self.__save_lines_of_code(repository_folder, project_version)
 
     @GeneralUtilities.check_arguments
@@ -2768,11 +2767,10 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_lines_to_file(loc_metric_file, new_lines)
 
     @GeneralUtilities.check_arguments
-    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str], verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
+    def build_specific_codeunits(self, repository_folder: str, codeunits: list[str],  target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, export_target_directory: str = None, assume_dependent_codeunits_are_already_built: bool = True, commandline_arguments: list[str] = [], do_git_clean_when_no_changes: bool = False, note: str = None, check_for_new_files: bool = True) -> None:
         now_begin: datetime = GeneralUtilities.get_now()
         codeunits_list = "{"+", ".join(codeunits)+"}"
-        if verbosity > 2:
-            GeneralUtilities.write_message_to_stdout(f"Start building codeunits {codeunits_list} in repository '{repository_folder}'...")
+        self.__log.log(f"Start building codeunits {codeunits_list} in repository '{repository_folder}'...",LogLevel.Debug)
         self.__sc.assert_is_git_repository(repository_folder)
         self.__check_target_environmenttype(target_environmenttype)
         repository_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(repository_folder)
@@ -2796,29 +2794,28 @@ class TasksForCommonProjectStructure:
         message = f"Build codeunits in product {repository_name}... (Started: {GeneralUtilities.datetime_to_string_for_logfile_entry(now_begin)})"
         if note is not None:
             message = f"{message} ({note})"
-        GeneralUtilities.write_message_to_stdout(message)
+        self.__log.log(message)
 
         if len(sorted_codeunits) == 0:
             raise ValueError(f'No codeunit found in subfolders of "{repository_folder}".')
         else:
-            if verbosity > 1:
-                GeneralUtilities.write_message_to_stdout(f"Attempt to build codeunits ({codeunits_list}) for project version {project_version} in the following order:")
-                i = 0
-                for codeunit in sorted_codeunits:
-                    i = i+1
-                    GeneralUtilities.write_message_to_stdout(f"{i}.: {codeunit}")
+            self.__log.log(f"Attempt to build codeunits ({codeunits_list}) for project version {project_version} in the following order:")
+            i = 0
             for codeunit in sorted_codeunits:
-                GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_line())
-                self.__build_codeunit(os.path.join(repository_folder, codeunit), verbosity, target_environmenttype, additional_arguments_file, is_pre_merge, assume_dependent_codeunits_are_already_built, commandline_arguments)
-            GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_line())
+                i = i+1
+                self.__log.log(f"{i}.: {codeunit}")
+            for codeunit in sorted_codeunits:
+                self.__log.log(GeneralUtilities.get_line())
+                self.__build_codeunit(os.path.join(repository_folder, codeunit), target_environmenttype, additional_arguments_file, is_pre_merge, assume_dependent_codeunits_are_already_built, commandline_arguments)
+            self.__log.log(GeneralUtilities.get_line())
         contains_uncommitted_changes_at_end = self.__sc.git_repository_has_uncommitted_changes(repository_folder)
         if contains_uncommitted_changes_at_end and (not is_pre_merge) and check_for_new_files:
             if contains_uncommitted_changes_at_begin:
-                GeneralUtilities.write_message_to_stdout(f'There are still uncommitted changes in the repository "{repository_folder}".')
+                self.__log.log(f'There are still uncommitted changes in the repository "{repository_folder}".')
             else:
                 message = f'Due to the build-process the repository "{repository_folder}" has new uncommitted changes.'
                 if target_environmenttype == "Development":
-                    GeneralUtilities.write_message_to_stderr(f"Warning: {message}")
+                    self.__log.log(f"{message}", LogLevel.Warning)
                 else:
                     raise ValueError(message)
 
@@ -2839,7 +2836,7 @@ class TasksForCommonProjectStructure:
         message2 = f"Finished build codeunits in product {repository_name}. (Finished: {GeneralUtilities.datetime_to_string_for_logfile_entry(now_end)})"
         if note is not None:
             message2 = f"{message2} ({note})"
-        GeneralUtilities.write_message_to_stdout(message2)
+        self.__log.log(message2)
 
     @GeneralUtilities.check_arguments
     def __do_repository_checks(self, repository_folder: str, project_version: str) -> None:  # TDOO move this to a general project-specific (and codeunit-independent-script)
@@ -2874,7 +2871,7 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def __check_for_staged_or_committed_ignored_files(self, repository_folder: str) -> None:
         for file in self.__sc.get_staged_or_committed_git_ignored_files(repository_folder):
-            GeneralUtilities.write_message_to_stderr(f'Warning: Repository contains staged or committed file "{file}" which is git-ignored.')
+            self.__log.log(f'Repository contains staged or committed file "{file}" which is git-ignored.', LogLevel.Warning)
 
     @GeneralUtilities.check_arguments
     def __check_whether_workspace_file_exists(self, repository_folder: str) -> None:
@@ -2930,7 +2927,7 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.ensure_file_does_not_exist(archive_file)
         else:
             if grylibrary_dll_file_exists:
-                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of GRYLibrary due to missing internet-connection.")
+                self.__log.log("Can not check for updates of GRYLibrary due to missing internet-connection.")
             else:
                 raise ValueError("Can not download GRYLibrary.")
 
@@ -2958,7 +2955,7 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
         else:
             if exe_file_exists:
-                GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of FFMPEG due to missing internet-connection.")
+                self.__log.log("Can not check for updates of FFMPEG due to missing internet-connection.")
             else:
                 raise ValueError("Can not download FFMPEG.")
 
@@ -3072,7 +3069,7 @@ class TasksForCommonProjectStructure:
                 output_filename = self.get_output_filename_for_plantuml_filename(file)
                 argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', '-tsvg', os.path.basename(file)]
                 folder = os.path.dirname(file)
-                self.__sc.run_program_argsasarray("java", argument, folder, verbosity=0)
+                self.__sc.run_program_argsasarray("java", argument, folder, verbosity=LogLevel.Quiet)
                 result_file = folder+"/" + output_filename
                 GeneralUtilities.assert_file_exists(result_file)
                 self.__sc.format_xml_file(result_file)
@@ -3141,7 +3138,7 @@ class TasksForCommonProjectStructure:
         return result
 
     @GeneralUtilities.check_arguments
-    def create_deb_package_for_artifact(self, codeunit_folder: str, maintainername: str, maintaineremail: str, description: str, verbosity: int, cmd_arguments: list[str]) -> None:
+    def create_deb_package_for_artifact(self, codeunit_folder: str, maintainername: str, maintaineremail: str, description: str, verbosity: LogLevel, cmd_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_arguments, verbosity)
         codeunit_name = os.path.basename(codeunit_folder)
@@ -3153,7 +3150,7 @@ class TasksForCommonProjectStructure:
         self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, verbosity, 555)
 
     @GeneralUtilities.check_arguments
-    def create_zip_file_for_artifact(self, codeunit_folder: str, artifact_source_name: str, name_of_new_artifact: str, verbosity: int, cmd_arguments: list[str]) -> None:
+    def create_zip_file_for_artifact(self, codeunit_folder: str, artifact_source_name: str, name_of_new_artifact: str, verbosity: LogLevel, cmd_arguments: list[str]) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         verbosity = self.get_verbosity_from_commandline_arguments(cmd_arguments, verbosity)
         src_artifact_folder = GeneralUtilities.resolve_relative_path(f"Other/Artifacts/{artifact_source_name}", codeunit_folder)
@@ -3226,32 +3223,29 @@ class TasksForCommonProjectStructure:
                 if required:
                     raise ValueError(message)
                 else:
-                    GeneralUtilities.write_message_to_stderr(f"Warning: {message}")
+                    self.__log.log(message, LogLevel.Warning)
 
     @GeneralUtilities.check_arguments
-    def __build_codeunit(self, codeunit_folder: str, verbosity: int = 1, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, assume_dependent_codeunits_are_already_built: bool = False, commandline_arguments: list[str] = []) -> None:
+    def __build_codeunit(self, codeunit_folder: str, target_environmenttype: str = "QualityCheck", additional_arguments_file: str = None, is_pre_merge: bool = False, assume_dependent_codeunits_are_already_built: bool = False, commandline_arguments: list[str] = []) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         now = GeneralUtilities.get_now()
         codeunit_folder = GeneralUtilities.resolve_relative_path_from_current_working_directory(codeunit_folder)
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         codeunit_name: str = os.path.basename(codeunit_folder)
-        if verbosity > 2:
-            GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}")
+        self.__log.log(f"Start building codeunit {codeunit_name}",LogLevel.Debug)
         codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
 
         if (not os.path.isfile(codeunit_file)):
             raise ValueError(f'"{codeunit_folder}" is no codeunit-folder.')
 
         if not self.codeunit_is_enabled(codeunit_file):
-            GeneralUtilities.write_message_to_stdout(f"Warning: Codeunit {codeunit_name} is disabled.")
+            self.__log.log(f"Codeunit {codeunit_name} is disabled.")
             return
 
-        GeneralUtilities.write_message_to_stdout(f"Start building codeunit {codeunit_name}.")
-        GeneralUtilities.write_message_to_stdout(f"Build-environmenttype: {target_environmenttype}")
+        self.__log.log(f"Start building codeunit {codeunit_name}.")
+        self.__log.log(f"Build-environmenttype: {target_environmenttype}")
         if not self.__sc.git_repository_has_uncommitted_changes(repository_folder):
             self.__sc.run_program("git", "clean -dfx", codeunit_folder)
-
-        verbosity_for_executed_programs = self.get_verbosity_from_commandline_arguments(commandline_arguments, verbosity)
 
         other_folder = os.path.join(codeunit_folder, "Other")
         build_folder = os.path.join(other_folder, "Build")
@@ -3269,13 +3263,13 @@ class TasksForCommonProjectStructure:
 
         if is_pre_merge:
             general_argument = general_argument+" --overwrite_is_pre_merge true"
-            GeneralUtilities.write_message_to_stdout("This is a pre-merge-build")
+            self.__log.log("This is a pre-merge-build")
 
         if assume_dependent_codeunits_are_already_built:
             c_additionalargumentsfile_argument = c_additionalargumentsfile_argument+" --overwrite_assume_dependent_codeunits_are_already_built true"
             diagnostic = False
             if diagnostic:
-                GeneralUtilities.write_message_to_stdout("Assume dependent codeunits are already built")
+                self.__log.log("Assume dependent codeunits are already built")
 
         if additional_arguments_file is not None:
             config = configparser.ConfigParser()
@@ -3295,11 +3289,11 @@ class TasksForCommonProjectStructure:
                 additional_arguments_f = " " + config.get(section_name, "ArgumentsForOnFinish")
             c_additionalargumentsfile_argument = f' --overwrite_additionalargumentsfile "{additional_arguments_file}"'
 
-        GeneralUtilities.write_message_to_stdout('Run "CommonTasks.py"...')
+        self.__log.log('Run "CommonTasks.py"...')
         self.__sc.run_program("python", f"CommonTasks.py{additional_arguments_c}{general_argument}{c_additionalargumentsfile_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
-        GeneralUtilities.write_message_to_stdout('Run "Build.py"...')
+        self.__log.log('Run "Build.py"...')
         self.__sc.run_program("python", f"Build.py{additional_arguments_b}{general_argument}", build_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
 
         artifacts = {"BuildResult_.+": True, "BOM": False, "SourceCode": True}
@@ -3309,20 +3303,20 @@ class TasksForCommonProjectStructure:
 
         codeunit_hast_testable_sourcecode = self.codeunit_has_testable_sourcecode(codeunit_file)
         if codeunit_hast_testable_sourcecode:
-            GeneralUtilities.write_message_to_stdout('Run "RunTestcases.py"...')
+            self.__log.log('Run "RunTestcases.py"...')
             self.__sc.run_program("python", f"RunTestcases.py{additional_arguments_r}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
             self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
-        GeneralUtilities.write_message_to_stdout('Run "Linting.py"...')
+        self.__log.log('Run "Linting.py"...')
         self.__sc.run_program("python", f"Linting.py{additional_arguments_l}{general_argument}", quality_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]())
 
-        GeneralUtilities.write_message_to_stdout('Run "GenerateReference.py"...')
+        self.__log.log('Run "GenerateReference.py"...')
         self.__sc.run_program("python", f"GenerateReference.py{additional_arguments_g}{general_argument}", reference_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
         self.verify_artifact_exists(codeunit_folder, dict[str, bool]({"Reference": True}))
 
         if os.path.isfile(os.path.join(other_folder, "OnBuildingFinished.py")):
-            GeneralUtilities.write_message_to_stdout('Run "OnBuildingFinished.py"...')
+            self.__log.log('Run "OnBuildingFinished.py"...')
             self.__sc.run_program("python", f"OnBuildingFinished.py{additional_arguments_f}{general_argument}", other_folder, verbosity=verbosity_for_executed_programs, throw_exception_if_exitcode_is_not_zero=True, print_live_output=2 < verbosity)
 
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
@@ -3348,7 +3342,7 @@ class TasksForCommonProjectStructure:
     </cps:artifacts>
 </cps:artifactsinformation>""")
         # TODO validate artifactsinformation_file against xsd
-        GeneralUtilities.write_message_to_stdout(f"Finished building codeunit {codeunit_name} without errors.")
+        self.__log.log(f"Finished building codeunit {codeunit_name} without errors.")
 
     def __ensure_changelog_file_is_added(self, repository_folder: str, version_of_project: str):
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
@@ -3362,9 +3356,9 @@ class TasksForCommonProjectStructure:
 """)
 
     @GeneralUtilities.check_arguments
-    def generic_update_dependencies(self, repository_folder: str, verbosity: int = 1):
+    def generic_update_dependencies(self, repository_folder: str, verbosity: LogLevel = 1):
         # Prepare
-        GeneralUtilities.write_message_to_stdout("Update dependencies...")
+        self.__log.log("Update dependencies...")
         self.__sc.assert_is_git_repository(repository_folder)
         codeunits = self.get_codeunits(repository_folder)
         update_dependencies_script_filename = "UpdateDependencies.py"
@@ -3379,7 +3373,7 @@ class TasksForCommonProjectStructure:
             self.__sc.run_program("python", update_dependencies_script_filename, global_scripts_folder, print_live_output=True)
             version_of_project = self.get_version_of_project(repository_folder)
             self.__ensure_changelog_file_is_added(repository_folder, version_of_project)
-            GeneralUtilities.write_message_to_stdout(f"Updated global dependencies of {project_name}.")
+            self.__log.log(f"Updated global dependencies of {project_name}.")
             self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build codeunits due to updated product-wide dependencies")
 
         # update dependencies of codeunits
@@ -3396,7 +3390,7 @@ class TasksForCommonProjectStructure:
                 if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
                     version_of_project = self.get_version_of_project(repository_folder)
                     self.__ensure_changelog_file_is_added(repository_folder, version_of_project)
-                    GeneralUtilities.write_message_to_stdout(f"Updated dependencies in codeunit {codeunit}.")
+                    self.__log.log(f"Updated dependencies in codeunit {codeunit}.")
 
         self.build_codeunits(repository_folder, verbosity, "QualityCheck", None, False, None, [], False, "Build all codeunits due to updated dependencies")
         self.__sc.git_commit(repository_folder, "Updated dependencies")
@@ -3413,7 +3407,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generic_prepare_new_release(self, generic_prepare_new_release_arguments: GenericPrepareNewReleaseArguments):
-        GeneralUtilities.write_message_to_stdout(f"Prepare release for {generic_prepare_new_release_arguments.product_name}.")
+        self.__log.log(f"Prepare release for {generic_prepare_new_release_arguments.product_name}.")
 
         # constants
         folder_of_this_file = os.path.dirname(generic_prepare_new_release_arguments.current_file)
@@ -3424,7 +3418,7 @@ class TasksForCommonProjectStructure:
         self.__sc.assert_is_git_repository(repository_folder)
         reference_folder = repository_folder+"Reference"
         self.__sc.assert_is_git_repository(reference_folder)
-        verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_prepare_new_release_arguments.commandline_arguments, 1)
+        verbosity: LogLevel = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_prepare_new_release_arguments.commandline_arguments, 1)
 
         merge_source_branch = "other/next-release"  # maybe this should be configurable
         main_branch = "main"  # maybe this should be configurable
@@ -3441,13 +3435,13 @@ class TasksForCommonProjectStructure:
         self.__sc.git_commit(build_repository_folder, "Updated submodules")
 
         if "--dependencyupdate" in generic_prepare_new_release_arguments.commandline_arguments:
-            GeneralUtilities.write_message_to_stdout("Debug: Update dependencies...")
+            self.__log.log("Debug: Update dependencies...")
             self.generic_update_dependencies(repository_folder)
             self.assert_no_uncommitted_changes(repository_folder)
         else:
-            GeneralUtilities.write_message_to_stdout("Debug: Dependency-update skipped.")
+            self.__log.log("Dependency-update skipped.",LogLevel.Debug)
 
-        GeneralUtilities.write_message_to_stdout(f"Check reference-repository...")
+        self.__log.log(f"Check reference-repository...")
         now = GeneralUtilities.get_now()
         for unsupported_version in self.get_unsupported_versions(repository_folder, now):
             reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version[0]}"
@@ -3457,11 +3451,11 @@ class TasksForCommonProjectStructure:
         merge_source_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, merge_source_branch)
         main_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, main_branch)
         if merge_source_branch_commit_id == main_branch_commit_id:
-            GeneralUtilities.write_message_to_stdout("Release will not be prepared because there are no changed which can be released.")
+            self.__log.log("Release will not be prepared because there are no changed which can be released.")
         else:
             self.merge_to_main_branch(repository_folder, merge_source_branch, verbosity=verbosity, fast_forward_source_branch=True)
             self.__sc.git_commit(build_repository_folder, "Updated submodule due to merge to main-branch.")
-        GeneralUtilities.write_message_to_stdout(f"Finished prepare release for {generic_prepare_new_release_arguments.product_name}.")
+        self.__log.log(f"Finished prepare release for {generic_prepare_new_release_arguments.product_name}.")
 
     class GenericCreateReleaseArguments():
         current_file: str
@@ -3479,7 +3473,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def generic_create_release(self, generic_create_release_arguments: GenericCreateReleaseArguments) -> tuple[bool, str]:
-        GeneralUtilities.write_message_to_stdout(f"Create release for {generic_create_release_arguments.product_name}.")
+        self.__log.log(f"Create release for {generic_create_release_arguments.product_name}.")
         folder_of_this_file = os.path.dirname(generic_create_release_arguments.current_file)
         build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
         repository_folder_name = generic_create_release_arguments.product_name
@@ -3490,13 +3484,13 @@ class TasksForCommonProjectStructure:
         main_branch = "stable"  # TODO make this configurable
 
         additional_arguments_file = os.path.join(folder_of_this_file, "AdditionalArguments.configuration")
-        verbosity: int = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_create_release_arguments.commandline_arguments, 1)
+        verbosity: LogLevel = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(generic_create_release_arguments.commandline_arguments, 1)
         createReleaseConfiguration: CreateReleaseConfiguration = CreateReleaseConfiguration(generic_create_release_arguments.product_name, generic_create_release_arguments.common_remote_name, generic_create_release_arguments.artifacts_target_folder, folder_of_this_file, verbosity, repository_folder, additional_arguments_file, repository_folder_name)
 
         merge_source_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, merge_source_branch)
         main_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, main_branch)
         if merge_source_branch_commit_id == main_branch_commit_id:
-            GeneralUtilities.write_message_to_stdout("Release will not be done because there are no changed which can be released.")
+            self.__log.log("Release will not be done because there are no changed which can be released.")
             return False, None
         else:
             self.__sc.git_checkout(repository_folder, merge_source_branch)
@@ -3507,7 +3501,7 @@ class TasksForCommonProjectStructure:
 
             # create release
             new_version = self.merge_to_stable_branch(generic_create_release_arguments.current_file, createReleaseConfiguration)
-            GeneralUtilities.write_message_to_stdout(f"Finished create release for {generic_create_release_arguments.product_name}.")
+            self.__log.log(f"Finished create release for {generic_create_release_arguments.product_name}.")
             return True, new_version
 
     class UpdateHTTPDocumentationArguments:
@@ -3537,7 +3531,7 @@ class TasksForCommonProjectStructure:
         current_version = self.get_version_of_project(repositoryfolder)
         changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
         if os.path.isfile(changelog_file):
-            GeneralUtilities.write_message_to_stdout(f"Changelog-file '{changelog_file}' already exists.")
+            self.__log.log(f"Changelog-file '{changelog_file}' already exists.")
         else:
             GeneralUtilities.ensure_file_exists(changelog_file)
             GeneralUtilities.write_text_to_file(changelog_file, f"""# Release notes
@@ -3552,7 +3546,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def update_http_documentation(self, update_http_documentation_arguments: UpdateHTTPDocumentationArguments):
-        GeneralUtilities.write_message_to_stdout(f"Update HTTP-documentation for for {update_http_documentation_arguments.product_name}...")
+        self.__log.log(f"Update HTTP-documentation for for {update_http_documentation_arguments.product_name}...")
         folder_of_this_file = str(os.path.dirname(update_http_documentation_arguments.current_file))
 
         ref_repo = GeneralUtilities.resolve_relative_path(f"../../Submodules/{update_http_documentation_arguments.reference_repository_name}", folder_of_this_file)
@@ -3573,11 +3567,11 @@ class TasksForCommonProjectStructure:
         self.__sc.git_commit(GeneralUtilities.resolve_relative_path("../..", folder_of_this_file), f"Updated content of {update_http_documentation_arguments.product_name} v{update_http_documentation_arguments.new_project_version} in {update_http_documentation_arguments.reference_repository_name}-submodule")
 
     @GeneralUtilities.check_arguments
-    def install_requirementstxt_for_codeunit(self, codeunit_folder: str, verbosity: int):
+    def install_requirementstxt_for_codeunit(self, codeunit_folder: str, verbosity: LogLevel):
         self.__sc.install_requirementstxt_file(codeunit_folder+"/Other/requirements.txt", verbosity)
 
     @GeneralUtilities.check_arguments
-    def install_requirementstxt_for_repository(self, repository_folde: str, verbosity: int):
+    def install_requirementstxt_for_repository(self, repository_folde: str, verbosity: LogLevel):
         self.__sc.install_requirementstxt_file(repository_folde+"/Other/requirements.txt", verbosity)
 
     @GeneralUtilities.check_arguments
@@ -3608,7 +3602,7 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None) -> None:
-        GeneralUtilities.write_message_to_stdout(f'Clone resource {resource_name}...')
+        self.__log.log(f'Clone resource {resource_name}...')
         resrepo_commit_id_folder: str = os.path.join(local_repository_folder, "Other", "Resources", f"{resource_name}Version")
         resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resource_name}Version.txt")
         latest_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)

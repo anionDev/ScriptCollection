@@ -17,7 +17,7 @@ class LogLevel(Enum):
 
 
 class SCLog:
-    loglevel: LogLevel
+    loglevel: LogLevel#minimum loglevel
     log_file: str
     add_overhead_to_console: bool
     add_overhead_to_logfile: bool
@@ -53,7 +53,7 @@ class SCLog:
         if loglevel is None:
             loglevel = LogLevel.Information
 
-        if int(loglevel) > int(self.loglevel):
+        if int(self.loglevel)<int(loglevel) :
             return
 
         if message.endswith("\n"):

@@ -7,6 +7,7 @@ from uuid import uuid4
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
+from .SCLog import LogLevel
 
 
 class CustomEpewArgument:
@@ -17,7 +18,7 @@ class CustomEpewArgument:
     addLogOverhead: bool
     title: str
     log_namespace: str
-    verbosity: int
+    verbosity: LogLevel
     arguments_for_log:  list[str]
     tempdir = os.path.join(tempfile.gettempdir(), str(uuid4()))
     stdoutfile = tempdir + ".epew.stdout.txt"
@@ -25,7 +26,7 @@ class CustomEpewArgument:
     exitcodefile = tempdir + ".epew.exitcode.txt"
     pidfile = tempdir + ".epew.pid.txt"
 
-    def __init__(self, print_errors_as_information: bool, log_file: str, timeoutInSeconds: int, addLogOverhead: bool, title: str, log_namespace: str, verbosity: int,  arguments_for_log:  list[str]):
+    def __init__(self, print_errors_as_information: bool, log_file: str, timeoutInSeconds: int, addLogOverhead: bool, title: str, log_namespace: str, verbosity: LogLevel,  arguments_for_log:  list[str]):
         self.print_errors_as_information = print_errors_as_information
         self.log_file = log_file
         self.timeoutInSeconds = timeoutInSeconds
@@ -66,10 +67,28 @@ class ProgramRunnerEpew(ProgramRunnerBase):
                 args.append("-i")
             if custom_argument.addLogOverhead:
                 args.append("-g")
-            args.append("-v "+str(custom_argument.verbosity))
+            args.append("-v "+str(self.__get_microsoft_loglevel()))
             return ProgramRunnerPopen().run_program_argsasarray_async_helper("epew", args, working_directory, custom_argument, interactive)
         else:
             raise ValueError("Epew is not available.")
+
+    def __get_microsoft_loglevel(self):
+        #see https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.loglevel
+        match self.verbosity:
+            case LogLevel.Quiet:
+                return 6
+            case LogLevel.Error:
+                return 4
+            case LogLevel.Warning:
+                return 3
+            case LogLevel.Information:
+                return 5
+            case LogLevel.Debug:
+                return 1
+            case LogLevel.Diagnostig:
+                return 0
+            case _:
+                raise ValueError(f"Unhandled log level: {level}")
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
