@@ -266,7 +266,7 @@ def BuildCodeUnit() -> int:
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
     args = parser.parse_args()
-    t=TasksForCommonProjectStructure(log_level=LogLevel(int(args.verbosity)))
+    t=TasksForCommonProjectStructure(args)
     t.build_codeunit(args.codeunitfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
     return 0
 
@@ -280,7 +280,7 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
     args = parser.parse_args()
-    t=TasksForCommonProjectStructure(log_level=LogLevel(int(args.verbosity)))
+    t=TasksForCommonProjectStructure(args)
     t.build_codeunits(args.repositoryfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv, args.removeuncommittedfiles)
     return 0
 
@@ -295,7 +295,7 @@ def BuildCodeUnitsC() -> int:
     parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    t=TasksForCommonProjectStructure(log_level=LogLevel(int(args.verbosity)))
+    t=TasksForCommonProjectStructure(args)
     t.build_codeunitsC(args.repositoryfolder, args.image, args.targetenvironment, args.additionalargumentsfile, sys.argv)
     return 0
 
