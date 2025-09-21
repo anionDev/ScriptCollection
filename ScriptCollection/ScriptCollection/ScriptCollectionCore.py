@@ -1565,9 +1565,11 @@ class ScriptCollectionCore:
         #    return False
 
         if not q_stdout.empty():
+            GeneralUtilities.write_message_to_stdout(f"xx "+str(q_stdout.qsize()))
             return True
 
         if not q_stderr.empty():
+            GeneralUtilities.write_message_to_stdout(f"xy "+str(q_stdout.qsize()))
             return True
 
         return False

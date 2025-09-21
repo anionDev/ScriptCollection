@@ -2240,11 +2240,12 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_openapigenerator(self) -> None:
-        github_api_releases_link = "https://api.github.com/repos/OpenAPITools/openapi-generator/releases"
-        with urllib.request.urlopen(github_api_releases_link) as release_information_url:
-            latest_release_infos = json.load(release_information_url)[0]
-            latest_version = latest_release_infos["tag_name"][1:]
-            return latest_version
+        headers = {'Cache-Control': 'no-cache'}
+        self.__add_github_api_key_if_available(headers)
+        response = requests.get(f"https://api.github.com/repos/OpenAPITools/openapi-generator/releases",headers=headers, timeout=(10,10))
+        latest_version = response.json()["tag_name"]
+        GeneralUtilities.write_message_to_stdout("xx oapiv "+str(latest_version))
+        return latest_version
 
     @GeneralUtilities.check_arguments
     def set_version_of_openapigenerator_by_update_dependencies_file(self, update_dependencies_script_file: str, used_version: str = None) -> None:
@@ -2281,6 +2282,18 @@ class TasksForCommonProjectStructure:
                 GeneralUtilities.write_message_to_stdout("Warning: Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
             else:
                 raise ValueError("Can not download OpenAPIGenerator.")
+
+    def __add_github_api_key_if_available(self,header:dict):
+        token = os.getenv("GITHUB_TOKEN")
+        if token is not None:
+            headers["Authorization"] = f"Bearer {token}"
+        else: 
+            user_folder =str( Path.home())
+            github_token_file:str=os.path.join(user_folder,".gihub","token.txt")
+            if os.path.isfile(github_token_file):
+                token=GeneralUtilities.read_text_from_file(github_token_file)
+                headers["Authorization"] = f"Bearer {token}"
+        return headers
 
     @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_angular(self, file: str, name_of_api_providing_codeunit: str, generated_program_part_name: str) -> None:
@@ -2994,20 +3007,25 @@ class TasksForCommonProjectStructure:
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         file = f"{resource_folder}/{local_filename}"
         file_exists = os.path.isfile(file)
+        GeneralUtilities.write_message_to_stdout("xx 1")
         if internet_connection_is_available:  # Load/Update
             GeneralUtilities.ensure_directory_does_not_exist(resource_folder)
             GeneralUtilities.ensure_directory_exists(resource_folder)
             headers = {'Cache-Control': 'no-cache'}
-            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest", timeout=10, headers=headers)
+            self.__add_github_api_key_if_available(headers)
+            response = requests.get(f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest",headers=headers, timeout=(10,10))
             latest_version = response.json()["tag_name"]
             filename_on_github = get_filename_on_github(latest_version)
             link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
             urllib.request.urlretrieve(link, file)
+            GeneralUtilities.write_message_to_stdout("xx 3")
         else:
+            GeneralUtilities.write_message_to_stdout("xx 4")
             if file_exists:
                 GeneralUtilities.write_message_to_stdout(f"Warning: Can not check for updates of {resource_name} due to missing internet-connection.")
             else:
                 raise ValueError(f"Can not download {resource_name}.")
+        GeneralUtilities.write_message_to_stdout("xx 2")
 
     @GeneralUtilities.check_arguments
     def generate_svg_files_from_plantuml_files_for_repository(self, repository_folder: str) -> None:
