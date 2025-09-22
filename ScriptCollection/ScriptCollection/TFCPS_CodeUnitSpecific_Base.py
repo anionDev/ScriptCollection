@@ -1,33 +1,15 @@
-from datetime import datetime, timedelta, timezone
-from graphlib import TopologicalSorter
 import os
 import traceback
-import argparse
 from pathlib import Path
-from functools import cmp_to_key
 import shutil
-import math
-import tarfile
 import re
-import sys
-import urllib.request
-import zipfile
 import json
-import configparser
-import tempfile
-import uuid
-import yaml
-import requests
-from packaging import version
-import xmlschema
-from OpenSSL import crypto
-from lxml import etree
 from abc import ABC, abstractmethod
+import xmlschema
+from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
-from .SCLog import SCLog, LogLevel
-from .ProgramRunnerEpew import ProgramRunnerEpew
-from .ImageUpdater import ImageUpdater, VersionEcholon
+from .SCLog import  LogLevel
 from .TFCPS_Other import TFCPS_Other
 
 class TFCPS_CodeUnitSpecific_Base(ABC):
@@ -95,7 +77,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         repository_folder: str =self.get_repository_folder()
         self._protected_sc.assert_is_git_repository(repository_folder)
         codeunit_name: str = self.get_codeunit_name()
-        project_version = self.get_version_of_project()
+        project_version = self._protected_TFCPS_Other.get_version_of_project(repository_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
 
         # check codeunit-conformity
@@ -399,7 +381,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         technicalminimalrequiredtestcoverageinpercent = 0
         if not technicalminimalrequiredtestcoverageinpercent < coverage_in_percent:
             raise ValueError(f"The test-coverage of package '{codeunitname}' must be greater than {technicalminimalrequiredtestcoverageinpercent}%.")
-        codeunit_file = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
         minimalrequiredtestcoverageinpercent = self.get_testcoverage_threshold_from_codeunit_file()
         if (coverage_in_percent < minimalrequiredtestcoverageinpercent):
             raise ValueError(f"The testcoverage for codeunit {codeunitname} must be {minimalrequiredtestcoverageinpercent}% or more but is {coverage_in_percent}%.")
@@ -409,11 +390,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         root: etree._ElementTree = etree.parse(self.get_codeunit_file())
         return float(str(root.xpath('//cps:properties/cps:testsettings/@minimalcodecoverageinpercent', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
 
-
-    @GeneralUtilities.check_arguments
-    def get_version_of_project(self) -> str:
-        self._protected_sc.assert_is_git_repository(self.get_repository_folder())
-        return self._protected_sc.get_semver_version_from_gitversion(self.get_repository_folder())
 
     @GeneralUtilities.check_arguments
     def get_codeunit_owner_emailaddress(self) -> None:

@@ -1,31 +1,18 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from graphlib import TopologicalSorter
 import os
-import argparse
 from pathlib import Path
-from functools import cmp_to_key
 import shutil
-import math
-import tarfile
 import re
 import sys
-import urllib.request
-import zipfile
-import json
-import configparser
 import tempfile
 import uuid
-import yaml
 import requests
 from packaging import version
-import xmlschema
-from OpenSSL import crypto
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
-from .SCLog import SCLog, LogLevel
-from .ProgramRunnerEpew import ProgramRunnerEpew
-from .ImageUpdater import ImageUpdater, VersionEcholon
+from .SCLog import  LogLevel
 
 class TFCPS_Other:
 
@@ -292,9 +279,9 @@ class TFCPS_Other:
         return result
     
     @GeneralUtilities.check_arguments
-    def set_constant_for_description(self, codeunit_folder: str,codeunit_file:str) -> None:
+    def set_constant_for_description(self, codeunit_folder: str) -> None:
+        codeunit_file:str=self.get_version_of_codeunit(os.path.join(codeunit_folder,f"{os.path.basename(codeunit_folder)}.codeunit.xml"))
         self.assert_is_codeunit_folder(codeunit_folder)
-        codeunit_name: str = os.path.basename(codeunit_folder)
         codeunit_description: str = self.get_codeunit_description(codeunit_file)
         self.set_constant(codeunit_folder, "CodeUnitDescription", codeunit_description)
 
@@ -392,3 +379,30 @@ class TFCPS_Other:
             self.__sc.run_program_argsasarray("pygmentize", ['-l', 'diff', '-f', 'html', '-O', 'full', '-o', target_file_dark, '-P', 'style=github-dark', temp_file], repository_folder)
         finally:
             GeneralUtilities.ensure_file_does_not_exist(temp_file)
+
+    @GeneralUtilities.check_arguments
+    def get_version_of_project(self,repositoryfolder:str) -> str:
+        self.__sc.assert_is_git_repository(repositoryfolder)
+        return self.__sc.get_semver_version_from_gitversion(repositoryfolder)
+
+    @GeneralUtilities.check_arguments
+    def create_changelog_entry(self, repositoryfolder: str, message: str, commit: bool, force: bool):
+        self.__sc.assert_is_git_repository(repositoryfolder)
+        random_file = os.path.join(repositoryfolder, str(uuid.uuid4()))
+        if force and not self.__sc.git_repository_has_uncommitted_changes(repositoryfolder):
+            GeneralUtilities.ensure_file_exists(random_file)
+        current_version = self.get_version_of_project(repositoryfolder)
+        changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
+        if os.path.isfile(changelog_file):
+            self.__sc.log.log(f"Changelog-file '{changelog_file}' already exists.")
+        else:
+            GeneralUtilities.ensure_file_exists(changelog_file)
+            GeneralUtilities.write_text_to_file(changelog_file, f"""# Release notes
+
+## Changes
+
+- {message}
+""")
+        GeneralUtilities.ensure_file_does_not_exist(random_file)
+        if commit:
+            self.__sc.git_commit(repositoryfolder, f"Added changelog-file for v{current_version}.")

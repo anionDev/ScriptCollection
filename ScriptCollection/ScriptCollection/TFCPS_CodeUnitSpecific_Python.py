@@ -1,46 +1,17 @@
-from datetime import datetime, timedelta, timezone
-from graphlib import TopologicalSorter
 import os
-import argparse
-from pathlib import Path
-from functools import cmp_to_key
-import shutil
-import math
-import tarfile
-import re
-import sys
-import urllib.request
-import zipfile
-import json
-import configparser
-import tempfile
-import uuid
-import yaml
-import requests
-from packaging import version
-import xmlschema
-from OpenSSL import crypto
-from lxml import etree
-from abc import ABC, abstractmethod
 from .GeneralUtilities import GeneralUtilities
-from .ScriptCollectionCore import ScriptCollectionCore
-from .SCLog import SCLog, LogLevel
-from .ProgramRunnerEpew import ProgramRunnerEpew
-from .ImageUpdater import ImageUpdater, VersionEcholon
+from .SCLog import  LogLevel
 from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base
 
 class TFCPS_CodeUnitSpecific_Python(TFCPS_CodeUnitSpecific_Base):
 
     def __init__(self,current_file:str,verbosity:LogLevel):
-            super().__init__(current_file, verbosity)
+        super().__init__(current_file, verbosity)
 
 
     @GeneralUtilities.check_arguments
     def build_implementation(self) -> None:
-        codeunitname: str = self.get_codeunit_name()
-        
         codeunit_folder = self.get_codeunit_folder()
-        repository_folder: str = self.get_repository_folder()
         target_directory = GeneralUtilities.resolve_relative_path("../Artifacts/BuildResult_Wheel", os.path.join(self.get_artifacts_folder()))
         GeneralUtilities.ensure_directory_exists(target_directory)
         self._protected_sc.run_program("python", f"-m build --wheel --outdir {target_directory}", codeunit_folder)
@@ -54,7 +25,7 @@ class TFCPS_CodeUnitSpecific_Python(TFCPS_CodeUnitSpecific_Base):
         codeunitname: str=self.get_codeunit_name()
         repository_folder = os.path.dirname(codeunit_folder) 
         
-        codeunitversion = self._protected_TFCPS_Other.get_version_of_codeunit()
+        codeunitversion = self._protected_TFCPS_Other.get_version_of_codeunit(self.get_codeunit_file())
         bom_folder = "Other/Artifacts/BOM"
         bom_folder_full = os.path.join(codeunit_folder, bom_folder)
         GeneralUtilities.ensure_directory_exists(bom_folder_full)

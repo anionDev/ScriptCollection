@@ -3,15 +3,15 @@ import os
 import argparse
 import time
 import traceback
-import sys
+#import sys
 import shutil
 import keyboard
-from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
 from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
+from .TFCPS_Other import TFCPS_Other
 
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
@@ -265,10 +265,11 @@ def BuildCodeUnit() -> int:
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
-    args = parser.parse_args()
-    t=TasksForCommonProjectStructure(args)
-    t.build_codeunit(args.codeunitfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
-    return 0
+    #args = parser.parse_args()
+    #t=TasksForCommonProjectStructure(args)
+    #t.build_codeunit(args.codeunitfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
+    #return 0
+    return 1#TODO
 
 
 def BuildCodeUnits() -> int:
@@ -302,11 +303,12 @@ def BuildCodeUnitsC() -> int:
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--image', required=False, default="scbuilder:latest")
-    args = parser.parse_args()
+    #args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    t=TasksForCommonProjectStructure(args)
-    t.build_codeunitsC(args.repositoryfolder, args.image, args.targetenvironment, args.additionalargumentsfile, sys.argv)
-    return 0
+    #t=TasksForCommonProjectStructure(args)
+    #t.build_codeunitsC(args.repositoryfolder, args.image, args.targetenvironment, args.additionalargumentsfile, sys.argv)
+    #return 0
+    return 1#TODO
 
 
 def GenerateCertificateAuthority() -> int:
@@ -405,7 +407,7 @@ def CreateChangelogEntry() -> int:
         folder = args.repositorypath
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repositorypath, os.getcwd())
-    t=TasksForCommonProjectStructure()
+    t=TFCPS_Other(ScriptCollectionCore())
     t.create_changelog_entry(folder, args.message, args.commit, args.force)
     return 0
 
@@ -624,14 +626,15 @@ def NpmI() -> int:
     parser.add_argument('-d', '--directory', required=False, default=".")
     parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
     parser.add_argument('-v', '--verbose', action='store_true', required=False, default=False)
-    args = parser.parse_args()
-    if os.path.isabs(args.directory):
-        folder = args.directory
-    else:
-        folder = GeneralUtilities.resolve_relative_path(args.directory, os.getcwd())
-    t = TasksForCommonProjectStructure()
-    t.do_npm_install(folder, args.force, 3 if args.verbose else 0)
-    return 0
+    #args = parser.parse_args()
+    #if os.path.isabs(args.directory):
+    #    folder = args.directory
+    #else:
+    #    folder = GeneralUtilities.resolve_relative_path(args.directory, os.getcwd())
+    #t = TasksForCommonProjectStructure()
+    #t.do_npm_install(folder, args.force, 3 if args.verbose else 0)
+    #return 0
+    return 1#TODO
 
 
 def CurrentUserHasElevatedPrivileges() -> int:
@@ -764,10 +767,11 @@ def SetFileContent() -> int:
 def GenerateTaskfileFromWorkspacefile() -> int:
     parser = argparse.ArgumentParser(description="Generates a taskfile.yml-file from a .code-workspace-file")
     parser.add_argument('-f', '--repositoryfolder', required=True)
-    args = parser.parse_args()
-    t = TasksForCommonProjectStructure()
-    t.generate_tasksfile_from_workspace_file(args.repositoryfolder)
-    return 0
+    #args = parser.parse_args()
+    #t = TasksForCommonProjectStructure()
+    #t.generate_tasksfile_from_workspace_file(args.repositoryfolder)
+    #return 0
+    return 1#TODO
 
 
 def UpdateTimestampInFile() -> int:
@@ -799,5 +803,7 @@ def LOC() -> int:
         excluded_patterns = excluded_patterns + sc.default_excluded_patterns_for_loc
     if args.excluded_pattern is not None:
         excluded_patterns = excluded_patterns + args.excluded_pattern
-    GeneralUtilities.write_message_to_stdout(str(sc.get_lines_of_code(folder, excluded_patterns, args.verbose)))
+    if args.verbose:
+        sc.log.loglevel=LogLevel.Debug
+    GeneralUtilities.write_message_to_stdout(str(sc.get_lines_of_code(folder, excluded_patterns)))
     return 0

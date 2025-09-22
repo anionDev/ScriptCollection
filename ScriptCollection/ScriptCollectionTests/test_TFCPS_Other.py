@@ -1,4 +1,5 @@
 import unittest
+from ..ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
 from ..ScriptCollection.TFCPS_Other import TFCPS_Other
 
 
@@ -6,7 +7,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_1(self) -> None:
         # arrange
-        t = TFCPS_Other()
+        t = TFCPS_Other(ScriptCollectionCore())
         function_input = {}
         expected_result = []
 
@@ -18,7 +19,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_2(self) -> None:
         # arrange
-        t = TFCPS_Other()
+        t = TFCPS_Other(ScriptCollectionCore())
         function_input = {
             'codeunit_01': {}
         }
@@ -32,7 +33,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_3(self) -> None:
         # arrange
-        t = TFCPS_Other()
+        t = TFCPS_Other(ScriptCollectionCore())
         function_input = {
             'codeunit_01': {},
             'codeunit_02': {'codeunit_01'}
@@ -47,7 +48,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_4(self) -> None:
         # arrange
-        t = TFCPS_Other()
+        t = TFCPS_Other(ScriptCollectionCore())
         function_input = {
             'codeunit_01': {},
             'codeunit_02': {'codeunit_03', 'codeunit_01'},

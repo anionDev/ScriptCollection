@@ -2725,28 +2725,6 @@ class TasksForCommonProjectStructure:
             self.main_branch_name = "main"
 
     @GeneralUtilities.check_arguments
-    def create_changelog_entry(self, repositoryfolder: str, message: str, commit: bool, force: bool):
-        self.__sc.assert_is_git_repository(repositoryfolder)
-        random_file = os.path.join(repositoryfolder, str(uuid.uuid4()))
-        if force and not self.__sc.git_repository_has_uncommitted_changes(repositoryfolder):
-            GeneralUtilities.ensure_file_exists(random_file)
-        current_version = self.get_version_of_project(repositoryfolder)
-        changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
-        if os.path.isfile(changelog_file):
-            self.__log.log(f"Changelog-file '{changelog_file}' already exists.")
-        else:
-            GeneralUtilities.ensure_file_exists(changelog_file)
-            GeneralUtilities.write_text_to_file(changelog_file, f"""# Release notes
-
-## Changes
-
-- {message}
-""")
-        GeneralUtilities.ensure_file_does_not_exist(random_file)
-        if commit:
-            self.__sc.git_commit(repositoryfolder, f"Added changelog-file for v{current_version}.")
-
-    @GeneralUtilities.check_arguments
     def update_http_documentation(self, update_http_documentation_arguments: UpdateHTTPDocumentationArguments):
         self.__log.log(f"Update HTTP-documentation for for {update_http_documentation_arguments.product_name}...")
         folder_of_this_file = str(os.path.dirname(update_http_documentation_arguments.current_file))
