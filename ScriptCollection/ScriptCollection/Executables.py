@@ -11,7 +11,7 @@ from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
-
+from .TFCPS_CodeUnit_Main import TFCPS_CodeUnit_Main
 
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
@@ -281,7 +281,7 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
     args = parser.parse_args()
     t=TasksForCommonProjectStructure(sys.argv)
-    t.build_codeunits(args.repositoryfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv, args.removeuncommittedfiles)
+    t.build_codeunits()
     return 0
 
 

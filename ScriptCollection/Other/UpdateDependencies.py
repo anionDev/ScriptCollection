@@ -1,10 +1,10 @@
 import sys
 from pathlib import Path
-from ScriptCollection.TasksForCommonProjectStructure import TasksForCommonProjectStructure
+from ScriptCollection.TFCPS_CodeUnitSpecific_Python import TFCPS_CodeUnitSpecific_Python
 
 
 def update_dependencies():
-    TasksForCommonProjectStructure(sys.argv).update_dependencies_of_typical_python_codeunit(str(Path(__file__).absolute()) )
+    TFCPS_CodeUnitSpecific_Python(sys.argv).update_dependencies()
 
 
 if __name__ == "__main__":
