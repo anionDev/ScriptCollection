@@ -1,13 +1,13 @@
 import unittest
 from ..ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
-from ..ScriptCollection.TFCPS_Other import TFCPS_Other
+from ..ScriptCollection.TFCPS_Tools import TFCPS_Tools
 
 
 class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_1(self) -> None:
         # arrange
-        t = TFCPS_Other(ScriptCollectionCore())
+        t = TFCPS_Tools(ScriptCollectionCore())
         function_input = {}
         expected_result = []
 
@@ -19,7 +19,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_2(self) -> None:
         # arrange
-        t = TFCPS_Other(ScriptCollectionCore())
+        t = TFCPS_Tools(ScriptCollectionCore())
         function_input = {
             'codeunit_01': {}
         }
@@ -33,7 +33,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_3(self) -> None:
         # arrange
-        t = TFCPS_Other(ScriptCollectionCore())
+        t = TFCPS_Tools(ScriptCollectionCore())
         function_input = {
             'codeunit_01': {},
             'codeunit_02': {'codeunit_01'}
@@ -48,7 +48,7 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
 
     def test_sort_codenits_4(self) -> None:
         # arrange
-        t = TFCPS_Other(ScriptCollectionCore())
+        t = TFCPS_Tools(ScriptCollectionCore())
         function_input = {
             'codeunit_01': {},
             'codeunit_02': {'codeunit_03', 'codeunit_01'},
@@ -64,17 +64,17 @@ class TasksForCommonProjectStructureTests(unittest.TestCase):
         assert expected_result == actual_result
 
     def test_sort_reference_folder(self) -> None:
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/Latest", "/folder/Latest") == 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v1.1.1", "/folder/Latest") > 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/Latest", "/folder/v1.1.1") < 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.5.7", "/folder/v4.6.8") < 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v4.6.8", "/folder/v3.5.7") > 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.4") > 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.5") == 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.6") < 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.17") < 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.8.0") < 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.05") == 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v3.0.0", "/folder/v4.0.0") < 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v4.0.0", "/folder/v3.0.0") > 0
-        assert TFCPS_Other._internal_sort_reference_folder("/folder/v4.0.0", "/folder/v4.0.0") == 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/Latest", "/folder/Latest") == 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v1.1.1", "/folder/Latest") > 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/Latest", "/folder/v1.1.1") < 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.5.7", "/folder/v4.6.8") < 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v4.6.8", "/folder/v3.5.7") > 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.4") > 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.5") == 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.6") < 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.17") < 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.8.0") < 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.3.5", "/folder/v3.3.05") == 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v3.0.0", "/folder/v4.0.0") < 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v4.0.0", "/folder/v3.0.0") > 0
+        assert TFCPS_Tools._internal_sort_reference_folder("/folder/v4.0.0", "/folder/v4.0.0") == 0

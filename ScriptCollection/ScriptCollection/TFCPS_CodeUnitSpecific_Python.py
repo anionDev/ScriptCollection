@@ -3,7 +3,7 @@ from .GeneralUtilities import GeneralUtilities
 from .SCLog import  LogLevel
 from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base
 
-class TFCPS_CodeUnitSpecific_Python(TFCPS_CodeUnitSpecific_Base):
+class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 
     def __init__(self,current_file:str,verbosity:LogLevel):
         super().__init__(current_file, verbosity)
@@ -25,7 +25,7 @@ class TFCPS_CodeUnitSpecific_Python(TFCPS_CodeUnitSpecific_Base):
         codeunitname: str=self.get_codeunit_name()
         repository_folder = os.path.dirname(codeunit_folder) 
         
-        codeunitversion = self._protected_TFCPS_Other.get_version_of_codeunit(self.get_codeunit_file())
+        codeunitversion = self._protected_TFCPS_Tools.get_version_of_codeunit(self.get_codeunit_file())
         bom_folder = "Other/Artifacts/BOM"
         bom_folder_full = os.path.join(codeunit_folder, bom_folder)
         GeneralUtilities.ensure_directory_exists(bom_folder_full)
@@ -40,7 +40,7 @@ class TFCPS_CodeUnitSpecific_Python(TFCPS_CodeUnitSpecific_Base):
 
         GeneralUtilities.ensure_file_exists(bom_file_json)
         GeneralUtilities.write_text_to_file(bom_file_json, result[1])
-        self._protected_TFCPS_Other.ensure_cyclonedxcli_is_available(repository_folder)
+        self._protected_TFCPS_Tools.ensure_cyclonedxcli_is_available(repository_folder)
         cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
         if GeneralUtilities.current_system_is_windows():
             cyclonedx_exe = cyclonedx_exe+".exe"
@@ -74,7 +74,10 @@ class TFCPS_CodeUnitSpecific_Python(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def do_common_tasks_implementation(self) -> None:
-        pass
+        codeunitname =self.get_codeunit_name()
+        codeunit_version = self._protected_TFCPS_Tools.get_version_of_codeunit(self.get_codeunit_file()) # Should always be the same as the project-version #TODO make this configurable from outsi
+        self._protected_sc.replace_version_in_ini_file(GeneralUtilities.resolve_relative_path("./setup.cfg", self.get_codeunit_folder()), codeunit_version)
+        self._protected_sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path(f"./{codeunitname}/{codeunitname}Core.py", self.get_codeunit_folder()), codeunit_version)
 
     @GeneralUtilities.check_arguments
     def generate_reference_implementation(self) -> None:
@@ -101,7 +104,7 @@ class TFCPS_CodeUnitSpecific_Python(TFCPS_CodeUnitSpecific_Base):
 class TFCPS_CodeUnitSpecific_Python_CLI:
 
     @staticmethod
-    def parse(file:str,args:list[str])->TFCPS_CodeUnitSpecific_Python:
+    def parse(file:str,args:list[str])->TFCPS_CodeUnitSpecific_Python_Functions:
         #TODO process arguments which can contain loglevel etc.
-        result:TFCPS_CodeUnitSpecific_Python=TFCPS_CodeUnitSpecific_Python(file,LogLevel.Debug)
+        result:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_Functions(file,LogLevel.Debug)
         return result

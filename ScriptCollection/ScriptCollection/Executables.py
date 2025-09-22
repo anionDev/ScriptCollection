@@ -11,7 +11,7 @@ from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
 from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
-from .TFCPS_Other import TFCPS_Other
+from .TFCPS_Tools import TFCPS_Tools
 
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
@@ -407,7 +407,7 @@ def CreateChangelogEntry() -> int:
         folder = args.repositorypath
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repositorypath, os.getcwd())
-    t=TFCPS_Other(ScriptCollectionCore())
+    t=TFCPS_Tools(ScriptCollectionCore())
     t.create_changelog_entry(folder, args.message, args.commit, args.force)
     return 0
 

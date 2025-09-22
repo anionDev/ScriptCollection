@@ -14,7 +14,7 @@ from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 from .SCLog import  LogLevel
 
-class TFCPS_Other:
+class TFCPS_Tools:
 
     __sc:ScriptCollectionCore=ScriptCollectionCore()
 
@@ -280,8 +280,8 @@ class TFCPS_Other:
     
     @GeneralUtilities.check_arguments
     def set_constant_for_description(self, codeunit_folder: str) -> None:
-        codeunit_file:str=self.get_version_of_codeunit(os.path.join(codeunit_folder,f"{os.path.basename(codeunit_folder)}.codeunit.xml"))
         self.assert_is_codeunit_folder(codeunit_folder)
+        codeunit_file:str=os.path.join(codeunit_folder,f"{os.path.basename(codeunit_folder)}.codeunit.xml")
         codeunit_description: str = self.get_codeunit_description(codeunit_file)
         self.set_constant(codeunit_folder, "CodeUnitDescription", codeunit_description)
 

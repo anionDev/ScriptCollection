@@ -74,21 +74,22 @@ class ProgramRunnerEpew(ProgramRunnerBase):
 
     def __get_microsoft_loglevel(self):
         #see https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.loglevel
-        match self.verbosity:
-            case LogLevel.Quiet:
-                return 6
-            case LogLevel.Error:
-                return 4
-            case LogLevel.Warning:
-                return 3
-            case LogLevel.Information:
-                return 5
-            case LogLevel.Debug:
-                return 1
-            case LogLevel.Diagnostig:
-                return 0
-            case _:
-                raise ValueError(f"Unhandled log level: {level}")
+        #match self.verbosity:
+        #    case LogLevel.Quiet:
+        #        return 6
+        #    case LogLevel.Error:
+        #        return 4
+        #    case LogLevel.Warning:
+        #        return 3
+        #    case LogLevel.Information:
+        #        return 5
+        #    case LogLevel.Debug:
+        #        return 1
+        #    case LogLevel.Diagnostig:
+        #        return 0
+        #    case _:
+        #        raise ValueError(f"Unhandled log level: {level}")
+        return 5#TODO
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments

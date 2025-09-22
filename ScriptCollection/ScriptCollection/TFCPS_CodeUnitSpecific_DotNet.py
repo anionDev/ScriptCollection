@@ -2,7 +2,7 @@ from .GeneralUtilities import GeneralUtilities
 from .SCLog import  LogLevel
 from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base
 
-class TFCPS_CodeUnitSpecific_DotNet(TFCPS_CodeUnitSpecific_Base):
+class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
 
     def __init__(self,current_file:str,verbosity:LogLevel):
         super().__init__(current_file, verbosity)
@@ -35,7 +35,7 @@ class TFCPS_CodeUnitSpecific_DotNet(TFCPS_CodeUnitSpecific_Base):
 class TFCPS_CodeUnitSpecific_Python_CLI:
 
     @staticmethod
-    def parse(file:str,args:list[str])->TFCPS_CodeUnitSpecific_DotNet:
+    def parse(file:str,args:list[str])->TFCPS_CodeUnitSpecific_DotNet_Functions:
         #TODO process arguments which can contain loglevel etc.
-        result:TFCPS_CodeUnitSpecific_DotNet=TFCPS_CodeUnitSpecific_DotNet(file,LogLevel.Debug)
+        result:TFCPS_CodeUnitSpecific_DotNet_Functions=TFCPS_CodeUnitSpecific_DotNet_Functions(file,LogLevel.Debug)
         return result

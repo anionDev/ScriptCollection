@@ -1,10 +1,10 @@
 import sys
-from pathlib import Path
-from ScriptCollection.TFCPS_CodeUnitSpecific_Python import TFCPS_CodeUnitSpecific_Python
-
+from ScriptCollection.TFCPS_CodeUnitSpecific_Python import TFCPS_CodeUnitSpecific_Python_Functions,TFCPS_CodeUnitSpecific_Python_CLI
+ 
 
 def update_dependencies():
-    TFCPS_CodeUnitSpecific_Python(sys.argv).update_dependencies()
+    tf:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_CLI.parse(__file__,sys.argv)
+    tf.update_dependencies()
 
 
 if __name__ == "__main__":
