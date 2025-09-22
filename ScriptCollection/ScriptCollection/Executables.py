@@ -11,7 +11,7 @@ from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
-from .TFCPS_CodeUnit_Main import TFCPS_CodeUnit_Main
+from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
 
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
@@ -273,14 +273,23 @@ def BuildCodeUnit() -> int:
 
 def BuildCodeUnits() -> int:
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--repositoryfolder', required=False, default=".")
     verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
+
     args = parser.parse_args()
-    t=TasksForCommonProjectStructure(sys.argv)
+    
+    verbosity=LogLevel(int(args.verbosity))
+
+    repo:str=args.repositoryfolder
+    if not os.path.isabs(args.repositoryfolder):
+        repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
+
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity) 
     t.build_codeunits()
     return 0
 

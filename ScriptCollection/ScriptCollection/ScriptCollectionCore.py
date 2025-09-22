@@ -44,7 +44,7 @@ class ScriptCollectionCore:
 
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     # Do not change this value for productive environments.
-    mock_program_calls: bool = False
+    mock_program_calls: bool = False#TODO remove this variable. When someone want to mock program-calls then the ProgramRunnerMock can be used instead
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     execute_program_really_if_no_mock_call_is_defined: bool = False
     __mocked_program_calls: list = None
@@ -75,7 +75,7 @@ class ScriptCollectionCore:
         if (exit_code != 0):
             errors.append(f"Linting-issues of {file}:")
             errors.append(f"Pylint-exitcode: {exit_code}")
-            for line in GeneralUtilities.string_to_lines(stdout):
+            for line in GeneralUtilities.string_to_lines(stdout): 
                 errors.append(line)
             for line in GeneralUtilities.string_to_lines(stderr):
                 errors.append(line)
@@ -123,8 +123,8 @@ class ScriptCollectionCore:
         nupkg_file_folder = os.path.dirname(nupkg_file)
         argument = f"nuget push {nupkg_file_name} --force-english-output --source {registry_address}"
         if api_key is not None:
-            argument = f"{argument} --api-key {api_key}"
-        self.run_program("dotnet", argument, nupkg_file_folder, self.__log.loglevel)
+            argument = f"{argument} --api-key {api_key}" 
+        self.run_program("dotnet", argument, nupkg_file_folder, self.log.loglevel)
 
     @GeneralUtilities.check_arguments
     def dotnet_build(self, folder: str, projectname: str, configuration: str):
@@ -175,25 +175,6 @@ class ScriptCollectionCore:
         self.is_git_or_bare_git_repository(repository_folder)
         return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).split(" ")
 
-    @GeneralUtilities.check_arguments
-    def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None) -> list[tuple[str, str]]:
-        self.is_git_or_bare_git_repository(repository_folder)
-        space_character = "_"
-        if subfolder is None:
-            subfolder_argument = GeneralUtilities.empty_string
-        else:
-            subfolder_argument = f" -- {subfolder}"
-        log_result = self.run_program("git", f'log --pretty=%aN{space_character}%aE%n%cN{space_character}%cE HEAD{subfolder_argument}', repository_folder)
-        plain_content: list[str] = list(
-            set([line for line in log_result[1].split("\n") if len(line) > 0]))
-        result: list[tuple[str, str]] = []
-        for item in plain_content:
-            if len(re.findall(space_character, item)) == 1:
-                splitted = item.split(space_character)
-                result.append((splitted[0], splitted[1]))
-            else:
-                raise ValueError(f'Unexpected author: "{item}"')
-        return result
 
     @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
@@ -2455,30 +2436,30 @@ OCR-content:
             self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
     def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
-        return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc, False)
+        return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc)
 
     default_excluded_patterns_for_loc: list[str] = [".txt", ".md", ".vscode", "Resources", "Reference", ".gitignore", ".gitattributes", "Other/Metrics"]
 
     def get_lines_of_code(self, repository: str, excluded_pattern: list[str]) -> int:
         self.assert_is_git_repository(repository)
         result: int = 0
-        self.__log.log(f"Calculate lines of code in repository '{repository}' with excluded patterns: {', '.join(excluded_pattern)}")
+        self.log.log(f"Calculate lines of code in repository '{repository}' with excluded patterns: {', '.join(excluded_pattern)}")
         git_response = self.run_program("git", "ls-files", repository)
         files: list[str] = GeneralUtilities.string_to_lines(git_response[1])
         for file in files:
             if os.path.isfile(os.path.join(repository, file)):
                 if self.__is_excluded_by_glob_pattern(file, excluded_pattern):
-                    self.__log.log(f"File '{file}' is ignored because it matches an excluded pattern.",LogLevel.Diagnostic)
+                    self.log.log(f"File '{file}' is ignored because it matches an excluded pattern.",LogLevel.Diagnostic)
                 else:
                     full_file: str = os.path.join(repository, file)
                     if GeneralUtilities.is_binary_file(full_file):
-                        self.__log.log(f"File '{file}' is ignored because it is a binary-file.",LogLevel.Diagnostic)
+                        self.log.log(f"File '{file}' is ignored because it is a binary-file.",LogLevel.Diagnostic)
                     else:
-                        self.__log.log(f"Count lines of file '{file}'.",LogLevel.Diagnostic)
+                        self.log.log(f"Count lines of file '{file}'.",LogLevel.Diagnostic)
                         length = len(GeneralUtilities.read_nonempty_lines_from_file(full_file))
                         result = result+length
             else:
-                self.__log.log(f"File '{file}' is ignored because it does not exist.",LogLevel.Diagnostic)
+                self.log.log(f"File '{file}' is ignored because it does not exist.",LogLevel.Diagnostic)
         return result
 
     def __is_excluded_by_glob_pattern(self, file: str, excluded_patterns: list[str]) -> bool:
