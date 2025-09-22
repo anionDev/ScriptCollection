@@ -4,7 +4,7 @@ from ScriptCollection.TasksForCommonProjectStructure import TasksForCommonProjec
 
 
 def update_dependencies():
-    TasksForCommonProjectStructure().update_dependencies_of_typical_python_codeunit(str(Path(__file__).absolute()), 1, sys.argv)
+    TasksForCommonProjectStructure(sys.argv).update_dependencies_of_typical_python_codeunit(str(Path(__file__).absolute()) )
 
 
 if __name__ == "__main__":

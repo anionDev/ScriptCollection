@@ -280,7 +280,7 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
     args = parser.parse_args()
-    t=TasksForCommonProjectStructure(args)
+    t=TasksForCommonProjectStructure(sys.argv)
     t.build_codeunits(args.repositoryfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv, args.removeuncommittedfiles)
     return 0
 

@@ -4,10 +4,8 @@ from ScriptCollection.TasksForCommonProjectStructure import TasksForCommonProjec
 
 def build():
     script_file = str(Path(__file__).absolute())
-    t = TasksForCommonProjectStructure()
-    verbosity = 1
-    commandline_arguments: str = sys.argv
-    t.standardized_tasks_build_for_python_codeunit(script_file, verbosity, "QualityCheck", commandline_arguments)
+    t = TasksForCommonProjectStructure( sys.argv)
+    t.standardized_tasks_build_for_python_codeunit(script_file)
 
 
 if __name__ == "__main__":
