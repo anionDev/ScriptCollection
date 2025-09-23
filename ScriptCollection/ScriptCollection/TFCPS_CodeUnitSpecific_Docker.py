@@ -5,12 +5,12 @@ from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeU
 
 class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,additional_arguments_file:str):
-        super().__init__(current_file, verbosity,targetenvironmenttype,additional_arguments_file)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str):
+        super().__init__(current_file, verbosity,targetenvironmenttype)
 
 
     @GeneralUtilities.check_arguments
-    def build_implementation(self,additional_arguments:dict=None) -> None:
+    def build(self=None) -> None:
         use_cache: bool = False
         
         codeunitname: str =self.get_codeunit_name()
@@ -53,23 +53,23 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
  
     @GeneralUtilities.check_arguments
-    def linting_implementation(self,additional_arguments:dict=None) -> None:
+    def linting(self=None) -> None:
         pass#TODO
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks_implementation(self,additional_arguments:dict=None) -> None:
-        pass#TODO
+    def do_common_tasks(self,current_codeunit_version:str )-> None:
+        self.do_common_tasks_base(current_codeunit_version)
 
     @GeneralUtilities.check_arguments
-    def generate_reference_implementation(self,additional_arguments:dict=None) -> None:
-        pass#nothing to do
+    def generate_reference(self=None) -> None:
+        self.generate_reference_using_docfx()
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_implementation(self,additional_arguments:dict=None) -> None:
+    def update_dependencies(self=None) -> None:
         pass#TODO
     
     @GeneralUtilities.check_arguments
-    def run_testcases_implementation(self,additional_arguments:dict=None) -> None:
+    def run_testcases(self=None) -> None:
         pass#TODO
 
 class TFCPS_CodeUnitSpecific_Python_CLI:
@@ -79,5 +79,5 @@ class TFCPS_CodeUnitSpecific_Python_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_Docker_Functions=TFCPS_CodeUnitSpecific_Docker_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,args.additionalargumentsfile)
+        result:TFCPS_CodeUnitSpecific_Docker_Functions=TFCPS_CodeUnitSpecific_Docker_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype)
         return result

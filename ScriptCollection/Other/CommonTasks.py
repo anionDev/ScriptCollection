@@ -4,7 +4,7 @@ from ScriptCollection.TFCPS_CodeUnitSpecific_Python import TFCPS_CodeUnitSpecifi
  
 def common_tasks():
     tf:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_CLI.parse(__file__,sys.argv)
-    tf.do_common_tasks({},None)
+    tf.do_common_tasks(tf.get_version_of_project())#codeunit-version should alsways be the same as project-version
 
 
 if __name__ == "__main__":

@@ -3,28 +3,72 @@ import re
 import shutil
 import tempfile
 import uuid
+import json
 from lxml import etree
+import yaml
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import  LogLevel
 from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
 class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
-
+ 
     is_library:bool
     csproj_file:bool
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,additional_arguments_file:str):
-        super().__init__(current_file, verbosity,targetenvironmenttype,additional_arguments_file)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str):
+        super().__init__(current_file, verbosity,targetenvironmenttype)
         self.csproj_file=os.path.join(self.get_codeunit_folder(), self.get_codeunit_name(), self.get_codeunit_name() + ".csproj")
         self.is_library="<OutputType>Library</OutputType>" in GeneralUtilities.read_text_from_file(self.csproj_file)#TODO do a real check
 
     @GeneralUtilities.check_arguments
-    def build_implementation(self,additional_arguments:dict) -> None:
-        runtimes:list[str]=self.get_properties_from_additional_arguments(additional_arguments)
+    def build(self,runtimes:list[str],generate_open_api_spec:bool) -> None:
         if self.is_library:
-            self.standardized_tasks_build_for_dotnet_library_project()
+            self.standardized_tasks_build_for_dotnet_library_project(runtimes)
+            GeneralUtilities.assert_condition(not generate_open_api_spec,"OpenAPI-Specification can not be generated for a library.")
         else:
-            self.standardized_tasks_build_for_dotnet_project()
+            self.standardized_tasks_build_for_dotnet_project(runtimes)
+            self.generate_openapi_file(runtimes[0])
+
+    @GeneralUtilities.check_arguments
+    def generate_openapi_file(self, runtime: str) -> None:
+        swagger_document_name: str = "APISpecification"
+        self._protected_sc.log.log("Generate OpenAPI-specification-file...")
+        codeunitname =self.get_codeunit_name()
+        repository_folder =self.get_repository_folder()
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
+        GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
+        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_codeunit(codeunit_folder)
+
+        versioned_api_spec_file = f"APISpecification/{codeunitname}.v{codeunit_version}.api.json"
+        self._protected_sc.run_program("swagger", f"tofile --output {versioned_api_spec_file} BuildResult_DotNet_{runtime}/{codeunitname}.dll {swagger_document_name}", artifacts_folder)
+        api_file: str = os.path.join(artifacts_folder, versioned_api_spec_file)
+        shutil.copyfile(api_file, os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.json"))
+
+        resources_folder = os.path.join(codeunit_folder, "Other", "Resources")
+        GeneralUtilities.ensure_directory_exists(resources_folder)
+        resources_apispec_folder = os.path.join(resources_folder, "APISpecification")
+        GeneralUtilities.ensure_directory_exists(resources_apispec_folder)
+        resource_target_file = os.path.join(resources_apispec_folder, f"{codeunitname}.api.json")
+        GeneralUtilities.ensure_file_does_not_exist(resource_target_file)
+        shutil.copyfile(api_file, resource_target_file)
+
+        with open(api_file, encoding="utf-8") as api_file_content:
+            reloaded_json = json.load(api_file_content)
+
+            yamlfile1: str = str(os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.v{codeunit_version}.api.yaml"))
+            GeneralUtilities.ensure_file_does_not_exist(yamlfile1)
+            GeneralUtilities.ensure_file_exists(yamlfile1)
+            with open(yamlfile1, "w+", encoding="utf-8") as yamlfile:
+                yaml.dump(reloaded_json, yamlfile, allow_unicode=True)
+ 
+            yamlfile2: str = str(os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.yaml"))
+            GeneralUtilities.ensure_file_does_not_exist(yamlfile2)
+            shutil.copyfile(yamlfile1, yamlfile2)
+
+            yamlfile3: str = str(os.path.join(resources_apispec_folder, f"{codeunitname}.api.yaml"))
+            GeneralUtilities.ensure_file_does_not_exist(yamlfile3)
+            shutil.copyfile(yamlfile1, yamlfile3)
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_build_for_dotnet_build(self, csproj_file: str, originaloutputfolder: str, files_to_sign: dict[str, str], commitid: str, runtimes: list[str],  target_environmenttype_mapping:  dict[str, str], copy_license_file_to_target_folder: bool, repository_folder: str, codeunit_name: str) -> None:
@@ -72,13 +116,13 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_project(self) -> None:
-        self.__standardized_tasks_build_for_dotnet_project()
+    def standardized_tasks_build_for_dotnet_project(self,runtimes:list[str]) -> None:
+        self.__standardized_tasks_build_for_dotnet_project(runtimes)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dotnet_library_project(self) -> None:
-        self.__standardized_tasks_build_for_dotnet_project( )
-        self.__standardized_tasks_build_nupkg_for_dotnet_create_package()
+    def standardized_tasks_build_for_dotnet_library_project(self,runtimes:list[str]) -> None:
+        self.__standardized_tasks_build_for_dotnet_project( runtimes)
+        self.__standardized_tasks_build_nupkg_for_dotnet_create_package(runtimes)
 
  
     @staticmethod
@@ -96,8 +140,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
             return result
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_for_dotnet_project(self) -> None:
-        
+    def __standardized_tasks_build_for_dotnet_project(self,runtimes:list[str]) -> None:
 
         target_environment_type: str=self.get_target_environment_type()
         copy_license_file_to_target_folder: bool=True
@@ -110,13 +153,13 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         csproj_file = os.path.join(codeunit_folder, codeunitname, codeunitname + ".csproj")
         csproj_test_file = os.path.join(codeunit_folder, codeunitname+"Tests", codeunitname+"Tests.csproj")
-        self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid, self.runtimes, target_environment_type,  copy_license_file_to_target_folder, repository_folder, codeunitname)
-        self.__standardized_tasks_build_for_dotnet_build(csproj_test_file,  os.path.join(outputfolder, "BuildResultTests_DotNet_"), files_to_sign, commitid, self.runtimes, target_environment_type,  copy_license_file_to_target_folder, repository_folder, codeunitname)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_file,  os.path.join(outputfolder, "BuildResult_DotNet_"), files_to_sign, commitid, runtimes, target_environment_type,  copy_license_file_to_target_folder, repository_folder, codeunitname)
+        self.__standardized_tasks_build_for_dotnet_build(csproj_test_file,  os.path.join(outputfolder, "BuildResultTests_DotNet_"), files_to_sign, commitid, runtimes, target_environment_type,  copy_license_file_to_target_folder, repository_folder, codeunitname)
         self.generate_sbom_for_dotnet_project(codeunit_folder)
         self.copy_source_files_to_output_directory()
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_build_nupkg_for_dotnet_create_package(self) -> None:
+    def __standardized_tasks_build_nupkg_for_dotnet_create_package(self,runtimes:list[str]) -> None:
         codeunitname: str = self.get_codeunit_name()        
         repository_folder: str =self.get_repository_folder()
         build_folder = os.path.join(repository_folder, codeunitname, "Other", "Build")
@@ -145,11 +188,12 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.format_xml_file(target) 
 
     @GeneralUtilities.check_arguments
-    def linting_implementation(self,additional_arguments:dict=None) -> None:
+    def linting(self=None) -> None:
         pass#TODO
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks_implementation(self,additional_arguments:dict=None) -> None:
+    def do_common_tasks(self,current_codeunit_version:str )-> None:
+        self.do_common_tasks_base(current_codeunit_version)
         codeunit_name =self.get_codeunit_name()
         codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_project(self.get_repository_folder())  # Should always be the same as the project-version #TODO make this configurable from outside
         folder_of_current_file =os.path.join(self.get_codeunit_folder(),"Other")
@@ -342,11 +386,11 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         return result
 
     @GeneralUtilities.check_arguments
-    def generate_reference_implementation(self,additional_arguments:dict) -> None:
-        pass#nothing to do
+    def generate_reference(self) -> None:
+        self.generate_reference_using_docfx()
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_implementation(self,additional_arguments:dict) -> None:
+    def update_dependencies(self) -> None:
         self.update_year_for_dotnet_codeunit()
         #TODO
     
@@ -361,14 +405,14 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         nuspec_file = os.path.join(codeunit_folder, "Other", "Build", f"{codeunit_name}.nuspec")
         if os.path.isfile(nuspec_file):
             self._protected_sc.update_year_in_copyright_tags(nuspec_file)
-
+ 
     @GeneralUtilities.check_arguments
-    def run_testcases_implementation(self,additional_arguments:dict) -> None:
+    def run_testcases(self) -> None:
         self._protected_sc.log.log("Run testcases...")
         dotnet_build_configuration: str = self.get_target_environment_type()
         codeunit_name: str = self.get_codeunit_name()
         
-        repository_folder: str = self.get_repository_folder()
+        repository_folder: str = self.get_repository_folder().replace("\\", "/")
         coverage_file_folder = os.path.join(repository_folder, codeunit_name, "Other/Artifacts/TestCoverage")
         temp_folder = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
         GeneralUtilities.ensure_directory_exists(temp_folder)
@@ -423,5 +467,5 @@ class TFCPS_CodeUnitSpecific_DotNet_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_DotNet_Functions=TFCPS_CodeUnitSpecific_DotNet_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,args.additionalargumentsfile)
+        result:TFCPS_CodeUnitSpecific_DotNet_Functions=TFCPS_CodeUnitSpecific_DotNet_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype)
         return result 

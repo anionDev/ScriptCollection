@@ -5,7 +5,7 @@ import shutil
 import re
 import json
 import argparse
-from abc import ABC, abstractmethod
+from abc import ABC
 import xmlschema
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
@@ -26,9 +26,8 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
     _protected_sc:ScriptCollectionCore
     __is_pre_merge:bool=False#TODO must be setable to true
     __validate_developers_of_repository:bool=True#TODO must be setable to false
-    __additional_arguments_file: str#TODO use this argument
 
-    def __init__(self,current_file:str,verbosity:LogLevel,target_envionment_type:str,additional_arguments_file:str):
+    def __init__(self,current_file:str,verbosity:LogLevel,target_envionment_type:str):
         self.__verbosity=verbosity
         self.__target_environment_type=target_envionment_type
         self.__current_file = str(Path(current_file).absolute())
@@ -39,7 +38,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         self._protected_TFCPS_Tools_General.assert_is_codeunit_folder(self.__codeunit_folder)
         self.__repository_folder=GeneralUtilities.resolve_relative_path("..",self.__codeunit_folder)
         self._protected_sc.assert_is_git_repository(self.__repository_folder)
-        self.__additional_arguments_file=additional_arguments_file#pylint:disable=unused-private-member
 
     def __search_codeunit_folder(self)->str:
         current_path:str=self.__current_file
@@ -55,39 +53,18 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 enabled=False
         raise ValueError(f"Can not find codeunit-folder for folder \"{self.__current_file}\".")
 
-    #def get_properties_from_additional_arguments():
-
-    @abstractmethod
-    def do_common_tasks_implementation(self,additional_arguments:dict):
-        raise ValueError("This method is abstract.")
-
-    @abstractmethod
-    def build_implementation(self,additional_arguments:dict):
-        raise ValueError("This method is abstract.")
-
-    @abstractmethod
-    def run_testcases_implementation(self,additional_arguments:dict):
-        raise ValueError("This method is abstract.")
-
-    @abstractmethod
-    def linting_implementation(self,additional_arguments:dict):
-        raise ValueError("This method is abstract.")
-
-    @abstractmethod
-    def generate_reference_implementation(self,additional_arguments:dict):
-        raise ValueError("This method is abstract.")
-
-    @abstractmethod
-    def update_dependencies_implementation(self,additional_arguments:dict):
+    def update_dependencies_default(self):
         d:TFCPS_Tools_Dependencies=TFCPS_Tools_Dependencies()
         dependencies:list[Dependency]=d.get_dependencies()
         for dependency in dependencies:
             if dependency.current_version!=dependency.latest_version:
                 pass#TODO update dependency
         
+    def get_version_of_project(self)->str:
+        return self._protected_TFCPS_Tools_General.get_version_of_project(self.get_repository_folder())
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks(self,additional_arguments:dict,current_codeunit_version:str):
+    def do_common_tasks_base(self,current_codeunit_version:str):
 
         repository_folder: str =self.get_repository_folder()
         self._protected_sc.assert_is_git_repository(repository_folder)
@@ -230,22 +207,8 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 if not dependency_is_disabled_for_update:
                     self._protected_sc.log.log(f"Dependency \"{dependency.name}\" is used in the outdated version v{dependency.current_version} and can be upudated to v{dependency.latest_version}",LogLevel.Warning)
 
-        self.do_common_tasks_implementation(additional_arguments)
-
     @GeneralUtilities.check_arguments
-    def build(self,additional_arguments:dict=None):
-        self.build_implementation(additional_arguments)
-
-    @GeneralUtilities.check_arguments
-    def run_testcases(self,additional_arguments:dict=None):
-        self.run_testcases_implementation(additional_arguments)
-
-    @GeneralUtilities.check_arguments
-    def linting(self,additional_arguments:dict=None):
-        self.linting_implementation(additional_arguments)
-
-    @GeneralUtilities.check_arguments
-    def generate_reference(self,additional_arguments:dict=None):
+    def generate_reference_using_docfx(self=None):
         reference_folder =os.path.join( self.get_codeunit_folder(),"Other","Reference")
         generated_reference_folder = GeneralUtilities.resolve_relative_path("../Artifacts/Reference", reference_folder)
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
@@ -255,11 +218,9 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         GeneralUtilities.ensure_directory_exists(obj_folder)
         self._protected_sc.run_program("docfx", "-t default,templates/darkfx docfx.json", reference_folder)
 
-        self.generate_reference_implementation(additional_arguments)
-
     @GeneralUtilities.check_arguments
-    def update_dependencies(self,additional_arguments:dict):
-        self.update_dependencies_implementation(additional_arguments)
+    def update_dependencies_base(self):
+        self.update_dependencies_default()
 
     @GeneralUtilities.check_arguments
     def get_codeunit_folder(self)->str:
@@ -276,10 +237,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
     @GeneralUtilities.check_arguments
     def get_current_folder(self)->str:
         return self.__current_folder
-    
-    @GeneralUtilities.check_arguments
-    def get_additional_arguments_file(self)->str:
-        return self.__additional_arguments_file
     
     @GeneralUtilities.check_arguments
     def get_verbosity(self)->LogLevel:

@@ -5,12 +5,12 @@ from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeU
 
 class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,additional_arguments_file:str):
-        super().__init__(current_file, verbosity,targetenvironmenttype,additional_arguments_file)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str):
+        super().__init__(current_file, verbosity,targetenvironmenttype)
  
 
     @GeneralUtilities.check_arguments
-    def build_implementation(self,additional_arguments:dict) -> None:
+    def build(self) -> None:
         codeunit_folder = self.get_codeunit_folder()
         target_directory = GeneralUtilities.resolve_relative_path("../Artifacts/BuildResult_Wheel", os.path.join(self.get_artifacts_folder()))
         GeneralUtilities.ensure_directory_exists(target_directory)
@@ -49,7 +49,7 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         GeneralUtilities.ensure_file_does_not_exist(bom_file_json)
 
     @GeneralUtilities.check_arguments
-    def linting_implementation(self,additional_arguments:dict) -> None:
+    def linting(self) -> None:
         codeunitname: str = self.get_codeunit_name()
         
         repository_folder: str = self.get_repository_folder()
@@ -73,22 +73,23 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
             self._protected_sc.log.log("No linting-issues found.")
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks_implementation(self,additional_arguments:dict) -> None:
+    def do_common_tasks(self,current_codeunit_version:str )-> None:
+        self.do_common_tasks_base(current_codeunit_version)
         codeunitname =self.get_codeunit_name()
-        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_project(self.get_repository_folder()) # Should always be the same as the project-version #TODO make this configurable from outside
+        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_project(self.get_repository_folder()) 
         self._protected_sc.replace_version_in_ini_file(GeneralUtilities.resolve_relative_path("./setup.cfg", self.get_codeunit_folder()), codeunit_version)
         self._protected_sc.replace_version_in_python_file(GeneralUtilities.resolve_relative_path(f"./{codeunitname}/{codeunitname}Core.py", self.get_codeunit_folder()), codeunit_version)
 
     @GeneralUtilities.check_arguments
-    def generate_reference_implementation(self,additional_arguments:dict) -> None:
-        pass#nothing to do
+    def generate_reference(self) -> None:
+        self.generate_reference_using_docfx()
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_implementation(self,additional_arguments:dict) -> None:
+    def update_dependencies(self) -> None:
         pass
     
     @GeneralUtilities.check_arguments
-    def run_testcases_implementation(self,additional_arguments:dict) -> None:
+    def run_testcases(self) -> None:
         codeunitname: str =self.get_codeunit_name()
         repository_folder: str = self.get_repository_folder()
         codeunit_folder = os.path.join(repository_folder, codeunitname)
@@ -108,5 +109,5 @@ class TFCPS_CodeUnitSpecific_Python_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,args.additionalargumentsfile)
+        result:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype)
         return result

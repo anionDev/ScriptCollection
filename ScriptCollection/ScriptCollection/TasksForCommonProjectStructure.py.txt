@@ -842,33 +842,8 @@ class TasksForCommonProjectStructure:
         self.standardized_tasks_build_for_node_codeunit(build_script_file, build_environment_target_type)
 
     @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_node_codeunit(self, build_script_file: str, build_environment_target_type: str) -> None:
-        
-        build_script_folder = os.path.dirname(build_script_file)
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        self.run_with_epew("npm", f"run build-{build_environment_target_type}", codeunit_folder)
-        self.standardized_tasks_build_bom_for_node_project(codeunit_folder)
-        self.copy_source_files_to_output_directory(build_script_file)
-        #TODO check for updateable dependencies (in a unified way)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_build_bom_for_node_project(self, codeunit_folder: str) -> None:
-        self.assert_is_codeunit_folder(codeunit_folder)
-        
-        relative_path_to_bom_file = f"Other/Artifacts/BOM/{os.path.basename(codeunit_folder)}.{self.get_version_of_codeunit_folder(codeunit_folder)}.sbom.xml"
-        self.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file {relative_path_to_bom_file}", codeunit_folder)
-        self.__sc.format_xml_file(codeunit_folder+"/"+relative_path_to_bom_file)
-
-    @GeneralUtilities.check_arguments
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, build_environment_target_type: str) -> None:
         self.standardized_tasks_linting_for_node_codeunit(linting_script_file, build_environment_target_type)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_linting_for_node_codeunit(self, linting_script_file: str, build_environment_target_type: str) -> None:
-        
-        build_script_folder = os.path.dirname(linting_script_file)
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", build_script_folder)
-        self.run_with_epew("ng", "lint", codeunit_folder)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, args: list[str], package_name: str, build_environment_target_type: str, generate_badges: bool):
@@ -940,73 +915,6 @@ class TasksForCommonProjectStructure:
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool) -> None:
-        # prepare
-        codeunit_name: str = os.path.basename(str(Path(os.path.dirname(runtestcases_script_file)).parent.parent.absolute()))
-        
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
-        repository_folder = os.path.dirname(codeunit_folder)
-
-        # run testcases
-        self.standardized_tasks_run_testcases_for_node_codeunit(runtestcases_script_file, build_environment_target_type, generate_badges)
-
-        # rename file
-        coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
-        target_file = os.path.join(coverage_folder, "TestCoverage.xml")
-        GeneralUtilities.ensure_file_does_not_exist(target_file)
-        os.rename(os.path.join(coverage_folder, "cobertura-coverage.xml"), target_file)
-        self.__rename_packagename_in_coverage_file(target_file, codeunit_name)
-
-        # adapt backslashs to slashs
-        content = GeneralUtilities.read_text_from_file(target_file)
-        content = re.sub('\\\\', '/', content)
-        GeneralUtilities.write_text_to_file(target_file, content)
-
-        # aggregate packages in testcoverage-file
-        roottree: etree._ElementTree = etree.parse(target_file)
-        existing_classes = list(roottree.xpath('//coverage/packages/package/classes/class'))
-
-        old_packages_list = roottree.xpath('//coverage/packages/package')
-        for package in old_packages_list:
-            package.getparent().remove(package)
-
-        root = roottree.getroot()
-        packages_element = root.find("packages")
-        package_element = etree.SubElement(packages_element, "package")
-        package_element.attrib['name'] = codeunit_name
-        package_element.attrib['lines-valid'] = root.attrib["lines-valid"]
-        package_element.attrib['lines-covered'] = root.attrib["lines-covered"]
-        package_element.attrib['line-rate'] = root.attrib["line-rate"]
-        package_element.attrib['branches-valid'] = root.attrib["branches-valid"]
-        package_element.attrib['branches-covered'] = root.attrib["branches-covered"]
-        package_element.attrib['branch-rate'] = root.attrib["branch-rate"]
-        package_element.attrib['timestamp'] = root.attrib["timestamp"]
-        package_element.attrib['complexity'] = root.attrib["complexity"]
-
-        classes_element = etree.SubElement(package_element, "classes")
-
-        for existing_class in existing_classes:
-            classes_element.append(existing_class)
-
-        result = etree.tostring(roottree, pretty_print=True).decode("utf-8")
-        GeneralUtilities.write_text_to_file(target_file, result)
-
-        # post tasks
-        self.run_testcases_common_post_task(repository_folder, codeunit_name, generate_badges, build_environment_target_type)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_node_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool) -> None:
-        
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", os.path.dirname(runtestcases_script_file))
-        self.run_with_epew("npm", f"run test-{build_environment_target_type}", codeunit_folder)
-
-    @GeneralUtilities.check_arguments
-    def __rename_packagename_in_coverage_file(self, file: str, codeunit_name: str) -> None:
-        root: etree._ElementTree = etree.parse(file)
-        packages = root.xpath('//coverage/packages/package')
-        for package in packages:
-            package.attrib['name'] = codeunit_name
-        result = etree.tostring(root).decode("utf-8")
-        GeneralUtilities.write_text_to_file(file, result)
 
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, force: bool = 1) -> None:
@@ -1024,13 +932,6 @@ class TasksForCommonProjectStructure:
         if force:
             argument3 = f"{argument3} --force"
         self.run_with_epew("npm", argument3, package_json_folder)
-
-    @GeneralUtilities.check_arguments
-    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
-        sc: ScriptCollectionCore = ScriptCollectionCore()
-        sc.program_runner = ProgramRunnerEpew()
-        return sc.run_program(program, argument, working_directory, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive)
-
 
     @GeneralUtilities.check_arguments
     def copy_development_certificate_to_default_development_directory(self, codeunit_folder: str, build_environment: str, domain: str = None, certificate_resource_name: str = "DevelopmentCertificate") -> None:

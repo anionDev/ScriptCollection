@@ -4,7 +4,7 @@ from ScriptCollection.TFCPS_CodeUnitSpecific_Python import TFCPS_CodeUnitSpecifi
 def generate_reference():
     
     tf:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_CLI.parse(__file__,sys.argv)
-    tf.generate_reference({})
+    tf.generate_reference()
 
 
 if __name__ == "__main__":

@@ -1527,7 +1527,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> Popen:
         if isinstance(self.program_runner, ProgramRunnerEpew):
-            custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, self.__log.loglevel, arguments_for_log)
+            custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace,self.log.loglevel, arguments_for_log)
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument, interactive)
         return popen
 
@@ -1808,6 +1808,13 @@ class ScriptCollectionCore:
         stdout: str
         stderr: str
         pid: int
+
+    @GeneralUtilities.check_arguments
+    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
+        sc: ScriptCollectionCore = ScriptCollectionCore()
+        sc.program_runner = ProgramRunnerEpew()
+        return sc.run_program(program, argument, working_directory, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive)
+
 
     # </run programs>
 
