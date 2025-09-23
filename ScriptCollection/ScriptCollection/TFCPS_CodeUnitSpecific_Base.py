@@ -4,39 +4,42 @@ from pathlib import Path
 import shutil
 import re
 import json
+import argparse
 from abc import ABC, abstractmethod
 import xmlschema
 from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 from .SCLog import  LogLevel
-from .TFCPS_Tools import TFCPS_Tools
+from .TFCPS_Tools_General import TFCPS_Tools_General
+from .TFCPS_Tools_Dependencies import TFCPS_Tools_Dependencies,Dependency
 
 class TFCPS_CodeUnitSpecific_Base(ABC):
     
     __current_file:str=None
-    __type_environment_type:str="QualityCheck"#TODO must be setable to true
+    __target_environment_type:str
     __repository_folder:str=None
     __codeunit_folder:str=None
     __current_folder:str=None
     __verbosity:LogLevel=None
-    _protected_TFCPS_Tools:TFCPS_Tools
+    _protected_TFCPS_Tools_General:TFCPS_Tools_General
     _protected_sc:ScriptCollectionCore
     __is_pre_merge:bool=False#TODO must be setable to true
     __validate_developers_of_repository:bool=True#TODO must be setable to false
     __additional_arguments_file: str#TODO use this argument
-    __assume_dependent_codeunits_are_already_built: bool#TODO use this argument
 
-    def __init__(self,current_file:str,verbosity:LogLevel):
+    def __init__(self,current_file:str,verbosity:LogLevel,target_envionment_type:str,additional_arguments_file:str):
         self.__verbosity=verbosity
+        self.__target_environment_type=target_envionment_type
         self.__current_file = str(Path(current_file).absolute())
         self.__current_folder = os.path.dirname(self.__current_file)
         self.__codeunit_folder=self.__search_codeunit_folder()
         self._protected_sc=ScriptCollectionCore()#TODO set loglevel
-        self._protected_TFCPS_Tools=TFCPS_Tools(self._protected_sc)
-        self._protected_TFCPS_Tools.assert_is_codeunit_folder(self.__codeunit_folder)
+        self._protected_TFCPS_Tools_General=TFCPS_Tools_General(self._protected_sc)
+        self._protected_TFCPS_Tools_General.assert_is_codeunit_folder(self.__codeunit_folder)
         self.__repository_folder=GeneralUtilities.resolve_relative_path("..",self.__codeunit_folder)
         self._protected_sc.assert_is_git_repository(self.__repository_folder)
+        self.__additional_arguments_file=additional_arguments_file#pylint:disable=unused-private-member
 
     def __search_codeunit_folder(self)->str:
         current_path:str=self.__current_file
@@ -52,37 +55,46 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 enabled=False
         raise ValueError(f"Can not find codeunit-folder for folder \"{self.__current_file}\".")
 
+    #def get_properties_from_additional_arguments():
+
     @abstractmethod
-    def do_common_tasks_implementation(self):
+    def do_common_tasks_implementation(self,additional_arguments:dict):
         raise ValueError("This method is abstract.")
 
     @abstractmethod
-    def build_implementation(self):
+    def build_implementation(self,additional_arguments:dict):
         raise ValueError("This method is abstract.")
 
     @abstractmethod
-    def run_testcases_implementation(self):
+    def run_testcases_implementation(self,additional_arguments:dict):
         raise ValueError("This method is abstract.")
 
     @abstractmethod
-    def linting_implementation(self):
+    def linting_implementation(self,additional_arguments:dict):
         raise ValueError("This method is abstract.")
 
     @abstractmethod
-    def generate_reference_implementation(self):
+    def generate_reference_implementation(self,additional_arguments:dict):
         raise ValueError("This method is abstract.")
 
     @abstractmethod
-    def update_dependencies_implementation(self):
-        raise ValueError("This method is abstract.")
+    def update_dependencies_implementation(self,additional_arguments:dict):
+        d:TFCPS_Tools_Dependencies=TFCPS_Tools_Dependencies()
+        dependencies:list[Dependency]=d.get_dependencies()
+        for dependency in dependencies:
+            if dependency.current_version!=dependency.latest_version:
+                pass#TODO update dependency
+        
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks(self):
+    def do_common_tasks(self,additional_arguments:dict,current_codeunit_version:str):
 
         repository_folder: str =self.get_repository_folder()
         self._protected_sc.assert_is_git_repository(repository_folder)
         codeunit_name: str = self.get_codeunit_name()
-        project_version = self._protected_TFCPS_Tools.get_version_of_project(repository_folder)
+        project_version = self._protected_TFCPS_Tools_General.get_version_of_project(repository_folder)
+        if current_codeunit_version is None:
+            current_codeunit_version=project_version
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
 
         # check codeunit-conformity
@@ -112,11 +124,11 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
 
         # check owner-name
-        codeunit_ownername_in_codeunit_file = self. get_codeunit_owner_name()
+        codeunit_ownername_in_codeunit_file = self._protected_TFCPS_Tools_General. get_codeunit_owner_name(self.get_codeunit_file())
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_ownername_in_codeunit_file), "No valid name for codeunitowner given.")
 
         # check owner-emailaddress
-        codeunit_owneremailaddress_in_codeunit_file = self.get_codeunit_owner_emailaddress()
+        codeunit_owneremailaddress_in_codeunit_file = self._protected_TFCPS_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_owneremailaddress_in_codeunit_file), "No valid email-address for codeunitowner given.")
 
         # check development-state
@@ -128,10 +140,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
         # check for mandatory files
         files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
-        if self.codeunit_has_testable_sourcecode():
+        if self._protected_TFCPS_Tools_General.codeunit_has_testable_sourcecode(self.get_codeunit_file()):
             # TODO check if the testsettings-section appears in the codeunit-file
             files.append("Other/QualityCheck/RunTestcases.py")
-        if self.codeunit_has_updatable_dependencies():
+        if self._protected_TFCPS_Tools_General.codeunit_has_updatable_dependencies(self.get_codeunit_file()):
             # TODO check if the updatesettings-section appears in the codeunit-file
             files.append("Other/UpdateDependencies.py")
         for file in files:
@@ -150,7 +162,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
                 author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
                 expected_authors.append((author_name, author_emailaddress)) 
-            actual_authors: list[tuple[str, str]] = self._protected_TFCPS_Tools.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name)
+            actual_authors: list[tuple[str, str]] = self._protected_TFCPS_Tools_General.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name)
             # TODO refactor this check to only check commits which are behind this but which are not already on main
             # TODO verify also if the commit is signed by a valid key of the author
             for actual_author in actual_authors:
@@ -158,9 +170,9 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
                     raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team. If {actual_author} is a authorized developer for this codeunit you should consider defining this in the codeunit-file or adapting the name using a .mailmap-file (see https://git-scm.com/docs/gitmailmap). The developer-team-check can also be disabled using the property validate_developers_of_repository.')
 
-        dependent_codeunits = self._protected_TFCPS_Tools.get_dependent_code_units(codeunit_file)
+        dependent_codeunits = self._protected_TFCPS_Tools_General.get_dependent_code_units(codeunit_file)
         for dependent_codeunit in dependent_codeunits:
-            if not self._protected_TFCPS_Tools.dependent_codeunit_exists(repository_folder, dependent_codeunit):
+            if not self._protected_TFCPS_Tools_General.dependent_codeunit_exists(repository_folder, dependent_codeunit):
                 raise ValueError(f"Codeunit {codeunit_name} does have dependent codeunit {dependent_codeunit} which does not exist.")
 
         # TODO implement cycle-check for dependent codeunits
@@ -169,12 +181,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # get artifacts from dependent codeunits
-        # if assume_dependent_codeunits_are_already_built:
-        #    self.build_dependent_code_units(repository_folder, codeunit_name, target_environmenttype, additional_arguments_file)
-        self._protected_TFCPS_Tools.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
+        self._protected_TFCPS_Tools_General.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
         # update codeunit-version
-        self._protected_TFCPS_Tools.write_version_to_codeunit_file(self.get_codeunit_file(), self._protected_TFCPS_Tools.get_version_of_codeunit(self.get_codeunit_file()))
+        self._protected_TFCPS_Tools_General.write_version_to_codeunit_file(self.get_codeunit_file(), current_codeunit_version)
  
         # set project version
         package_json_file = os.path.join(repository_folder, "package.json")  # TDOO move this to a general project-specific (and codeunit-independent-script)
@@ -188,7 +198,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             GeneralUtilities.write_text_to_file(package_json_file, GeneralUtilities.read_text_from_file(package_json_file).replace("\r", ""))
 
         # set default constants
-        self._protected_TFCPS_Tools.set_default_constants(os.path.join(codeunit_folder))
+        self._protected_TFCPS_Tools_General.set_default_constants(os.path.join(codeunit_folder))
 
         # Copy changelog-file
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
@@ -203,31 +213,40 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             raise ValueError(f"Hints-file '{hints_file}' does not exist.")
 
         # Copy license-file
-        self._protected_TFCPS_Tools.copy_licence_file(self.get_codeunit_folder())
+        self._protected_TFCPS_Tools_General.copy_licence_file(self.get_codeunit_folder())
 
         # Generate diff-report
-        self._protected_TFCPS_Tools.generate_diff_report(repository_folder, codeunit_name, self._protected_TFCPS_Tools.get_version_of_codeunit(self.get_codeunit_file()))
+        self._protected_TFCPS_Tools_General.generate_diff_report(repository_folder, codeunit_name, self._protected_TFCPS_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
 
         # TODO check for secrets using TruffleHog
         # TODO run static code analysis tool to search for vulnerabilities
+        
+        d:TFCPS_Tools_Dependencies=TFCPS_Tools_Dependencies()
+        dependencies:list[Dependency]=d.get_dependencies()
+        for dependency in dependencies:
+            #TODO show warning if the latest version of dependency is too old
+            if dependency.current_version!=dependency.latest_version:
+                dependency_is_disabled_for_update=False#TODO read this value from codeunit-file
+                if not dependency_is_disabled_for_update:
+                    self._protected_sc.log.log(f"Dependency \"{dependency.name}\" is used in the outdated version v{dependency.current_version} and can be upudated to v{dependency.latest_version}",LogLevel.Warning)
 
-        self.do_common_tasks_implementation()
-
-    @GeneralUtilities.check_arguments
-    def build(self):
-        self.build_implementation()
-
-    @GeneralUtilities.check_arguments
-    def run_testcases(self):
-        self.run_testcases_implementation()
-
-    @GeneralUtilities.check_arguments
-    def linting(self):
-        self.linting_implementation()
+        self.do_common_tasks_implementation(additional_arguments)
 
     @GeneralUtilities.check_arguments
-    def generate_reference(self):
-        reference_folder =os.path.join( self.get_codeunit_folder(),"Other","Resource")
+    def build(self,additional_arguments:dict=None):
+        self.build_implementation(additional_arguments)
+
+    @GeneralUtilities.check_arguments
+    def run_testcases(self,additional_arguments:dict=None):
+        self.run_testcases_implementation(additional_arguments)
+
+    @GeneralUtilities.check_arguments
+    def linting(self,additional_arguments:dict=None):
+        self.linting_implementation(additional_arguments)
+
+    @GeneralUtilities.check_arguments
+    def generate_reference(self,additional_arguments:dict=None):
+        reference_folder =os.path.join( self.get_codeunit_folder(),"Other","Reference")
         generated_reference_folder = GeneralUtilities.resolve_relative_path("../Artifacts/Reference", reference_folder)
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
         GeneralUtilities.ensure_directory_exists(generated_reference_folder)
@@ -236,11 +255,11 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         GeneralUtilities.ensure_directory_exists(obj_folder)
         self._protected_sc.run_program("docfx", "-t default,templates/darkfx docfx.json", reference_folder)
 
-        self.generate_reference_implementation()
+        self.generate_reference_implementation(additional_arguments)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies(self):
-        self.update_dependencies_implementation()
+    def update_dependencies(self,additional_arguments:dict):
+        self.update_dependencies_implementation(additional_arguments)
 
     @GeneralUtilities.check_arguments
     def get_codeunit_folder(self)->str:
@@ -259,6 +278,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         return self.__current_folder
     
     @GeneralUtilities.check_arguments
+    def get_additional_arguments_file(self)->str:
+        return self.__additional_arguments_file
+    
+    @GeneralUtilities.check_arguments
     def get_verbosity(self)->LogLevel:
         return self.__verbosity
 
@@ -271,7 +294,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         return os.path.join(self.get_codeunit_folder(), f"{self.get_codeunit_name()}.codeunit.xml")
 
     def get_type_environment_type(self)->str:
-        return self.__type_environment_type
+        return self.__target_environment_type
+
+    def get_target_environment_type(self)->str:
+        return self.__target_environment_type
     
     @GeneralUtilities.check_arguments
     def copy_source_files_to_output_directory(self) -> None:
@@ -307,7 +333,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
         self._protected_sc.log.log("Generate testcoverage report..")
         self._protected_sc.assert_is_git_repository(repository_folder)
-        codeunit_version = self._protected_TFCPS_Tools.get_version_of_codeunit(self.get_codeunit_file()) 
+        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_codeunit(self.get_codeunit_file()) 
         verbosity=0#TODO use loglevel-value here
         if verbosity == 0:
             verbose_argument_for_reportgenerator = "Off"
@@ -397,29 +423,17 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
 
     @GeneralUtilities.check_arguments
-    def get_codeunit_owner_emailaddress(self) -> None:
-        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-        root: etree._ElementTree = etree.parse(self.get_codeunit_file())
-        result = root.xpath('//cps:codeunit/cps:codeunitowneremailaddress/text()', namespaces=namespaces)[0]
-        return result
-
-    @GeneralUtilities.check_arguments
-    def get_codeunit_owner_name(self) -> None:
-        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',  'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-        root: etree._ElementTree = etree.parse(self.get_codeunit_file())
-        result = root.xpath('//cps:codeunit/cps:codeunitownername/text()', namespaces=namespaces)[0]
-        return result
-    
-    @GeneralUtilities.check_arguments
-    def codeunit_has_testable_sourcecode(self) -> bool:
-        root: etree._ElementTree = etree.parse(self.get_codeunit_file())
-        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithastestablesourcecode', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
-
-    @GeneralUtilities.check_arguments
-    def codeunit_has_updatable_dependencies(self) -> bool:
-        root: etree._ElementTree = etree.parse(self.get_codeunit_file())
-        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithasupdatabledependencies', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
-
-    @GeneralUtilities.check_arguments
     def install_requirementstxt_for_codeunit(self):
         self._protected_sc.install_requirementstxt_file(self.get_codeunit_folder()+"/Other/requirements.txt")
+
+class TFCPS_CodeUnitSpecific_Base_CLI():
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def get_base_parser()->argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(description="Does \"npm clean install\".")
+        verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+        parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
+        parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
+        parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        return parser

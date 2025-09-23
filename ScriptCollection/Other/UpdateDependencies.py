@@ -4,7 +4,7 @@ from ScriptCollection.TFCPS_CodeUnitSpecific_Python import TFCPS_CodeUnitSpecifi
 
 def update_dependencies():
     tf:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_CLI.parse(__file__,sys.argv)
-    tf.update_dependencies()
+    tf.update_dependencies({})
 
 
 if __name__ == "__main__":

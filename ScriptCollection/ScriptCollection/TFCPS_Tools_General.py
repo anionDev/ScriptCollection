@@ -3,9 +3,12 @@ from graphlib import TopologicalSorter
 import os
 from pathlib import Path
 import shutil
+import zipfile
+import tarfile
 import re
 import sys
-import tempfile
+import json
+import tempfile 
 import uuid
 import requests
 from packaging import version
@@ -14,7 +17,7 @@ from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 from .SCLog import  LogLevel
 
-class TFCPS_Tools:
+class TFCPS_Tools_General:
 
     __sc:ScriptCollectionCore=ScriptCollectionCore()
 
@@ -375,8 +378,12 @@ class TFCPS_Tools:
         try:
             GeneralUtilities.ensure_file_does_not_exist(temp_file)
             GeneralUtilities.write_text_to_file(temp_file, self.__sc.run_program("git", f'--no-pager diff --src-prefix={src_prefix}/ --dst-prefix={dst_prefix}/ {src} {dst} -- {codeunit_name}', repository_folder)[1])
-            self.__sc.run_program_argsasarray("pygmentize", ['-l', 'diff', '-f', 'html', '-O', 'full', '-o', target_file_light, '-P', 'style=default', temp_file], repository_folder)
-            self.__sc.run_program_argsasarray("pygmentize", ['-l', 'diff', '-f', 'html', '-O', 'full', '-o', target_file_dark, '-P', 'style=github-dark', temp_file], repository_folder)
+            styles:dict[str,str]={
+                "default":target_file_light,
+                "github-dark":target_file_dark
+            }
+            for style,target_file in styles.items():
+                self.__sc.run_program_argsasarray("pygmentize", ['-l', 'diff', '-f', 'html', '-O', 'full', '-o', target_file, '-P', f'style={style}', temp_file], repository_folder)
         finally:
             GeneralUtilities.ensure_file_does_not_exist(temp_file)
 
@@ -406,3 +413,230 @@ class TFCPS_Tools:
         GeneralUtilities.ensure_file_does_not_exist(random_file)
         if commit:
             self.__sc.git_commit(repositoryfolder, f"Added changelog-file for v{current_version}.")
+ 
+    @GeneralUtilities.check_arguments
+    def merge_sbom_file_from_dependent_codeunit_into_this(self, build_script_file: str, dependent_codeunit_name: str) -> None:
+        codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
+        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
+        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        dependent_codeunit_folder = os.path.join(repository_folder, dependent_codeunit_name).replace("\\", "/")
+        codeunit_file:str=os.path.join(codeunit_folder,f"{codeunitname}.codeunit.xml")
+        dependent_codeunit_file:str=os.path.join(dependent_codeunit_folder,f"{codeunitname}.codeunit.xml")
+        sbom_file = f"{repository_folder}/{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{self.get_version_of_codeunit(codeunit_file)}.sbom.xml"
+        dependent_sbom_file = f"{repository_folder}/{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{self.get_version_of_codeunit(dependent_codeunit_file)}.sbom.xml"
+        self.merge_sbom_file(repository_folder, dependent_sbom_file, sbom_file)
+
+    @GeneralUtilities.check_arguments
+    def merge_sbom_file(self, repository_folder: str, source_sbom_file_relative: str, target_sbom_file_relative: str) -> None:
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, source_sbom_file_relative))
+        GeneralUtilities.assert_file_exists(os.path.join(repository_folder, target_sbom_file_relative))
+        target_original_sbom_file_relative = os.path.dirname(target_sbom_file_relative)+"/"+os.path.basename(target_sbom_file_relative)+".original.xml"
+        os.rename(os.path.join(repository_folder, target_sbom_file_relative), os.path.join(repository_folder, target_original_sbom_file_relative))
+
+        self.ensure_cyclonedxcli_is_available(repository_folder)
+        cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
+        if GeneralUtilities.current_system_is_windows():
+            cyclonedx_exe = cyclonedx_exe+".exe"
+        self.__sc.run_program(cyclonedx_exe, f"merge --input-files {source_sbom_file_relative} {target_original_sbom_file_relative} --output-file {target_sbom_file_relative}", repository_folder)
+        GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file_relative))
+        self.__sc.format_xml_file(os.path.join(repository_folder, target_sbom_file_relative))
+
+    @GeneralUtilities.check_arguments
+    def codeunit_has_testable_sourcecode(self,codeunit_file:str) -> bool:
+        self.assert_is_codeunit_folder(os.path.dirname(codeunit_file))
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithastestablesourcecode', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
+
+    @GeneralUtilities.check_arguments
+    def codeunit_has_updatable_dependencies(self,codeunit_file:str) -> bool:
+        self.assert_is_codeunit_folder(os.path.dirname(codeunit_file))
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:properties/@codeunithasupdatabledependencies', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
+
+    @GeneralUtilities.check_arguments
+    def get_codeunit_owner_emailaddress(self,codeunit_file:str) -> None:
+        self.assert_is_codeunit_folder(os.path.dirname(codeunit_file))
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        result = root.xpath('//cps:codeunit/cps:codeunitowneremailaddress/text()', namespaces=namespaces)[0]
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_codeunit_owner_name(self,codeunit_file:str) -> None:
+        self.assert_is_codeunit_folder(os.path.dirname(codeunit_file))
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure',  'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        result = root.xpath('//cps:codeunit/cps:codeunitownername/text()', namespaces=namespaces)[0]
+        return result
+
+    @GeneralUtilities.check_arguments
+    def generate_svg_files_from_plantuml_files_for_repository(self, repository_folder: str) -> None:
+        self.__sc.assert_is_git_repository(repository_folder)
+        self.ensure_plantuml_is_available(repository_folder)
+        plant_uml_folder = os.path.join(repository_folder, "Other", "Resources", "PlantUML")
+        target_folder = os.path.join(repository_folder, "Other",  "Reference")
+        self.__generate_svg_files_from_plantuml(target_folder, plant_uml_folder)
+
+    @GeneralUtilities.check_arguments
+    def generate_svg_files_from_plantuml_files_for_codeunit(self, codeunit_folder: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        repository_folder = os.path.dirname(codeunit_folder)
+        self.ensure_plantuml_is_available(repository_folder)
+        plant_uml_folder = os.path.join(repository_folder, "Other", "Resources", "PlantUML")
+        target_folder = os.path.join(codeunit_folder, "Other", "Reference")
+        self.__generate_svg_files_from_plantuml(target_folder, plant_uml_folder)
+
+    @GeneralUtilities.check_arguments
+    def ensure_plantuml_is_available(self, target_folder: str) -> None:
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar")
+
+    @GeneralUtilities.check_arguments
+    def __generate_svg_files_from_plantuml(self, diagrams_files_folder: str, plant_uml_folder: str) -> None:
+        for file in GeneralUtilities.get_all_files_of_folder(diagrams_files_folder):
+            if file.endswith(".plantuml"):
+                output_filename = self.get_output_filename_for_plantuml_filename(file)
+                argument = ['-jar', f'{plant_uml_folder}/plantuml.jar', '-tsvg', os.path.basename(file)]
+                folder = os.path.dirname(file)
+                self.__sc.run_program_argsasarray("java", argument, folder)
+                result_file = folder+"/" + output_filename
+                GeneralUtilities.assert_file_exists(result_file)
+                self.__sc.format_xml_file(result_file)
+
+    @GeneralUtilities.check_arguments
+    def get_output_filename_for_plantuml_filename(self, plantuml_file: str) -> str:
+        for line in GeneralUtilities.read_lines_from_file(plantuml_file):
+            prefix = "@startuml "
+            if line.startswith(prefix):
+                title = line[len(prefix):]
+                return title+".svg"
+        return Path(plantuml_file).stem+".svg"
+
+    @GeneralUtilities.check_arguments
+    def generate_codeunits_overview_diagram(self, repository_folder: str) -> None:
+        self.__sc.assert_is_git_repository(repository_folder)
+        project_name: str = os.path.basename(repository_folder)
+        target_folder = os.path.join(repository_folder, "Other", "Reference", "Technical", "Diagrams")
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        target_file = os.path.join(target_folder, "CodeUnits-Overview.plantuml")
+        lines = ["@startuml CodeUnits-Overview"]
+        lines.append(f"title CodeUnits of {project_name}")
+
+        codeunits = self.get_codeunits(repository_folder)
+        for codeunitname in codeunits:
+            codeunit_file: str = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
+
+            description = self.get_codeunit_description(codeunit_file)
+
+            lines.append(GeneralUtilities.empty_string)
+            lines.append(f"[{codeunitname}]")
+            lines.append(f"note as {codeunitname}Note")
+            lines.append(f"  {description}")
+            lines.append(f"end note")
+            lines.append(f"{codeunitname} .. {codeunitname}Note")
+
+        lines.append(GeneralUtilities.empty_string)
+        for codeunitname in codeunits:
+            codeunit_file: str = os.path.join(repository_folder, codeunitname, f"{codeunitname}.codeunit.xml")
+            dependent_codeunits = self.get_dependent_code_units(codeunit_file)
+            for dependent_codeunit in dependent_codeunits:
+                lines.append(f"{codeunitname} --> {dependent_codeunit}")
+
+        lines.append(GeneralUtilities.empty_string)
+        lines.append("@enduml")
+
+        GeneralUtilities.write_lines_to_file(target_file, lines)
+
+    @GeneralUtilities.check_arguments
+    def generate_tasksfile_from_workspace_file(self, repository_folder: str, append_cli_args_at_end: bool = False) -> None:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.__sc.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
+            self.__sc.assert_is_git_repository(repository_folder)
+            workspace_file: str = self.__sc.find_file_by_extension(repository_folder, "code-workspace")
+            task_file: str = repository_folder + "/Taskfile.yml"
+            lines: list[str] = ["version: '3'", GeneralUtilities.empty_string, "tasks:", GeneralUtilities.empty_string]
+            workspace_file_content: str = self.__sc.get_file_content(workspace_file)
+            jsoncontent = json.loads(workspace_file_content)
+            tasks = jsoncontent["tasks"]["tasks"]
+            tasks.sort(key=lambda x: x["label"].split("/")[-1], reverse=False)  # sort by the label of the task
+            for task in tasks:
+                if task["type"] == "shell":
+
+                    description: str = task["label"]
+                    name: str = GeneralUtilities.to_pascal_case(description)
+                    command = task["command"]
+                    relative_script_file = task["command"]
+
+                    relative_script_file = "."
+                    cwd: str = None
+                    if "options" in task:
+                        options = task["options"]
+                        if "cwd" in options:
+                            cwd = options["cwd"]
+                            cwd = cwd.replace("${workspaceFolder}", ".")
+                            cwd = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+                            relative_script_file = cwd
+                    if len(relative_script_file) == 0:
+                        relative_script_file = "."
+
+                    command_with_args = command
+                    if "args" in task:
+                        args = task["args"]
+                        if len(args) > 1:
+                            command_with_args = f"{command_with_args} {' '.join(args)}"
+
+                    if "description" in task:
+                        additional_description = task["description"]
+                        description = f"{description} ({additional_description})"
+
+                    if append_cli_args_at_end:
+                        command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
+
+                    description_literal = description.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+                    command_with_args = command_with_args.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
+
+                    lines.append(f"  {name}:")
+                    lines.append(f'    desc: "{description_literal}"')
+                    lines.append('    silent: true')
+                    if cwd is not None:
+                        lines.append(f'    dir: "{cwd}"')
+                    lines.append("    cmds:")
+                    lines.append(f'      - "{command_with_args}"')
+                    lines.append('    aliases:')
+                    lines.append(f'      - {name.lower()}')
+                    if "aliases" in task:
+                        aliases = task["aliases"]
+                        for alias in aliases:
+                            lines.append(f'      - {alias}')
+                    lines.append(GeneralUtilities.empty_string)
+
+            self.__sc.set_file_content(task_file, "\n".join(lines))
+        else:
+            self.__sc.run_program("scgeneratetasksfilefromworkspacefile", f"--repositoryfolder {repository_folder}")
+
+    @GeneralUtilities.check_arguments
+    def ensure_androidappbundletool_is_available(self, target_folder: str) -> None:
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
+
+    @GeneralUtilities.check_arguments
+    def ensure_mediamtx_is_available(self, target_folder: str) -> None:
+        def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
+            resource_name: str = f"MediaMTX_{osname}"
+            zip_filename: str = f"{resource_name}.{extension}"
+            self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}")
+            resource_folder: str = os.path.join(target_folder, "Other", "Resources", resource_name)
+            target_folder_extracted = os.path.join(resource_folder, "MediaMTX")
+            local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
+            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
+            if extension == "zip":
+                with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
+                    zip_ref.extractall(target_folder_extracted)
+            elif extension == "tar.gz": 
+                with tarfile.open(local_zip_file, "r:gz") as tar:
+                    tar.extractall(path=target_folder_extracted)
+            else:
+                raise ValueError(f"Unknown extension: \"{extension}\"")
+            GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
+
+        download_and_extract("Windows", "windows", "zip")
+        download_and_extract("Linux", "linux", "tar.gz")
+        download_and_extract("MacOS", "darwin", "tar.gz")

@@ -4,7 +4,7 @@ from ScriptCollection.TFCPS_CodeUnitSpecific_Python import TFCPS_CodeUnitSpecifi
 
 def run_testcases():
     tf:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_CLI.parse(__file__,sys.argv)
-    tf.run_testcases()
+    tf.run_testcases({})
 
 
 if __name__ == "__main__":

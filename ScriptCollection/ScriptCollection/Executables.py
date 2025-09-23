@@ -11,7 +11,7 @@ from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
 from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
-from .TFCPS_Tools import TFCPS_Tools
+from .TFCPS_Tools_General import TFCPS_Tools_General
 
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
@@ -290,7 +290,7 @@ def BuildCodeUnits() -> int:
     if not os.path.isabs(args.repositoryfolder):
         repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
 
-    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity) 
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment) 
     t.build_codeunits()
     return 0
 
@@ -309,6 +309,28 @@ def BuildCodeUnitsC() -> int:
     #t.build_codeunitsC(args.repositoryfolder, args.image, args.targetenvironment, args.additionalargumentsfile, sys.argv)
     #return 0
     return 1#TODO
+
+def UpdateDependencies() -> int:
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--repositoryfolder', required=False, default=".")
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+    parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
+    parser.add_argument('--additionalargumentsfile', required=False, default=None)
+    parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
+
+    args = parser.parse_args()
+    
+    verbosity=LogLevel(int(args.verbosity))
+
+    repo:str=args.repositoryfolder
+    if not os.path.isabs(args.repositoryfolder):
+        repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
+
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment) 
+    t.update_dependencies()
+    return 0
 
 
 def GenerateCertificateAuthority() -> int:
@@ -407,7 +429,7 @@ def CreateChangelogEntry() -> int:
         folder = args.repositorypath
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repositorypath, os.getcwd())
-    t=TFCPS_Tools(ScriptCollectionCore())
+    t=TFCPS_Tools_General(ScriptCollectionCore())
     t.create_changelog_entry(folder, args.message, args.commit, args.force)
     return 0
 
