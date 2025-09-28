@@ -931,3 +931,56 @@ class TFCPS_Tools_General:
         line_rate = amount_of_hited_lines / amount_of_lines if amount_of_lines > 0 else 0.0
         package.set("line-rate", str(line_rate))
         tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+
+    @GeneralUtilities.check_arguments
+    def generate_api_client_from_dependent_codeunit_for_angular(self, codeunit_folder:str, name_of_api_providing_codeunit: str, generated_program_part_name: str) -> None:
+        target_subfolder_in_codeunit = f"src/app/generated/{generated_program_part_name}"
+        language = "typescript-angular"
+        self.ensure_openapigenerator_is_available(codeunit_folder)
+        openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
+        openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
+        target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
+        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+        self.__sc.run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
+
+    @GeneralUtilities.check_arguments
+    def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str) -> None:
+        encoding = "utf-8"
+        with open(packagejson_file, encoding=encoding) as f:
+            data = json.load(f)
+        data['version'] = codeunit_version
+        with open(packagejson_file, 'w', encoding=encoding) as f:
+            json.dump(data, f, indent=2)
+
+    @GeneralUtilities.check_arguments
+    def ensure_openapigenerator_is_available(self, codeunit_folder: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        openapigenerator_folder = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        filename = "open-api-generator.jar"
+        jar_file = f"{openapigenerator_folder}/{filename}"
+        jar_file_exists = os.path.isfile(jar_file)
+        if internet_connection_is_available:  # Load/Update
+            version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
+            used_version = GeneralUtilities.read_text_from_file(version_file)
+            download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
+            GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
+            GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
+            urllib.request.urlretrieve(download_link, jar_file)
+        else:
+            if jar_file_exists:
+                self.__sc.log.log("Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download OpenAPIGenerator.")
+
+    @GeneralUtilities.check_arguments
+    def standardized_tasks_update_version_in_docker_examples(self, codeunit_folder:str, codeunit_version:str) -> None:
+        codeunit_name = os.path.basename(codeunit_folder)
+        codeunit_name_lower = codeunit_name.lower()
+        examples_folder = GeneralUtilities.resolve_relative_path("Other/Reference/ReferenceContent/Examples", codeunit_folder)
+        for example_folder in GeneralUtilities.get_direct_folders_of_folder(examples_folder):
+            docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
+            if os.path.isfile(docker_compose_file):
+                filecontent = GeneralUtilities.read_text_from_file(docker_compose_file)
+                replaced = re.sub(f'image:\\s+{codeunit_name_lower}:\\d+\\.\\d+\\.\\d+', f"image: {codeunit_name_lower}:{codeunit_version}", filecontent)
+                GeneralUtilities.write_text_to_file(docker_compose_file, replaced)

@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 
-class CertificateGeneratorInformationBase(ABC):
-    
+class GenerateAPIClientBase(ABC):
+
     @abstractmethod
-    def generate_certificate(self)->bool:
+    def generate_api_client(self)->bool:
         raise ValueError("Method is abstract")

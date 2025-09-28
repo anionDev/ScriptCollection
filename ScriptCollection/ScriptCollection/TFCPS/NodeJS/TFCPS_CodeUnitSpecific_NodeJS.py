@@ -1,6 +1,8 @@
 import os
 import re
 from lxml import etree
+from .GenerateAPIClientBase import GenerateAPIClientBase
+from .GenerateAPIClientGenerate import GenerateAPIClientGenerate
 from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
@@ -14,17 +16,25 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def build(self) -> None:
+        self._protected_sc.run_with_epew("npm", "run build", self.get_codeunit_folder())
         self.standardized_tasks_build_bom_for_node_project()
         self.copy_source_files_to_output_directory()
 
     @GeneralUtilities.check_arguments
     def linting(self) -> None:
-        self._protected_sc.run_with_epew("ng", "lint", self.get_codeunit_folder())
+        self._protected_sc.run_with_epew("npm", "run lint", self.get_codeunit_folder())
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks(self,current_codeunit_version:str )-> None:
+    def do_common_tasks(self,current_codeunit_version:str)-> None:
+        codeunit_version = current_codeunit_version
+        codeunit_folder = self.get_codeunit_folder()
         self.do_common_tasks_base(current_codeunit_version)
-
+        self.tfcps_Tools_General.replace_version_in_packagejson_file(GeneralUtilities.resolve_relative_path("./package.json", codeunit_folder), codeunit_version)
+        self.tfcps_Tools_General.do_npm_install(codeunit_folder, True)
+        #if generateAPIClientBase.generate_api_client():
+        #    generateAPIClientGenerate:GenerateAPIClientGenerate=generateAPIClientBase
+        #    self.tfcps_Tools_General.generate_api_client_from_dependent_codeunit_in_angular(codeunit_folder, generateAPIClientGenerate.name_of_api_providing_codeunit,generateAPIClientGenerate.generate_api_client)
+  
     @GeneralUtilities.check_arguments
     def generate_reference(self) -> None:
         self.generate_reference_using_docfx()

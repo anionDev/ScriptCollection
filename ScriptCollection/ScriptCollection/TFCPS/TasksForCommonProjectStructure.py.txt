@@ -579,39 +579,6 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(version_file, used_version)
 
     @GeneralUtilities.check_arguments
-    def ensure_openapigenerator_is_available(self, codeunit_folder: str) -> None:
-        self.assert_is_codeunit_folder(codeunit_folder)
-        openapigenerator_folder = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator")
-        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
-        filename = "open-api-generator.jar"
-        jar_file = f"{openapigenerator_folder}/{filename}"
-        jar_file_exists = os.path.isfile(jar_file)
-        if internet_connection_is_available:  # Load/Update
-            version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
-            used_version = GeneralUtilities.read_text_from_file(version_file)
-            download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
-            GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
-            GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
-            urllib.request.urlretrieve(download_link, jar_file)
-        else:
-            if jar_file_exists:
-                self.__log.log("Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
-            else:
-                raise ValueError("Can not download OpenAPIGenerator.")
-
-    @GeneralUtilities.check_arguments
-    def generate_api_client_from_dependent_codeunit_in_angular(self, file: str, name_of_api_providing_codeunit: str, generated_program_part_name: str) -> None:
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
-        target_subfolder_in_codeunit = f"src/app/generated/{generated_program_part_name}"
-        language = "typescript-angular"
-        self.ensure_openapigenerator_is_available(codeunit_folder)
-        openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
-        openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
-        target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
-        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-        self.__sc.run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
-
-    @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_dotnet(self, file: str, name_of_api_providing_codeunit: str, base_namespace: str) -> None:
         codeunit_folder = GeneralUtilities.resolve_relative_path("../..", file)
         codeunit_name = os.path.basename(codeunit_folder)
@@ -659,14 +626,7 @@ class TasksForCommonProjectStructure:
         for targetfile in GeneralUtilities.get_direct_files_of_folder(target_folder_src):
             GeneralUtilities.ensure_file_does_not_exist(targetfile)
 
-    @GeneralUtilities.check_arguments
-    def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str) -> None:
-        encoding = "utf-8"
-        with open(packagejson_file, encoding=encoding) as f:
-            data = json.load(f)
-        data['version'] = codeunit_version
-        with open(packagejson_file, 'w', encoding=encoding) as f:
-            json.dump(data, f, indent=2)
+
 
     @GeneralUtilities.check_arguments
     def build_dependent_code_units(self, repo_folder: str, codeunit_name: str, target_environmenttype: str, additional_arguments_file: str) -> None:
@@ -802,20 +762,6 @@ class TasksForCommonProjectStructure:
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
         self.__sc.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title)
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_update_version_in_docker_examples(self, file, codeunit_version) -> None:
-        folder_of_current_file = os.path.dirname(file)
-        codeunit_folder = GeneralUtilities.resolve_relative_path("..", folder_of_current_file)
-        codeunit_name = os.path.basename(codeunit_folder)
-        codeunit_name_lower = codeunit_name.lower()
-        examples_folder = GeneralUtilities.resolve_relative_path("Other/Reference/ReferenceContent/Examples", codeunit_folder)
-        for example_folder in GeneralUtilities.get_direct_folders_of_folder(examples_folder):
-            docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
-            if os.path.isfile(docker_compose_file):
-                filecontent = GeneralUtilities.read_text_from_file(docker_compose_file)
-                replaced = re.sub(f'image:\\s+{codeunit_name_lower}:\\d+\\.\\d+\\.\\d+', f"image: {codeunit_name_lower}:{codeunit_version}", filecontent)
-                GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
 
     @GeneralUtilities.check_arguments
     def start_dockerfile_example(self, current_file: str,remove_old_container: bool, remove_volumes_folder: bool, env_file: str) -> None:

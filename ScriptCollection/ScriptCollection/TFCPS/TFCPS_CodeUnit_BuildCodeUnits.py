@@ -23,6 +23,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self) -> None:
+        self.sc.log.log("Start building codeunits.")
         if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
             self.sc.log.log("Prepare build codeunits...")
             arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
@@ -30,7 +31,10 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
         for codeunit_name in codeunits:
             tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile)
+            self.sc.log.log(GeneralUtilities.get_line())
             tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()
+        self.sc.log.log(GeneralUtilities.get_line())
+        self.sc.log.log("Finished building codeunits.")
 
 
     @GeneralUtilities.check_arguments
