@@ -1,8 +1,8 @@
 import os
 import re
-from .GeneralUtilities import GeneralUtilities
-from .ScriptCollectionCore import ScriptCollectionCore
-from .SCLog import  LogLevel
+from ..GeneralUtilities import GeneralUtilities
+from ..ScriptCollectionCore import ScriptCollectionCore
+from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
 
 class TFCPS_CodeUnit_BuildCodeUnit:
@@ -13,8 +13,9 @@ class TFCPS_CodeUnit_BuildCodeUnit:
     codeunit_name:str
     tFCPS_Tools:TFCPS_Tools_General
     target_environment_type:str
+    additionalargumentsfile:str
 
-    def __init__(self,codeunit_folder:str,verbosity:LogLevel,target_environment_type:str):
+    def __init__(self,codeunit_folder:str,verbosity:LogLevel,target_environment_type:str,additionalargumentsfile:str):
         self.sc=ScriptCollectionCore()
         self.sc.log.loglevel=verbosity
         self.tFCPS_Tools=TFCPS_Tools_General(self.sc)
@@ -22,6 +23,7 @@ class TFCPS_CodeUnit_BuildCodeUnit:
         self.codeunit_folder=codeunit_folder
         self.codeunit_name=os.path.basename(self.codeunit_folder)
         self.target_environment_type=target_environment_type
+        self.additionalargumentsfile=additionalargumentsfile
         
     @GeneralUtilities.check_arguments
     def build_codeunit(self) -> None:
@@ -33,31 +35,33 @@ class TFCPS_CodeUnit_BuildCodeUnit:
         
         self.sc.log.log(f"Build codeunit {self.codeunit_name}...")
 
+        arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
+
         self.sc.log.log("Do common tasks...")
-        self.sc.run_program("python","CommonTasks.py",os.path.join(self.codeunit_folder,"Other"))
+        self.sc.run_program("python",f"CommonTasks.py {arguments}",os.path.join(self.codeunit_folder,"Other"),print_live_output=True)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
         self.sc.log.log("Build...")
-        self.sc.run_program("python","Build.py",os.path.join(self.codeunit_folder,"Other","Build"))
+        self.sc.run_program("python",f"Build.py {arguments}",os.path.join(self.codeunit_folder,"Other","Build"),print_live_output=True)
         artifacts = {"BuildResult_.+": True, "BOM": False, "SourceCode":  self.tFCPS_Tools.codeunit_has_testable_sourcecode(codeunit_file)}
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool](artifacts))
 
         if self.tFCPS_Tools.codeunit_has_testable_sourcecode(codeunit_file):
             self.sc.log.log("Run testcases...")
-            self.sc.run_program("python","RunTestcases.py",os.path.join(self.codeunit_folder,"Other","QualityCheck"))
+            self.sc.run_program("python",f"RunTestcases.py {arguments}",os.path.join(self.codeunit_folder,"Other","QualityCheck"),print_live_output=True)
             self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         self.sc.log.log("Check for linting-issues...")
-        self.sc.run_program("python","Linting.py",os.path.join(self.codeunit_folder,"Other","QualityCheck"))
+        self.sc.run_program("python",f"Linting.py {arguments}",os.path.join(self.codeunit_folder,"Other","QualityCheck"),print_live_output=True)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]())
 
         self.sc.log.log("Generate reference...")
-        self.sc.run_program("python","GenerateReference.py",os.path.join(self.codeunit_folder,"Other","Reference"))
+        self.sc.run_program("python","GenerateReference.py",os.path.join(self.codeunit_folder,"Other","Reference"),print_live_output=True)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Reference": True}))
 
         if os.path.isfile(os.path.join(self.codeunit_folder,"Other", "OnBuildingFinished.py")):
             self.sc.log.log('Run "OnBuildingFinished.py"...')
-            self.sc.run_program("python", f"OnBuildingFinished.py",os.path.join(self.codeunit_folder,"Other"))
+            self.sc.run_program("python", f"OnBuildingFinished.py {arguments}",os.path.join(self.codeunit_folder,"Other"),print_live_output=True)
 
         artifacts_folder = os.path.join(self.codeunit_folder, "Other", "Artifacts")
         artifactsinformation_file = os.path.join(artifacts_folder, f"{self.codeunit_name}.artifactsinformation.xml")

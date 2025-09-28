@@ -8,9 +8,9 @@ import argparse
 from abc import ABC
 import xmlschema
 from lxml import etree
-from .GeneralUtilities import GeneralUtilities
-from .ScriptCollectionCore import ScriptCollectionCore
-from .SCLog import  LogLevel
+from ..GeneralUtilities import GeneralUtilities
+from ..ScriptCollectionCore import ScriptCollectionCore
+from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
 from .TFCPS_Tools_Dependencies import TFCPS_Tools_Dependencies,Dependency
 
@@ -22,7 +22,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
     __codeunit_folder:str=None
     __current_folder:str=None
     __verbosity:LogLevel=None
-    _protected_TFCPS_Tools_General:TFCPS_Tools_General
+    tfcps_Tools_General:TFCPS_Tools_General
     _protected_sc:ScriptCollectionCore
     __is_pre_merge:bool=False#TODO must be setable to true
     __validate_developers_of_repository:bool=True#TODO must be setable to false
@@ -34,13 +34,13 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         self.__current_folder = os.path.dirname(self.__current_file)
         self.__codeunit_folder=self.__search_codeunit_folder()
         self._protected_sc=ScriptCollectionCore()#TODO set loglevel
-        self._protected_TFCPS_Tools_General=TFCPS_Tools_General(self._protected_sc)
-        self._protected_TFCPS_Tools_General.assert_is_codeunit_folder(self.__codeunit_folder)
+        self.tfcps_Tools_General=TFCPS_Tools_General(self._protected_sc)
+        self.tfcps_Tools_General.assert_is_codeunit_folder(self.__codeunit_folder)
         self.__repository_folder=GeneralUtilities.resolve_relative_path("..",self.__codeunit_folder)
         self._protected_sc.assert_is_git_repository(self.__repository_folder)
 
     def __search_codeunit_folder(self)->str:
-        current_path:str=self.__current_file
+        current_path:str=os.path.dirname(self.__current_file)
         enabled:bool=True
         while enabled:
             try:
@@ -61,7 +61,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 pass#TODO update dependency
         
     def get_version_of_project(self)->str:
-        return self._protected_TFCPS_Tools_General.get_version_of_project(self.get_repository_folder())
+        return self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())
 
     @GeneralUtilities.check_arguments
     def do_common_tasks_base(self,current_codeunit_version:str):
@@ -69,7 +69,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         repository_folder: str =self.get_repository_folder()
         self._protected_sc.assert_is_git_repository(repository_folder)
         codeunit_name: str = self.get_codeunit_name()
-        project_version = self._protected_TFCPS_Tools_General.get_version_of_project(repository_folder)
+        project_version = self.tfcps_Tools_General.get_version_of_project(repository_folder)
         if current_codeunit_version is None:
             current_codeunit_version=project_version
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
@@ -101,11 +101,11 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             raise ValueError(f"The folder-name ('{codeunit_name}') is not equal to the codeunit-name ('{codeunit_name_in_codeunit_file}').")
 
         # check owner-name
-        codeunit_ownername_in_codeunit_file = self._protected_TFCPS_Tools_General. get_codeunit_owner_name(self.get_codeunit_file())
+        codeunit_ownername_in_codeunit_file = self.tfcps_Tools_General. get_codeunit_owner_name(self.get_codeunit_file())
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_ownername_in_codeunit_file), "No valid name for codeunitowner given.")
 
         # check owner-emailaddress
-        codeunit_owneremailaddress_in_codeunit_file = self._protected_TFCPS_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())
+        codeunit_owneremailaddress_in_codeunit_file = self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())
         GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(codeunit_owneremailaddress_in_codeunit_file), "No valid email-address for codeunitowner given.")
 
         # check development-state
@@ -117,10 +117,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
         # check for mandatory files
         files = ["Other/Build/Build.py", "Other/QualityCheck/Linting.py", "Other/Reference/GenerateReference.py"]
-        if self._protected_TFCPS_Tools_General.codeunit_has_testable_sourcecode(self.get_codeunit_file()):
+        if self.tfcps_Tools_General.codeunit_has_testable_sourcecode(self.get_codeunit_file()):
             # TODO check if the testsettings-section appears in the codeunit-file
             files.append("Other/QualityCheck/RunTestcases.py")
-        if self._protected_TFCPS_Tools_General.codeunit_has_updatable_dependencies(self.get_codeunit_file()):
+        if self.tfcps_Tools_General.codeunit_has_updatable_dependencies(self.get_codeunit_file()):
             # TODO check if the updatesettings-section appears in the codeunit-file
             files.append("Other/UpdateDependencies.py")
         for file in files:
@@ -139,7 +139,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 author_name = expected_author.xpath('./cps:developername/text()', namespaces=namespaces)[0]
                 author_emailaddress = expected_author.xpath('./cps:developeremailaddress/text()', namespaces=namespaces)[0]
                 expected_authors.append((author_name, author_emailaddress)) 
-            actual_authors: list[tuple[str, str]] = self._protected_TFCPS_Tools_General.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name)
+            actual_authors: list[tuple[str, str]] = self.tfcps_Tools_General.get_all_authors_and_committers_of_repository(repository_folder, codeunit_name)
             # TODO refactor this check to only check commits which are behind this but which are not already on main
             # TODO verify also if the commit is signed by a valid key of the author
             for actual_author in actual_authors:
@@ -147,9 +147,9 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                     actual_author_formatted = f"{actual_author[0]} <{actual_author[1]}>"
                     raise ValueError(f'Author/Comitter "{actual_author_formatted}" is not in the codeunit-developer-team. If {actual_author} is a authorized developer for this codeunit you should consider defining this in the codeunit-file or adapting the name using a .mailmap-file (see https://git-scm.com/docs/gitmailmap). The developer-team-check can also be disabled using the property validate_developers_of_repository.')
 
-        dependent_codeunits = self._protected_TFCPS_Tools_General.get_dependent_code_units(codeunit_file)
+        dependent_codeunits = self.tfcps_Tools_General.get_dependent_code_units(codeunit_file)
         for dependent_codeunit in dependent_codeunits:
-            if not self._protected_TFCPS_Tools_General.dependent_codeunit_exists(repository_folder, dependent_codeunit):
+            if not self.tfcps_Tools_General.dependent_codeunit_exists(repository_folder, dependent_codeunit):
                 raise ValueError(f"Codeunit {codeunit_name} does have dependent codeunit {dependent_codeunit} which does not exist.")
 
         # TODO implement cycle-check for dependent codeunits
@@ -158,10 +158,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         GeneralUtilities.ensure_directory_does_not_exist(artifacts_folder)
 
         # get artifacts from dependent codeunits
-        self._protected_TFCPS_Tools_General.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
+        self.tfcps_Tools_General.copy_artifacts_from_dependent_code_units(repository_folder, codeunit_name)
 
         # update codeunit-version
-        self._protected_TFCPS_Tools_General.write_version_to_codeunit_file(self.get_codeunit_file(), current_codeunit_version)
+        self.tfcps_Tools_General.write_version_to_codeunit_file(self.get_codeunit_file(), current_codeunit_version)
  
         # set project version
         package_json_file = os.path.join(repository_folder, "package.json")  # TDOO move this to a general project-specific (and codeunit-independent-script)
@@ -175,7 +175,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             GeneralUtilities.write_text_to_file(package_json_file, GeneralUtilities.read_text_from_file(package_json_file).replace("\r", ""))
 
         # set default constants
-        self._protected_TFCPS_Tools_General.set_default_constants(os.path.join(codeunit_folder))
+        self.tfcps_Tools_General.set_default_constants(os.path.join(codeunit_folder))
 
         # Copy changelog-file
         changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
@@ -190,10 +190,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             raise ValueError(f"Hints-file '{hints_file}' does not exist.")
 
         # Copy license-file
-        self._protected_TFCPS_Tools_General.copy_licence_file(self.get_codeunit_folder())
+        self.tfcps_Tools_General.copy_licence_file(self.get_codeunit_folder())
 
         # Generate diff-report
-        self._protected_TFCPS_Tools_General.generate_diff_report(repository_folder, codeunit_name, self._protected_TFCPS_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
+        self.tfcps_Tools_General.generate_diff_report(repository_folder, codeunit_name, self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
 
         # TODO check for secrets using TruffleHog
         # TODO run static code analysis tool to search for vulnerabilities
@@ -281,6 +281,16 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         self.__update_path_of_source_in_testcoverage_file(repository_folder, codeunit_name)
         self.__standardized_tasks_generate_coverage_report(repository_folder, codeunit_name, generate_badges, targetenvironmenttype)
         self.__check_testcoverage(coveragefiletarget, repository_folder, codeunit_name)
+        self.__format_xml_file(coveragefiletarget)
+
+    @GeneralUtilities.check_arguments
+    def __format_xml_file(self, xmlfile:str) -> None:
+        GeneralUtilities.write_text_to_file(xmlfile,self.__format_xml_content( GeneralUtilities.read_text_from_file(xmlfile)))
+
+    @GeneralUtilities.check_arguments
+    def __format_xml_content(self, xml:str) -> None:
+        root = etree.fromstring(xml)
+        return etree.tostring(root, pretty_print=True, encoding="unicode")
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_generate_coverage_report(self, repository_folder: str, codeunitname: str, generate_badges: bool, targetenvironmenttype: str, add_testcoverage_history_entry: bool = None) -> None:
@@ -290,7 +300,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         This script expectes that a test-coverage-badges should be added to '<repositorybasefolder>/<codeunitname>/Other/Resources/Badges'."""
         self._protected_sc.log.log("Generate testcoverage report..")
         self._protected_sc.assert_is_git_repository(repository_folder)
-        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_codeunit(self.get_codeunit_file()) 
+        codeunit_version = self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file()) 
         verbosity=0#TODO use loglevel-value here
         if verbosity == 0:
             verbose_argument_for_reportgenerator = "Off"
@@ -365,7 +375,8 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             raise ValueError(f"'{testcoverage_file_in_cobertura_format}' must contain exactly 1 package.")
         if root.xpath('//coverage/packages/package[1]/@name')[0] != codeunitname:
             raise ValueError(f"The package name of the tested package in '{testcoverage_file_in_cobertura_format}' must be '{codeunitname}'.")
-        coverage_in_percent = round(float(str(root.xpath('//coverage/packages/package[1]/@line-rate')[0]))*100, 2)
+        rates=root.xpath('//coverage/packages/package[1]/@line-rate')
+        coverage_in_percent = round(float(str(rates[0]))*100, 2)
         technicalminimalrequiredtestcoverageinpercent = 0
         if not technicalminimalrequiredtestcoverageinpercent < coverage_in_percent:
             raise ValueError(f"The test-coverage of package '{codeunitname}' must be greater than {technicalminimalrequiredtestcoverageinpercent}%.")
@@ -388,7 +399,7 @@ class TFCPS_CodeUnitSpecific_Base_CLI():
     @staticmethod
     @GeneralUtilities.check_arguments
     def get_base_parser()->argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(description="Does \"npm clean install\".")
+        parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
         parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)

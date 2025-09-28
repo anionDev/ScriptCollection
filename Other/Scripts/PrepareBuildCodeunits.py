@@ -1,7 +1,7 @@
 from pathlib import Path
 from ScriptCollection.GeneralUtilities import GeneralUtilities
 from ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
-from ScriptCollection.TFCPS_Tools_General import TFCPS_Tools_General
+from ScriptCollection.TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
 
 
 def prepare_build_codeunits():

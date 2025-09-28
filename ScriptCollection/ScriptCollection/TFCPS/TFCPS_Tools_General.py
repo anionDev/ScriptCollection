@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime,timezone
 from graphlib import TopologicalSorter
 import os
 from pathlib import Path
@@ -10,12 +10,13 @@ import sys
 import json
 import tempfile 
 import uuid
-import requests
+import urllib.request
 from packaging import version
+import requests
 from lxml import etree
-from .GeneralUtilities import GeneralUtilities
-from .ScriptCollectionCore import ScriptCollectionCore
-from .SCLog import  LogLevel
+from ..GeneralUtilities import GeneralUtilities
+from ..ScriptCollectionCore import ScriptCollectionCore
+from ..SCLog import  LogLevel
 
 class TFCPS_Tools_General:
 
@@ -154,32 +155,35 @@ class TFCPS_Tools_General:
         result = [str(item) for item in result_typed]
         return result
 
-    @staticmethod
     @GeneralUtilities.check_arguments
-    def _internal_sort_reference_folder(folder1: str, folder2: str) -> int:
-        """Returns a value greater than 0 if and only if folder1 has a base-folder-name with a with a higher version than the base-folder-name of folder2.
-        Returns a value lower than 0 if and only if folder1 has a base-folder-name with a with a lower version than the base-folder-name of folder2.
-        Returns 0 if both values are equal."""
-        if (folder1 == folder2):
-            return 0
+    def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[tuple[str, datetime, datetime]]:
+        self.__sc.assert_is_git_repository(repository_folder)
+        result: list[tuple[str, datetime, datetime]] = list[tuple[str, datetime, datetime]]()
+        for entry in self.get_versions(repository_folder):
+            if not (entry[1] <= moment and moment <= entry[2]):
+                result.append(entry)
+        return result
 
-        version_identifier_1 = os.path.basename(folder1)
-        if version_identifier_1 == "Latest":
-            return -1
-        version_identifier_1 = version_identifier_1[1:]
 
-        version_identifier_2 = os.path.basename(folder2)
-        if version_identifier_2 == "Latest":
-            return 1
-        version_identifier_2 = version_identifier_2[1:]
-
-        if version.parse(version_identifier_1) < version.parse(version_identifier_2):
-            return -1
-        elif version.parse(version_identifier_1) > version.parse(version_identifier_2):
-            return 1
-        else:
-            return 0
-
+    @GeneralUtilities.check_arguments
+    def get_versions(self, repository_folder: str) -> list[tuple[str, datetime, datetime]]:
+        self.__sc.assert_is_git_repository(repository_folder)
+        folder = os.path.join(repository_folder, "Other", "Resources", "Support")
+        file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
+        result: list[(str, datetime, datetime)] = list[(str, datetime, datetime)]()
+        if not os.path.isfile(file):
+            return result
+        entries = GeneralUtilities.read_csv_file(file, True)
+        for entry in entries:
+            d1 = GeneralUtilities.string_to_datetime(entry[1])
+            if d1.tzinfo is None: 
+                d1 = d1.replace(tzinfo=timezone.utc)
+            d2 = GeneralUtilities.string_to_datetime(entry[2])
+            if d2.tzinfo is None:
+                d2 = d2.replace(tzinfo=timezone.utc)
+            result.append((entry[0], d1, d2))
+        return result
+    
     @GeneralUtilities.check_arguments
     def dependent_codeunit_exists(self, repository: str, codeunit: str) -> None:
         codeunit_file = f"{repository}/{codeunit}/{codeunit}.codeunit.xml"
@@ -277,7 +281,11 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def get_version_of_codeunit(self,codeunit_file:str) -> None:
         codeunit_file_content:str=GeneralUtilities.read_text_from_file(codeunit_file)
-        root: etree._ElementTree = etree.fromstring(codeunit_file_content.encode("utf-8"))
+        return self.get_version_of_codeunit_filecontent(codeunit_file_content)
+    
+    @GeneralUtilities.check_arguments
+    def get_version_of_codeunit_filecontent(self,file_content:str) -> None:
+        root: etree._ElementTree = etree.fromstring(file_content.encode("utf-8"))
         result = str(root.xpath('//cps:version/text()',  namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0])
         return result
     
@@ -640,3 +648,286 @@ class TFCPS_Tools_General:
         download_and_extract("Windows", "windows", "zip")
         download_and_extract("Linux", "linux", "tar.gz")
         download_and_extract("MacOS", "darwin", "tar.gz")
+ 
+    @GeneralUtilities.check_arguments
+    def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None) -> None:
+        self.__sc.log.log(f'Clone resource {resource_name}...')
+        resrepo_commit_id_folder: str = os.path.join(local_repository_folder, "Other", "Resources", f"{resource_name}Version")
+        resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resource_name}Version.txt")
+        latest_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)
+        resrepo_data_folder: str = os.path.join(local_repository_folder, "Other", "Resources", resource_name).replace("\\", "/")
+        current_version: str = None
+        resrepo_data_version: str = os.path.join(resrepo_data_folder, f"{resource_name}Version.txt")
+        if os.path.isdir(resrepo_data_folder):
+            if os.path.isfile(resrepo_data_version):
+                current_version = GeneralUtilities.read_text_from_file(resrepo_data_version)
+        if (current_version is None) or (current_version != latest_version):
+            target_folder: str = resrepo_data_folder
+            if repository_subname is not None:
+                target_folder = f"{resrepo_data_folder}/{repository_subname}"
+            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+            self.__sc.run_program("git", f"clone --recurse-submodules {remote_repository_link} {target_folder}")
+            self.__sc.run_program("git", f"checkout {latest_version}", target_folder)
+            GeneralUtilities.write_text_to_file(resrepo_data_version, latest_version)
+
+            git_folders: list[str] = []
+            git_files: list[str] = []
+            for dirpath, dirnames, filenames in os.walk(target_folder):
+                for dirname in dirnames:
+                    if dirname == ".git":
+                        full_path = os.path.join(dirpath, dirname)
+                        git_folders.append(full_path)
+                for filename in filenames:
+                    if filename == ".git":
+                        full_path = os.path.join(dirpath, filename)
+                        git_files.append(full_path)
+            for git_folder in git_folders:
+                if os.path.isdir(git_folder):
+                    GeneralUtilities.ensure_directory_does_not_exist(git_folder)
+            for git_file in git_files:
+                if os.path.isdir(git_file):
+                    GeneralUtilities.ensure_file_does_not_exist(git_file)
+
+    @GeneralUtilities.check_arguments
+    def ensure_certificate_authority_for_development_purposes_is_generated(self, product_folder: str):
+        product_name: str = os.path.basename(product_folder)
+        now = GeneralUtilities.get_now()
+        ca_name = f"{product_name}CA_{now.year:04}{now.month:02}{now.day:02}{now.hour:02}{now.min:02}{now.second:02}"
+        ca_folder = os.path.join(product_folder, "Other", "Resources", "CA")
+        generate_certificate = True
+        if os.path.isdir(ca_folder):
+            ca_files = [file for file in GeneralUtilities.get_direct_files_of_folder(ca_folder) if file.endswith(".crt")]
+            if len(ca_files) > 0:
+                ca_file = ca_files[-1]  # pylint:disable=unused-variable
+                certificate_is_valid = True  # TODO check if certificate is really valid
+                generate_certificate = not certificate_is_valid
+        if generate_certificate:
+            self.__sc.generate_certificate_authority(ca_folder, ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+        # TODO add switch to auto-install the script if desired
+        # for windows: powershell Import-Certificate -FilePath ConSurvCA_20241121000236.crt -CertStoreLocation 'Cert:\CurrentUser\Root'
+        # for linux: (TODO)
+
+    @GeneralUtilities.check_arguments
+    def generate_certificate_for_development_purposes_for_product(self, repository_folder: str):
+        self.__sc.assert_is_git_repository(repository_folder)
+        product_name = os.path.basename(repository_folder)
+        ca_folder: str = os.path.join(repository_folder, "Other", "Resources", "CA")
+        self.__generate_certificate_for_development_purposes(product_name, os.path.join(repository_folder, "Other", "Resources"), ca_folder, None)
+
+    @GeneralUtilities.check_arguments
+    def __generate_certificate_for_development_purposes(self, service_name: str, resources_folder: str, ca_folder: str, domain: str = None):
+        if domain is None:
+            domain = f"{service_name}.test.local"
+        domain = domain.lower()
+        resource_name: str = "DevelopmentCertificate"
+        certificate_folder: str = os.path.join(resources_folder, resource_name)
+
+        resource_content_filename: str = service_name+resource_name
+        certificate_file = os.path.join(certificate_folder, f"{domain}.crt")
+        unsignedcertificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
+        certificate_exists = os.path.exists(certificate_file)
+        if certificate_exists:
+            certificate_expired = GeneralUtilities.certificate_is_expired(certificate_file)
+            generate_new_certificate = certificate_expired
+        else:
+            generate_new_certificate = True
+        if generate_new_certificate:
+            GeneralUtilities.ensure_directory_does_not_exist(certificate_folder)
+            GeneralUtilities.ensure_directory_exists(certificate_folder)
+            self.__sc.log.log("Generate TLS-certificate for development-purposes.")
+            self.__sc.generate_certificate(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            self.__sc.generate_certificate_sign_request(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
+            ca_name = os.path.basename(self.__sc.find_last_file_by_extension(ca_folder, "crt"))[:-4]
+            self.__sc.sign_certificate(certificate_folder, ca_folder, ca_name, domain, resource_content_filename)
+            GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
+
+ 
+    @GeneralUtilities.check_arguments
+    def do_npm_install(self, package_json_folder: str, force: bool = True) -> None:
+        argument1 = "install"
+        if force:
+            argument1 = f"{argument1} --force"
+        self.__sc.run_with_epew("npm", argument1, package_json_folder)
+
+        argument2 = "install --package-lock-only"
+        if force:
+            argument2 = f"{argument2} --force"
+        self.__sc.run_with_epew("npm", argument2, package_json_folder)
+
+        argument3 = "clean-install"
+        if force:
+            argument3 = f"{argument3} --force"
+        self.__sc.run_with_epew("npm", argument3, package_json_folder)
+
+    @staticmethod
+    @GeneralUtilities.check_arguments
+    def _internal_sort_reference_folder(folder1: str, folder2: str) -> int:
+        """Returns a value greater than 0 if and only if folder1 has a base-folder-name with a with a higher version than the base-folder-name of folder2.
+        Returns a value lower than 0 if and only if folder1 has a base-folder-name with a with a lower version than the base-folder-name of folder2.
+        Returns 0 if both values are equal."""
+        if (folder1 == folder2):
+            return 0
+
+        version_identifier_1 = os.path.basename(folder1)
+        if version_identifier_1 == "Latest":
+            return -1
+        version_identifier_1 = version_identifier_1[1:]
+
+        version_identifier_2 = os.path.basename(folder2)
+        if version_identifier_2 == "Latest":
+            return 1
+        version_identifier_2 = version_identifier_2[1:]
+
+        if version.parse(version_identifier_1) < version.parse(version_identifier_2):
+            return -1
+        elif version.parse(version_identifier_1) > version.parse(version_identifier_2):
+            return 1
+        else:
+            return 0
+
+    @GeneralUtilities.check_arguments
+    def t4_transform(self, codeunit_folder: str, ignore_git_ignored_files: bool = True):
+        self.__ensure_grylibrary_is_available(codeunit_folder)
+        repository_folder: str = os.path.dirname(codeunit_folder)
+        codeunitname: str = os.path.basename(codeunit_folder)
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        for search_result in Path(codeunit_folder).glob('**/*.tt'):
+            tt_file = str(search_result)
+            relative_path_to_tt_file_from_repository = str(Path(tt_file).relative_to(repository_folder))
+            if (not ignore_git_ignored_files) or (ignore_git_ignored_files and not self.__sc.file_is_git_ignored(relative_path_to_tt_file_from_repository, repository_folder)):
+                relative_path_to_tt_file_from_codeunit_file = str(Path(tt_file).relative_to(codeunit_folder))
+                argument = [f"--parameter=repositoryFolder={repository_folder}", f"--parameter=codeUnitName={codeunitname}", relative_path_to_tt_file_from_codeunit_file]
+                self.__sc.run_program_argsasarray("t4", argument, codeunit_folder)
+
+    @GeneralUtilities.check_arguments
+    def __ensure_grylibrary_is_available(self, codeunit_folder: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
+        grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        grylibrary_dll_file_exists = os.path.isfile(grylibrary_dll_file)
+        if internet_connection_is_available:  # Load/Update GRYLibrary
+            grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
+            with urllib.request.urlopen(grylibrary_latest_codeunit_file) as url_result:
+                grylibrary_latest_version = self.get_version_of_codeunit_filecontent(url_result.read().decode("utf-8"))
+            if grylibrary_dll_file_exists:
+                grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
+                grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
+                if grylibrary_existing_codeunit_version != grylibrary_latest_version:
+                    GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
+            if not os.path.isfile(grylibrary_dll_file):
+                GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
+                GeneralUtilities.ensure_directory_exists(grylibrary_folder)
+                archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
+                archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
+                archive_file = os.path.join(grylibrary_folder, archive_name)
+                urllib.request.urlretrieve(archive_download_link, archive_file)
+                with zipfile.ZipFile(archive_file, 'r') as zip_ref:
+                    zip_ref.extractall(grylibrary_folder)
+                GeneralUtilities.ensure_file_does_not_exist(archive_file)
+        else:
+            if grylibrary_dll_file_exists:
+                self.__sc.log.log("Can not check for updates of GRYLibrary due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download GRYLibrary.")
+
+    @GeneralUtilities.check_arguments
+    def ensure_ffmpeg_is_available(self, codeunit_folder: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        ffmpeg_folder = os.path.join(codeunit_folder, "Other", "Resources", "FFMPEG")
+        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
+        exe_file = f"{ffmpeg_folder}/ffmpeg.exe"
+        exe_file_exists = os.path.isfile(exe_file)
+        if internet_connection_is_available:  # Load/Update
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_folder)
+            GeneralUtilities.ensure_directory_exists(ffmpeg_folder)
+            ffmpeg_temp_folder = ffmpeg_folder+"Temp"
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
+            GeneralUtilities.ensure_directory_exists(ffmpeg_temp_folder)
+            zip_file_on_disk = os.path.join(ffmpeg_temp_folder, "ffmpeg.zip")
+            original_zip_filename = "ffmpeg-master-latest-win64-gpl-shared"
+            zip_link = f"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{original_zip_filename}.zip"
+            urllib.request.urlretrieve(zip_link, zip_file_on_disk)
+            shutil.unpack_archive(zip_file_on_disk, ffmpeg_temp_folder)
+            bin_folder_source = os.path.join(ffmpeg_temp_folder, "ffmpeg-master-latest-win64-gpl-shared/bin")
+            bin_folder_target = ffmpeg_folder
+            GeneralUtilities.copy_content_of_folder(bin_folder_source, bin_folder_target)
+            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
+        else:
+            if exe_file_exists:
+                self.__sc.log.log("Can not check for updates of FFMPEG due to missing internet-connection.")
+            else:
+                raise ValueError("Can not download FFMPEG.")
+
+    @GeneralUtilities.check_arguments
+    def set_constants_for_certificate_private_information(self, codeunit_folder: str) -> None:
+        """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
+        self.assert_is_codeunit_folder(codeunit_folder)
+        repo_name:str=os.path.basename(GeneralUtilities.resolve_relative_path("..",codeunit_folder))
+        resource_name: str = "DevelopmentCertificate"
+        filename: str = repo_name+"DevelopmentCertificate"
+        self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.pfx", "PFX")
+        self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.password", "Password")
+
+    @GeneralUtilities.check_arguments
+    def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
+        resource_file = os.path.join(certificate_resource_folder, filename)
+        resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
+        resource_file_as_hex = resource_file_content.hex()
+        self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
+
+    @GeneralUtilities.check_arguments
+    def get_resource_from_global_resource(self, codeunit_folder: str, resource_name: str):
+        repository_folder: str = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
+        source_folder: str = os.path.join(repository_folder, "Other", "Resources", resource_name)
+        target_folder: str = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
+        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+        GeneralUtilities.copy_content_of_folder(source_folder, target_folder)
+
+    
+    @GeneralUtilities.check_arguments
+    def merge_packages(self,coverage_file:str,package_name:str) -> None:
+        tree = etree.parse(coverage_file) 
+        root = tree.getroot()
+        packages = root.findall("./packages/package")
+        all_classes = []
+        for pkg in packages:
+            pkg_name:str=pkg.get("name")
+            if pkg_name==package_name or pkg_name.startswith(f"{package_name}."):
+                classes = pkg.find("classes")
+                if classes is not None:
+                    all_classes.extend(classes.findall("class"))
+        new_package = etree.Element("package", name=package_name)
+        new_classes = etree.SubElement(new_package, "classes")
+        for cls in all_classes:
+            new_classes.append(cls)
+        packages_node = root.find("./packages")
+        packages_node.clear()
+        packages_node.append(new_package)
+        tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        self.__calculate_entire_line_rate(coverage_file)
+
+    
+    @GeneralUtilities.check_arguments
+    def __calculate_entire_line_rate(self,coverage_file:str) -> None:
+        tree = etree.parse(coverage_file)
+        root = tree.getroot()
+        package = root.find("./packages/package")
+        if package is None:
+            raise RuntimeError("No <package>-Element found")
+
+        line_elements = package.findall(".//line")
+
+        amount_of_lines = 0
+        amount_of_hited_lines = 0
+
+        for line in line_elements:
+            amount_of_lines += 1
+            hits = int(line.get("hits", "0"))
+            if hits > 0:
+                amount_of_hited_lines += 1
+        line_rate = amount_of_hited_lines / amount_of_lines if amount_of_lines > 0 else 0.0
+        package.set("line-rate", str(line_rate))
+        tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")

@@ -59,8 +59,10 @@ class ProgramRunnerEpew(ProgramRunnerBase):
             if custom_argument.pidfile is not None:
                 args.append(f'-r {custom_argument.pidfile}')
             args.append(f'-d {str(custom_argument.timeoutInSeconds*1000)}')
-            args.append(f'-t "{custom_argument.title}"')
-            args.append(f'-l "{custom_argument.log_namespace}"')
+            if GeneralUtilities.string_has_content(custom_argument.title):
+                args.append(f'-t "{custom_argument.title}"')
+            if GeneralUtilities.string_has_content(custom_argument.log_namespace):
+                args.append(f'-l "{custom_argument.log_namespace}"')
             if not GeneralUtilities.string_is_none_or_whitespace(custom_argument.log_file):
                 args.append(f'-f "{custom_argument.log_file}"')
             if custom_argument.print_errors_as_information:
@@ -89,7 +91,7 @@ class ProgramRunnerEpew(ProgramRunnerBase):
         #        return 0
         #    case _:
         #        raise ValueError(f"Unhandled log level: {level}")
-        return 5#TODO
+        return 2#TODO
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments

@@ -10,8 +10,8 @@ from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
-from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
-from .TFCPS_Tools_General import TFCPS_Tools_General
+from .TFCPS.TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
+from .TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
 
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
@@ -290,7 +290,7 @@ def BuildCodeUnits() -> int:
     if not os.path.isabs(args.repositoryfolder):
         repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
 
-    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment) 
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile) 
     t.build_codeunits()
     return 0
 
@@ -328,7 +328,7 @@ def UpdateDependencies() -> int:
     if not os.path.isabs(args.repositoryfolder):
         repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
 
-    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment) 
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile) 
     t.update_dependencies()
     return 0
 
@@ -648,15 +648,14 @@ def NpmI() -> int:
     parser.add_argument('-d', '--directory', required=False, default=".")
     parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
     parser.add_argument('-v', '--verbose', action='store_true', required=False, default=False)
-    #args = parser.parse_args()
-    #if os.path.isabs(args.directory):
-    #    folder = args.directory
-    #else:
-    #    folder = GeneralUtilities.resolve_relative_path(args.directory, os.getcwd())
-    #t = TasksForCommonProjectStructure()
-    #t.do_npm_install(folder, args.force, 3 if args.verbose else 0)
-    #return 0
-    return 1#TODO
+    args = parser.parse_args()
+    if os.path.isabs(args.directory):
+        folder = args.directory
+    else: 
+        folder = GeneralUtilities.resolve_relative_path(args.directory, os.getcwd())
+    t = TFCPS_Tools_General(ScriptCollectionCore())
+    t.do_npm_install(folder, args.force)
+    return 0
 
 
 def CurrentUserHasElevatedPrivileges() -> int:

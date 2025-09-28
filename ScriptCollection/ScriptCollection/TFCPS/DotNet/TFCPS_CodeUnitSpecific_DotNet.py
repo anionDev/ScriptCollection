@@ -6,9 +6,11 @@ import uuid
 import json
 from lxml import etree
 import yaml
-from .GeneralUtilities import GeneralUtilities
-from .SCLog import  LogLevel
-from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
+
+from .CertificateGeneratorInformationBase import CertificateGeneratorInformationBase
+from ...GeneralUtilities import GeneralUtilities
+from ...SCLog import  LogLevel
+from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
 class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
  
@@ -27,7 +29,8 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
             GeneralUtilities.assert_condition(not generate_open_api_spec,"OpenAPI-Specification can not be generated for a library.")
         else:
             self.standardized_tasks_build_for_dotnet_project(runtimes)
-            self.generate_openapi_file(runtimes[0])
+            if generate_open_api_spec:
+                self.generate_openapi_file(runtimes[0])
 
     @GeneralUtilities.check_arguments
     def generate_openapi_file(self, runtime: str) -> None:
@@ -38,7 +41,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         GeneralUtilities.ensure_directory_exists(os.path.join(artifacts_folder, "APISpecification"))
-        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_codeunit(codeunit_folder)
+        codeunit_version = self.tfcps_Tools_General.get_version_of_codeunit(os.path.join(codeunit_folder,f"{codeunitname}.codeunit.xml"))
 
         versioned_api_spec_file = f"APISpecification/{codeunitname}.v{codeunit_version}.api.json"
         self._protected_sc.run_program("swagger", f"tofile --output {versioned_api_spec_file} BuildResult_DotNet_{runtime}/{codeunitname}.dll {swagger_document_name}", artifacts_folder)
@@ -181,7 +184,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunit_name = os.path.basename(codeunit_folder)
         bomfile_folder = "Other\\Artifacts\\BOM"
         self._protected_sc.run_program_argsasarray("dotnet", ["CycloneDX", f"{codeunit_name}\\{codeunit_name}.csproj", "-o", bomfile_folder, "--disable-github-licenses"], codeunit_folder)
-        codeunitversion = self._protected_TFCPS_Tools_General.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml"))
+        codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml"))
         target = f"{codeunit_folder}\\{bomfile_folder}\\{codeunit_name}.{codeunitversion}.sbom.xml"
         GeneralUtilities.ensure_file_does_not_exist(target)
         os.rename(f"{codeunit_folder}\\{bomfile_folder}\\bom.xml", target)
@@ -192,14 +195,18 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         pass#TODO
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks(self,current_codeunit_version:str )-> None:
+    def do_common_tasks(self,current_codeunit_version:str,certificateGeneratorInformation:CertificateGeneratorInformationBase )-> None:
         self.do_common_tasks_base(current_codeunit_version)
         codeunit_name =self.get_codeunit_name()
-        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_project(self.get_repository_folder())  # Should always be the same as the project-version #TODO make this configurable from outside
+        codeunit_version = self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())  # Should always be the same as the project-version #TODO make this configurable from outside
         folder_of_current_file =os.path.join(self.get_codeunit_folder(),"Other")
-        self._protected_sc.replace_version_in_nuspec_file(GeneralUtilities.resolve_relative_path(f"./Build/{codeunit_name}.nuspec", folder_of_current_file), codeunit_version)
         self._protected_sc.replace_version_in_csproj_file(GeneralUtilities.resolve_relative_path(f"../{codeunit_name}/{codeunit_name}.csproj", folder_of_current_file), codeunit_version)
         self._protected_sc.replace_version_in_csproj_file(GeneralUtilities.resolve_relative_path(f"../{codeunit_name}Tests/{codeunit_name}Tests.csproj", folder_of_current_file), codeunit_version)
+        if self.is_library:
+            self._protected_sc.replace_version_in_nuspec_file(GeneralUtilities.resolve_relative_path(f"./Build/{codeunit_name}.nuspec", folder_of_current_file), codeunit_version)
+        if certificateGeneratorInformation.generate_certificate():
+            self.tfcps_Tools_General.set_constants_for_certificate_private_information(self.get_codeunit_folder())
+        self.tfcps_Tools_General.t4_transform(self.get_codeunit_folder(),True)
         self.standardized_task_verify_standard_format_csproj_files()
 
     @GeneralUtilities.check_arguments
@@ -208,7 +215,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         repository_folder = os.path.dirname(codeunit_folder)
         codeunit_name = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
-        codeunit_version = self._protected_TFCPS_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
+        codeunit_version = self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
 
         csproj_project_name = codeunit_name
         csproj_file = os.path.join(codeunit_folder, csproj_project_name, csproj_project_name+".csproj")
@@ -226,7 +233,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
 
     def __standardized_task_verify_standard_format_for_project_csproj_file(self, csproj_file: str, codeunit_folder: str, codeunit_name: str, codeunit_version: str) -> tuple[bool, str, str]:
         codeunit_name_regex = re.escape(codeunit_name)
-        codeunit_description = self._protected_TFCPS_Tools_General.get_codeunit_description(self.get_codeunit_file())
+        codeunit_description = self.tfcps_Tools_General.get_codeunit_description(self.get_codeunit_file())
         codeunit_version_regex = re.escape(codeunit_version)
         codeunit_description_regex = re.escape(codeunit_description)
         regex = f"""^<Project Sdk=\\"Microsoft\\.NET\\.Sdk\\">
@@ -463,7 +470,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
 class TFCPS_CodeUnitSpecific_DotNet_CLI:
 
     @staticmethod
-    def parse(file:str,args:list[str])->TFCPS_CodeUnitSpecific_DotNet_Functions:
+    def parse(file:str)->TFCPS_CodeUnitSpecific_DotNet_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()

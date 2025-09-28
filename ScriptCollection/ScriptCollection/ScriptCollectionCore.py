@@ -667,7 +667,8 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def is_git_repository(self, folder: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
-        if folder.endswith("/") or folder.endswith("\\"):
+        folder=folder.replace("\\","/")
+        if folder.endswith("/"):
             folder = folder[:-1]
         if not self.is_folder(folder):
             raise ValueError(f"Folder '{folder}' does not exist.")

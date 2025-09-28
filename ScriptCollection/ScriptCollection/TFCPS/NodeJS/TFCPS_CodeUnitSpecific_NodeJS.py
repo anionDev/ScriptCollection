@@ -1,9 +1,9 @@
 import os
 import re
 from lxml import etree
-from .GeneralUtilities import GeneralUtilities
-from .SCLog import  LogLevel
-from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
+from ...GeneralUtilities import GeneralUtilities
+from ...SCLog import  LogLevel
+from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
 class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
@@ -100,14 +100,14 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments 
     def standardized_tasks_build_bom_for_node_project(self) -> None:        
-        relative_path_to_bom_file = f"Other/Artifacts/BOM/{os.path.basename(self.get_codeunit_folder())}.{self._protected_TFCPS_Tools_General.get_version_of_codeunit(self.get_codeunit_file())}.sbom.xml"
+        relative_path_to_bom_file = f"Other/Artifacts/BOM/{os.path.basename(self.get_codeunit_folder())}.{self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file())}.sbom.xml"
         self._protected_sc.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file {relative_path_to_bom_file}", self.get_codeunit_folder())
         self._protected_sc.format_xml_file(self.get_codeunit_folder()+"/"+relative_path_to_bom_file)
 
 class TFCPS_CodeUnitSpecific_NodeJS_CLI:
  
     @staticmethod
-    def parse(file:str,args:list[str])->TFCPS_CodeUnitSpecific_NodeJS_Functions:
+    def parse(file:str)->TFCPS_CodeUnitSpecific_NodeJS_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()

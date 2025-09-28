@@ -1,6 +1,6 @@
 import unittest
 from ..ScriptCollection.ScriptCollectionCore import ScriptCollectionCore
-from ..ScriptCollection.TFCPS_Tools_General import TFCPS_Tools_General
+from ..ScriptCollection.TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
 
 
 class TasksForCommonProjectStructureTests(unittest.TestCase):

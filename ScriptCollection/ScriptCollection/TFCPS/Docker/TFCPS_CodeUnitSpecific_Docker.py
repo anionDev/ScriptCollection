@@ -1,7 +1,7 @@
 import os
-from .GeneralUtilities import GeneralUtilities
-from .SCLog import  LogLevel
-from .TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
+from ...GeneralUtilities import GeneralUtilities
+from ...SCLog import  LogLevel
+from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
 class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
@@ -17,8 +17,8 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunit_folder =self.get_codeunit_folder()
         codeunitname_lower = codeunitname.lower()
         codeunit_file =self.get_codeunit_file()
-        codeunitversion = self._protected_TFCPS_Tools_General.get_version_of_codeunit(codeunit_file)
-        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self._protected_TFCPS_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self._protected_TFCPS_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}"]
+        codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)
+        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}"]
         custom_arguments:dict[str,str]={}#TODO must be setable from outside
         if custom_arguments is not None:
             for custom_argument_key, custom_argument_value in custom_arguments.items():
@@ -47,7 +47,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
         codeunitname_lower = codeunitname.lower()
         sbom_folder = os.path.join(artifacts_folder, "BOM")
-        codeunitversion = self._protected_TFCPS_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
+        codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
         GeneralUtilities.ensure_directory_exists(sbom_folder)
         self._protected_sc.run_program_argsasarray("docker", ["sbom", "--format", "cyclonedx", f"{codeunitname_lower}:{codeunitversion}", "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, print_errors_as_information=True)
         self._protected_sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
@@ -75,7 +75,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 class TFCPS_CodeUnitSpecific_Python_CLI:
 
     @staticmethod
-    def parse(file:str,args:list[str])->TFCPS_CodeUnitSpecific_Docker_Functions:
+    def parse(file:str)->TFCPS_CodeUnitSpecific_Docker_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()

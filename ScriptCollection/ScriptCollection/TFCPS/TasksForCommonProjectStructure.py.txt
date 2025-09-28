@@ -9,7 +9,6 @@ import math
 import tarfile
 import re
 import sys
-import urllib.request
 import zipfile
 import json
 import configparser
@@ -28,90 +27,6 @@ from .ProgramRunnerEpew import ProgramRunnerEpew
 from .ImageUpdater import ImageUpdater, VersionEcholon
 
 #entire file is obsolete and should be replaced by new TFCPS-files
-
-
-class CreateReleaseConfiguration():
-    projectname: str
-    remotename: str
-    artifacts_folder: str
-    push_artifacts_scripts_folder: str
-    reference_repository_remote_name: str = None
-    reference_repository_branch_name: str = "main"
-    build_repository_branch: str = "main"
-    public_repository_url: str
-    additional_arguments_file: str = None
-    repository_folder_name: str = None
-    repository_folder: str = None
-    sc: ScriptCollectionCore = None
-
-    def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str, repository_folder: str, additional_arguments_file: str, repository_folder_name: str):
-        self.sc = ScriptCollectionCore()
-        self.projectname = projectname
-        self.remotename = remotename
-        self.artifacts_folder = build_artifacts_target_folder
-        self.push_artifacts_scripts_folder = push_artifacts_scripts_folder
-        if self.remotename is None:
-            self.public_repository_url = None
-        else:
-            self.public_repository_url = self.sc.git_get_remote_url(repository_folder, remotename)
-        self.reference_repository_remote_name = self.remotename
-        self.additional_arguments_file = additional_arguments_file
-        self.repository_folder = repository_folder
-        self.repository_folder_name = repository_folder_name
-
-
-class CreateReleaseInformationForProjectInCommonProjectFormat:
-    projectname: str
-    repository: str
-    artifacts_folder: str
-    reference_repository: str = None
-    public_repository_url: str = None
-    target_branch_name: str = None
-    push_artifacts_scripts_folder: str = None
-    target_environmenttype_for_qualitycheck: str = "QualityCheck"
-    target_environmenttype_for_productive: str = "Productive"
-    additional_arguments_file: str = None
-    export_target: str = None
-    sc:ScriptCollectionCore=None
-
-    def __init__(self, repository: str, artifacts_folder: str, projectname: str, public_repository_url: str, target_branch_name: str, additional_arguments_file: str, export_target: str, push_artifacts_scripts_folder: str,sc:ScriptCollectionCore):
-        self.repository = repository
-        self.sc=sc
-        self.public_repository_url = public_repository_url
-        self.target_branch_name = target_branch_name
-        self.artifacts_folder = artifacts_folder
-        self.additional_arguments_file = additional_arguments_file
-        self.export_target = export_target
-        self.push_artifacts_scripts_folder = push_artifacts_scripts_folder
-        if projectname is None:
-            projectname = os.path.basename(self.repository)
-        else:
-            self.projectname = projectname
-        self.reference_repository = f"{repository}Reference"
-
-
-class MergeToStableBranchInformationForProjectInCommonProjectFormat:
-    repository: str
-    sourcebranch: str = "main"
-    targetbranch: str = "stable"
-    sign_git_tags: bool = True
-    target_environmenttype_for_qualitycheck: str = "QualityCheck"
-    target_environmenttype_for_productive: str = "Productive"
-    additional_arguments_file: str = None
-    export_target: str = None
-
-    push_source_branch: bool = False
-    push_source_branch_remote_name: str = None
-    push_target_branch: bool = False
-    push_target_branch_remote_name: str = None
-
-    sc:ScriptCollectionCore=None
-
-    def __init__(self, repository: str, additional_arguments_file: str, export_target: str,sc:ScriptCollectionCore):
-        self.repository = repository
-        self.additional_arguments_file = additional_arguments_file
-        self.export_target = export_target
-        self.sc=sc
 
 
 class TasksForCommonProjectStructure:
@@ -331,191 +246,11 @@ class TasksForCommonProjectStructure:
                     return result
         return result
 
-    @GeneralUtilities.check_arguments
-    def t4_transform(self, commontasks_script_file_of_current_file: str, ignore_git_ignored_files: bool = True):
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", commontasks_script_file_of_current_file)
-        self.__ensure_grylibrary_is_available(codeunit_folder)
-        repository_folder: str = os.path.dirname(codeunit_folder)
-        codeunitname: str = os.path.basename(codeunit_folder)
-        codeunit_folder = os.path.join(repository_folder, codeunitname)
-        for search_result in Path(codeunit_folder).glob('**/*.tt'):
-            tt_file = str(search_result)
-            relative_path_to_tt_file_from_repository = str(Path(tt_file).relative_to(repository_folder))
-            if (not ignore_git_ignored_files) or (ignore_git_ignored_files and not self.__sc.file_is_git_ignored(relative_path_to_tt_file_from_repository, repository_folder)):
-                relative_path_to_tt_file_from_codeunit_file = str(Path(tt_file).relative_to(codeunit_folder))
-                argument = [f"--parameter=repositoryFolder={repository_folder}", f"--parameter=codeUnitName={codeunitname}", relative_path_to_tt_file_from_codeunit_file]
-                self.__sc.run_program_argsasarray("t4", argument, codeunit_folder)
-
-    @GeneralUtilities.check_arguments
-    def get_resource_from_global_resource(self, codeunit_folder: str, resource_name: str):
-        repository_folder: str = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
-        source_folder: str = os.path.join(repository_folder, "Other", "Resources", resource_name)
-        target_folder: str = os.path.join(codeunit_folder, "Other", "Resources", resource_name)
-        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-        GeneralUtilities.copy_content_of_folder(source_folder, target_folder)
-
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str,args: list[str]):
         pass  # TODO
 
-
-    @GeneralUtilities.check_arguments
-    def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str, repository: str, codeunitname: str, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
-        codeunit_folder = os.path.join(repository, codeunitname)
-        codeunit_file = os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml")
-        codeunit_has_testcases = self.codeunit_has_testable_sourcecode(codeunit_file)
-        target_folder = os.path.join(target_folder_for_reference_repository, project_version_identifier, codeunitname)
-        if os.path.isdir(target_folder) and not replace_existing_content:
-            raise ValueError(f"Folder '{target_folder}' already exists.")
-        GeneralUtilities.ensure_directory_does_not_exist(target_folder)
-        GeneralUtilities.ensure_directory_exists(target_folder)
-        codeunit_version_identifier = "Latest" if project_version_identifier == "Latest" else "v"+codeunit_version
-        page_title = f"{codeunitname} {codeunit_version_identifier} codeunit-reference"
-        diff_report = f"{repository}/{codeunitname}/Other/Artifacts/DiffReport/DiffReport.html"
-        diff_target_folder = os.path.join(target_folder, "DiffReport")
-        GeneralUtilities.ensure_directory_exists(diff_target_folder)
-        diff_target_file = os.path.join(diff_target_folder, "DiffReport.html")
-        title = (f'Reference of codeunit {codeunitname} {codeunit_version_identifier} (contained in project <a href="{public_repository_url}">{projectname}</a> {project_version_identifier})')
-        if public_repository_url is None:
-            repo_url_html = GeneralUtilities.empty_string
-        else:
-            repo_url_html = f'<a href="{public_repository_url}/tree/{branch}/{codeunitname}">Source-code</a>'
-        if codeunit_has_testcases:
-            coverage_report_link = '<a href="./TestCoverageReport/index.html">Test-coverage-report</a><br>'
-        else:
-            coverage_report_link = GeneralUtilities.empty_string
-        index_file_for_reference = os.path.join(target_folder, "index.html")
-
-        design_file = None
-        design = "ModestDark"
-        if design == "ModestDark":
-            design_file = GeneralUtilities.get_modest_dark_url()
-        # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
-        if design_file is None:
-            design_html = GeneralUtilities.empty_string
-        else:
-            design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
-
-        index_file_content = f"""<!DOCTYPE html>
-<html lang="en">
-
-  <head>
-    <meta charset="UTF-8">
-    <title>{page_title}</title>
-    {design_html}
-  </head>
-
-  <body>
-    <h1>{title}</h1>
-    <hr/>
-    Available reference-content for {codeunitname}:<br>
-    {repo_url_html}<br>
-    <!--TODO add artefacts-link: <a href="./x">Artefacts</a><br>-->
-    <a href="./Reference/index.html">Reference</a><br>
-    <a href="./DiffReport/DiffReport.html">Diff-report</a><br>
-    {coverage_report_link}
-  </body>
-
-</html>
-"""
-
-        GeneralUtilities.ensure_file_exists(index_file_for_reference)
-        GeneralUtilities.write_text_to_file(index_file_for_reference, index_file_content)
-        other_folder_in_repository = os.path.join(repository, codeunitname, "Other")
-        source_generatedreference = os.path.join(other_folder_in_repository, "Artifacts", "Reference")
-        target_generatedreference = os.path.join(target_folder, "Reference")
-        shutil.copytree(source_generatedreference, target_generatedreference)
-
-        shutil.copyfile(diff_report, diff_target_file)
-
-        if codeunit_has_testcases:
-            source_testcoveragereport = os.path.join(other_folder_in_repository, "Artifacts", "TestCoverageReport")
-            if os.path.isdir(source_testcoveragereport):  # check, because it is not a mandatory artifact. if the artifact is not available, the user gets already a warning.
-                target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
-                shutil.copytree(source_testcoveragereport, target_testcoveragereport)
-
-    @GeneralUtilities.check_arguments
-    def __standardized_tasks_release_artifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
-        self.__log.log("Release artifacts...")
-        project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
-        target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
-        GeneralUtilities.ensure_directory_exists(target_folder_base)
-
-        self.build_codeunits(information.repository, information. information.target_environmenttype_for_productive, information.additional_arguments_file, False, information.export_target, [], True, "Generate artifacts")  # Generate artifacts after merge (because now are constants like commit-id of the new version available)
-
-        reference_folder = os.path.join(information.reference_repository, "ReferenceContent")
-
-        for codeunitname in self.get_codeunits(information.repository):
-            # Push artifacts to registry
-            self.__log.log(f"Push artifacts of {codeunitname}...",LogLevel.Debug)
-            scriptfilename = f"PushArtifacts.{codeunitname}.py"
-            push_artifact_to_registry_script = os.path.join(information.push_artifacts_scripts_folder, scriptfilename)
-            if os.path.isfile(push_artifact_to_registry_script):
-                self.__log.log(f"Push artifacts of codeunit {codeunitname}...")
-                self.__sc.run_program("python", push_artifact_to_registry_script, information.push_artifacts_scripts_folder, throw_exception_if_exitcode_is_not_zero=True)
-
-            # Copy reference of codeunit to reference-repository
-            codeunit_version = self.get_version_of_codeunit_folder(os.path.join(information.repository, codeunitname))
-            self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, information.repository, codeunitname, information.projectname, codeunit_version, information.public_repository_url, f"v{project_version}")
-            self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, information.repository, codeunitname, information.projectname, codeunit_version, information.public_repository_url, information.target_branch_name)
-
-            # Generate reference
-            self.__generate_entire_reference(information.projectname, project_version, reference_folder)
-
-    @GeneralUtilities.check_arguments
-    def __generate_entire_reference(self, projectname: str, project_version: str, reference_folder: str) -> None:
-        all_available_version_identifier_folders_of_reference: list[str] = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
-        all_available_version_identifier_folders_of_reference = sorted(all_available_version_identifier_folders_of_reference, key=cmp_to_key(TasksForCommonProjectStructure._internal_sort_reference_folder))
-        reference_versions_html_lines = []
-        reference_versions_html_lines.append('    <hr/>')
-        for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
-            version_identifier_of_project = os.path.basename(all_available_version_identifier_folder_of_reference)
-            if version_identifier_of_project == "Latest":
-                latest_version_hint = f" (v{project_version})"
-            else:
-                latest_version_hint = GeneralUtilities.empty_string
-            reference_versions_html_lines.append(f'    <h2>{version_identifier_of_project}{latest_version_hint}</h2>')
-            reference_versions_html_lines.append("    Contained codeunits:<br/>")
-            reference_versions_html_lines.append("    <ul>")
-            for codeunit_reference_folder in list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(all_available_version_identifier_folder_of_reference)):
-                reference_versions_html_lines.append(f'      <li><a href="./{version_identifier_of_project}/{os.path.basename(codeunit_reference_folder)}/index.html">' +
-                                                     f'{os.path.basename(codeunit_reference_folder)} {version_identifier_of_project}</a></li>')
-            reference_versions_html_lines.append("    </ul>")
-            reference_versions_html_lines.append('    <hr/>')
-            if version_identifier_of_project == "Latest":
-                latest_version_hint = "    <h2>History</h2>"
-
-        design_file = None
-        design = "ModestDark"
-        if design == "ModestDark":
-            design_file = GeneralUtilities.get_modest_dark_url()
-        # TODO make designs from customizable sources be available by a customizable name and outsource this to a class-property because this is duplicated code.
-        if design_file is None:
-            design_html = GeneralUtilities.empty_string
-        else:
-            design_html = f'<link type="text/css" rel="stylesheet" href="{design_file}" />'
-
-        reference_versions_links_file_content = "    \n".join(reference_versions_html_lines)
-        title = f"{projectname}-reference"
-        reference_index_file = os.path.join(reference_folder, "index.html")
-        reference_index_file_content = f"""<!DOCTYPE html>
-<html lang="en">
-
-  <head>
-    <meta charset="UTF-8">
-    <title>{title}</title>
-    {design_html}
-  </head>
-
-  <body>
-    <h1>{title}</h1>
-{reference_versions_links_file_content}
-  </body>
-
-</html>
-"""  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
-        GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
     @GeneralUtilities.check_arguments
     def push_nuget_build_artifact(self, push_script_file: str, codeunitname: str, registry_address: str, repository_folder_name: str, api_key: str):
@@ -527,32 +262,6 @@ class TasksForCommonProjectStructure:
     def assert_no_uncommitted_changes(self, repository_folder: str):
         if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
             raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
-
-    @GeneralUtilities.check_arguments
-    def ensure_certificate_authority_for_development_purposes_is_generated(self, product_folder: str):
-        product_name: str = os.path.basename(product_folder)
-        now = GeneralUtilities.get_now()
-        ca_name = f"{product_name}CA_{now.year:04}{now.month:02}{now.day:02}{now.hour:02}{now.min:02}{now.second:02}"
-        ca_folder = os.path.join(product_folder, "Other", "Resources", "CA")
-        generate_certificate = True
-        if os.path.isdir(ca_folder):
-            ca_files = [file for file in GeneralUtilities.get_direct_files_of_folder(ca_folder) if file.endswith(".crt")]
-            if len(ca_files) > 0:
-                ca_file = ca_files[-1]  # pylint:disable=unused-variable
-                certificate_is_valid = True  # TODO check if certificate is really valid
-                generate_certificate = not certificate_is_valid
-        if generate_certificate:
-            self.__sc.generate_certificate_authority(ca_folder, ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-        # TODO add switch to auto-install the script if desired
-        # for windows: powershell Import-Certificate -FilePath ConSurvCA_20241121000236.crt -CertStoreLocation 'Cert:\CurrentUser\Root'
-        # for linux: (TODO)
-
-    @GeneralUtilities.check_arguments
-    def generate_certificate_for_development_purposes_for_product(self, repository_folder: str):
-        self.__sc.assert_is_git_repository(repository_folder)
-        product_name = os.path.basename(repository_folder)
-        ca_folder: str = os.path.join(repository_folder, "Other", "Resources", "CA")
-        self.__generate_certificate_for_development_purposes(product_name, os.path.join(repository_folder, "Other", "Resources"), ca_folder, None)
 
     @GeneralUtilities.check_arguments
     def generate_certificate_for_development_purposes_for_external_service(self, service_folder: str, domain: str = None):
@@ -567,33 +276,6 @@ class TasksForCommonProjectStructure:
         self.ensure_product_resource_is_imported(codeunit_folder, "CA")
         ca_folder: str = os.path.join(codeunit_folder, "Other", "Resources", "CA")
         self.__generate_certificate_for_development_purposes(codeunit_name, os.path.join(codeunit_folder, "Other", "Resources"), ca_folder, domain)
-
-    @GeneralUtilities.check_arguments
-    def __generate_certificate_for_development_purposes(self, service_name: str, resources_folder: str, ca_folder: str, domain: str = None):
-        if domain is None:
-            domain = f"{service_name}.test.local"
-        domain = domain.lower()
-        resource_name: str = "DevelopmentCertificate"
-        certificate_folder: str = os.path.join(resources_folder, resource_name)
-
-        resource_content_filename: str = service_name+resource_name
-        certificate_file = os.path.join(certificate_folder, f"{domain}.crt")
-        unsignedcertificate_file = os.path.join(certificate_folder, f"{domain}.unsigned.crt")
-        certificate_exists = os.path.exists(certificate_file)
-        if certificate_exists:
-            certificate_expired = GeneralUtilities.certificate_is_expired(certificate_file)
-            generate_new_certificate = certificate_expired
-        else:
-            generate_new_certificate = True
-        if generate_new_certificate:
-            GeneralUtilities.ensure_directory_does_not_exist(certificate_folder)
-            GeneralUtilities.ensure_directory_exists(certificate_folder)
-            self.__log.log("Generate TLS-certificate for development-purposes.")
-            self.__sc.generate_certificate(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-            self.__sc.generate_certificate_sign_request(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
-            ca_name = os.path.basename(self.__sc.find_last_file_by_extension(ca_folder, "crt"))[:-4]
-            self.__sc.sign_certificate(certificate_folder, ca_folder, ca_name, domain, resource_content_filename)
-            GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
 
     @GeneralUtilities.check_arguments
     def copy_product_resource_to_codeunit_resource_folder(self, codeunit_folder: str, resourcename: str) -> None:
@@ -617,65 +299,6 @@ class TasksForCommonProjectStructure:
 
 
 
-    @GeneralUtilities.check_arguments
-    def merge_to_main_branch(self, repository_folder: str, source_branch: str = "other/next-release", target_branch: str = "main" , additional_arguments_file: str = None, fast_forward_source_branch: bool = False) -> None:
-        # This is an automatization for automatic merges. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
-        # (like GitHub, GitLab or Azure DevOps)
-        self.__log.log(f"Merge to main-branch...")
-        self.__sc.assert_is_git_repository(repository_folder)
-        self.assert_no_uncommitted_changes(repository_folder)
-
-        src_branch_commit_id = self.__sc.git_get_commit_id(repository_folder,  source_branch)
-        if (src_branch_commit_id == self.__sc.git_get_commit_id(repository_folder,  target_branch)):
-            raise ValueError(f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
-
-        self.__sc.git_checkout(repository_folder, source_branch)
-        self.build_codeunits(repository_folder, TasksForCommonProjectStructure.get_qualitycheck_environment_name(), additional_arguments_file, True, None, [], True, "Check if product is buildable")
-        self.__sc.git_merge(repository_folder, source_branch, target_branch, False, False, None, False, False)
-        self.__sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
-        self.__sc.git_checkout(repository_folder, target_branch)
-        if fast_forward_source_branch:
-            self.__sc.git_merge(repository_folder, target_branch, source_branch, True, True)
-
-    @GeneralUtilities.check_arguments
-    def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfiguration):
-
-        self.__log.log(f"Create release for project {createRelease_configuration.projectname}.")
-        self.__log.log(f"Merge to stable-branch...")
-        self.__sc.assert_is_git_repository(createRelease_configuration.repository_folder)
-        folder_of_create_release_file_file = os.path.abspath(os.path.dirname(create_release_file))
-
-        build_repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..", folder_of_create_release_file_file)
-        self.assert_no_uncommitted_changes(build_repository_folder)
-
-        repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createRelease_configuration.repository_folder_name}", build_repository_folder)
-        mergeInformation = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.additional_arguments_file, createRelease_configuration.artifacts_folder)
-        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.artifacts_folder, createRelease_configuration.projectname, createRelease_configuration.public_repository_url, mergeInformation.targetbranch, mergeInformation.additional_arguments_file, mergeInformation.export_target, createRelease_configuration.push_artifacts_scripts_folder,self.sc)
-        createReleaseInformation.sc = createRelease_configuration.sc
-
-        self.__sc.git_checkout(build_repository_folder, createRelease_configuration.build_repository_branch)
-        self.__sc.git_checkout(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_branch_name)
-
-        self.__sc.assert_is_git_repository(repository_folder)
-        self.__sc.assert_is_git_repository(createReleaseInformation.reference_repository)
-
-        # TODO check if repository_folder-merge-source-branch and repository_folder-merge-target-branch have different commits
-        self.assert_no_uncommitted_changes(repository_folder)
-        mergeInformation.sc = createRelease_configuration.sc
-        mergeInformation.push_target_branch = createRelease_configuration.remotename is not None
-        mergeInformation.push_target_branch_remote_name = createRelease_configuration.remotename
-        mergeInformation.push_source_branch = createRelease_configuration.remotename is not None
-        mergeInformation.push_source_branch_remote_name = createRelease_configuration.remotename
-        new_project_version = self.__standardized_tasks_merge_to_stable_branch(mergeInformation)
-
-        self.__standardized_tasks_release_artifact(createReleaseInformation)
-
-        GeneralUtilities.assert_condition(createRelease_configuration.reference_repository_remote_name is not None, "Remote for reference-repository not set.")
-        self.__sc.git_commit(createReleaseInformation.reference_repository, f"Added reference of {createRelease_configuration.projectname} v{new_project_version}")
-        self.__sc.git_push_with_retry(createReleaseInformation.reference_repository, createRelease_configuration.reference_repository_remote_name, createRelease_configuration.reference_repository_branch_name, createRelease_configuration.reference_repository_branch_name)
-        self.__sc.git_commit(build_repository_folder, f"Added {createRelease_configuration.projectname} release v{new_project_version}")
-        self.__log.log(f"Finished release for project {createRelease_configuration.projectname} v{new_project_version} successfully.")
-        return new_project_version
 
     @GeneralUtilities.check_arguments
     def create_release_starter_for_repository_in_standardized_format(self, create_release_file: str, logfile: str, addLogOverhead: bool):
@@ -685,34 +308,6 @@ class TasksForCommonProjectStructure:
         result = self.__sc.run_program("python", f"CreateRelease.py --overwrite_verbosity {str(int(self.__log.loglevel))}", folder_of_this_file, log_file=logfile, addLogOverhead=addLogOverhead, print_live_output=True, throw_exception_if_exitcode_is_not_zero=False)
         if result[0] != 0:
             raise ValueError(f"CreateRelease.py resulted in exitcode {result[0]}.")
-
-    @GeneralUtilities.check_arguments
-    def __standardized_tasks_merge_to_stable_branch(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
-        src_branch_commit_id = self.__sc.git_get_commit_id(information.repository,  information.sourcebranch)
-        if (src_branch_commit_id == self.__sc.git_get_commit_id(information.repository,  information.targetbranch)):
-            raise ValueError(f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
-
-        self.assert_no_uncommitted_changes(information.repository)
-        self.__sc.git_checkout(information.repository, information.sourcebranch)
-        self.__sc.run_program("git", "clean -dfx", information.repository,  throw_exception_if_exitcode_is_not_zero=True)
-        project_version = self.__sc.get_semver_version_from_gitversion(information.repository)
-
-        self.build_codeunits(information.repository, information. information.target_environmenttype_for_qualitycheck, information.additional_arguments_file, False, information.export_target, [], True, "Productive build")  # verify hat codeunits are buildable with productive-config before merge
-
-        self.assert_no_uncommitted_changes(information.repository)
-
-        commit_id = self.__sc.git_merge(information.repository, information.sourcebranch, information.targetbranch, True, True)
-        self.__sc.git_create_tag(information.repository, commit_id, f"v{project_version}", information.sign_git_tags)
-
-        if information.push_source_branch:
-            self.__log.log("Push source-branch...")
-            self.__sc.git_push_with_retry(information.repository, information.push_source_branch_remote_name, information.sourcebranch, information.sourcebranch, pushalltags=True)
-
-        if information.push_target_branch:
-            self.__log.log("Push target-branch...")
-            self.__sc.git_push_with_retry(information.repository, information.push_target_branch_remote_name, information.targetbranch, information.targetbranch, pushalltags=True)
-
-        return project_version
 
 
     @GeneralUtilities.check_arguments
@@ -774,24 +369,6 @@ class TasksForCommonProjectStructure:
                 return True
         return False
 
-    @GeneralUtilities.check_arguments
-    def get_versions(self, repository_folder: str) -> list[tuple[str, datetime, datetime]]:
-        self.__sc.assert_is_git_repository(repository_folder)
-        folder = os.path.join(repository_folder, "Other", "Resources", "Support")
-        file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
-        result: list[(str, datetime, datetime)] = list[(str, datetime, datetime)]()
-        if not os.path.isfile(file):
-            return result
-        entries = GeneralUtilities.read_csv_file(file, True)
-        for entry in entries:
-            d1 = GeneralUtilities.string_to_datetime(entry[1])
-            if d1.tzinfo is None:
-                d1 = d1.replace(tzinfo=timezone.utc)
-            d2 = GeneralUtilities.string_to_datetime(entry[2])
-            if d2.tzinfo is None:
-                d2 = d2.replace(tzinfo=timezone.utc)
-            result.append((entry[0], d1, d2))
-        return result
 
     @GeneralUtilities.check_arguments
     def get_supported_versions(self, repository_folder: str, moment: datetime) -> list[tuple[str, datetime, datetime]]:
@@ -799,15 +376,6 @@ class TasksForCommonProjectStructure:
         result: list[tuple[str, datetime, datetime]] = list[tuple[str, datetime, datetime]]()
         for entry in self.get_versions(repository_folder):
             if entry[1] <= moment and moment <= entry[2]:
-                result.append(entry)
-        return result
-
-    @GeneralUtilities.check_arguments
-    def get_unsupported_versions(self, repository_folder: str, moment: datetime) -> list[tuple[str, datetime, datetime]]:
-        self.__sc.assert_is_git_repository(repository_folder)
-        result: list[tuple[str, datetime, datetime]] = list[tuple[str, datetime, datetime]]()
-        for entry in self.get_versions(repository_folder):
-            if not (entry[1] <= moment and moment <= entry[2]):
                 result.append(entry)
         return result
 
@@ -872,66 +440,9 @@ class TasksForCommonProjectStructure:
 
         self.run_testcases_common_post_task(repository_folder, codeunit_name, generate_badges, build_environment_target_type, args)
 
-    def __testcoverage_for_flutter_project_merge_packages(self, coverage_file: str):
-        tree = etree.parse(coverage_file)
-        root = tree.getroot()
-
-        packages = root.findall("./packages/package")
-
-        all_classes = []
-        for pkg in packages:
-            classes = pkg.find("classes")
-            if classes is not None:
-                all_classes.extend(classes.findall("class"))
-        new_package = etree.Element("package", name="Malno")
-        new_classes = etree.SubElement(new_package, "classes")
-        for cls in all_classes:
-            new_classes.append(cls)
-        packages_node = root.find("./packages")
-        packages_node.clear()
-        packages_node.append(new_package)
-        tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-
-    def __testcoverage_for_flutter_project_calculate_line_rate(self, coverage_file: str):
-        tree = etree.parse(coverage_file)
-        root = tree.getroot()
-        package = root.find("./packages/package")
-        if package is None:
-            raise RuntimeError("No <package>-Element found")
-
-        line_elements = package.findall(".//line")
-
-        amount_of_lines = 0
-        amount_of_hited_lines = 0
-
-        for line in line_elements:
-            amount_of_lines += 1
-            hits = int(line.get("hits", "0"))
-            if hits > 0:
-                amount_of_hited_lines += 1
-        line_rate = amount_of_hited_lines / amount_of_lines if amount_of_lines > 0 else 0.0
-        package.set("line-rate", str(line_rate))
-        tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_run_testcases_for_angular_codeunit(self, runtestcases_script_file: str, build_environment_target_type: str, generate_badges: bool) -> None:
-
-    @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str, force: bool = 1) -> None:
-        argument1 = "install"
-        if force:
-            argument1 = f"{argument1} --force"
-        self.run_with_epew("npm", argument1, package_json_folder)
-
-        argument2 = "install --package-lock-only"
-        if force:
-            argument2 = f"{argument2} --force"
-        self.run_with_epew("npm", argument2, package_json_folder)
-
-        argument3 = "clean-install"
-        if force:
-            argument3 = f"{argument3} --force"
-        self.run_with_epew("npm", argument3, package_json_folder)
 
     @GeneralUtilities.check_arguments
     def copy_development_certificate_to_default_development_directory(self, codeunit_folder: str, build_environment: str, domain: str = None, certificate_resource_name: str = "DevelopmentCertificate") -> None:
@@ -969,25 +480,6 @@ class TasksForCommonProjectStructure:
             certificate = crypto.load_certificate(crypto.FILETYPE_PEM, text_wrapper.read())
         certificate_publickey = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey()).decode("utf-8")
         self.set_constant(codeunit_folder, source_constant_name+"PublicKey", certificate_publickey)
-
-    @GeneralUtilities.check_arguments
-    def set_constants_for_certificate_private_information(self, codeunit_folder: str) -> None:
-        """Expects a certificate-resource and generates a constant for its sensitive information in hex-format"""
-        self.assert_is_codeunit_folder(codeunit_folder)
-        codeunit_name = os.path.basename(codeunit_folder)
-        resource_name: str = "DevelopmentCertificate"
-        filename: str = codeunit_name+"DevelopmentCertificate"
-        self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.pfx", "PFX")
-        self.generate_constant_from_resource_by_filename(codeunit_folder, resource_name, f"{filename}.password", "Password")
-
-    @GeneralUtilities.check_arguments
-    def generate_constant_from_resource_by_filename(self, codeunit_folder: str, resource_name: str, filename: str, constant_name: str) -> None:
-        self.assert_is_codeunit_folder(codeunit_folder)
-        certificate_resource_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resource_name}", codeunit_folder)
-        resource_file = os.path.join(certificate_resource_folder, filename)
-        resource_file_content = GeneralUtilities.read_binary_from_file(resource_file)
-        resource_file_as_hex = resource_file_content.hex()
-        self.set_constant(codeunit_folder, f"{resource_name}{constant_name}Hex", resource_file_as_hex)
 
     @GeneralUtilities.check_arguments
     def generate_constant_from_resource_by_extension(self, codeunit_folder: str, resource_name: str, extension: str, constant_name: str) -> None:
@@ -1561,67 +1053,6 @@ class TasksForCommonProjectStructure:
             GeneralUtilities.write_text_to_file(version_file, latest_version_function)
 
     @GeneralUtilities.check_arguments
-    def __ensure_grylibrary_is_available(self, codeunit_folder: str) -> None:
-        self.assert_is_codeunit_folder(codeunit_folder)
-        grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
-        grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
-        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
-        grylibrary_dll_file_exists = os.path.isfile(grylibrary_dll_file)
-        if internet_connection_is_available:  # Load/Update GRYLibrary
-            grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
-            with urllib.request.urlopen(grylibrary_latest_codeunit_file) as url_result:
-                grylibrary_latest_version = self.get_version_of_codeunit_file_content(url_result.read().decode("utf-8"))
-            if grylibrary_dll_file_exists:
-                grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
-                grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
-                if grylibrary_existing_codeunit_version != grylibrary_latest_version:
-                    GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
-            if not os.path.isfile(grylibrary_dll_file):
-                GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
-                GeneralUtilities.ensure_directory_exists(grylibrary_folder)
-                archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
-                archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
-                archive_file = os.path.join(grylibrary_folder, archive_name)
-                urllib.request.urlretrieve(archive_download_link, archive_file)
-                with zipfile.ZipFile(archive_file, 'r') as zip_ref:
-                    zip_ref.extractall(grylibrary_folder)
-                GeneralUtilities.ensure_file_does_not_exist(archive_file)
-        else:
-            if grylibrary_dll_file_exists:
-                self.__log.log("Can not check for updates of GRYLibrary due to missing internet-connection.")
-            else:
-                raise ValueError("Can not download GRYLibrary.")
-
-    @GeneralUtilities.check_arguments
-    def ensure_ffmpeg_is_available(self, codeunit_folder: str) -> None:
-        self.assert_is_codeunit_folder(codeunit_folder)
-        ffmpeg_folder = os.path.join(codeunit_folder, "Other", "Resources", "FFMPEG")
-        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
-        exe_file = f"{ffmpeg_folder}/ffmpeg.exe"
-        exe_file_exists = os.path.isfile(exe_file)
-        if internet_connection_is_available:  # Load/Update
-            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_folder)
-            GeneralUtilities.ensure_directory_exists(ffmpeg_folder)
-            ffmpeg_temp_folder = ffmpeg_folder+"Temp"
-            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
-            GeneralUtilities.ensure_directory_exists(ffmpeg_temp_folder)
-            zip_file_on_disk = os.path.join(ffmpeg_temp_folder, "ffmpeg.zip")
-            original_zip_filename = "ffmpeg-master-latest-win64-gpl-shared"
-            zip_link = f"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{original_zip_filename}.zip"
-            urllib.request.urlretrieve(zip_link, zip_file_on_disk)
-            shutil.unpack_archive(zip_file_on_disk, ffmpeg_temp_folder)
-            bin_folder_source = os.path.join(ffmpeg_temp_folder, "ffmpeg-master-latest-win64-gpl-shared/bin")
-            bin_folder_target = ffmpeg_folder
-            GeneralUtilities.copy_content_of_folder(bin_folder_source, bin_folder_target)
-            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
-        else:
-            if exe_file_exists:
-                self.__log.log("Can not check for updates of FFMPEG due to missing internet-connection.")
-            else:
-                raise ValueError("Can not download FFMPEG.")
-
-
-    @GeneralUtilities.check_arguments
     def load_deb_control_file_content(self, file: str, codeunitname: str, codeunitversion: str, installedsize: int, maintainername: str, maintaineremail: str, description: str,) -> str:
         content = GeneralUtilities.read_text_from_file(file)
         content = GeneralUtilities.replace_variable_in_string(content, "codeunitname", codeunitname)
@@ -1735,112 +1166,6 @@ class TasksForCommonProjectStructure:
         self.build_codeunits(repository_folder, "QualityCheck", None, False, None, [], False, "Build all codeunits due to updated dependencies")
         self.__sc.git_commit(repository_folder, "Updated dependencies")
 
-    class GenericPrepareNewReleaseArguments:
-        current_file: str
-        product_name: str
-        commandline_arguments: list[str]
-
-        def __init__(self, current_file: str, product_name: str):
-            self.current_file = current_file
-            self.product_name = product_name
-            self.commandline_arguments = commandline_arguments
-
-    @GeneralUtilities.check_arguments
-    def generic_prepare_new_release(self, generic_prepare_new_release_arguments: GenericPrepareNewReleaseArguments):
-        self.__log.log(f"Prepare release for {generic_prepare_new_release_arguments.product_name}.")
-
-        # constants
-        folder_of_this_file = os.path.dirname(generic_prepare_new_release_arguments.current_file)
-        build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
-        self.__sc.assert_is_git_repository(build_repository_folder)
-
-        repository_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_prepare_new_release_arguments.product_name}", folder_of_this_file)
-        self.__sc.assert_is_git_repository(repository_folder)
-        reference_folder = repository_folder+"Reference"
-        self.__sc.assert_is_git_repository(reference_folder)
-
-        merge_source_branch = "other/next-release"  # maybe this should be configurable
-        main_branch = "main"  # maybe this should be configurable
-
-        # prepare
-        self.assert_no_uncommitted_changes(repository_folder)
-        self.assert_no_uncommitted_changes(reference_folder)
-        self.assert_no_uncommitted_changes(build_repository_folder)
-        self.__sc.git_checkout(build_repository_folder, "main", True)
-        self.__sc.git_checkout(repository_folder, merge_source_branch, True)
-        self.__sc.git_checkout(reference_folder, "main", True)
-        self.assert_no_uncommitted_changes(repository_folder)
-        self.assert_no_uncommitted_changes(reference_folder)
-        self.__sc.git_commit(build_repository_folder, "Updated submodules")
-
-        if "--dependencyupdate" in generic_prepare_new_release_arguments.commandline_arguments:
-            self.__log.log("Debug: Update dependencies...")
-            self.generic_update_dependencies(repository_folder)
-            self.assert_no_uncommitted_changes(repository_folder)
-        else:
-            self.__log.log("Dependency-update skipped.",LogLevel.Debug)
-
-        self.__log.log(f"Check reference-repository...")
-        now = GeneralUtilities.get_now()
-        for unsupported_version in self.get_unsupported_versions(repository_folder, now):
-            reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version[0]}"
-            GeneralUtilities.ensure_directory_does_not_exist(reference_folder)
-        self.__sc.git_commit(reference_folder, "Removed reference of outdated versions.")
-
-        merge_source_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, merge_source_branch)
-        main_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, main_branch)
-        if merge_source_branch_commit_id == main_branch_commit_id:
-            self.__log.log("Release will not be prepared because there are no changed which can be released.")
-        else:
-            self.merge_to_main_branch(repository_folder, merge_source_branch,  fast_forward_source_branch=True)
-            self.__sc.git_commit(build_repository_folder, "Updated submodule due to merge to main-branch.")
-        self.__log.log(f"Finished prepare release for {generic_prepare_new_release_arguments.product_name}.")
-
-    class GenericCreateReleaseArguments():
-        current_file: str
-        product_name: str
-        common_remote_name: str
-        artifacts_target_folder: str
-        commandline_arguments: list[str]
-
-        def __init__(self, current_file: str, product_name: str, common_remote_name: str, artifacts_target_folder: str):
-            self.current_file = current_file
-            self.product_name = product_name
-            self.common_remote_name = common_remote_name
-            self.artifacts_target_folder = artifacts_target_folder
-            self.commandline_arguments = commandline_arguments
-
-    @GeneralUtilities.check_arguments
-    def generic_create_release(self, generic_create_release_arguments: GenericCreateReleaseArguments) -> tuple[bool, str]:
-        self.__log.log(f"Create release for {generic_create_release_arguments.product_name}.")
-        folder_of_this_file = os.path.dirname(generic_create_release_arguments.current_file)
-        build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
-        repository_folder_name = generic_create_release_arguments.product_name
-        repository_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{generic_create_release_arguments.product_name}", folder_of_this_file)
-        self.__sc.assert_is_git_repository(repository_folder)
-
-        merge_source_branch = "main"  # TODO make this configurable
-        main_branch = "stable"  # TODO make this configurable
-
-        additional_arguments_file = os.path.join(folder_of_this_file, "AdditionalArguments.configuration")
-        createReleaseConfiguration: CreateReleaseConfiguration = CreateReleaseConfiguration(generic_create_release_arguments.product_name, generic_create_release_arguments.common_remote_name, generic_create_release_arguments.artifacts_target_folder, folder_of_this_file, repository_folder, additional_arguments_file, repository_folder_name)
-
-        merge_source_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, merge_source_branch)
-        main_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, main_branch)
-        if merge_source_branch_commit_id == main_branch_commit_id:
-            self.__log.log("Release will not be done because there are no changed which can be released.")
-            return False, None
-        else:
-            self.__sc.git_checkout(repository_folder, merge_source_branch)
-            reference_repo: str = os.path.join(build_repository_folder, "Submodules", f"{generic_create_release_arguments.product_name}Reference")
-            self.__sc.git_commit(reference_repo, "Updated reference")
-            self.__sc.git_push_with_retry(reference_repo, generic_create_release_arguments.common_remote_name, "main", "main")
-            self.__sc.git_commit(build_repository_folder, "Updated submodule")
-
-            # create release
-            new_version = self.merge_to_stable_branch(generic_create_release_arguments.current_file, createReleaseConfiguration)
-            self.__log.log(f"Finished create release for {generic_create_release_arguments.product_name}.")
-            return True, new_version
 
     class UpdateHTTPDocumentationArguments:
         current_file: str
@@ -1911,45 +1236,6 @@ class TasksForCommonProjectStructure:
         excluded = ["opendms"]
         iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
         iu.check_for_newest_version(dockercomposefile, excluded)
-
-    @GeneralUtilities.check_arguments
-    def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None) -> None:
-        self.__log.log(f'Clone resource {resource_name}...')
-        resrepo_commit_id_folder: str = os.path.join(local_repository_folder, "Other", "Resources", f"{resource_name}Version")
-        resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resource_name}Version.txt")
-        latest_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)
-        resrepo_data_folder: str = os.path.join(local_repository_folder, "Other", "Resources", resource_name).replace("\\", "/")
-        current_version: str = None
-        resrepo_data_version: str = os.path.join(resrepo_data_folder, f"{resource_name}Version.txt")
-        if os.path.isdir(resrepo_data_folder):
-            if os.path.isfile(resrepo_data_version):
-                current_version = GeneralUtilities.read_text_from_file(resrepo_data_version)
-        if (current_version is None) or (current_version != latest_version):
-            target_folder: str = resrepo_data_folder
-            if repository_subname is not None:
-                target_folder = f"{resrepo_data_folder}/{repository_subname}"
-            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-            self.__sc.run_program("git", f"clone --recurse-submodules {remote_repository_link} {target_folder}")
-            self.__sc.run_program("git", f"checkout {latest_version}", target_folder)
-            GeneralUtilities.write_text_to_file(resrepo_data_version, latest_version)
-
-            git_folders: list[str] = []
-            git_files: list[str] = []
-            for dirpath, dirnames, filenames in os.walk(target_folder):
-                for dirname in dirnames:
-                    if dirname == ".git":
-                        full_path = os.path.join(dirpath, dirname)
-                        git_folders.append(full_path)
-                for filename in filenames:
-                    if filename == ".git":
-                        full_path = os.path.join(dirpath, filename)
-                        git_files.append(full_path)
-            for git_folder in git_folders:
-                if os.path.isdir(git_folder):
-                    GeneralUtilities.ensure_directory_does_not_exist(git_folder)
-            for git_file in git_files:
-                if os.path.isdir(git_file):
-                    GeneralUtilities.ensure_file_does_not_exist(git_file)
 
     def set_latest_version_for_clone_repository_as_resource(self, resourcename: str, github_link: str, branch: str = "main"):
         current_file = str(Path(__file__).absolute())
