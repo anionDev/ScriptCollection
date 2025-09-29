@@ -1,6 +1,4 @@
-import os
 import argparse
-from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
@@ -21,7 +19,7 @@ class TFCPS_Generic_Functions:
         self.sc=ScriptCollectionCore()
         self.sc.log.loglevel=self.verbosity
         self.tfcps_Tools_General=TFCPS_Tools_General(self.sc)
-        self.repository_folder=self.__search_repository_folder()
+        self.repository_folder=self.sc.search_repository_folder(script_file)
         self.targetenvironmenttype=targetenvironmenttype
         self.__use_cache=use_cache
         self.additionalargumentsfile=additionalargumentsfile
@@ -29,18 +27,6 @@ class TFCPS_Generic_Functions:
     def use_cache(self)->bool:
         return self.__use_cache
 
-    def __search_repository_folder(self)->str:
-        current_path:str=os.path.dirname(self.script_file)
-        enabled:bool=True
-        while enabled:
-            try:
-                current_path=GeneralUtilities.resolve_relative_path("..",current_path)
-                if self.sc.is_git_repository(current_path):
-                    return current_path
-            except:
-                enabled=False
-        raise ValueError(f"Can not find git-repository for folder \"{self.script_file}\".")
-    
 
 
 class TFCPS_Generic_CLI:

@@ -4,24 +4,27 @@ from ..SCLog import LogLevel
 from ..ScriptCollectionCore import ScriptCollectionCore
 from .TFCPS_Tools_General import TFCPS_Tools_General
 from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
+from .TFCPS_Generic import TFCPS_Generic_Functions
 
-class GenericPrepareNewReleaseArguments:
-    current_file: str
+class MergeToMainConfiguration:
     product_name: str
     merge_source_branch:str
     additional_arguments_file:str
     log_level:LogLevel
     main_branch:str
-    
+    repository_folder:str
+    tFCPS_Generic_Functions:TFCPS_Generic_Functions
+    sc:ScriptCollectionCore=ScriptCollectionCore()
     def __init__(self, current_file: str, product_name: str,merge_source_branch:str,log_level:LogLevel,additional_arguments_file:str,main_branch:str):
-        self.current_file = current_file
+        self.sc.log.loglevel=log_level
+        self.repository_folder = self.sc.search_repository_folder(current_file)
         self.product_name = product_name
         self.merge_source_branch=merge_source_branch
         self.additional_arguments_file=additional_arguments_file
         self.log_level=log_level
         self.main_branch=main_branch
 
-class TFCPS_DoRelease1_MergeToMain:
+class TFCPS_MergeToMain:
 
     sc:ScriptCollectionCore
     tFCPS_Tools_General:TFCPS_Tools_General
@@ -32,12 +35,12 @@ class TFCPS_DoRelease1_MergeToMain:
         self.tFCPS_Tools_General=TFCPS_Tools_General(self.sc)
 
     @GeneralUtilities.check_arguments
-    def generic_prepare_new_release(self, generic_prepare_new_release_arguments: GenericPrepareNewReleaseArguments):
+    def generic_prepare_new_release(self, generic_prepare_new_release_arguments: MergeToMainConfiguration):
         self.sc.log.loglevel=generic_prepare_new_release_arguments.log_level
         self.sc.log.log(f"Merge {generic_prepare_new_release_arguments.product_name} to main...")
 
         # constants
-        folder_of_this_file = os.path.dirname(generic_prepare_new_release_arguments.current_file)
+        folder_of_this_file = os.path.dirname(generic_prepare_new_release_arguments.__current_file)
         build_repository_folder = GeneralUtilities.resolve_relative_path("../..", folder_of_this_file)
         self.sc.assert_is_git_repository(build_repository_folder)
 
@@ -85,33 +88,37 @@ class TFCPS_DoRelease1_MergeToMain:
         self.sc.log.log(f"Finished merge {generic_prepare_new_release_arguments.product_name} to main branch.")
 
     @GeneralUtilities.check_arguments
-    def merge_to_main_branch(self, repository_folder: str, source_branch: str , target_branch: str, additional_arguments_file: str , fast_forward_source_branch: bool,generic_prepare_new_release_arguments:GenericPrepareNewReleaseArguments) -> None:
+    def merge_to_main_branch(self,  generic_prepare_new_release_arguments:MergeToMainConfiguration) -> None:
+        self.sc.log.loglevel=generic_prepare_new_release_arguments.log_level
+        fast_forward_source_branch: bool=True
+        source_branch: str=generic_prepare_new_release_arguments.merge_source_branch
+        target_branch: str=generic_prepare_new_release_arguments.main_branch
         # This is an automatization for automatic merges. Usual this merge would be done by a pull request in a sourcecode-version-control-platform
         # (like GitHub, GitLab or Azure DevOps)
         self.sc.log.log(f"Merge to main-branch...")
-        self.sc.assert_is_git_repository(repository_folder)
+        self.sc.assert_is_git_repository(generic_prepare_new_release_arguments.repository_folder)
 
-        src_branch_commit_id = self.sc.git_get_commit_id(repository_folder,  source_branch)
-        if (src_branch_commit_id == self.sc.git_get_commit_id(repository_folder,  target_branch)):
+        src_branch_commit_id = self.sc.git_get_commit_id(generic_prepare_new_release_arguments.repository_folder,  source_branch)
+        if (src_branch_commit_id == self.sc.git_get_commit_id(generic_prepare_new_release_arguments.repository_folder,  target_branch)):
             raise ValueError(f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
 
-        self.sc.assert_no_uncommitted_changes(repository_folder)
-        self.sc.git_checkout(repository_folder, source_branch)
-        self.sc.assert_no_uncommitted_changes(repository_folder)
+        self.sc.assert_no_uncommitted_changes(generic_prepare_new_release_arguments.repository_folder)
+        self.sc.git_checkout(generic_prepare_new_release_arguments.repository_folder, source_branch)
+        self.sc.assert_no_uncommitted_changes(generic_prepare_new_release_arguments.repository_folder)
 
-        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repository_folder,self.sc.log.loglevel,"QualityCheck",generic_prepare_new_release_arguments.additional_arguments_file,False,True)
+        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",generic_prepare_new_release_arguments.additional_arguments_file,False,True)
         try:
             tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
-            self.sc.git_undo_all_changes(repository_folder)
+            self.sc.git_undo_all_changes(generic_prepare_new_release_arguments.repository_folder)
             raise
 
-        self.sc.git_commit(repository_folder, f'Built codeunits', stage_all_changes=True, no_changes_behavior=0)
+        self.sc.git_commit(generic_prepare_new_release_arguments.repository_folder, f'Built codeunits', stage_all_changes=True, no_changes_behavior=0)
         
         keep:bool=False
         if keep:
-            self.sc.git_merge(repository_folder, source_branch, target_branch, False, False, None, False, False)
-            self.sc.git_commit(repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
+            self.sc.git_merge(generic_prepare_new_release_arguments.repository_folder, source_branch, target_branch, False, False, None, False, False)
+            self.sc.git_commit(generic_prepare_new_release_arguments.repository_folder, f'Merge branch {source_branch} into {target_branch}', stage_all_changes=True, no_changes_behavior=1)
         if fast_forward_source_branch:
-            self.sc.git_checkout(repository_folder, target_branch)
-            self.sc.git_merge(repository_folder, target_branch, source_branch, True, True)
+            self.sc.git_checkout(generic_prepare_new_release_arguments.repository_folder, target_branch)
+            self.sc.git_merge(generic_prepare_new_release_arguments.repository_folder, target_branch, source_branch, True, True)

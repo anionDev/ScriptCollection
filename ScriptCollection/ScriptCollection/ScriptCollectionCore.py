@@ -430,6 +430,19 @@ class ScriptCollectionCore:
             self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_commit_id(directory)
+    
+    def search_repository_folder(self,some_file_in_repository:str)->str:
+        current_path:str=os.path.dirname(some_file_in_repository)
+        enabled:bool=True
+        while enabled:
+            try:
+                current_path=GeneralUtilities.resolve_relative_path("..",current_path)
+                if self.is_git_repository(current_path):
+                    return current_path
+            except:
+                enabled=False
+        raise ValueError(f"Can not find git-repository for folder \"{some_file_in_repository}\".")
+    
 
     @GeneralUtilities.check_arguments
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:

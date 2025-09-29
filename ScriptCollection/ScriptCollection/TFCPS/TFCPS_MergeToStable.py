@@ -330,7 +330,7 @@ class TFCPS_DoRelease2_MainToStableOld:
                 target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
                 shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
-class CreateReleaseConfiguration:
+class MergeToStableConfiguration:
     log_level:LogLevel
     source_branch:str#main
     target_branch:str#stable
@@ -343,7 +343,7 @@ class CreateReleaseConfiguration:
         self.repository=repository
         self.build_repo=build_repo
 
-class TFCPS_DoRelease2_MainToStable:
+class TFCPS_MergeToStable:
 
     sc:ScriptCollectionCore
     tFCPS_Tools_General:TFCPS_Tools_General
@@ -353,7 +353,7 @@ class TFCPS_DoRelease2_MainToStable:
         self.tFCPS_Tools_General=TFCPS_Tools_General(self.sc)
  
     @GeneralUtilities.check_arguments
-    def merge_to_stable_branch(self, createRelease_configuration: CreateReleaseConfiguration):
+    def merge_to_stable_branch(self, createRelease_configuration: MergeToStableConfiguration):
         self.sc.log.loglevel=createRelease_configuration.log_level
         self.sc.assert_no_uncommitted_changes(createRelease_configuration.repository)
         #TODO assert no changes in reference-repo
@@ -373,4 +373,7 @@ class TFCPS_DoRelease2_MainToStable:
             if os.path.isfile(push_script):
                 self.sc.run_program("python3",os.path.basename(push_script),os.path.dirname(push_script))
                 
-        #TODO update reference
+        self.__export_reference(createRelease_configuration)
+
+    def __export_reference(self,createRelease_configuration:MergeToStableConfiguration):
+        pass
