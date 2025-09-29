@@ -11,31 +11,48 @@ class TFCPS_CodeUnit_BuildCodeUnits:
     sc:ScriptCollectionCore=None
     target_environment_type:str=None
     additionalargumentsfile:str=None
+    __use_cache:bool
+    __is_pre_merge:bool
 
-    def __init__(self,repository:str,loglevel:LogLevel,target_environment_type:str,additionalargumentsfile:str):
+    def __init__(self,repository:str,loglevel:LogLevel,target_environment_type:str,additionalargumentsfile:str,use_cache:bool,is_pre_merge:bool):
         self.sc=ScriptCollectionCore()
         self.sc.log.loglevel=loglevel
+        self.__use_cache=use_cache
         self.sc.assert_is_git_repository(repository)
         self.repository=repository
         self.tFCPS_Other:TFCPS_Tools_General=TFCPS_Tools_General(self.sc)
         self.target_environment_type=target_environment_type
         self.additionalargumentsfile=additionalargumentsfile
+        self.__is_pre_merge=is_pre_merge
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self) -> None:
         self.sc.log.log("Start building codeunits.")
         if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
-            self.sc.log.log("Prepare build codeunits...")
             arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
+            if not self.__use_cache:
+                arguments=f"{arguments} --nocache"
+                if not self.sc.git_repository_has_uncommitted_changes(self.repository):
+                    self.sc.run_program("git","clean -dfx",self.repository)
+            self.sc.log.log("Prepare build codeunits...")
             self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
         codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
         for codeunit_name in codeunits:
-            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile)
+            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache())
             self.sc.log.log(GeneralUtilities.get_line())
             tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()
         self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log("Finished building codeunits.")
 
+
+    @GeneralUtilities.check_arguments
+    def use_cache(self) -> bool:
+        return self.__use_cache
+
+
+    @GeneralUtilities.check_arguments
+    def is_pre_merge(self) -> bool:
+        return self.__is_pre_merge
 
     @GeneralUtilities.check_arguments
     def update_dependencies(self) -> None:
@@ -44,7 +61,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         #TODO update project-wide-dependencies here
         codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
         for codeunit_name in codeunits:
-            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile)
+            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache())
             tFCPS_CodeUnit_BuildCodeUnit.update_dependencies() 
 
     @GeneralUtilities.check_arguments

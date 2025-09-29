@@ -14,8 +14,9 @@ class TFCPS_CodeUnit_BuildCodeUnit:
     tFCPS_Tools:TFCPS_Tools_General
     target_environment_type:str
     additionalargumentsfile:str
+    use_cache:bool
 
-    def __init__(self,codeunit_folder:str,verbosity:LogLevel,target_environment_type:str,additionalargumentsfile:str):
+    def __init__(self,codeunit_folder:str,verbosity:LogLevel,target_environment_type:str,additionalargumentsfile:str,use_cache:bool):
         self.sc=ScriptCollectionCore()
         self.sc.log.loglevel=verbosity
         self.tFCPS_Tools=TFCPS_Tools_General(self.sc)
@@ -24,6 +25,7 @@ class TFCPS_CodeUnit_BuildCodeUnit:
         self.codeunit_name=os.path.basename(self.codeunit_folder)
         self.target_environment_type=target_environment_type
         self.additionalargumentsfile=additionalargumentsfile
+        self.use_cache=use_cache
         
     @GeneralUtilities.check_arguments
     def build_codeunit(self) -> None:
@@ -34,9 +36,13 @@ class TFCPS_CodeUnit_BuildCodeUnit:
             return
         
         self.sc.log.log(f"Build codeunit {self.codeunit_name}...")
+        
+        GeneralUtilities.ensure_folder_exists_and_is_empty(self.codeunit_folder+"/Other/Artifacts")
 
         arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
-
+        if not self.use_cache:
+            arguments=f"{arguments} --nocache"
+            
         self.sc.log.log("Do common tasks...")
         self.sc.run_program("python",f"CommonTasks.py {arguments}",os.path.join(self.codeunit_folder,"Other"),print_live_output=True)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))

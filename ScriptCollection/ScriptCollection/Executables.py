@@ -281,6 +281,8 @@ def BuildCodeUnits() -> int:
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
+    parser.add_argument("-c",'--nocache', required=False, default=False, action='store_true')
+    parser.add_argument('--ispremerge', required=False, default=False, action='store_true')
 
     args = parser.parse_args()
     
@@ -290,7 +292,7 @@ def BuildCodeUnits() -> int:
     if not os.path.isabs(args.repositoryfolder):
         repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
 
-    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile) 
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,args.ispremerge) 
     t.build_codeunits()
     return 0
 
@@ -319,6 +321,7 @@ def UpdateDependencies() -> int:
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
+    parser.add_argument("-c",'--nocache', required=False, default=False, action='store_true')
 
     args = parser.parse_args()
     
@@ -328,7 +331,7 @@ def UpdateDependencies() -> int:
     if not os.path.isabs(args.repositoryfolder):
         repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
 
-    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile) 
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,False) 
     t.update_dependencies()
     return 0
 
@@ -648,13 +651,14 @@ def NpmI() -> int:
     parser.add_argument('-d', '--directory', required=False, default=".")
     parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
     parser.add_argument('-v', '--verbose', action='store_true', required=False, default=False)
+    parser.add_argument('-c', '--nocache', action='store_true', required=False, default=False)
     args = parser.parse_args()
     if os.path.isabs(args.directory):
         folder = args.directory
     else: 
         folder = GeneralUtilities.resolve_relative_path(args.directory, os.getcwd())
     t = TFCPS_Tools_General(ScriptCollectionCore())
-    t.do_npm_install(folder, args.force)
+    t.do_npm_install(folder, args.force,not args.nocache)
     return 0
 
 

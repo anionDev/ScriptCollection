@@ -5,8 +5,8 @@ from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_Code
 
 class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str):
-        super().__init__(current_file, verbosity,targetenvironmenttype)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool):
+        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache)
  
 
     @GeneralUtilities.check_arguments
@@ -40,7 +40,7 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 
         GeneralUtilities.ensure_file_exists(bom_file_json)
         GeneralUtilities.write_text_to_file(bom_file_json, result[1])
-        self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(repository_folder)
+        self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(repository_folder,not self.use_cache())
         cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
         if GeneralUtilities.current_system_is_windows():
             cyclonedx_exe = cyclonedx_exe+".exe"
@@ -110,5 +110,5 @@ class TFCPS_CodeUnitSpecific_Python_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype)
+        result:TFCPS_CodeUnitSpecific_Python_Functions=TFCPS_CodeUnitSpecific_Python_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache)
         return result

@@ -708,6 +708,11 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", ["config", "--bool", "core.bare", "true"], target_folder)
 
     @GeneralUtilities.check_arguments
+    def assert_no_uncommitted_changes(self, repository_folder: str):
+        if self.git_repository_has_uncommitted_changes(repository_folder):
+            raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
+
+    @GeneralUtilities.check_arguments
     def list_content(self, path: str, include_files: bool, include_folder: bool, printonlynamewithoutpath: bool) -> list[str]:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         result: list[str] = []

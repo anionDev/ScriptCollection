@@ -5,8 +5,8 @@ from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_Code
 
 class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str):
-        super().__init__(current_file, verbosity,targetenvironmenttype)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool):
+        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache)
 
 
     @GeneralUtilities.check_arguments
@@ -58,11 +58,8 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def do_common_tasks(self,current_codeunit_version:str )-> None:
-        build_environment =self.get_target_environment_type()
-        verbosity = self.get_verbosity()
         codeunitname =self.get_codeunit_name()
         codeunit_folder = self.get_codeunit_folder()
-        repository_folder = self.get_repository_folder()
         codeunit_version = current_codeunit_version
         self._protected_sc.replace_version_in_dockerfile_file(GeneralUtilities.resolve_relative_path(f"./{codeunitname}/Dockerfile", codeunit_folder), codeunit_version)
         self.do_common_tasks_base(current_codeunit_version)
@@ -80,12 +77,12 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     def run_testcases(self=None) -> None:
         pass#TODO
 
-class TFCPS_CodeUnitSpecific_Python_CLI:
+class TFCPS_CodeUnitSpecific_Docker_CLI:
 
     @staticmethod
     def parse(file:str)->TFCPS_CodeUnitSpecific_Docker_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_Docker_Functions=TFCPS_CodeUnitSpecific_Docker_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype)
+        result:TFCPS_CodeUnitSpecific_Docker_Functions=TFCPS_CodeUnitSpecific_Docker_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache)
         return result

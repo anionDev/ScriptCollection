@@ -259,11 +259,6 @@ class TasksForCommonProjectStructure:
         self.__sc.push_nuget_build_artifact(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"), registry_address, api_key)
 
     @GeneralUtilities.check_arguments
-    def assert_no_uncommitted_changes(self, repository_folder: str):
-        if self.__sc.git_repository_has_uncommitted_changes(repository_folder):
-            raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
-
-    @GeneralUtilities.check_arguments
     def generate_certificate_for_development_purposes_for_external_service(self, service_folder: str, domain: str = None):
         testservice_name = os.path.basename(service_folder)
         ca_folder: str = None  # TODO
@@ -554,29 +549,6 @@ class TasksForCommonProjectStructure:
             yamlfile3: str = str(os.path.join(resources_apispec_folder, f"{codeunitname}.api.yaml"))
             GeneralUtilities.ensure_file_does_not_exist(yamlfile3)
             shutil.copyfile(yamlfile1, yamlfile3)
-
-    @GeneralUtilities.check_arguments
-    def get_latest_version_of_openapigenerator(self) -> None:
-        headers = {'Cache-Control': 'no-cache'}
-        self.__add_github_api_key_if_available(headers)
-        response = requests.get(f"https://api.github.com/repos/OpenAPITools/openapi-generator/releases", headers=headers, timeout=(10, 10))
-        latest_version = response.json()["tag_name"]
-        return latest_version
-
-    @GeneralUtilities.check_arguments
-    def set_version_of_openapigenerator_by_update_dependencies_file(self, update_dependencies_script_file: str, used_version: str = None) -> None:
-        codeunit_folder: str = GeneralUtilities.resolve_relative_path("../..", update_dependencies_script_file)
-        self.set_version_of_openapigenerator(codeunit_folder, used_version)
-
-    @GeneralUtilities.check_arguments
-    def set_version_of_openapigenerator(self, codeunit_folder: str, used_version: str = None) -> None:
-        target_folder: str = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator")
-        version_file = os.path.join(target_folder, "Version.txt")
-        if used_version is None:
-            used_version = self.get_latest_version_of_openapigenerator()
-        GeneralUtilities.ensure_directory_exists(target_folder)
-        GeneralUtilities.ensure_file_exists(version_file)
-        GeneralUtilities.write_text_to_file(version_file, used_version)
 
     @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_in_dotnet(self, file: str, name_of_api_providing_codeunit: str, base_namespace: str) -> None:
@@ -1173,15 +1145,6 @@ class TasksForCommonProjectStructure:
 
 - Updated geo-ip-database.
 """)
-
-    @GeneralUtilities.check_arguments
-    def update_images_in_example(self, codeunit_folder: str):
-        iu = ImageUpdater()
-        iu.add_default_mapper()
-        dockercomposefile: str = f"{codeunit_folder}\\Other\\Reference\\ReferenceContent\\Examples\\MinimalDockerComposeFile\\docker-compose.yml"
-        excluded = ["opendms"]
-        iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
-        iu.check_for_newest_version(dockercomposefile, excluded)
 
     def set_latest_version_for_clone_repository_as_resource(self, resourcename: str, github_link: str, branch: str = "main"):
         current_file = str(Path(__file__).absolute())

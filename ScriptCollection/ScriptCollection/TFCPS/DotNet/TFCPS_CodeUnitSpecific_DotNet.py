@@ -17,8 +17,8 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     is_library:bool
     csproj_file:bool
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str):
-        super().__init__(current_file, verbosity,targetenvironmenttype)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool):
+        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache)
         self.csproj_file=os.path.join(self.get_codeunit_folder(), self.get_codeunit_name(), self.get_codeunit_name() + ".csproj")
         self.is_library="<OutputType>Library</OutputType>" in GeneralUtilities.read_text_from_file(self.csproj_file)#TODO do a real check
 
@@ -195,7 +195,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         pass#TODO
 
     @GeneralUtilities.check_arguments
-    def do_common_tasks(self,current_codeunit_version:str,certificateGeneratorInformation:CertificateGeneratorInformationBase )-> None:
+    def do_common_tasks(self,current_codeunit_version:str,certificateGeneratorInformation:CertificateGeneratorInformationBase,run_t4:bool)-> None:
         self.do_common_tasks_base(current_codeunit_version)
         codeunit_name =self.get_codeunit_name()
         codeunit_version = self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())  # Should always be the same as the project-version #TODO make this configurable from outside
@@ -206,7 +206,8 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
             self._protected_sc.replace_version_in_nuspec_file(GeneralUtilities.resolve_relative_path(f"./Build/{codeunit_name}.nuspec", folder_of_current_file), codeunit_version)
         if certificateGeneratorInformation.generate_certificate():
             self.tfcps_Tools_General.set_constants_for_certificate_private_information(self.get_codeunit_folder())
-        self.tfcps_Tools_General.t4_transform(self.get_codeunit_folder(),True)
+        if run_t4:
+            self.tfcps_Tools_General.t4_transform(self.get_codeunit_folder(),True,self.use_cache())
         self.standardized_task_verify_standard_format_csproj_files()
 
     @GeneralUtilities.check_arguments
@@ -474,5 +475,5 @@ class TFCPS_CodeUnitSpecific_DotNet_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_DotNet_Functions=TFCPS_CodeUnitSpecific_DotNet_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype)
+        result:TFCPS_CodeUnitSpecific_DotNet_Functions=TFCPS_CodeUnitSpecific_DotNet_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache)
         return result 

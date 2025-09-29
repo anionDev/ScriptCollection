@@ -1,8 +1,6 @@
 import os
 import re
 from lxml import etree
-from .GenerateAPIClientBase import GenerateAPIClientBase
-from .GenerateAPIClientGenerate import GenerateAPIClientGenerate
 from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
@@ -10,8 +8,8 @@ from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_Code
 class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str):
-        super().__init__(current_file, verbosity,targetenvironmenttype)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool):
+        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache)
 
 
     @GeneralUtilities.check_arguments
@@ -30,7 +28,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunit_folder = self.get_codeunit_folder()
         self.do_common_tasks_base(current_codeunit_version)
         self.tfcps_Tools_General.replace_version_in_packagejson_file(GeneralUtilities.resolve_relative_path("./package.json", codeunit_folder), codeunit_version)
-        self.tfcps_Tools_General.do_npm_install(codeunit_folder, True)
+        self.tfcps_Tools_General.do_npm_install(codeunit_folder, True,self.use_cache())
         #if generateAPIClientBase.generate_api_client():
         #    generateAPIClientGenerate:GenerateAPIClientGenerate=generateAPIClientBase
         #    self.tfcps_Tools_General.generate_api_client_from_dependent_codeunit_in_angular(codeunit_folder, generateAPIClientGenerate.name_of_api_providing_codeunit,generateAPIClientGenerate.generate_api_client)
@@ -121,5 +119,5 @@ class TFCPS_CodeUnitSpecific_NodeJS_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_NodeJS_Functions=TFCPS_CodeUnitSpecific_NodeJS_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype)
+        result:TFCPS_CodeUnitSpecific_NodeJS_Functions=TFCPS_CodeUnitSpecific_NodeJS_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache)
         return result

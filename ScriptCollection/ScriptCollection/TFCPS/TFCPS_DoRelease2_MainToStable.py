@@ -5,11 +5,40 @@ from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
-from .TFCPS_DoRelease1_MergeToMain import CreateReleaseConfiguration
+from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
+ 
+
+class CreateReleaseConfigurationOld():
+    projectname: str
+    remotename: str
+    artifacts_folder: str
+    push_artifacts_scripts_folder: str
+    reference_repository_remote_name: str = None
+    reference_repository_branch_name: str = "main"
+    build_repository_branch: str = "main"
+    public_repository_url: str
+    additional_arguments_file: str = None
+    repository_folder_name: str = None
+    repository_folder: str = None
+    sc: ScriptCollectionCore = None
+
+    def __init__(self, projectname: str, remotename: str, build_artifacts_target_folder: str, push_artifacts_scripts_folder: str, repository_folder: str, additional_arguments_file: str, repository_folder_name: str):
+        self.sc = ScriptCollectionCore()
+        self.projectname = projectname
+        self.remotename = remotename
+        self.artifacts_folder = build_artifacts_target_folder
+        self.push_artifacts_scripts_folder = push_artifacts_scripts_folder
+        if self.remotename is None:
+            self.public_repository_url = None
+        else:
+            self.public_repository_url = self.sc.git_get_remote_url(repository_folder, remotename)
+        self.reference_repository_remote_name = self.remotename
+        self.additional_arguments_file = additional_arguments_file
+        self.repository_folder = repository_folder
+        self.repository_folder_name = repository_folder_name
 
 
-
-class CreateReleaseInformationForProjectInCommonProjectFormat:
+class CreateReleaseInformationForProjectInCommonProjectFormatOld:
     projectname: str
     repository: str
     artifacts_folder: str
@@ -39,7 +68,7 @@ class CreateReleaseInformationForProjectInCommonProjectFormat:
         self.reference_repository = f"{repository}Reference"
 
 
-class MergeToStableBranchInformationForProjectInCommonProjectFormat:
+class MergeToStableBranchInformationForProjectInCommonProjectFormatOld:
     repository: str
     sourcebranch: str = "main"
     targetbranch: str = "stable"
@@ -64,7 +93,7 @@ class MergeToStableBranchInformationForProjectInCommonProjectFormat:
 
 
 
-class TFCPS_DoRelease2_MainToStable:
+class TFCPS_DoRelease2_MainToStableOld:
 
     sc:ScriptCollectionCore
     tFCPS_Tools_General:TFCPS_Tools_General
@@ -74,7 +103,7 @@ class TFCPS_DoRelease2_MainToStable:
         self.tFCPS_Tools_General=TFCPS_Tools_General(self.sc)
  
     @GeneralUtilities.check_arguments
-    def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfiguration):
+    def merge_to_stable_branch(self, create_release_file: str, createRelease_configuration: CreateReleaseConfigurationOld):
 
         self.sc.log.log(f"Create release for project {createRelease_configuration.projectname}.")
         self.sc.log.log(f"Merge to stable-branch...")
@@ -85,8 +114,8 @@ class TFCPS_DoRelease2_MainToStable:
         #self.assert_no_uncommitted_changes(build_repository_folder)
 
         repository_folder = GeneralUtilities.resolve_relative_path(f"Submodules{os.path.sep}{createRelease_configuration.repository_folder_name}", build_repository_folder)
-        mergeInformation:MergeToStableBranchInformationForProjectInCommonProjectFormat=None# = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.additional_arguments_file, createRelease_configuration.artifacts_folder)
-        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.artifacts_folder, createRelease_configuration.projectname, createRelease_configuration.public_repository_url, mergeInformation.targetbranch, mergeInformation.additional_arguments_file, mergeInformation.export_target, createRelease_configuration.push_artifacts_scripts_folder,self.sc)
+        mergeInformation:MergeToStableBranchInformationForProjectInCommonProjectFormatOld=None# = MergeToStableBranchInformationForProjectInCommonProjectFormat(repository_folder, createRelease_configuration.additional_arguments_file, createRelease_configuration.artifacts_folder)
+        createReleaseInformation = CreateReleaseInformationForProjectInCommonProjectFormatOld(repository_folder, createRelease_configuration.artifacts_folder, createRelease_configuration.projectname, createRelease_configuration.public_repository_url, mergeInformation.targetbranch, mergeInformation.additional_arguments_file, mergeInformation.export_target, createRelease_configuration.push_artifacts_scripts_folder,self.sc)
         createReleaseInformation.sc = createRelease_configuration.sc
 
         self.sc.git_checkout(build_repository_folder, createRelease_configuration.build_repository_branch)
@@ -114,7 +143,7 @@ class TFCPS_DoRelease2_MainToStable:
         return new_project_version
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_merge_to_stable_branch(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormat) -> str:
+    def __standardized_tasks_merge_to_stable_branch(self, information: MergeToStableBranchInformationForProjectInCommonProjectFormatOld) -> str:
         src_branch_commit_id = self.sc.git_get_commit_id(information.repository,  information.sourcebranch)
         if (src_branch_commit_id == self.sc.git_get_commit_id(information.repository,  information.targetbranch)):
             raise ValueError(f"Can not merge because the source-branch and the target-branch are on the same commit (commit-id: {src_branch_commit_id})")
@@ -143,7 +172,7 @@ class TFCPS_DoRelease2_MainToStable:
 
 
     @GeneralUtilities.check_arguments
-    def __standardized_tasks_release_artifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormat) -> None:
+    def __standardized_tasks_release_artifact(self, information: CreateReleaseInformationForProjectInCommonProjectFormatOld) -> None:
         self.sc.log.log("Release artifacts...")
         project_version = self.sc.get_semver_version_from_gitversion(information.repository)
         target_folder_base = os.path.join(information.artifacts_folder, information.projectname, project_version)
@@ -300,3 +329,48 @@ class TFCPS_DoRelease2_MainToStable:
             if os.path.isdir(source_testcoveragereport):  # check, because it is not a mandatory artifact. if the artifact is not available, the user gets already a warning.
                 target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
                 shutil.copytree(source_testcoveragereport, target_testcoveragereport)
+
+class CreateReleaseConfiguration:
+    log_level:LogLevel
+    source_branch:str#main
+    target_branch:str#stable
+    repository:str
+    build_repo:str
+    def __init__(self,loglevel:LogLevel,source_branch:str,target_branch:str,repository:str,build_repo:str):
+        self.log_level=loglevel
+        self.source_branch=source_branch
+        self.target_branch=target_branch
+        self.repository=repository
+        self.build_repo=build_repo
+
+class TFCPS_DoRelease2_MainToStable:
+
+    sc:ScriptCollectionCore
+    tFCPS_Tools_General:TFCPS_Tools_General
+
+    def __init__(self):
+        self.sc=ScriptCollectionCore()
+        self.tFCPS_Tools_General=TFCPS_Tools_General(self.sc)
+ 
+    @GeneralUtilities.check_arguments
+    def merge_to_stable_branch(self, createRelease_configuration: CreateReleaseConfiguration):
+        self.sc.log.loglevel=createRelease_configuration.log_level
+        self.sc.assert_no_uncommitted_changes(createRelease_configuration.repository)
+        #TODO assert no changes in reference-repo
+        #TODO assert no changes in build-repo
+        self.sc.git_checkout(createRelease_configuration.repository, createRelease_configuration.source_branch, True,True)
+        self.sc.git_merge(createRelease_configuration.repository, createRelease_configuration.source_branch,createRelease_configuration.target_branch, True,True,None,True,True)
+
+        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(createRelease_configuration.repository_folder,self.sc.log.loglevel,"Productive",createRelease_configuration.additional_arguments_file,False,False)
+        try:
+            tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
+        except Exception:
+            self.sc.git_undo_all_changes(createRelease_configuration.repository_folder)
+            raise
+
+        for codeunit in self.tFCPS_Tools_General.get_codeunits(createRelease_configuration.repository):
+            push_script:str=os.path.join( createRelease_configuration.build_repo,"Script","CreateRelease",f"PushArtifacts.{codeunit}.py")
+            if os.path.isfile(push_script):
+                self.sc.run_program("python3",os.path.basename(push_script),os.path.dirname(push_script))
+                
+        #TODO update reference

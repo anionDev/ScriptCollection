@@ -7,6 +7,7 @@ import zipfile
 import tarfile
 import re
 import sys
+import traceback
 import json
 import tempfile 
 import uuid
@@ -17,6 +18,7 @@ from lxml import etree
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
+from ..ImageUpdater import ImageUpdater, VersionEcholon
 
 class TFCPS_Tools_General:
 
@@ -31,7 +33,7 @@ class TFCPS_Tools_General:
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:codeunit/@enabled', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
 
     @GeneralUtilities.check_arguments
-    def ensure_cyclonedxcli_is_available(self, target_folder: str) -> None:
+    def ensure_cyclonedxcli_is_available(self, target_folder: str,enforce_update:bool) -> None:
         local_filename = "cyclonedx-cli"
         filename_on_github: str
         if GeneralUtilities.current_system_is_windows():
@@ -39,45 +41,52 @@ class TFCPS_Tools_General:
             local_filename = local_filename+".exe"
         else:
             filename_on_github = "cyclonedx-linux-x64"
-        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github)
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github,enforce_update=enforce_update)
 
     @GeneralUtilities.check_arguments
-    def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5) -> None:
-        GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(target_folder, githubuser, githubprojectname, resource_name, local_filename, get_filename_on_github), amount_of_attempts)
+    def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5,enforce_update:bool=False) -> None:
+        GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(target_folder, githubuser, githubprojectname, resource_name, local_filename, get_filename_on_github,enforce_update), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
-    def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github) -> None:
+    def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github,enforce_update:bool) -> None:
         resource_folder = os.path.join(target_folder, "Other", "Resources", resource_name)
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         file = f"{resource_folder}/{local_filename}"
         file_exists = os.path.isfile(file)
-        self.__sc.log.log(f"Download Asset \"{githubuser}/{githubprojectname}: {resource_name}\" from GitHub...", LogLevel.Debug)
         if internet_connection_is_available:  # Load/Update
-            GeneralUtilities.ensure_directory_does_not_exist(resource_folder)
-            GeneralUtilities.ensure_directory_exists(resource_folder)
-            headers = {'Cache-Control': 'no-cache', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.96 Safari/537.36'}
-            self.__add_github_api_key_if_available(headers)
-            url = f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest"
-            self.__sc.log.log(f"Download \"{url}\"...", LogLevel.Diagnostic)
-            response = requests.get(url, headers=headers, allow_redirects=True, timeout=(10, 10))
-            latest_version = response.json()["tag_name"]
-            filename_on_github = get_filename_on_github(latest_version)
-            link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
-            with requests.get(link, headers=headers, stream=True, allow_redirects=True,  timeout=(5, 300)) as r:
-                r.raise_for_status()
-                total_size = int(r.headers.get("Content-Length", 0))
-                downloaded = 0
-                with open(file, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                        show_progress: bool = False
-                        if show_progress:
-                            downloaded += len(chunk)
-                            if total_size:
-                                percent = downloaded / total_size * 100
-                                sys.stdout.write(f"\rDownload: {percent:.2f}%")
-                                sys.stdout.flush()
-            self.__sc.log.log(f"Downloaded \"{url}\".", LogLevel.Diagnostic)
+            try:
+                if enforce_update or not file_exists:
+                    self.__sc.log.log(f"Download Asset \"{githubuser}/{githubprojectname}: {resource_name}\" from GitHub...", LogLevel.Debug)
+                    GeneralUtilities.ensure_directory_does_not_exist(resource_folder)
+                    GeneralUtilities.ensure_directory_exists(resource_folder)
+                    headers = {'Cache-Control': 'no-cache', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.96 Safari/537.36'}
+                    self.__add_github_api_key_if_available(headers)
+                    url = f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest"
+                    self.__sc.log.log(f"Download \"{url}\"...", LogLevel.Debug)
+                    response = requests.get(url, headers=headers, allow_redirects=True, timeout=(10, 10))
+                    latest_version = response.json()["tag_name"]
+                    filename_on_github = get_filename_on_github(latest_version)
+                    link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
+                    with requests.get(link, headers=headers, stream=True, allow_redirects=True,  timeout=(5, 300)) as r:
+                        r.raise_for_status()
+                        total_size = int(r.headers.get("Content-Length", 0))
+                        downloaded = 0
+                        with open(file, "wb") as f:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                                show_progress: bool = False
+                                if show_progress:
+                                    downloaded += len(chunk)
+                                    if total_size:
+                                        percent = downloaded / total_size * 100
+                                        sys.stdout.write(f"\rDownload: {percent:.2f}%")
+                                        sys.stdout.flush()
+                    self.__sc.log.log(f"Downloaded \"{url}\".", LogLevel.Diagnostic)
+            except Exception as e:
+                if file_exists:
+                    self.__sc.log.log_exception(f"Can not update {resource_name}", e,traceback,LogLevel.Warning)
+                else:
+                    raise
         else:
             if file_exists:
                 self.__sc.log.log(f"Can not check for updates of {resource_name} due to missing internet-connection.", LogLevel.Warning)
@@ -423,25 +432,23 @@ class TFCPS_Tools_General:
             self.__sc.git_commit(repositoryfolder, f"Added changelog-file for v{current_version}.")
  
     @GeneralUtilities.check_arguments
-    def merge_sbom_file_from_dependent_codeunit_into_this(self, build_script_file: str, dependent_codeunit_name: str) -> None:
-        codeunitname: str = Path(os.path.dirname(build_script_file)).parent.parent.name
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../..", str(os.path.dirname(build_script_file)))
+    def merge_sbom_file_from_dependent_codeunit_into_this(self,codeunit_folder: str, codeunitname:str,dependent_codeunit_name: str,use_cache:bool) -> None:
         repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
         dependent_codeunit_folder = os.path.join(repository_folder, dependent_codeunit_name).replace("\\", "/")
         codeunit_file:str=os.path.join(codeunit_folder,f"{codeunitname}.codeunit.xml")
-        dependent_codeunit_file:str=os.path.join(dependent_codeunit_folder,f"{codeunitname}.codeunit.xml")
+        dependent_codeunit_file:str=os.path.join(dependent_codeunit_folder,f"{dependent_codeunit_name}.codeunit.xml")
         sbom_file = f"{repository_folder}/{codeunitname}/Other/Artifacts/BOM/{codeunitname}.{self.get_version_of_codeunit(codeunit_file)}.sbom.xml"
         dependent_sbom_file = f"{repository_folder}/{dependent_codeunit_name}/Other/Artifacts/BOM/{dependent_codeunit_name}.{self.get_version_of_codeunit(dependent_codeunit_file)}.sbom.xml"
-        self.merge_sbom_file(repository_folder, dependent_sbom_file, sbom_file)
+        self.merge_sbom_file(repository_folder, dependent_sbom_file, sbom_file,use_cache)
 
     @GeneralUtilities.check_arguments
-    def merge_sbom_file(self, repository_folder: str, source_sbom_file_relative: str, target_sbom_file_relative: str) -> None:
+    def merge_sbom_file(self, repository_folder: str, source_sbom_file_relative: str, target_sbom_file_relative: str,use_cache:bool) -> None:
         GeneralUtilities.assert_file_exists(os.path.join(repository_folder, source_sbom_file_relative))
         GeneralUtilities.assert_file_exists(os.path.join(repository_folder, target_sbom_file_relative))
         target_original_sbom_file_relative = os.path.dirname(target_sbom_file_relative)+"/"+os.path.basename(target_sbom_file_relative)+".original.xml"
         os.rename(os.path.join(repository_folder, target_sbom_file_relative), os.path.join(repository_folder, target_original_sbom_file_relative))
 
-        self.ensure_cyclonedxcli_is_available(repository_folder)
+        self.ensure_cyclonedxcli_is_available(repository_folder,not use_cache)
         cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
         if GeneralUtilities.current_system_is_windows():
             cyclonedx_exe = cyclonedx_exe+".exe"
@@ -478,25 +485,26 @@ class TFCPS_Tools_General:
         return result
 
     @GeneralUtilities.check_arguments
-    def generate_svg_files_from_plantuml_files_for_repository(self, repository_folder: str) -> None:
+    def generate_svg_files_from_plantuml_files_for_repository(self, repository_folder: str,use_cache:bool) -> None:
+        self.__sc.log.log("Generate svg-files from plantuml-files...")
         self.__sc.assert_is_git_repository(repository_folder)
-        self.ensure_plantuml_is_available(repository_folder)
+        self.ensure_plantuml_is_available(repository_folder,not use_cache)
         plant_uml_folder = os.path.join(repository_folder, "Other", "Resources", "PlantUML")
         target_folder = os.path.join(repository_folder, "Other",  "Reference")
         self.__generate_svg_files_from_plantuml(target_folder, plant_uml_folder)
 
     @GeneralUtilities.check_arguments
-    def generate_svg_files_from_plantuml_files_for_codeunit(self, codeunit_folder: str) -> None:
+    def generate_svg_files_from_plantuml_files_for_codeunit(self, codeunit_folder: str,use_cache:bool) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         repository_folder = os.path.dirname(codeunit_folder)
-        self.ensure_plantuml_is_available(repository_folder)
+        self.ensure_plantuml_is_available(repository_folder,not use_cache)
         plant_uml_folder = os.path.join(repository_folder, "Other", "Resources", "PlantUML")
         target_folder = os.path.join(codeunit_folder, "Other", "Reference")
         self.__generate_svg_files_from_plantuml(target_folder, plant_uml_folder)
 
     @GeneralUtilities.check_arguments
-    def ensure_plantuml_is_available(self, target_folder: str) -> None:
-        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar")
+    def ensure_plantuml_is_available(self, target_folder: str,enforce_update:bool) -> None:
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar",enforce_update=enforce_update)
 
     @GeneralUtilities.check_arguments
     def __generate_svg_files_from_plantuml(self, diagrams_files_folder: str, plant_uml_folder: str) -> None:
@@ -521,6 +529,7 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def generate_codeunits_overview_diagram(self, repository_folder: str) -> None:
+        self.__sc.log.log("Generate Codeunits-overview-diagram...")
         self.__sc.assert_is_git_repository(repository_folder)
         project_name: str = os.path.basename(repository_folder)
         target_folder = os.path.join(repository_folder, "Other", "Reference", "Technical", "Diagrams")
@@ -558,6 +567,7 @@ class TFCPS_Tools_General:
     def generate_tasksfile_from_workspace_file(self, repository_folder: str, append_cli_args_at_end: bool = False) -> None:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.__sc.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
+            self.__sc.log.log("Generate taskfile from code-workspace-file...")
             self.__sc.assert_is_git_repository(repository_folder)
             workspace_file: str = self.__sc.find_file_by_extension(repository_folder, "code-workspace")
             task_file: str = repository_folder + "/Taskfile.yml"
@@ -622,35 +632,37 @@ class TFCPS_Tools_General:
             self.__sc.run_program("scgeneratetasksfilefromworkspacefile", f"--repositoryfolder {repository_folder}")
 
     @GeneralUtilities.check_arguments
-    def ensure_androidappbundletool_is_available(self, target_folder: str) -> None:
-        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar")
+    def ensure_androidappbundletool_is_available(self, target_folder: str,enforce_update:bool) -> None:
+        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar",enforce_update=enforce_update)
 
     @GeneralUtilities.check_arguments
-    def ensure_mediamtx_is_available(self, target_folder: str) -> None:
+    def ensure_mediamtx_is_available(self, target_folder: str,enforce_update:bool) -> None:
         def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
             resource_name: str = f"MediaMTX_{osname}"
             zip_filename: str = f"{resource_name}.{extension}"
-            self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}")
             resource_folder: str = os.path.join(target_folder, "Other", "Resources", resource_name)
             target_folder_extracted = os.path.join(resource_folder, "MediaMTX")
-            local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
-            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
-            if extension == "zip":
-                with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
-                    zip_ref.extractall(target_folder_extracted)
-            elif extension == "tar.gz": 
-                with tarfile.open(local_zip_file, "r:gz") as tar:
-                    tar.extractall(path=target_folder_extracted)
-            else:
-                raise ValueError(f"Unknown extension: \"{extension}\"")
-            GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
+            update:bool=not os.path.isdir(target_folder_extracted) or GeneralUtilities.folder_is_empty(target_folder_extracted) or enforce_update
+            if update:
+                self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}",enforce_update=enforce_update)
+                local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
+                GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
+                if extension == "zip":
+                    with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
+                        zip_ref.extractall(target_folder_extracted)
+                elif extension == "tar.gz": 
+                    with tarfile.open(local_zip_file, "r:gz") as tar:
+                        tar.extractall(path=target_folder_extracted)
+                else:
+                    raise ValueError(f"Unknown extension: \"{extension}\"")
+                GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
 
         download_and_extract("Windows", "windows", "zip")
         download_and_extract("Linux", "linux", "tar.gz")
         download_and_extract("MacOS", "darwin", "tar.gz")
  
     @GeneralUtilities.check_arguments
-    def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None) -> None:
+    def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None,use_cache:bool=True) -> None:
         self.__sc.log.log(f'Clone resource {resource_name}...')
         resrepo_commit_id_folder: str = os.path.join(local_repository_folder, "Other", "Resources", f"{resource_name}Version")
         resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resource_name}Version.txt")
@@ -665,28 +677,32 @@ class TFCPS_Tools_General:
             target_folder: str = resrepo_data_folder
             if repository_subname is not None:
                 target_folder = f"{resrepo_data_folder}/{repository_subname}"
-            GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-            self.__sc.run_program("git", f"clone --recurse-submodules {remote_repository_link} {target_folder}")
-            self.__sc.run_program("git", f"checkout {latest_version}", target_folder)
-            GeneralUtilities.write_text_to_file(resrepo_data_version, latest_version)
+            
+            update:bool=GeneralUtilities.folder_is_empty(target_folder) or not use_cache
+            if update:
+                self.__sc.run_program(f"Clone {remote_repository_link} as resource", LogLevel.Information)
+                GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+                self.__sc.run_program("git", f"clone --recurse-submodules {remote_repository_link} {target_folder}")
+                self.__sc.run_program("git", f"checkout {latest_version}", target_folder)
+                GeneralUtilities.write_text_to_file(resrepo_data_version, latest_version)
 
-            git_folders: list[str] = []
-            git_files: list[str] = []
-            for dirpath, dirnames, filenames in os.walk(target_folder):
-                for dirname in dirnames:
-                    if dirname == ".git":
-                        full_path = os.path.join(dirpath, dirname)
-                        git_folders.append(full_path)
-                for filename in filenames:
-                    if filename == ".git":
-                        full_path = os.path.join(dirpath, filename)
-                        git_files.append(full_path)
-            for git_folder in git_folders:
-                if os.path.isdir(git_folder):
-                    GeneralUtilities.ensure_directory_does_not_exist(git_folder)
-            for git_file in git_files:
-                if os.path.isdir(git_file):
-                    GeneralUtilities.ensure_file_does_not_exist(git_file)
+                git_folders: list[str] = []
+                git_files: list[str] = []
+                for dirpath, dirnames, filenames in os.walk(target_folder):
+                    for dirname in dirnames:
+                        if dirname == ".git":
+                            full_path = os.path.join(dirpath, dirname)
+                            git_folders.append(full_path)
+                    for filename in filenames:
+                        if filename == ".git":
+                            full_path = os.path.join(dirpath, filename)
+                            git_files.append(full_path)
+                for git_folder in git_folders:
+                    if os.path.isdir(git_folder):
+                        GeneralUtilities.ensure_directory_does_not_exist(git_folder)
+                for git_file in git_files:
+                    if os.path.isdir(git_file):
+                        GeneralUtilities.ensure_file_does_not_exist(git_file)
 
     @GeneralUtilities.check_arguments
     def ensure_certificate_authority_for_development_purposes_is_generated(self, product_folder: str):
@@ -734,30 +750,35 @@ class TFCPS_Tools_General:
         if generate_new_certificate:
             GeneralUtilities.ensure_directory_does_not_exist(certificate_folder)
             GeneralUtilities.ensure_directory_exists(certificate_folder)
-            self.__sc.log.log("Generate TLS-certificate for development-purposes.")
+            self.__sc.log.log("Generate TLS-certificate for development-purposes...")
             self.__sc.generate_certificate(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             self.__sc.generate_certificate_sign_request(certificate_folder, domain, resource_content_filename, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
             ca_name = os.path.basename(self.__sc.find_last_file_by_extension(ca_folder, "crt"))[:-4]
             self.__sc.sign_certificate(certificate_folder, ca_folder, ca_name, domain, resource_content_filename)
             GeneralUtilities.ensure_file_does_not_exist(unsignedcertificate_file)
+            self.__sc.log.log("Finished generating TLS-certificate for development-purposes...",LogLevel.Debug)
 
  
     @GeneralUtilities.check_arguments
-    def do_npm_install(self, package_json_folder: str, force: bool = True) -> None:
-        argument1 = "install"
-        if force:
-            argument1 = f"{argument1} --force"
-        self.__sc.run_with_epew("npm", argument1, package_json_folder)
+    def do_npm_install(self, package_json_folder: str, npm_force: bool,use_cache:bool) -> None:
+        target_folder:str=os.path.join(package_json_folder,"node_modules")
+        update:bool=GeneralUtilities.folder_is_empty(target_folder) or  GeneralUtilities.folder_is_empty(target_folder) or not use_cache
+        if update:
+            self.__sc.log.log("Do npm-install...")
+            argument1 = "install"
+            if npm_force:
+                argument1 = f"{argument1} --force"
+            self.__sc.run_with_epew("npm", argument1, package_json_folder)
 
-        argument2 = "install --package-lock-only"
-        if force:
-            argument2 = f"{argument2} --force"
-        self.__sc.run_with_epew("npm", argument2, package_json_folder)
+            argument2 = "install --package-lock-only"
+            if npm_force:
+                argument2 = f"{argument2} --force"
+            self.__sc.run_with_epew("npm", argument2, package_json_folder)
 
-        argument3 = "clean-install"
-        if force:
-            argument3 = f"{argument3} --force"
-        self.__sc.run_with_epew("npm", argument3, package_json_folder)
+            argument3 = "clean-install"
+            if npm_force:
+                argument3 = f"{argument3} --force"
+            self.__sc.run_with_epew("npm", argument3, package_json_folder)
 
     @staticmethod
     @GeneralUtilities.check_arguments
@@ -786,8 +807,8 @@ class TFCPS_Tools_General:
             return 0
 
     @GeneralUtilities.check_arguments
-    def t4_transform(self, codeunit_folder: str, ignore_git_ignored_files: bool = True):
-        self.__ensure_grylibrary_is_available(codeunit_folder)
+    def t4_transform(self, codeunit_folder: str, ignore_git_ignored_files: bool ,use_cache:bool):
+        self.__ensure_grylibrary_is_available(codeunit_folder,use_cache)
         repository_folder: str = os.path.dirname(codeunit_folder)
         codeunitname: str = os.path.basename(codeunit_folder)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
@@ -800,64 +821,68 @@ class TFCPS_Tools_General:
                 self.__sc.run_program_argsasarray("t4", argument, codeunit_folder)
 
     @GeneralUtilities.check_arguments
-    def __ensure_grylibrary_is_available(self, codeunit_folder: str) -> None:
-        self.assert_is_codeunit_folder(codeunit_folder)
+    def __ensure_grylibrary_is_available(self, codeunit_folder: str,use_cache:bool) -> None:
         grylibrary_folder = os.path.join(codeunit_folder, "Other", "Resources", "GRYLibrary")
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         grylibrary_dll_file_exists = os.path.isfile(grylibrary_dll_file)
-        if internet_connection_is_available:  # Load/Update GRYLibrary
-            grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
-            with urllib.request.urlopen(grylibrary_latest_codeunit_file) as url_result:
-                grylibrary_latest_version = self.get_version_of_codeunit_filecontent(url_result.read().decode("utf-8"))
-            if grylibrary_dll_file_exists:
-                grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
-                grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
-                if grylibrary_existing_codeunit_version != grylibrary_latest_version:
+        update:bool=(not grylibrary_dll_file_exists) or (not use_cache)
+        if update:
+            if internet_connection_is_available:  # Load/Update GRYLibrary
+                self.__sc.log("Download GRYLibrary...",LogLevel.Debug)
+                grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
+                with urllib.request.urlopen(grylibrary_latest_codeunit_file) as url_result:
+                    grylibrary_latest_version = self.get_version_of_codeunit_filecontent(url_result.read().decode("utf-8"))
+                if grylibrary_dll_file_exists:
+                    grylibrary_existing_codeunit_file = os.path.join(grylibrary_folder, "SourceCode", "GRYLibrary.codeunit.xml")
+                    grylibrary_existing_codeunit_version = self.get_version_of_codeunit(grylibrary_existing_codeunit_file)
+                    if grylibrary_existing_codeunit_version != grylibrary_latest_version:
+                        GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
+                if not os.path.isfile(grylibrary_dll_file):
                     GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
-            if not os.path.isfile(grylibrary_dll_file):
-                GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
-                GeneralUtilities.ensure_directory_exists(grylibrary_folder)
-                archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
-                archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
-                archive_file = os.path.join(grylibrary_folder, archive_name)
-                urllib.request.urlretrieve(archive_download_link, archive_file)
-                with zipfile.ZipFile(archive_file, 'r') as zip_ref:
-                    zip_ref.extractall(grylibrary_folder)
-                GeneralUtilities.ensure_file_does_not_exist(archive_file)
-        else:
-            if grylibrary_dll_file_exists:
-                self.__sc.log.log("Can not check for updates of GRYLibrary due to missing internet-connection.")
+                    GeneralUtilities.ensure_directory_exists(grylibrary_folder)
+                    archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
+                    archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
+                    archive_file = os.path.join(grylibrary_folder, archive_name)
+                    urllib.request.urlretrieve(archive_download_link, archive_file)
+                    with zipfile.ZipFile(archive_file, 'r') as zip_ref:
+                        zip_ref.extractall(grylibrary_folder)
+                    GeneralUtilities.ensure_file_does_not_exist(archive_file)
             else:
-                raise ValueError("Can not download GRYLibrary.")
+                if grylibrary_dll_file_exists:
+                    self.__sc.log.log("Can not check for updates of GRYLibrary due to missing internet-connection.")
+                else:
+                    raise ValueError("Can not download GRYLibrary.")
 
     @GeneralUtilities.check_arguments
-    def ensure_ffmpeg_is_available(self, codeunit_folder: str) -> None:
+    def ensure_ffmpeg_is_available(self, codeunit_folder: str,use_cache:bool) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         ffmpeg_folder = os.path.join(codeunit_folder, "Other", "Resources", "FFMPEG")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         exe_file = f"{ffmpeg_folder}/ffmpeg.exe"
         exe_file_exists = os.path.isfile(exe_file)
-        if internet_connection_is_available:  # Load/Update
-            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_folder)
-            GeneralUtilities.ensure_directory_exists(ffmpeg_folder)
-            ffmpeg_temp_folder = ffmpeg_folder+"Temp"
-            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
-            GeneralUtilities.ensure_directory_exists(ffmpeg_temp_folder)
-            zip_file_on_disk = os.path.join(ffmpeg_temp_folder, "ffmpeg.zip")
-            original_zip_filename = "ffmpeg-master-latest-win64-gpl-shared"
-            zip_link = f"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{original_zip_filename}.zip"
-            urllib.request.urlretrieve(zip_link, zip_file_on_disk)
-            shutil.unpack_archive(zip_file_on_disk, ffmpeg_temp_folder)
-            bin_folder_source = os.path.join(ffmpeg_temp_folder, "ffmpeg-master-latest-win64-gpl-shared/bin")
-            bin_folder_target = ffmpeg_folder
-            GeneralUtilities.copy_content_of_folder(bin_folder_source, bin_folder_target)
-            GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
-        else:
-            if exe_file_exists:
-                self.__sc.log.log("Can not check for updates of FFMPEG due to missing internet-connection.")
+        update:bool=(not exe_file_exists) or (not use_cache)
+        if update:
+            if internet_connection_is_available:  # Load/Update
+                GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_folder)
+                GeneralUtilities.ensure_directory_exists(ffmpeg_folder)
+                ffmpeg_temp_folder = ffmpeg_folder+"Temp"
+                GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
+                GeneralUtilities.ensure_directory_exists(ffmpeg_temp_folder)
+                zip_file_on_disk = os.path.join(ffmpeg_temp_folder, "ffmpeg.zip")
+                original_zip_filename = "ffmpeg-master-latest-win64-gpl-shared"
+                zip_link = f"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{original_zip_filename}.zip"
+                urllib.request.urlretrieve(zip_link, zip_file_on_disk)
+                shutil.unpack_archive(zip_file_on_disk, ffmpeg_temp_folder)
+                bin_folder_source = os.path.join(ffmpeg_temp_folder, "ffmpeg-master-latest-win64-gpl-shared/bin")
+                bin_folder_target = ffmpeg_folder
+                GeneralUtilities.copy_content_of_folder(bin_folder_source, bin_folder_target)
+                GeneralUtilities.ensure_directory_does_not_exist(ffmpeg_temp_folder)
             else:
-                raise ValueError("Can not download FFMPEG.")
+                if exe_file_exists:
+                    self.__sc.log.log("Can not check for updates of FFMPEG due to missing internet-connection.")
+                else:
+                    raise ValueError("Can not download FFMPEG.")
 
     @GeneralUtilities.check_arguments
     def set_constants_for_certificate_private_information(self, codeunit_folder: str) -> None:
@@ -933,10 +958,9 @@ class TFCPS_Tools_General:
         tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
     @GeneralUtilities.check_arguments
-    def generate_api_client_from_dependent_codeunit_for_angular(self, codeunit_folder:str, name_of_api_providing_codeunit: str, generated_program_part_name: str) -> None:
+    def generate_api_client_from_dependent_codeunit_for_angular(self, codeunit_folder:str, name_of_api_providing_codeunit: str, generated_program_part_name: str,language:str,use_cache:bool) -> None:
         target_subfolder_in_codeunit = f"src/app/generated/{generated_program_part_name}"
-        language = "typescript-angular"
-        self.ensure_openapigenerator_is_available(codeunit_folder)
+        self.ensure_openapigenerator_is_available(codeunit_folder,use_cache)
         openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
         openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
@@ -953,25 +977,28 @@ class TFCPS_Tools_General:
             json.dump(data, f, indent=2)
 
     @GeneralUtilities.check_arguments
-    def ensure_openapigenerator_is_available(self, codeunit_folder: str) -> None:
+    def ensure_openapigenerator_is_available(self, codeunit_folder: str,use_cache:bool) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         openapigenerator_folder = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator")
         internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         filename = "open-api-generator.jar"
         jar_file = f"{openapigenerator_folder}/{filename}"
         jar_file_exists = os.path.isfile(jar_file)
-        if internet_connection_is_available:  # Load/Update
-            version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
-            used_version = GeneralUtilities.read_text_from_file(version_file)
-            download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
-            GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
-            GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
-            urllib.request.urlretrieve(download_link, jar_file)
-        else:
-            if jar_file_exists:
-                self.__sc.log.log("Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
+        update:bool=not jar_file_exists or not use_cache
+        if update:
+            if internet_connection_is_available:  # Load/Update
+                self.__sc.log("Download OpenAPIGeneratorCLI...",LogLevel.Debug)
+                version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
+                used_version = GeneralUtilities.read_text_from_file(version_file)
+                download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
+                GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
+                GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
+                urllib.request.urlretrieve(download_link, jar_file)
             else:
-                raise ValueError("Can not download OpenAPIGenerator.")
+                if jar_file_exists:
+                    self.__sc.log.log("Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
+                else:
+                    raise ValueError("Can not download OpenAPIGenerator.")
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, codeunit_folder:str, codeunit_version:str) -> None:
@@ -984,3 +1011,28 @@ class TFCPS_Tools_General:
                 filecontent = GeneralUtilities.read_text_from_file(docker_compose_file)
                 replaced = re.sub(f'image:\\s+{codeunit_name_lower}:\\d+\\.\\d+\\.\\d+', f"image: {codeunit_name_lower}:{codeunit_version}", filecontent)
                 GeneralUtilities.write_text_to_file(docker_compose_file, replaced)
+
+    @GeneralUtilities.check_arguments
+    def set_version_of_openapigenerator(self, codeunit_folder: str, used_version: str = None) -> None:
+        target_folder: str = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator")
+        version_file = os.path.join(target_folder, "Version.txt")
+        GeneralUtilities.ensure_directory_exists(target_folder)
+        GeneralUtilities.ensure_file_exists(version_file)
+        GeneralUtilities.write_text_to_file(version_file, used_version)
+
+    @GeneralUtilities.check_arguments
+    def get_latest_version_of_openapigenerator(self) -> None:
+        headers = {'Cache-Control': 'no-cache'}
+        self.__add_github_api_key_if_available(headers)
+        response = requests.get(f"https://api.github.com/repos/OpenAPITools/openapi-generator/releases", headers=headers, timeout=(10, 10))
+        latest_version = response.json()["tag_name"]
+        return latest_version
+
+    @GeneralUtilities.check_arguments
+    def update_images_in_example(self, codeunit_folder: str):
+        iu = ImageUpdater()
+        iu.add_default_mapper()
+        dockercomposefile: str = f"{codeunit_folder}\\Other\\Reference\\ReferenceContent\\Examples\\MinimalDockerComposeFile\\docker-compose.yml"
+        excluded = ["opendms"]
+        iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
+        iu.check_for_newest_version(dockercomposefile, excluded)

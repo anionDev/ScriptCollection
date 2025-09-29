@@ -22,13 +22,15 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
     __codeunit_folder:str=None
     __current_folder:str=None
     __verbosity:LogLevel=None
+    __use_cache:bool=None
     tfcps_Tools_General:TFCPS_Tools_General
     _protected_sc:ScriptCollectionCore
     __is_pre_merge:bool=False#TODO must be setable to true
     __validate_developers_of_repository:bool=True#TODO must be setable to false
 
-    def __init__(self,current_file:str,verbosity:LogLevel,target_envionment_type:str):
+    def __init__(self,current_file:str,verbosity:LogLevel,target_envionment_type:str,use_cache:bool):
         self.__verbosity=verbosity
+        self.__use_cache=use_cache
         self.__target_environment_type=target_envionment_type
         self.__current_file = str(Path(current_file).absolute())
         self.__current_folder = os.path.dirname(self.__current_file)
@@ -214,9 +216,13 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)
         GeneralUtilities.ensure_directory_exists(generated_reference_folder)
         obj_folder = os.path.join(reference_folder, "obj")
-        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
-        GeneralUtilities.ensure_directory_exists(obj_folder)
+        GeneralUtilities.ensure_folder_exists_and_is_empty(obj_folder)
         self._protected_sc.run_program("docfx", "-t default,templates/darkfx docfx.json", reference_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(obj_folder)
+
+    @GeneralUtilities.check_arguments
+    def use_cache(self)->bool:
+        return self.__use_cache
 
     @GeneralUtilities.check_arguments
     def update_dependencies_base(self):
@@ -404,4 +410,5 @@ class TFCPS_CodeUnitSpecific_Base_CLI():
         parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        parser.add_argument('-c', '--nocache',  action='store_true', required=False, default=False)
         return parser

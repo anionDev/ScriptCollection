@@ -13,8 +13,9 @@ class TFCPS_Generic_Functions:
     verbosity:LogLevel
     sc:ScriptCollectionCore
     tfcps_Tools_General:TFCPS_Tools_General
+    __use_cache:bool
     
-    def __init__(self,script_file:str,targetenvironmenttype:str,additionalargumentsfile:str,verbosity:LogLevel):
+    def __init__(self,script_file:str,targetenvironmenttype:str,additionalargumentsfile:str,verbosity:LogLevel,use_cache:bool):
         self.verbosity=verbosity
         self.script_file=script_file
         self.sc=ScriptCollectionCore()
@@ -22,7 +23,11 @@ class TFCPS_Generic_Functions:
         self.tfcps_Tools_General=TFCPS_Tools_General(self.sc)
         self.repository_folder=self.__search_repository_folder()
         self.targetenvironmenttype=targetenvironmenttype
+        self.__use_cache=use_cache
         self.additionalargumentsfile=additionalargumentsfile
+
+    def use_cache(self)->bool:
+        return self.__use_cache
 
     def __search_repository_folder(self)->str:
         current_path:str=os.path.dirname(self.script_file)
@@ -35,6 +40,8 @@ class TFCPS_Generic_Functions:
             except:
                 enabled=False
         raise ValueError(f"Can not find git-repository for folder \"{self.script_file}\".")
+    
+
 
 class TFCPS_Generic_CLI:
 
@@ -45,6 +52,7 @@ class TFCPS_Generic_CLI:
         parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        parser.add_argument('-c', '--nocache',  action='store_true', required=False, default=False)
         args=parser.parse_args()
-        result:TFCPS_Generic_Functions=TFCPS_Generic_Functions(file,args.targetenvironmenttype,args.additionalargumentsfile,LogLevel(int(args.verbosity)))
+        result:TFCPS_Generic_Functions=TFCPS_Generic_Functions(file,args.targetenvironmenttype,args.additionalargumentsfile,LogLevel(int(args.verbosity)),not args.nocache)
         return result 
