@@ -3411,8 +3411,8 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_message_to_stdout(f"Check reference-repository...")
         now = GeneralUtilities.get_now()
         for unsupported_version in self.get_unsupported_versions(repository_folder, now):
-            reference_folder = f"{reference_folder}/ReferenceContent/v{unsupported_version[0]}"
-            GeneralUtilities.ensure_directory_does_not_exist(reference_folder)
+            reference_folder_outdated :str= f"{reference_folder}/ReferenceContent/v{unsupported_version[0]}"
+            GeneralUtilities.ensure_directory_does_not_exist(reference_folder_outdated)
         self.__sc.git_commit(reference_folder, "Removed reference of outdated versions.")
 
         merge_source_branch_commit_id = self.__sc.git_get_commit_id(repository_folder, merge_source_branch)
