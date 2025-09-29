@@ -82,7 +82,7 @@ class TFCPS_MergeToMain:
         if merge_source_branch_commit_id == main_branch_commit_id:
             self.sc.log.log("Release will not be prepared because there are no changed which can be released.")
         else:
-            self.merge_to_main_branch(repository_folder, merge_source_branch,main_branch,generic_prepare_new_release_arguments.additional_arguments_file,True,generic_prepare_new_release_arguments)
+            #self.merge_to_main_branch(repository_folder, merge_source_branch,main_branch,generic_prepare_new_release_arguments.additional_arguments_file,True,generic_prepare_new_release_arguments)
             if keep:
                 self.sc.git_commit(build_repository_folder, "Updated submodule due to merge to main-branch.")
         self.sc.log.log(f"Finished merge {generic_prepare_new_release_arguments.product_name} to main branch.")
