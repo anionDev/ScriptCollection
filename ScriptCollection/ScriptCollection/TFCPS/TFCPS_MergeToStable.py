@@ -4,9 +4,12 @@ import shutil
 from functools import cmp_to_key
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
-from ..SCLog import  LogLevel
+from ..SCLog import LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
+from .TFCPS_MergeToMain import TFCPS_MergeToMain
 from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
+ 
+
 
 
 class MergeToStableConfiguration:
@@ -70,11 +73,11 @@ class TFCPS_MergeToStable:
         self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch, True,True)
         self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
 
-        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.createRelease_configuration.repository_folder,self.sc.log.loglevel,"Productive",self.createRelease_configuration.additional_arguments_file,False,False)
+        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.createRelease_configuration.repository,self.sc.log.loglevel,"Productive",self.createRelease_configuration.additional_arguments_file,False,False)
         try:
             tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
-            self.sc.git_undo_all_changes(self.createRelease_configuration.repository_folder)
+            self.sc.git_undo_all_changes(self.createRelease_configuration.repository)
             raise
                 
         self.__remove_outdated_version()
@@ -251,14 +254,88 @@ class TFCPS_MergeToStable:
                 shutil.copytree(source_testcoveragereport, target_testcoveragereport)
 
 
+
 class TFCPS_MergeToStable_CLI:
 
     @staticmethod
-    def parse(file:str)->TFCPS_MergeToStable:
+    def get_with_overwritable_defaults(file:str,default_product_name:str=None,default_loglevel:LogLevel=None,default_source_branch:str=None,default_additionalargumentsfile:str=None,default_target_branch:str=None,default_reference_repo:str=None,common_remote_name:str=None,build_repo_main_branch_name:str=None,reference_repo_main_branch_name:str=None,reference_remote_name:str=None,build_repo_remote_name:str=None,artifacts_target_folder:str=None,common_remote_url:str=None)->TFCPS_MergeToMain:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
-        parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
+        parser.add_argument('-n', '--productname', required=False,default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
+        parser.add_argument('-s', '--sourcebranch', required=False, default=None)
+        parser.add_argument('-t', '--targetbranch', required=False, default=None)
+        parser.add_argument( '--referencerepo', required=False, default=None)
+        parser.add_argument( '--commonremotename', required=False, default=None)
+        parser.add_argument( '--buildrepomainbranchname', required=False, default=None)
+        parser.add_argument( '--referencerepomainbranchname', required=False, default=None)
+        parser.add_argument( '--referenceremotename', required=False, default=None)
+        parser.add_argument( '--buildreporemotename', required=False, default=None)
+        parser.add_argument( '--artifactstargetfolder', required=False, default=None)
+        parser.add_argument( '--commonremoteurl', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
-        parser.add_argument('-c', '--nocache',  action='store_true', required=False, default=False)
-        return parser
+        args=parser.parse_args()
+
+        sc:ScriptCollectionCore=ScriptCollectionCore()
+
+        build_repo=GeneralUtilities.resolve_relative_path("../../..",file)
+        sc.assert_is_git_repository(build_repo)
+
+        if args.productname is not None: 
+            default_product_name=args.productname
+        if default_product_name is None:
+            default_product_name=os.path.basename(build_repo)[:-len("Build")]
+        GeneralUtilities.assert_not_null(default_product_name,"productname is not set")
+
+        if args.verbosity is not None:
+            default_loglevel=LogLevel(int( args.verbosity))
+        GeneralUtilities.assert_not_null(default_loglevel,"verbosity is not set")
+
+        if args.additionalargumentsfile is not None:
+            default_additionalargumentsfile=args.additionalargumentsfile
+        GeneralUtilities.assert_not_null(default_additionalargumentsfile,"additionalargumentsfile is not set")
+
+        if args.sourcebranch is not None:
+            default_source_branch=args.sourcebranch
+        GeneralUtilities.assert_not_null(default_source_branch,"sourcebranch is not set")
+
+        if args.targetbranch is not None:
+            default_target_branch=args.targetbranch
+        GeneralUtilities.assert_not_null(default_target_branch,"targetbranch is not set")
+
+        if args.referencerepo is not None:
+            default_reference_repo=args.referencerepo
+        GeneralUtilities.assert_not_null(default_reference_repo,"referencerepo is not set")
+        
+        if args.commonremotename is not None:
+            common_remote_name=args.commonremotename
+        GeneralUtilities.assert_not_null(common_remote_name,"commonremotename is not set")
+
+        if args.buildrepomainbranchname is not None:
+            build_repo_main_branch_name=args.buildrepomainbranchname
+        GeneralUtilities.assert_not_null(build_repo_main_branch_name,"buildrepomainbranchname is not set")
+
+        if args.referencerepomainbranchname is not None:
+            reference_repo_main_branch_name=args.referencerepomainbranchname
+        GeneralUtilities.assert_not_null(reference_repo_main_branch_name,"referencerepomainbranchname is not set")
+
+        if args.referenceremotename is not None:
+            reference_remote_name=args.referenceremotename
+        GeneralUtilities.assert_not_null(reference_remote_name,"referenceremotename is not set")
+
+        if args.buildreporemotename is not None:
+            build_repo_remote_name=args.buildreporemotename
+        GeneralUtilities.assert_not_null(build_repo_remote_name,"buildreporemotename is not set")
+
+        if args.artifactstargetfolder is not None:
+            artifacts_target_folder=args.artifactstargetfolder
+        GeneralUtilities.assert_not_null(artifacts_target_folder,"artifactstargetfolder is not set")
+
+        if args.commonremoteurl is not None:
+            common_remote_url=args.commonremoteurl
+        GeneralUtilities.assert_not_null(common_remote_url,"commonremoteurl is not set")
+
+        repository=os.path.join(build_repo,"Submodules",default_product_name)
+        config:MergeToStableConfiguration=MergeToStableConfiguration(file,default_source_branch,default_target_branch,repository,build_repo,default_reference_repo,common_remote_name,build_repo_main_branch_name,reference_repo_main_branch_name,reference_remote_name,build_repo_remote_name,artifacts_target_folder,default_product_name,common_remote_url)
+        tFCPS_MergeToMain:TFCPS_MergeToStable=TFCPS_MergeToStable(config)
+        return tFCPS_MergeToMain
