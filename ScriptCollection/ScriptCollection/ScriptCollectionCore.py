@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.2"
+version = "4.0.3"
 __version__ = version
 
 
@@ -1718,8 +1718,8 @@ class ScriptCollectionCore:
 
             result = (exit_code, stdout, stderr, pid)
             return result
-        except Exception as e:
-            raise e
+        except Exception as e:#pylint:disable=unused-variable, try-except-raise
+            raise
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments

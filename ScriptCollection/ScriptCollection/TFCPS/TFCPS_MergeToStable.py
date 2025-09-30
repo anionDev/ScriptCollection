@@ -27,8 +27,9 @@ class MergeToStableConfiguration:
     artifacts_target_folder:str
     product_name:str
     common_remote_url:str
+    additional_arguments_file:str
 
-    def __init__(self,loglevel:LogLevel,source_branch:str,target_branch:str,repository:str,build_repo:str,reference_repo:str,common_remote_name:str,build_repo_main_branch_name:str,reference_repo_main_branch_name:str,reference_remote_name:str,build_repo_remote_name:str,artifacts_target_folder:str,product_name:str,common_remote_url:str):
+    def __init__(self,loglevel:LogLevel,source_branch:str,target_branch:str,repository:str,build_repo:str,reference_repo:str,common_remote_name:str,build_repo_main_branch_name:str,reference_repo_main_branch_name:str,reference_remote_name:str,build_repo_remote_name:str,artifacts_target_folder:str,product_name:str,common_remote_url:str,additional_arguments_file:str):
         self.log_level=loglevel
         self.source_branch=source_branch
         self.target_branch=target_branch
@@ -43,6 +44,7 @@ class MergeToStableConfiguration:
         self.artifacts_target_folder=artifacts_target_folder
         self.product_name=product_name
         self.common_remote_url=common_remote_url
+        self.additional_arguments_file=additional_arguments_file
 
 class TFCPS_MergeToStable:
 
@@ -59,10 +61,9 @@ class TFCPS_MergeToStable:
     def merge_to_stable_branch(self):
         self.sc.log.loglevel=self.createRelease_configuration.log_level
         product_name:str=self.createRelease_configuration.product_name
-        product_version:str=self.tFCPS_Tools_General.get_version_of_project(self.createRelease_configuration.repository)
 
         self.sc.assert_is_git_repository(self.createRelease_configuration.build_repo)
-        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
+        #self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
 
         self.sc.assert_is_git_repository(self.createRelease_configuration.repository)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
@@ -72,7 +73,8 @@ class TFCPS_MergeToStable:
 
         self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch, True,True)
         self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
-
+        product_version:str=self.tFCPS_Tools_General.get_version_of_project(self.createRelease_configuration.repository)
+ 
         tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.createRelease_configuration.repository,self.sc.log.loglevel,"Productive",self.createRelease_configuration.additional_arguments_file,False,False)
         try:
             tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
@@ -102,7 +104,7 @@ class TFCPS_MergeToStable:
             reference_folder:str=os.path.join(self.createRelease_configuration.reference_repo,"ReferenceContent")
             repository:str=self.createRelease_configuration.repository
             project_version:str=self.tFCPS_Tools_General.get_version_of_project(repository)
-            projectname:str=self.createRelease_configuration.n
+            projectname:str=self.createRelease_configuration.product_name
             public_repository_url:str=self.createRelease_configuration.common_remote_url
             main_branch_name:str=self.createRelease_configuration.source_branch
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, f"v{project_version}")
@@ -263,12 +265,12 @@ class TFCPS_MergeToStable_CLI:
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
         parser.add_argument('-n', '--productname', required=False,default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
-        parser.add_argument('-s', '--sourcebranch', required=False, default=None)
-        parser.add_argument('-t', '--targetbranch', required=False, default=None)
+        parser.add_argument('-s', '--sourcebranch', required=False, default="main")
+        parser.add_argument('-t', '--targetbranch', required=False, default="stable")
         parser.add_argument( '--referencerepo', required=False, default=None)
         parser.add_argument( '--commonremotename', required=False, default=None)
-        parser.add_argument( '--buildrepomainbranchname', required=False, default=None)
-        parser.add_argument( '--referencerepomainbranchname', required=False, default=None)
+        parser.add_argument( '--buildrepomainbranchname', required=False, default="main")
+        parser.add_argument( '--referencerepomainbranchname', required=False, default="main")
         parser.add_argument( '--referenceremotename', required=False, default=None)
         parser.add_argument( '--buildreporemotename', required=False, default=None)
         parser.add_argument( '--artifactstargetfolder', required=False, default=None)
@@ -293,7 +295,6 @@ class TFCPS_MergeToStable_CLI:
 
         if args.additionalargumentsfile is not None:
             default_additionalargumentsfile=args.additionalargumentsfile
-        GeneralUtilities.assert_not_null(default_additionalargumentsfile,"additionalargumentsfile is not set")
 
         if args.sourcebranch is not None:
             default_source_branch=args.sourcebranch
@@ -305,6 +306,8 @@ class TFCPS_MergeToStable_CLI:
 
         if args.referencerepo is not None:
             default_reference_repo=args.referencerepo
+        if default_reference_repo is None:
+            default_reference_repo=os.path.join(build_repo,"Submodules",f"{default_product_name}Reference")
         GeneralUtilities.assert_not_null(default_reference_repo,"referencerepo is not set")
         
         if args.commonremotename is not None:
@@ -329,13 +332,12 @@ class TFCPS_MergeToStable_CLI:
 
         if args.artifactstargetfolder is not None:
             artifacts_target_folder=args.artifactstargetfolder
-        GeneralUtilities.assert_not_null(artifacts_target_folder,"artifactstargetfolder is not set")
 
         if args.commonremoteurl is not None:
             common_remote_url=args.commonremoteurl
         GeneralUtilities.assert_not_null(common_remote_url,"commonremoteurl is not set")
 
         repository=os.path.join(build_repo,"Submodules",default_product_name)
-        config:MergeToStableConfiguration=MergeToStableConfiguration(file,default_source_branch,default_target_branch,repository,build_repo,default_reference_repo,common_remote_name,build_repo_main_branch_name,reference_repo_main_branch_name,reference_remote_name,build_repo_remote_name,artifacts_target_folder,default_product_name,common_remote_url)
+        config:MergeToStableConfiguration=MergeToStableConfiguration(default_loglevel,default_source_branch,default_target_branch,repository,build_repo,default_reference_repo,common_remote_name,build_repo_main_branch_name,reference_repo_main_branch_name,reference_remote_name,build_repo_remote_name,artifacts_target_folder,default_product_name,common_remote_url,default_additionalargumentsfile)
         tFCPS_MergeToMain:TFCPS_MergeToStable=TFCPS_MergeToStable(config)
         return tFCPS_MergeToMain
