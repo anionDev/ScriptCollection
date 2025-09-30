@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 from functools import cmp_to_key
@@ -6,8 +7,6 @@ from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
 from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
-
-
 
 
 class MergeToStableConfiguration:
@@ -46,84 +45,86 @@ class TFCPS_MergeToStable:
 
     sc:ScriptCollectionCore
     tFCPS_Tools_General:TFCPS_Tools_General
+    createRelease_configuration: MergeToStableConfiguration
 
-    def __init__(self):
+    def __init__(self, createRelease_configuration: MergeToStableConfiguration):
         self.sc=ScriptCollectionCore()
         self.tFCPS_Tools_General=TFCPS_Tools_General(self.sc)
+        self.createRelease_configuration=createRelease_configuration
  
     @GeneralUtilities.check_arguments
-    def merge_to_stable_branch(self, createRelease_configuration: MergeToStableConfiguration):
-        self.sc.log.loglevel=createRelease_configuration.log_level
-        product_name:str=createRelease_configuration.product_name
-        product_version:str=self.tFCPS_Tools_General.get_version_of_project(createRelease_configuration.repository)
+    def merge_to_stable_branch(self):
+        self.sc.log.loglevel=self.createRelease_configuration.log_level
+        product_name:str=self.createRelease_configuration.product_name
+        product_version:str=self.tFCPS_Tools_General.get_version_of_project(self.createRelease_configuration.repository)
 
-        self.sc.assert_is_git_repository(createRelease_configuration.build_repo)
-        self.sc.assert_no_uncommitted_changes(createRelease_configuration.build_repo)
+        self.sc.assert_is_git_repository(self.createRelease_configuration.build_repo)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
 
-        self.sc.assert_is_git_repository(createRelease_configuration.repository)
-        self.sc.assert_no_uncommitted_changes(createRelease_configuration.repository)
+        self.sc.assert_is_git_repository(self.createRelease_configuration.repository)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
 
-        self.sc.assert_is_git_repository(createRelease_configuration.reference_repo)
-        self.sc.assert_no_uncommitted_changes(createRelease_configuration.reference_repo)
+        self.sc.assert_is_git_repository(self.createRelease_configuration.reference_repo)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.reference_repo)
 
-        self.sc.git_checkout(createRelease_configuration.repository, createRelease_configuration.source_branch, True,True)
-        self.sc.git_merge(createRelease_configuration.repository, createRelease_configuration.source_branch,createRelease_configuration.target_branch, True,True,None,True,True)
+        self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch, True,True)
+        self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
 
-        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(createRelease_configuration.repository_folder,self.sc.log.loglevel,"Productive",createRelease_configuration.additional_arguments_file,False,False)
+        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.createRelease_configuration.repository_folder,self.sc.log.loglevel,"Productive",self.createRelease_configuration.additional_arguments_file,False,False)
         try:
             tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
-            self.sc.git_undo_all_changes(createRelease_configuration.repository_folder)
+            self.sc.git_undo_all_changes(self.createRelease_configuration.repository_folder)
             raise
                 
-        self.__remove_outdated_version(createRelease_configuration)
+        self.__remove_outdated_version()
 
-        for codeunit in self.tFCPS_Tools_General.get_codeunits(createRelease_configuration.repository):
+        for codeunit in self.tFCPS_Tools_General.get_codeunits(self.createRelease_configuration.repository):
             #export artifacts to local target folder
-            if createRelease_configuration.artifacts_target_folder is not None:
-                source_folder:str=GeneralUtilities.resolve_relative_path(f"./{codeunit}/Other/Artifacts",createRelease_configuration.repository)
-                target_folder:str=GeneralUtilities.resolve_relative_path(f"./{product_name}/{product_version}/{codeunit}",createRelease_configuration.artifacts_target_folder)
+            if self.createRelease_configuration.artifacts_target_folder is not None:
+                source_folder:str=GeneralUtilities.resolve_relative_path(f"./{codeunit}/Other/Artifacts",self.createRelease_configuration.repository)
+                target_folder:str=GeneralUtilities.resolve_relative_path(f"./{product_name}/{product_version}/{codeunit}",self.createRelease_configuration.artifacts_target_folder)
                 GeneralUtilities.ensure_directory_exists(target_folder)
-                codeunit_version:str=self.tFCPS_Tools_General.get_version_of_codeunit(os.path.join(createRelease_configuration.repository,codeunit,f"{codeunit}.codeunit.xml"))
+                codeunit_version:str=self.tFCPS_Tools_General.get_version_of_codeunit(os.path.join(self.createRelease_configuration.repository,codeunit,f"{codeunit}.codeunit.xml"))
                 target_file:str=os.path.join(target_folder,f"{codeunit}.v{codeunit_version}.Artifacts.zip")
                 self.sc.run_program("tar",f"-cf {target_file} -C {source_folder} .")
 
             #push artifacts
-            push_script:str=os.path.join( createRelease_configuration.build_repo,"Script","CreateRelease",f"PushArtifacts.{codeunit}.py")
+            push_script:str=os.path.join( self.createRelease_configuration.build_repo,"Script","CreateRelease",f"PushArtifacts.{codeunit}.py")
             if os.path.isfile(push_script):
                 self.sc.log.log(f"Push artifacts of codeunit {codeunit}...")
                 self.sc.run_program("python3",os.path.basename(push_script),os.path.dirname(push_script))
 
             # Generate reference
-            reference_folder:str=os.path.join(createRelease_configuration.reference_repo,"ReferenceContent")
-            repository:str=createRelease_configuration.repository
+            reference_folder:str=os.path.join(self.createRelease_configuration.reference_repo,"ReferenceContent")
+            repository:str=self.createRelease_configuration.repository
             project_version:str=self.tFCPS_Tools_General.get_version_of_project(repository)
-            projectname:str=createRelease_configuration.n
-            public_repository_url:str=createRelease_configuration.common_remote_url
-            main_branch_name:str=createRelease_configuration.source_branch
+            projectname:str=self.createRelease_configuration.n
+            public_repository_url:str=self.createRelease_configuration.common_remote_url
+            main_branch_name:str=self.createRelease_configuration.source_branch
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, f"v{project_version}")
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, main_branch_name)
             self.__generate_entire_reference(projectname, project_version, reference_folder)
         
-        self.sc.assert_no_uncommitted_changes(createRelease_configuration.repository)
-        self.sc.assert_no_uncommitted_changes(createRelease_configuration.reference_repo)
-        self.sc.assert_no_uncommitted_changes(createRelease_configuration.build_repo)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.reference_repo)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
 
-        self.sc.git_push_with_retry(createRelease_configuration.repository,createRelease_configuration.common_remote_name,createRelease_configuration.target_branch,createRelease_configuration.target_branch)
-        self.sc.git_push_with_retry(createRelease_configuration.build_repo,createRelease_configuration.build_repo_remote_name,createRelease_configuration.build_repo_main_branch_name,createRelease_configuration.build_repo_main_branch_name)
-        self.sc.git_push_with_retry(createRelease_configuration.reference_repo,createRelease_configuration.reference_remote_name,createRelease_configuration.reference_repo_main_branch_name,createRelease_configuration.reference_repo_main_branch_name)
+        self.sc.git_push_with_retry(self.createRelease_configuration.repository,self.createRelease_configuration.common_remote_name,self.createRelease_configuration.target_branch,self.createRelease_configuration.target_branch)
+        self.sc.git_push_with_retry(self.createRelease_configuration.build_repo,self.createRelease_configuration.build_repo_remote_name,self.createRelease_configuration.build_repo_main_branch_name,self.createRelease_configuration.build_repo_main_branch_name)
+        self.sc.git_push_with_retry(self.createRelease_configuration.reference_repo,self.createRelease_configuration.reference_remote_name,self.createRelease_configuration.reference_repo_main_branch_name,self.createRelease_configuration.reference_repo_main_branch_name)
 
-    def __remove_outdated_version(self,createRelease_configuration:MergeToStableConfiguration):
+    def __remove_outdated_version(self):
         now = GeneralUtilities.get_now()
-        for unsupported_version in self.tFCPS_Tools_General.get_unsupported_versions(createRelease_configuration.repository, now):
-            unsupported_reference_folder = f"{createRelease_configuration.reference_repo}/ReferenceContent/v{unsupported_version[0]}"
+        for unsupported_version in self.tFCPS_Tools_General.get_unsupported_versions(self.createRelease_configuration.repository, now):
+            unsupported_reference_folder = f"{self.createRelease_configuration.reference_repo}/ReferenceContent/v{unsupported_version[0]}"
             GeneralUtilities.ensure_directory_does_not_exist(unsupported_reference_folder)
 
         
     @GeneralUtilities.check_arguments
     def __generate_entire_reference(self, projectname: str, project_version: str, reference_folder: str) -> None:
         all_available_version_identifier_folders_of_reference: list[str] = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
-        all_available_version_identifier_folders_of_reference = sorted(all_available_version_identifier_folders_of_reference, key=cmp_to_key(TFCPS_Tools_General._internal_sort_reference_folder))
+        all_available_version_identifier_folders_of_reference = sorted(all_available_version_identifier_folders_of_reference, key=cmp_to_key(TFCPS_Tools_General.sort_reference_folder))
         reference_versions_html_lines = []
         reference_versions_html_lines.append('    <hr/>')
         for all_available_version_identifier_folder_of_reference in all_available_version_identifier_folders_of_reference:
@@ -248,3 +249,16 @@ class TFCPS_MergeToStable:
             if os.path.isdir(source_testcoveragereport):  # check, because it is not a mandatory artifact. if the artifact is not available, the user gets already a warning.
                 target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
                 shutil.copytree(source_testcoveragereport, target_testcoveragereport)
+
+
+class TFCPS_MergeToStable_CLI:
+
+    @staticmethod
+    def parse(file:str)->TFCPS_MergeToStable:
+        parser = argparse.ArgumentParser()
+        verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+        parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
+        parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
+        parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        parser.add_argument('-c', '--nocache',  action='store_true', required=False, default=False)
+        return parser

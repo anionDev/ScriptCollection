@@ -786,7 +786,7 @@ class TFCPS_Tools_General:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def _internal_sort_reference_folder(folder1: str, folder2: str) -> int:
+    def sort_reference_folder(folder1: str, folder2: str) -> int:
         """Returns a value greater than 0 if and only if folder1 has a base-folder-name with a with a higher version than the base-folder-name of folder2.
         Returns a value lower than 0 if and only if folder1 has a base-folder-name with a with a lower version than the base-folder-name of folder2.
         Returns 0 if both values are equal."""

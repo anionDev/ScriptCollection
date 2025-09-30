@@ -30,37 +30,38 @@ class TFCPS_MergeToMain:
 
     sc:ScriptCollectionCore
     tFCPS_Tools_General:TFCPS_Tools_General
+    generic_prepare_new_release_arguments:MergeToMainConfiguration=None
 
-
-    def __init__(self):
+    def __init__(self,generic_prepare_new_release_arguments:MergeToMainConfiguration):
         self.sc=ScriptCollectionCore()
         self.tFCPS_Tools_General=TFCPS_Tools_General(self.sc)
-
+        self.generic_prepare_new_release_arguments=generic_prepare_new_release_arguments
 
     @GeneralUtilities.check_arguments
-    def merge_to_main_branch(self,  generic_prepare_new_release_arguments:MergeToMainConfiguration) -> None:
-        self.sc.log.loglevel=generic_prepare_new_release_arguments.log_level
+    def merge_to_main_branch(self ) -> None:
+        self.sc.log.loglevel=self.generic_prepare_new_release_arguments.log_level
         fast_forward_source_branch: bool=True
-        source_branch: str=generic_prepare_new_release_arguments.merge_source_branch
-        target_branch: str=generic_prepare_new_release_arguments.main_branch
-        self.sc.log.log(f"Merge to main-branch...")
-        self.sc.assert_is_git_repository(generic_prepare_new_release_arguments.repository_folder)
+        source_branch: str=self.generic_prepare_new_release_arguments.merge_source_branch
+        target_branch: str=self.generic_prepare_new_release_arguments.main_branch
+        self.sc.log.log("Merge to main-branch...")
+        self.sc.assert_is_git_repository(self.generic_prepare_new_release_arguments.repository_folder)
 
-        self.sc.assert_no_uncommitted_changes(generic_prepare_new_release_arguments.repository_folder)
-        self.sc.git_checkout(generic_prepare_new_release_arguments.repository_folder, source_branch)
-        self.sc.assert_no_uncommitted_changes(generic_prepare_new_release_arguments.repository_folder)
+        self.sc.assert_no_uncommitted_changes(self.generic_prepare_new_release_arguments.repository_folder)
+        self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, source_branch)
+        self.sc.assert_no_uncommitted_changes(self.generic_prepare_new_release_arguments.repository_folder)
 
-        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",generic_prepare_new_release_arguments.additional_arguments_file,False,True)
+        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",self.generic_prepare_new_release_arguments.additional_arguments_file,False,True)
         try:
             tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
-            self.sc.git_undo_all_changes(generic_prepare_new_release_arguments.repository_folder)
+            self.sc.git_undo_all_changes(self.generic_prepare_new_release_arguments.repository_folder)
             raise
 
-        self.sc.git_commit(generic_prepare_new_release_arguments.repository_folder, f'Built codeunits', stage_all_changes=True, no_changes_behavior=0)
+        self.sc.git_commit(self.generic_prepare_new_release_arguments.repository_folder, 'Built codeunits', stage_all_changes=True, no_changes_behavior=0)
         
         if fast_forward_source_branch:
-            self.sc.git_checkout(generic_prepare_new_release_arguments.repository_folder, target_branch)
-            self.sc.git_merge(generic_prepare_new_release_arguments.repository_folder, target_branch, source_branch, True, True)
-        self.sc.git_push_with_retry(generic_prepare_new_release_arguments.repository_folder,generic_prepare_new_release_arguments.common_remote_name,source_branch,source_branch)
-        self.sc.git_push_with_retry(generic_prepare_new_release_arguments.repository_folder,generic_prepare_new_release_arguments.common_remote_name,target_branch,target_branch)
+            self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, target_branch)
+            self.sc.git_merge(self.generic_prepare_new_release_arguments.repository_folder, target_branch, source_branch, True, True)
+        self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,source_branch,source_branch)
+        self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,target_branch,target_branch)
+ 
