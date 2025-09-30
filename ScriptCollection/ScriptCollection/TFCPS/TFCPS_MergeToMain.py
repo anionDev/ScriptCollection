@@ -1,3 +1,5 @@
+import argparse
+import os
 from ..GeneralUtilities import GeneralUtilities
 from ..SCLog import LogLevel
 from ..ScriptCollectionCore import ScriptCollectionCore
@@ -65,3 +67,51 @@ class TFCPS_MergeToMain:
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,source_branch,source_branch)
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,target_branch,target_branch)
  
+class TFCPS_MergeToMain_CLI:
+
+    @staticmethod
+    def get_with_overwritable_defaults(file:str,default_product_name:str=None,default_merge_source_branch:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_main_branch:str=None,default_common_remote_name:str=None)->TFCPS_MergeToMain:
+        parser = argparse.ArgumentParser()
+        verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+        parser.add_argument('-n', '--productname', required=False,default=None)
+        parser.add_argument('-s', '--mergesourcebranch', required=False)
+        parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
+        parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
+        parser.add_argument('-t', '--mainbranch', required=False, default="main")
+        parser.add_argument('-r', '--commonremotename', required=False, default=None)
+        parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        args=parser.parse_args()
+
+        sc:ScriptCollectionCore=ScriptCollectionCore()
+
+        build_repo=GeneralUtilities.resolve_relative_path("../../..",file)
+        sc.assert_is_git_repository(build_repo)
+
+        if args.productname is not None: 
+            default_product_name=args.productname
+        if default_product_name is None:
+            default_product_name=os.path.basename(build_repo)[:-len("Build")]
+        GeneralUtilities.assert_not_null(default_product_name,"productname is not set")
+
+        if args.mergesourcebranch is not None: 
+            default_merge_source_branch=args.mergesourcebranch#other/next-release
+        GeneralUtilities.assert_not_null(default_merge_source_branch,"mergesourcebranch is not set")
+
+        if args.verbosity is not None:
+            default_loglevel=LogLevel(int( args.verbosity))
+        GeneralUtilities.assert_not_null(default_merge_source_branch,"verbosity is not set")
+
+        if args.additionalargumentsfile is not None:
+            default_additionalargumentsfile=args.additionalargumentsfile
+
+        if args.mainbranch is not None: 
+            default_main_branch=args.mainbranch#main
+        GeneralUtilities.assert_not_null(default_main_branch,"mainbranch is not set")
+
+        if args.commonremotename is not None:
+            default_common_remote_name=args.commonremotename
+        GeneralUtilities.assert_not_null(default_common_remote_name,"commonremotename is not set")
+
+        config:MergeToMainConfiguration=MergeToMainConfiguration(file,default_product_name,default_merge_source_branch,default_loglevel,default_additionalargumentsfile,default_main_branch,default_common_remote_name)
+        tFCPS_MergeToMain:TFCPS_MergeToMain=TFCPS_MergeToMain(config)
+        return tFCPS_MergeToMain

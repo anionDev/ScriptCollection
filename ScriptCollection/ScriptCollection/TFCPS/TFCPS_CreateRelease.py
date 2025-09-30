@@ -79,8 +79,8 @@ class TFCPS_CreateRelease:
         else:
             self.sc.log.log("Merge to main-branch...",LogLevel.Information)
             mergeToMainConfiguration:MergeToMainConfiguration=MergeToMainConfiguration(tfcps_CreateReleaseConfiguration.current_file,tfcps_CreateReleaseConfiguration.product_name,tfcps_CreateReleaseConfiguration.branch_to_be_released,tfcps_CreateReleaseConfiguration.log_level,tfcps_CreateReleaseConfiguration.additional_arguments_file,tfcps_CreateReleaseConfiguration.main_branch,tfcps_CreateReleaseConfiguration.common_remote_name)
-            tFCPS_MergeToMain:TFCPS_MergeToMain=TFCPS_MergeToMain()
-            tFCPS_MergeToMain.merge_to_main_branch(mergeToMainConfiguration)
+            tFCPS_MergeToMain:TFCPS_MergeToMain=TFCPS_MergeToMain(mergeToMainConfiguration)
+            tFCPS_MergeToMain.merge_to_main_branch()
 
         main_branch_commit_id = self.sc.git_get_commit_id(tfcps_CreateReleaseConfiguration.repository, tfcps_CreateReleaseConfiguration.main_branch)
         stable_branch_commit_id = self.sc.git_get_commit_id(tfcps_CreateReleaseConfiguration.repository, tfcps_CreateReleaseConfiguration.stable_branch)
@@ -89,8 +89,8 @@ class TFCPS_CreateRelease:
         else:
             self.sc.log.log("Merge to stable-branch...",LogLevel.Information)
             mergeToStableConfiguration:MergeToStableConfiguration=MergeToStableConfiguration(tfcps_CreateReleaseConfiguration.log_level,tfcps_CreateReleaseConfiguration.main_branch,tfcps_CreateReleaseConfiguration.stable_branch,tfcps_CreateReleaseConfiguration.repository,tfcps_CreateReleaseConfiguration.build_repository,tfcps_CreateReleaseConfiguration.reference_repo,tfcps_CreateReleaseConfiguration.common_remote_name,tfcps_CreateReleaseConfiguration.build_repo_main_branch_name,tfcps_CreateReleaseConfiguration.reference_repo_main_branch_name,tfcps_CreateReleaseConfiguration.reference_remote_name,tfcps_CreateReleaseConfiguration.build_repo_remote_name,tfcps_CreateReleaseConfiguration.artifacts_target_folder,tfcps_CreateReleaseConfiguration.product_name,tfcps_CreateReleaseConfiguration.common_remote_url)
-            tFCPS_MergeToStable:TFCPS_MergeToStable=TFCPS_MergeToStable()
-            tFCPS_MergeToStable.merge_to_stable_branch(mergeToStableConfiguration)
+            tFCPS_MergeToStable:TFCPS_MergeToStable=TFCPS_MergeToStable(mergeToStableConfiguration)
+            tFCPS_MergeToStable.merge_to_stable_branch()
             
             release_was_done=True
 
