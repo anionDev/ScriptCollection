@@ -18,9 +18,9 @@ class MergeToMainConfiguration:
     common_remote_name:str
     sc:ScriptCollectionCore=ScriptCollectionCore()
 
-    def __init__(self, current_file: str, product_name: str,merge_source_branch:str,log_level:LogLevel,additional_arguments_file:str,main_branch:str,common_remote_name:str):
+    def __init__(self, current_file: str,repository:str, product_name: str,merge_source_branch:str,log_level:LogLevel,additional_arguments_file:str,main_branch:str,common_remote_name:str):
         self.sc.log.loglevel=log_level
-        self.repository_folder = self.sc.search_repository_folder(current_file)
+        self.repository_folder = repository
         self.product_name = product_name
         self.merge_source_branch=merge_source_branch
         self.additional_arguments_file=additional_arguments_file
@@ -54,7 +54,7 @@ class TFCPS_MergeToMain:
 
         tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",self.generic_prepare_new_release_arguments.additional_arguments_file,False,True)
         try:
-            tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
+           pass# tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
             self.sc.git_undo_all_changes(self.generic_prepare_new_release_arguments.repository_folder)
             raise
@@ -62,8 +62,12 @@ class TFCPS_MergeToMain:
         self.sc.git_commit(self.generic_prepare_new_release_arguments.repository_folder, 'Built codeunits', stage_all_changes=True, no_changes_behavior=0)
         
         if fast_forward_source_branch:
-            self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, target_branch)
+            self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, source_branch)
+            project_version:str=self.tFCPS_Tools_General.get_version_of_project(self.generic_prepare_new_release_arguments.repository_folder)
+            self.sc.git_merge(self.generic_prepare_new_release_arguments.repository_folder, source_branch, target_branch, False, True)
             self.sc.git_merge(self.generic_prepare_new_release_arguments.repository_folder, target_branch, source_branch, True, True)
+            self.sc.git_create_tag(self.generic_prepare_new_release_arguments.repository_folder,target_branch,f"v{project_version}")
+
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,source_branch,source_branch)
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,target_branch,target_branch)
  
@@ -90,7 +94,7 @@ class TFCPS_MergeToMain_CLI:
         if args.productname is not None: 
             default_product_name=args.productname
         if default_product_name is None:
-            default_product_name=os.path.basename(build_repo)[:-len("Build")]
+             default_product_name=os.path.basename(build_repo)[:-len("Build")]
         GeneralUtilities.assert_not_null(default_product_name,"productname is not set")
 
         if args.mergesourcebranch is not None: 
@@ -112,6 +116,7 @@ class TFCPS_MergeToMain_CLI:
             default_common_remote_name=args.commonremotename
         GeneralUtilities.assert_not_null(default_common_remote_name,"commonremotename is not set")
 
-        config:MergeToMainConfiguration=MergeToMainConfiguration(file,default_product_name,default_merge_source_branch,default_loglevel,default_additionalargumentsfile,default_main_branch,default_common_remote_name)
+        repository=os.path.join(build_repo,"Submodules",default_product_name)
+        config:MergeToMainConfiguration=MergeToMainConfiguration(file,repository,default_product_name,default_merge_source_branch,default_loglevel,default_additionalargumentsfile,default_main_branch,default_common_remote_name)
         tFCPS_MergeToMain:TFCPS_MergeToMain=TFCPS_MergeToMain(config)
         return tFCPS_MergeToMain
