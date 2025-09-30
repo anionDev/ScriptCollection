@@ -143,6 +143,10 @@ class TFCPS_Tools_General:
         return sorted_codeunits
 
     @GeneralUtilities.check_arguments
+    def repository_has_codeunits(self, repository: str, ignore_disabled_codeunits: bool = True) -> bool:
+        return 0<len(self.get_codeunits(repository, ignore_disabled_codeunits))
+
+    @GeneralUtilities.check_arguments
     def get_dependent_code_units(self, codeunit_file: str) -> list[str]:
         root: etree._ElementTree = etree.parse(codeunit_file)
         result = set(root.xpath('//cps:dependentcodeunit/text()', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'}))

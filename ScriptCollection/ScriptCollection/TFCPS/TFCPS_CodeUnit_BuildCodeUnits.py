@@ -28,6 +28,10 @@ class TFCPS_CodeUnit_BuildCodeUnits:
     @GeneralUtilities.check_arguments
     def build_codeunits(self) -> None:
         self.sc.log.log("Start building codeunits.")
+
+        changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tFCPS_Other.get_version_of_project(self.repository)}.md")
+        GeneralUtilities.assert_file_exists(changelog_file)
+
         if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
             arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
             if not self.__use_cache:
