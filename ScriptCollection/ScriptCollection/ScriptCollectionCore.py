@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "3.5.165"
+version = "4.0.0"
 __version__ = version
 
 
@@ -44,7 +44,7 @@ class ScriptCollectionCore:
 
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     # Do not change this value for productive environments.
-    mock_program_calls: bool = False
+    mock_program_calls: bool = False#TODO remove this variable. When someone want to mock program-calls then the ProgramRunnerMock can be used instead
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
     execute_program_really_if_no_mock_call_is_defined: bool = False
     __mocked_program_calls: list = None
@@ -75,7 +75,7 @@ class ScriptCollectionCore:
         if (exit_code != 0):
             errors.append(f"Linting-issues of {file}:")
             errors.append(f"Pylint-exitcode: {exit_code}")
-            for line in GeneralUtilities.string_to_lines(stdout):
+            for line in GeneralUtilities.string_to_lines(stdout): 
                 errors.append(line)
             for line in GeneralUtilities.string_to_lines(stderr):
                 errors.append(line)
@@ -118,13 +118,13 @@ class ScriptCollectionCore:
             raise ValueError(f"Version '{current_version}' does not match version-regex '{versiononlyregex}'")
 
     @GeneralUtilities.check_arguments
-    def push_nuget_build_artifact(self, nupkg_file: str, registry_address: str, api_key: str = None, verbosity: int = 1):
+    def push_nuget_build_artifact(self, nupkg_file: str, registry_address: str, api_key: str = None):
         nupkg_file_name = os.path.basename(nupkg_file)
         nupkg_file_folder = os.path.dirname(nupkg_file)
         argument = f"nuget push {nupkg_file_name} --force-english-output --source {registry_address}"
         if api_key is not None:
-            argument = f"{argument} --api-key {api_key}"
-        self.run_program("dotnet", argument, nupkg_file_folder, verbosity)
+            argument = f"{argument} --api-key {api_key}" 
+        self.run_program("dotnet", argument, nupkg_file_folder, self.log.loglevel)
 
     @GeneralUtilities.check_arguments
     def dotnet_build(self, folder: str, projectname: str, configuration: str):
@@ -175,25 +175,6 @@ class ScriptCollectionCore:
         self.is_git_or_bare_git_repository(repository_folder)
         return self.run_program("git", f'log --pretty=%P -n 1 "{commit_id}"', repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).split(" ")
 
-    @GeneralUtilities.check_arguments
-    def get_all_authors_and_committers_of_repository(self, repository_folder: str, subfolder: str = None, verbosity: int = 1) -> list[tuple[str, str]]:
-        self.is_git_or_bare_git_repository(repository_folder)
-        space_character = "_"
-        if subfolder is None:
-            subfolder_argument = GeneralUtilities.empty_string
-        else:
-            subfolder_argument = f" -- {subfolder}"
-        log_result = self.run_program("git", f'log --pretty=%aN{space_character}%aE%n%cN{space_character}%cE HEAD{subfolder_argument}', repository_folder, verbosity=0)
-        plain_content: list[str] = list(
-            set([line for line in log_result[1].split("\n") if len(line) > 0]))
-        result: list[tuple[str, str]] = []
-        for item in plain_content:
-            if len(re.findall(space_character, item)) == 1:
-                splitted = item.split(space_character)
-                result.append((splitted[0], splitted[1]))
-            else:
-                raise ValueError(f'Unexpected author: "{item}"')
-        return result
 
     @GeneralUtilities.check_arguments
     def get_commit_ids_between_dates(self, repository_folder: str, since: datetime, until: datetime, ignore_commits_which_are_not_in_history_of_head: bool = True) -> None:
@@ -224,7 +205,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def __git_changes_helper(self, repository_folder: str, arguments_as_array: list[str]) -> bool:
         self.assert_is_git_repository(repository_folder)
-        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        lines = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", arguments_as_array, repository_folder, throw_exception_if_exitcode_is_not_zero=True)[1], False)
         for line in lines:
             if GeneralUtilities.string_has_content(line):
                 return True
@@ -266,13 +247,13 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
         self.is_git_or_bare_git_repository(repository_folder)
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
     def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
         self.is_git_or_bare_git_repository(repository_folder)
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
         date_as_string = result[1].replace('\n', '')
         result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
         return result
@@ -284,31 +265,31 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_fetch(self, folder: str, remotename: str = "--all") -> None:
         self.is_git_or_bare_git_repository(folder)
-        self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["fetch", remotename, "--tags", "--prune"], folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_fetch_in_bare_repository(self, folder: str, remotename, localbranch: str, remotebranch: str) -> None:
         self.is_git_or_bare_git_repository(folder)
-        self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["fetch", remotename, f"{remotebranch}:{localbranch}"], folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_remove_branch(self, folder: str, branchname: str) -> None:
         self.is_git_or_bare_git_repository(folder)
-        self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program("git", f"branch -D {branchname}", folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def git_push_with_retry(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0, amount_of_attempts: int = 5) -> None:
+    def git_push_with_retry(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: LogLevel = LogLevel.Quiet, amount_of_attempts: int = 5) -> None:
         GeneralUtilities.retry_action(lambda: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags, verbosity), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
-    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: int = 0) -> None:
+    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: LogLevel = LogLevel.Quiet) -> None:
         self.is_git_or_bare_git_repository(folder)
         argument = ["push", "--recurse-submodules=on-demand", remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
         if (pushalltags):
             argument.append("--tags")
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=verbosity, print_errors_as_information=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True, print_errors_as_information=True)
         return result[1].replace('\r', '').replace('\n', '')
 
     @GeneralUtilities.check_arguments
@@ -321,14 +302,14 @@ class ScriptCollectionCore:
         argument = f"pull {remote} {remotebranchname}:{localbranchname}"
         if force:
             argument = f"{argument} --force"
-        self.run_program("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program("git", argument, folder, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_list_remote_branches(self, folder: str, remote: str, fetch: bool) -> list[str]:
         self.is_git_or_bare_git_repository(folder)
         if fetch:
             self.git_fetch(folder, remote)
-        run_program_result = self.run_program("git", f"branch -rl {remote}/*", folder, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        run_program_result = self.run_program("git", f"branch -rl {remote}/*", folder, throw_exception_if_exitcode_is_not_zero=True)
         output = GeneralUtilities.string_to_lines(run_program_result[1])
         result = list[str]()
         for item in output:
@@ -355,18 +336,18 @@ class ScriptCollectionCore:
                 args.append("--remote-submodules")
             if mirror:
                 args.append("--mirror")
-            self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            self.run_program_argsasarray("git", args, os.getcwd(), throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_get_all_remote_names(self, directory: str) -> list[str]:
         self.is_git_or_bare_git_repository(directory)
-        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote"], directory, throw_exception_if_exitcode_is_not_zero=True)[1], False)
         return result
 
     @GeneralUtilities.check_arguments
     def git_get_remote_url(self, directory: str, remote_name: str) -> str:
         self.is_git_or_bare_git_repository(directory)
-        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)[1], False)
+        result = GeneralUtilities.string_to_lines(self.run_program_argsasarray("git", ["remote", "get-url", remote_name], directory, throw_exception_if_exitcode_is_not_zero=True)[1], False)
         return result[0].replace('\n', '')
 
     @GeneralUtilities.check_arguments
@@ -378,43 +359,43 @@ class ScriptCollectionCore:
     def git_add_or_set_remote_address(self, directory: str, remote_name: str, remote_address: str) -> None:
         self.assert_is_git_repository(directory)
         if (self.repository_has_remote_with_specific_name(directory, remote_name)):
-            self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            self.run_program_argsasarray("git", ['remote', 'set-url', 'remote_name', remote_address], directory, throw_exception_if_exitcode_is_not_zero=True)
         else:
-            self.run_program_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            self.run_program_argsasarray("git", ['remote', 'add', remote_name, remote_address], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_stage_all_changes(self, directory: str) -> None:
         self.assert_is_git_repository(directory)
-        self.run_program_argsasarray("git", ["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["add", "-A"], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_unstage_all_changes(self, directory: str) -> None:
         self.assert_is_git_repository(directory)
-        self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["reset"], directory, throw_exception_if_exitcode_is_not_zero=True)
         # TODO check if this will also be done for submodules
 
     @GeneralUtilities.check_arguments
     def git_stage_file(self, directory: str, file: str) -> None:
         self.assert_is_git_repository(directory)
-        self.run_program_argsasarray("git", ['stage', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['stage', file], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_unstage_file(self, directory: str, file: str) -> None:
         self.assert_is_git_repository(directory)
-        self.run_program_argsasarray("git", ['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['reset', file], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_discard_unstaged_changes_of_file(self, directory: str, file: str) -> None:
         """Caution: This method works really only for 'changed' files yet. So this method does not work properly for new or renamed files."""
         self.assert_is_git_repository(directory)
-        self.run_program_argsasarray("git", ['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['checkout', file], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_discard_all_unstaged_changes(self, directory: str) -> None:
         """Caution: This function executes 'git clean -df'. This can delete files which maybe should not be deleted. Be aware of that."""
         self.assert_is_git_repository(directory)
-        self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ['clean', '-df'], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ['checkout', '.'], directory, throw_exception_if_exitcode_is_not_zero=True)
         # TODO check if this will also be done for submodules
 
     @GeneralUtilities.check_arguments
@@ -446,9 +427,22 @@ class ScriptCollectionCore:
 
         if do_commit:
             self.log.log(f"Commit changes in '{directory}'", LogLevel.Information)
-            self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+            self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True)
 
         return self.git_get_commit_id(directory)
+    
+    def search_repository_folder(self,some_file_in_repository:str)->str:
+        current_path:str=os.path.dirname(some_file_in_repository)
+        enabled:bool=True
+        while enabled:
+            try:
+                current_path=GeneralUtilities.resolve_relative_path("..",current_path)
+                if self.is_git_repository(current_path):
+                    return current_path
+            except:
+                enabled=False
+        raise ValueError(f"Can not find git-repository for folder \"{some_file_in_repository}\".")
+    
 
     @GeneralUtilities.check_arguments
     def git_create_tag(self, directory: str, target_for_tag: str, tag: str, sign: bool = False, message: str = None) -> None:
@@ -458,20 +452,20 @@ class ScriptCollectionCore:
             if message is None:
                 message = f"Created {target_for_tag}"
             argument.extend(["-s", '-m', message])
-        self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", argument, directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_delete_tag(self, directory: str, tag: str) -> None:
         self.is_git_or_bare_git_repository(directory)
-        self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_checkout(self, directory: str, branch: str, undo_all_changes_after_checkout: bool = True, assert_no_uncommitted_changes: bool = True) -> None:
         self.assert_is_git_repository(directory)
         if assert_no_uncommitted_changes:
             GeneralUtilities.assert_condition(not self.git_repository_has_uncommitted_changes(directory), f"Repository '{directory}' has uncommitted changes.")
-        self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", ["submodule", "update", "--recursive"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["submodule", "update", "--recursive"], directory, throw_exception_if_exitcode_is_not_zero=True)
         if undo_all_changes_after_checkout:
             self.git_undo_all_changes(directory)
 
@@ -495,7 +489,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
         self.assert_is_git_repository(directory)
-        self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["merge", "--abort"], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_merge(self, directory: str, sourcebranch: str, targetbranch: str, fastforward: bool = True, commit: bool = True, commit_message: str = None, undo_all_changes_after_checkout: bool = True, assert_no_uncommitted_changes: bool = True) -> str:
@@ -510,8 +504,8 @@ class ScriptCollectionCore:
             args.append("-m")
             args.append(commit_message)
         args.append(sourcebranch)
-        self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", ["submodule", "update"], directory, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", args, directory, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["submodule", "update"], directory, throw_exception_if_exitcode_is_not_zero=True)
         return self.git_get_commit_id(directory)
 
     @GeneralUtilities.check_arguments
@@ -546,7 +540,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def file_is_git_ignored(self, file_in_repository: str, repositorybasefolder: str) -> None:
         self.is_git_or_bare_git_repository(repositorybasefolder)
-        exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False, verbosity=0)[0]
+        exit_code = self.run_program_argsasarray("git", ['check-ignore', file_in_repository], repositorybasefolder, throw_exception_if_exitcode_is_not_zero=False)[0]
         if (exit_code == 0):
             return True
         if (exit_code == 1):
@@ -556,19 +550,19 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_discard_all_changes(self, repository: str) -> None:
         self.assert_is_git_repository(repository)
-        self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
-        self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        self.run_program_argsasarray("git", ["reset", "HEAD", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
+        self.run_program_argsasarray("git", ["checkout", "."], repository, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
     def git_get_current_branch_name(self, repository: str) -> str:
         self.assert_is_git_repository(repository)
-        result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True, verbosity=0)
+        result = self.run_program_argsasarray("git", ["rev-parse", "--abbrev-ref", "HEAD"], repository, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
 
     @GeneralUtilities.check_arguments
     def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
         self.is_git_or_bare_git_repository(repository)
-        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository, verbosity=0)
+        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository)
         result = stdout[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
 
@@ -603,20 +597,20 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_current_git_branch_has_tag(self, repository_folder: str) -> bool:
         self.is_git_or_bare_git_repository(repository_folder)
-        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0, throw_exception_if_exitcode_is_not_zero=False)
+        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, throw_exception_if_exitcode_is_not_zero=False)
         return result[0] == 0
 
     @GeneralUtilities.check_arguments
     def get_latest_git_tag(self, repository_folder: str) -> str:
         self.is_git_or_bare_git_repository(repository_folder)
-        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder, verbosity=0)
+        result = self.run_program_argsasarray("git", ["describe", "--tags", "--abbrev=0"], repository_folder)
         result = result[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
 
     @GeneralUtilities.check_arguments
     def get_staged_or_committed_git_ignored_files(self, repository_folder: str) -> list[str]:
         self.assert_is_git_repository(repository_folder)
-        temp_result = self.run_program_argsasarray("git", ["ls-files", "-i", "-c", "--exclude-standard"], repository_folder, verbosity=0)
+        temp_result = self.run_program_argsasarray("git", ["ls-files", "-i", "-c", "--exclude-standard"], repository_folder)
         temp_result = temp_result[1].replace("\r", GeneralUtilities.empty_string)
         result = [line for line in temp_result.split("\n") if len(line) > 0]
         return result
@@ -686,7 +680,8 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def is_git_repository(self, folder: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
-        if folder.endswith("/") or folder.endswith("\\"):
+        folder=folder.replace("\\","/")
+        if folder.endswith("/"):
             folder = folder[:-1]
         if not self.is_folder(folder):
             raise ValueError(f"Folder '{folder}' does not exist.")
@@ -724,6 +719,11 @@ class ScriptCollectionCore:
         GeneralUtilities.move_content_of_folder(git_folder, target_folder)
         GeneralUtilities.ensure_directory_does_not_exist(repository_folder)
         self.run_program_argsasarray("git", ["config", "--bool", "core.bare", "true"], target_folder)
+
+    @GeneralUtilities.check_arguments
+    def assert_no_uncommitted_changes(self, repository_folder: str):
+        if self.git_repository_has_uncommitted_changes(repository_folder):
+            raise ValueError(f"Repository '{repository_folder}' has uncommitted changes.")
 
     @GeneralUtilities.check_arguments
     def list_content(self, path: str, include_files: bool, include_folder: bool, printonlynamewithoutpath: bool) -> list[str]:
@@ -1544,9 +1544,9 @@ class ScriptCollectionCore:
     # <run programs>
 
     @GeneralUtilities.check_arguments
-    def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> Popen:
+    def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> Popen:
         if isinstance(self.program_runner, ProgramRunnerEpew):
-            custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, verbosity, arguments_for_log)
+            custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace,self.log.loglevel, arguments_for_log)
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument, interactive)
         return popen
 
@@ -1596,7 +1596,6 @@ class ScriptCollectionCore:
                             stdout_result.append(out_line)
                             reading_stdout_last_time_resulted_in_exception = False
                             if print_live_output:
-                                # print(out_line, end='\n', file=sys.stdout, flush=False)
                                 loglevel = LogLevel.Information
                                 if out_line.startswith("Debug: "):
                                     loglevel = LogLevel.Debug
@@ -1605,8 +1604,6 @@ class ScriptCollectionCore:
                                     loglevel = LogLevel.Diagnostic
                                     out_line = out_line[len("Diagnostic: "):]
                                 log.log(out_line, loglevel)
-                    # if print_live_output:
-                    #    sys.stdout.flush()
                 except Empty:
                     reading_stdout_last_time_resulted_in_exception = True
 
@@ -1618,7 +1615,6 @@ class ScriptCollectionCore:
                             stderr_result.append(err_line)
                             reading_stderr_last_time_resulted_in_exception = False
                             if print_live_output:
-                                # print(err_line, end='\n', file=sys.stdout if print_errors_as_information else sys.stderr, flush=False)
                                 loglevel = LogLevel.Error
                                 if err_line.startswith("Warning: "):
                                     loglevel = LogLevel.Warning
@@ -1626,11 +1622,6 @@ class ScriptCollectionCore:
                                 if print_errors_as_information:  # "errors" in "print_errors_as_information" means: all what is written to std-err
                                     loglevel = LogLevel.Information
                                 log.log(err_line, loglevel)
-                    # if print_live_output:
-                    #    if print_errors_as_information:
-                    #        sys.stdout.flush()
-                    #    else:
-                    #        sys.stderr.flush()
                 except Empty:
                     reading_stderr_last_time_resulted_in_exception = True
 
@@ -1639,7 +1630,7 @@ class ScriptCollectionCore:
             return (stdout_result, stderr_result)
 
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 0, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False) -> tuple[int, str, str, int]:
+    def run_program_argsasarray(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False) -> tuple[int, str, str, int]:
         if self.call_program_runner_directly:
             return self.program_runner.run_program_argsasarray(program, arguments_as_array, working_directory, custom_argument, interactive)
         try:
@@ -1663,17 +1654,14 @@ class ScriptCollectionCore:
             else:
                 info_for_log = title
 
-            verbose = verbosity > 2
-            if verbose:
-                self.log.log(f"Run '{info_for_log}'.", LogLevel.Debug)
-                self.log.log(f"Run '{info_for_log}' with the following properties: verbosity={verbosity}; timeoutInSeconds={timeoutInSeconds}, print_live_output={print_live_output}.", LogLevel.Diagnostic)
+            self.log.log(f"Run '{info_for_log}'.", LogLevel.Debug)
 
             exit_code: int = None
             stdout: str = GeneralUtilities.empty_string
             stderr: str = GeneralUtilities.empty_string
             pid: int = None
 
-            with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
+            with self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory,  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive) as process:
 
                 if log_file is not None:
                     GeneralUtilities.ensure_file_exists(log_file)
@@ -1723,8 +1711,7 @@ class ScriptCollectionCore:
 
             result_message = f"Program '{info_for_log}' resulted in exitcode {exit_code}."
 
-            if verbose:
-                self.log.log(result_message, LogLevel.Debug)
+            self.log.log(result_message, LogLevel.Debug)
 
             if throw_exception_if_exitcode_is_not_zero and exit_code != 0:
                 raise ValueError(f"{result_message} (StdOut: '{stdout}', StdErr: '{stderr}')")
@@ -1736,33 +1723,33 @@ class ScriptCollectionCore:
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def run_program_with_retry(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False, amount_of_attempts: int = 5) -> tuple[int, str, str, int]:
-        return GeneralUtilities.retry_action(lambda: self.run_program(program, arguments, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive, print_live_output), amount_of_attempts)
+    def run_program_with_retry(self, program: str, arguments:  str = "", working_directory: str = None,  print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False, amount_of_attempts: int = 5) -> tuple[int, str, str, int]:
+        return GeneralUtilities.retry_action(lambda: self.run_program(program, arguments, working_directory,  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive, print_live_output), amount_of_attempts)
 
     # Return-values program_runner: Exitcode, StdOut, StdErr, Pid
     @GeneralUtilities.check_arguments
-    def run_program(self, program: str, arguments:  str = "", working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False) -> tuple[int, str, str, int]:
+    def run_program(self, program: str, arguments:  str = "", working_directory: str = None,  print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False, print_live_output: bool = False) -> tuple[int, str, str, int]:
         if self.call_program_runner_directly:
             return self.program_runner.run_program(program, arguments, working_directory, custom_argument, interactive)
-        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive, print_live_output)
+        return self.run_program_argsasarray(program, GeneralUtilities.arguments_to_array(arguments), working_directory,  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive, print_live_output)
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
-    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> int:
+    def run_program_argsasarray_async(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None,  print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> int:
         if self.call_program_runner_directly:
             return self.program_runner.run_program_argsasarray_async(program, arguments_as_array, working_directory, custom_argument, interactive)
         mock_loader_result = self.__try_load_mock(program, ' '.join(arguments_as_array), working_directory)
         if mock_loader_result[0]:
             return mock_loader_result[1]
-        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
+        process: Popen = self.__run_program_argsasarray_async_helper(program, arguments_as_array, working_directory,  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
         return process.pid
 
     # Return-values program_runner: Pid
     @GeneralUtilities.check_arguments
-    def run_program_async(self, program: str, arguments: str = "",  working_directory: str = None, verbosity: int = 1, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> int:
+    def run_program_async(self, program: str, arguments: str = "",  working_directory: str = None,print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> int:
         if self.call_program_runner_directly:
             return self.program_runner.run_program_argsasarray_async(program, arguments, working_directory, custom_argument, interactive)
-        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory, verbosity, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
+        return self.run_program_argsasarray_async(program, GeneralUtilities.arguments_to_array(arguments), working_directory,  print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, custom_argument, interactive)
 
     @GeneralUtilities.check_arguments
     def __try_load_mock(self, program: str, arguments: str, working_directory: str) -> tuple[bool, tuple[int, str, str, int]]:
@@ -1840,6 +1827,13 @@ class ScriptCollectionCore:
         stdout: str
         stderr: str
         pid: int
+
+    @GeneralUtilities.check_arguments
+    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False) -> tuple[int, str, str, int]:
+        sc: ScriptCollectionCore = ScriptCollectionCore()
+        sc.program_runner = ProgramRunnerEpew()
+        return sc.run_program(program, argument, working_directory, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive)
+
 
     # </run programs>
 
@@ -1920,8 +1914,8 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_version_from_gitversion(self, folder: str, variable: str) -> str:
         # called twice as workaround for issue 1877 in gitversion ( https://github.com/GitTools/GitVersion/issues/1877 )
-        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder, verbosity=0)
-        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder, verbosity=0)
+        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
+        result = self.run_program_argsasarray("gitversion", ["/showVariable", variable], folder)
         result = GeneralUtilities.strip_new_line_character(result[1])
 
         return result
@@ -1984,7 +1978,7 @@ DNS                 = {domain}
         self.run_program_argsasarray("openssl", ['pkcs12', '-export', '-out', f'{filename}.pfx', f'-inkey', f'{filename}.key', '-in', f'{filename}.crt', '-password', f'pass:{password}'], folder)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_python_in_requirementstxt_file(self, file: str, ignored_dependencies: list[str], verbosity: int):
+    def update_dependencies_of_python_in_requirementstxt_file(self, file: str, ignored_dependencies: list[str]):
         # TODO consider ignored_dependencies
         lines = GeneralUtilities.read_lines_from_file(file)
         new_lines = []
@@ -2015,7 +2009,7 @@ DNS                 = {domain}
             raise ValueError(f'Unexpected line in requirements-file: "{line}"')
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_python_in_setupcfg_file(self, setup_cfg_file: str, ignored_dependencies: list[str], verbosity: int):
+    def update_dependencies_of_python_in_setupcfg_file(self, setup_cfg_file: str, ignored_dependencies: list[str]):
         # TODO consider ignored_dependencies
         lines = GeneralUtilities.read_lines_from_file(setup_cfg_file)
         new_lines = []
@@ -2035,7 +2029,7 @@ DNS                 = {domain}
         GeneralUtilities.write_lines_to_file(setup_cfg_file, new_lines)
 
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_dotnet_project(self, csproj_file: str, verbosity: int, ignored_dependencies: list[str]):
+    def update_dependencies_of_dotnet_project(self, csproj_file: str,  ignored_dependencies: list[str]):
         folder = os.path.dirname(csproj_file)
         csproj_filename = os.path.basename(csproj_file)
         self.log.log(f"Check for updates in {csproj_filename}", LogLevel.Information)
@@ -2050,7 +2044,7 @@ DNS                 = {domain}
                     self.run_program_with_retry("dotnet", f"add {csproj_filename} package {package_name}", folder, print_errors_as_information=True)
 
     @GeneralUtilities.check_arguments
-    def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, verbosity: int, permission_of_executable_file_as_octet_triple: int) -> None:
+    def create_deb_package(self, toolname: str, binary_folder: str, control_file_content: str, deb_output_folder: str, permission_of_executable_file_as_octet_triple: int) -> None:
 
         # prepare
         GeneralUtilities.ensure_directory_exists(deb_output_folder)
@@ -2113,9 +2107,9 @@ chmod {permission} {link_file}
 
         # create debfile
         deb_filename = f"{toolname}.deb"
-        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"], packagecontent_control_folder, verbosity=verbosity)
-        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"], packagecontent_data_folder, verbosity=verbosity)
-        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz", "data.tar.gz"], packagecontent_entireresult_folder, verbosity=verbosity)
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/control.tar.gz", "*"], packagecontent_control_folder)
+        self.run_program_argsasarray("tar", ["czf", f"../{entireresult_content_folder_name}/data.tar.gz", "*"], packagecontent_data_folder)
+        self.run_program_argsasarray("ar", ["r", deb_filename, "debian-binary", "control.tar.gz", "data.tar.gz"], packagecontent_entireresult_folder)
         result_file = os.path.join(packagecontent_entireresult_folder, deb_filename)
         shutil.copy(result_file, os.path.join(deb_output_folder, deb_filename))
 
@@ -2358,10 +2352,10 @@ TXDX
         GeneralUtilities.write_text_to_file(file, ET.tostring(element, encoding="unicode"), encoding)
 
     @GeneralUtilities.check_arguments
-    def install_requirementstxt_file(self, requirements_txt_file: str, verbosity: int):
+    def install_requirementstxt_file(self, requirements_txt_file: str):
         folder: str = os.path.dirname(requirements_txt_file)
         filename: str = os.path.basename(requirements_txt_file)
-        self.run_program_argsasarray("pip", ["install", "-r", filename], folder, verbosity=verbosity)
+        self.run_program_argsasarray("pip", ["install", "-r", filename], folder)
 
     @GeneralUtilities.check_arguments
     def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
@@ -2468,38 +2462,30 @@ OCR-content:
             self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
     def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
-        return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc, False)
+        return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc)
 
     default_excluded_patterns_for_loc: list[str] = [".txt", ".md", ".vscode", "Resources", "Reference", ".gitignore", ".gitattributes", "Other/Metrics"]
 
-    def get_lines_of_code(self, repository: str, excluded_pattern: list[str], verbose: bool) -> int:
+    def get_lines_of_code(self, repository: str, excluded_pattern: list[str]) -> int:
         self.assert_is_git_repository(repository)
         result: int = 0
-        if verbose:
-            GeneralUtilities.write_message_to_stdout(f"Calculate lines of code in repository '{repository}' with excluded patterns: {', '.join(excluded_pattern)}")
+        self.log.log(f"Calculate lines of code in repository '{repository}' with excluded patterns: {', '.join(excluded_pattern)}")
         git_response = self.run_program("git", "ls-files", repository)
         files: list[str] = GeneralUtilities.string_to_lines(git_response[1])
-        very_verbose: bool = False
-        if very_verbose:
-            verbose = True
         for file in files:
             if os.path.isfile(os.path.join(repository, file)):
                 if self.__is_excluded_by_glob_pattern(file, excluded_pattern):
-                    if very_verbose:
-                        GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it matches an excluded pattern.")
+                    self.log.log(f"File '{file}' is ignored because it matches an excluded pattern.",LogLevel.Diagnostic)
                 else:
                     full_file: str = os.path.join(repository, file)
                     if GeneralUtilities.is_binary_file(full_file):
-                        if very_verbose:
-                            GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it is a binary-file.")
+                        self.log.log(f"File '{file}' is ignored because it is a binary-file.",LogLevel.Diagnostic)
                     else:
-                        if verbose:
-                            GeneralUtilities.write_message_to_stdout(f"Count lines of file '{file}'.")
+                        self.log.log(f"Count lines of file '{file}'.",LogLevel.Diagnostic)
                         length = len(GeneralUtilities.read_nonempty_lines_from_file(full_file))
                         result = result+length
             else:
-                if verbose:
-                    GeneralUtilities.write_message_to_stdout(f"File '{file}' is ignored because it does not exist.")
+                self.log.log(f"File '{file}' is ignored because it does not exist.",LogLevel.Diagnostic)
         return result
 
     def __is_excluded_by_glob_pattern(self, file: str, excluded_patterns: list[str]) -> bool:

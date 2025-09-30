@@ -3,14 +3,15 @@ import os
 import argparse
 import time
 import traceback
-import sys
+#import sys
 import shutil
 import keyboard
-from .TasksForCommonProjectStructure import TasksForCommonProjectStructure
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
+from .SCLog import LogLevel
 from .ImageUpdater import ImageUpdater, VersionEcholon
-
+from .TFCPS.TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
+from .TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
 
 def FilenameObfuscator() -> int:
     parser = argparse.ArgumentParser(description=''''Obfuscates the names of all files in the given folder.
@@ -259,37 +260,79 @@ def HealthCheck() -> int:
 def BuildCodeUnit() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--codeunitfolder', required=False, default=".")
-    parser.add_argument('-v', '--verbosity', required=False, default=1)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
-    args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunit(args.codeunitfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
-    return 0
+    #args = parser.parse_args()
+    #t=TasksForCommonProjectStructure(args)
+    #t.build_codeunit(args.codeunitfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
+    #return 0
+    return 1#TODO
 
 
 def BuildCodeUnits() -> int:
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--repositoryfolder', required=False, default=".")
-    parser.add_argument('-v', '--verbosity', required=False, default=1)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
+    parser.add_argument("-c",'--nocache', required=False, default=False, action='store_true')
+    parser.add_argument('--ispremerge', required=False, default=False, action='store_true')
+
     args = parser.parse_args()
-    TasksForCommonProjectStructure().build_codeunits(args.repositoryfolder, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, False, None, sys.argv, args.removeuncommittedfiles)
+    
+    verbosity=LogLevel(int(args.verbosity))
+
+    repo:str=args.repositoryfolder
+    if not os.path.isabs(args.repositoryfolder):
+        repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
+
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,args.ispremerge) 
+    t.build_codeunits()
     return 0
 
 
 def BuildCodeUnitsC() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repositoryfolder', required=False, default=".")
-    parser.add_argument('-v', '--verbosity', required=False, default=1)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument('--image', required=False, default="scbuilder:latest")
-    args = parser.parse_args()
+    #args = parser.parse_args()
     GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    TasksForCommonProjectStructure().build_codeunitsC(args.repositoryfolder, args.image, int(args.verbosity), args.targetenvironment, args.additionalargumentsfile, sys.argv)
+    #t=TasksForCommonProjectStructure(args)
+    #t.build_codeunitsC(args.repositoryfolder, args.image, args.targetenvironment, args.additionalargumentsfile, sys.argv)
+    #return 0
+    return 1#TODO
+
+def UpdateDependencies() -> int:
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--repositoryfolder', required=False, default=".")
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+    parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
+    parser.add_argument('--additionalargumentsfile', required=False, default=None)
+    parser.add_argument('--removeuncommittedfiles', required=False, default=False, action='store_true')
+    parser.add_argument("-c",'--nocache', required=False, default=False, action='store_true')
+
+    args = parser.parse_args()
+    
+    verbosity=LogLevel(int(args.verbosity))
+
+    repo:str=args.repositoryfolder
+    if not os.path.isabs(args.repositoryfolder):
+        repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
+
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,False) 
+    t.update_dependencies()
     return 0
 
 
@@ -389,7 +432,8 @@ def CreateChangelogEntry() -> int:
         folder = args.repositorypath
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repositorypath, os.getcwd())
-    TasksForCommonProjectStructure().create_changelog_entry(folder, args.message, args.commit, args.force)
+    t=TFCPS_Tools_General(ScriptCollectionCore())
+    t.create_changelog_entry(folder, args.message, args.commit, args.force)
     return 0
 
 
@@ -607,13 +651,14 @@ def NpmI() -> int:
     parser.add_argument('-d', '--directory', required=False, default=".")
     parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
     parser.add_argument('-v', '--verbose', action='store_true', required=False, default=False)
+    parser.add_argument('-c', '--nocache', action='store_true', required=False, default=False)
     args = parser.parse_args()
     if os.path.isabs(args.directory):
         folder = args.directory
-    else:
+    else: 
         folder = GeneralUtilities.resolve_relative_path(args.directory, os.getcwd())
-    t = TasksForCommonProjectStructure()
-    t.do_npm_install(folder, args.force, 3 if args.verbose else 0)
+    t = TFCPS_Tools_General(ScriptCollectionCore())
+    t.do_npm_install(folder, args.force,not args.nocache)
     return 0
 
 
@@ -747,10 +792,11 @@ def SetFileContent() -> int:
 def GenerateTaskfileFromWorkspacefile() -> int:
     parser = argparse.ArgumentParser(description="Generates a taskfile.yml-file from a .code-workspace-file")
     parser.add_argument('-f', '--repositoryfolder', required=True)
-    args = parser.parse_args()
-    t = TasksForCommonProjectStructure()
-    t.generate_tasksfile_from_workspace_file(args.repositoryfolder)
-    return 0
+    #args = parser.parse_args()
+    #t = TasksForCommonProjectStructure()
+    #t.generate_tasksfile_from_workspace_file(args.repositoryfolder)
+    #return 0
+    return 1#TODO
 
 
 def UpdateTimestampInFile() -> int:
@@ -782,5 +828,7 @@ def LOC() -> int:
         excluded_patterns = excluded_patterns + sc.default_excluded_patterns_for_loc
     if args.excluded_pattern is not None:
         excluded_patterns = excluded_patterns + args.excluded_pattern
-    GeneralUtilities.write_message_to_stdout(str(sc.get_lines_of_code(folder, excluded_patterns, args.verbose)))
+    if args.verbose:
+        sc.log.loglevel=LogLevel.Debug
+    GeneralUtilities.write_message_to_stdout(str(sc.get_lines_of_code(folder, excluded_patterns)))
     return 0

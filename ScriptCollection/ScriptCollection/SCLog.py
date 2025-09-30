@@ -17,7 +17,7 @@ class LogLevel(Enum):
 
 
 class SCLog:
-    loglevel: LogLevel
+    loglevel: LogLevel#minimum loglevel
     log_file: str
     add_overhead_to_console: bool
     add_overhead_to_logfile: bool
@@ -36,8 +36,8 @@ class SCLog:
         self.print_as_color = print_as_color
 
     @GeneralUtilities.check_arguments
-    def log_exception(self, message: str, ex: Exception, current_traceback):
-        self.log(f"Exception: {message}; Exception-details: {str(ex)}; Traceback:  {current_traceback.format_exc()}", LogLevel.Error)
+    def log_exception(self, message: str, ex: Exception, current_traceback,loglevel:LogLevel=LogLevel.Error):
+        self.log(f"Exception: {message}; Exception-details: {str(ex)}; Traceback:  {current_traceback.format_exc()}", loglevel)
 
     @GeneralUtilities.check_arguments
     def log(self, message: str, loglevel: LogLevel = None):
@@ -53,7 +53,7 @@ class SCLog:
         if loglevel is None:
             loglevel = LogLevel.Information
 
-        if int(loglevel) > int(self.loglevel):
+        if int(self.loglevel)<int(loglevel) :
             return
 
         if message.endswith("\n"):
@@ -99,7 +99,7 @@ class SCLog:
                     GeneralUtilities.print_text_in_yellow(part2, print_to_std_out, self.print_as_color)
                 elif loglevel == LogLevel.Debug:
                     GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
-                elif loglevel == LogLevel.Debug:
+                elif loglevel == LogLevel.Diagnostic:
                     GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
                 else:
                     raise ValueError("Unknown loglevel.")
