@@ -7,7 +7,7 @@ from .TFCPS_Tools_General import TFCPS_Tools_General
 
 class TFCPS_CodeUnit_BuildCodeUnit:
 
-    codeunit_folder:str
+    codeunit_folder:str 
     repository_folder:str
     sc:ScriptCollectionCore=ScriptCollectionCore()
     codeunit_name:str

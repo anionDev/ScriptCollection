@@ -1082,22 +1082,30 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def assert_file_exists(file: str) -> str:
-        GeneralUtilities.assert_condition(os.path.isfile(file), f"File '{file}' does not exist.")
+    def assert_file_exists(file: str,message=None) -> None:
+        if message is None:
+            message=f"File '{file}' does not exist."
+        GeneralUtilities.assert_condition(os.path.isfile(file), message)
 
     @staticmethod
     @check_arguments
-    def assert_file_does_not_exist(file: str) -> str:
-        GeneralUtilities.assert_condition(not os.path.isfile(file), f"File '{file}' exists.")
+    def assert_file_does_not_exist(file: str,message=None) -> None:
+        if message is None:
+            message=f"File '{file}' exists."
+        GeneralUtilities.assert_condition(not os.path.isfile(file), message)
 
     @staticmethod
     @check_arguments
-    def assert_folder_exists(folder: str) -> str:
-        GeneralUtilities.assert_condition(os.path.isdir(folder), f"Folder '{folder}' does not exist.")
+    def assert_folder_exists(folder: str,message=None) -> None:
+        if message is None:
+            message=f"Folder '{folder}' does not exist."
+        GeneralUtilities.assert_condition(os.path.isdir(folder),message )
 
     @staticmethod
     @check_arguments
-    def assert_folder_does_not_exist(folder: str) -> str:
+    def assert_folder_does_not_exist(folder: str,message=None) -> None:
+        if message is None:
+            message= f"Folder '{folder}' exists."
         GeneralUtilities.assert_condition(not os.path.isdir(folder), f"Folder '{folder}' exists.")
 
     @staticmethod
