@@ -78,7 +78,7 @@ class TFCPS_CreateRelease:
             self.sc.log.log("Merge to main-branch will not be done because there are no changed which can be merged.")
         else:
             self.sc.log.log("Merge to main-branch...",LogLevel.Information)
-            mergeToMainConfiguration:MergeToMainConfiguration=MergeToMainConfiguration(tfcps_CreateReleaseConfiguration.current_file,tfcps_CreateReleaseConfiguration.product_name,tfcps_CreateReleaseConfiguration.branch_to_be_released,tfcps_CreateReleaseConfiguration.log_level,tfcps_CreateReleaseConfiguration.additional_arguments_file,tfcps_CreateReleaseConfiguration.main_branch,tfcps_CreateReleaseConfiguration.common_remote_name)
+            mergeToMainConfiguration:MergeToMainConfiguration=MergeToMainConfiguration(tfcps_CreateReleaseConfiguration.current_file,tfcps_CreateReleaseConfiguration.product_name,tfcps_CreateReleaseConfiguration.product_name,tfcps_CreateReleaseConfiguration.branch_to_be_released,tfcps_CreateReleaseConfiguration.log_level,tfcps_CreateReleaseConfiguration.additional_arguments_file,tfcps_CreateReleaseConfiguration.main_branch,tfcps_CreateReleaseConfiguration.common_remote_name)
             tFCPS_MergeToMain:TFCPS_MergeToMain=TFCPS_MergeToMain(mergeToMainConfiguration)
             tFCPS_MergeToMain.merge_to_main_branch()
 

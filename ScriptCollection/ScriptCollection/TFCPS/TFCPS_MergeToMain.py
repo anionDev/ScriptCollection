@@ -54,7 +54,9 @@ class TFCPS_MergeToMain:
 
         tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",self.generic_prepare_new_release_arguments.additional_arguments_file,False,True)
         try:
-           pass# tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
+            enabled:bool=False
+            if enabled:
+                tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
             self.sc.git_undo_all_changes(self.generic_prepare_new_release_arguments.repository_folder)
             raise
@@ -94,7 +96,7 @@ class TFCPS_MergeToMain_CLI:
         if args.productname is not None: 
             default_product_name=args.productname
         if default_product_name is None:
-             default_product_name=os.path.basename(build_repo)[:-len("Build")]
+            default_product_name=os.path.basename(build_repo)[:-len("Build")]
         GeneralUtilities.assert_not_null(default_product_name,"productname is not set")
 
         if args.mergesourcebranch is not None: 
