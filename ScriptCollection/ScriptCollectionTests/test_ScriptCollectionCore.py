@@ -405,7 +405,7 @@ class ScriptCollectionCoreTests(unittest.TestCase):
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
         # act
-        (exit_code, _, _2, _3) = sc.run_program_argsasarray("git", ["status"], dir_path, verbosity=0)
+        (exit_code, _, _2, _3) = sc.run_program_argsasarray("git", ["status"], dir_path)
 
         # assert
         assert exit_code == 0

@@ -1102,6 +1102,13 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def assert_not_null(obj,message:str=None) -> str:
+        if message is None:
+            message="Variable is not set"
+        GeneralUtilities.assert_condition(obj is not None, message)
+
+    @staticmethod
+    @check_arguments
     def retry_action(action, amount_of_attempts: int, action_name: str = None) -> None:
         amount_of_fails = 0
         enabled = True

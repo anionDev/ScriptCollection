@@ -94,7 +94,7 @@ class CertificateUpdater:
             try:
                 GeneralUtilities.write_message_to_stdout(GeneralUtilities.get_line())
                 GeneralUtilities.write_message_to_stdout(f"Process domain {domain}")
-                self.__sc.run_program("docker", f"container rm {certbot_container_name}", self.__current_folder, throw_exception_if_exitcode_is_not_zero=False, verbosity=0)
+                self.__sc.run_program("docker", f"container rm {certbot_container_name}", self.__current_folder, throw_exception_if_exitcode_is_not_zero=False)
                 certificate_for_domain_already_exists = os.path.isfile(f"{self.__letsencrypt_folder}/renewal/{domain}.conf")
                 if certificate_for_domain_already_exists:
                     GeneralUtilities.write_message_to_stdout(f"Update certificate for domain {domain}")

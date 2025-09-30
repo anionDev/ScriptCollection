@@ -10,7 +10,7 @@
 		"tasks": [
 			{
 				"label": "Base: Build all codeunits",
-				"command": "scbuildcodeunits",
+				"command": "scbuildcodeunits {{.CLI_ARGS}}",
 				"type": "shell",
 				"options": {
 					"cwd": "${workspaceFolder}"
