@@ -28,7 +28,6 @@ class TFCPS_Generic_Functions:
         return self.__use_cache
 
 
-
 class TFCPS_Generic_CLI:
 
     @staticmethod
