@@ -34,15 +34,15 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def ensure_cyclonedxcli_is_available(self, target_folder: str,enforce_update:bool) -> None:
-        local_filename = "cyclonedx-cli"
-        filename_on_github: str
-        if GeneralUtilities.current_system_is_windows():
-            filename_on_github = "cyclonedx-win-x64.exe"
-            local_filename = local_filename+".exe"
-        else:
-            filename_on_github = "cyclonedx-linux-x64"
-        self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github,enforce_update=enforce_update)
-
+        if shutil.which("cyclonedx-cli") is None:
+            local_filename = "cyclonedx-cli"
+            filename_on_github: str
+            if GeneralUtilities.current_system_is_windows():
+                filename_on_github = "cyclonedx-win-x64.exe"
+                local_filename = local_filename+".exe"
+            else:
+                filename_on_github = "cyclonedx-linux-x64"
+            self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github,enforce_update=False)
     @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5,enforce_update:bool=False) -> None:
         GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(target_folder, githubuser, githubprojectname, resource_name, local_filename, get_filename_on_github,enforce_update), amount_of_attempts)
@@ -453,9 +453,9 @@ class TFCPS_Tools_General:
         os.rename(os.path.join(repository_folder, target_sbom_file_relative), os.path.join(repository_folder, target_original_sbom_file_relative))
 
         self.ensure_cyclonedxcli_is_available(repository_folder,not use_cache)
-        cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
-        if GeneralUtilities.current_system_is_windows():
-            cyclonedx_exe = cyclonedx_exe+".exe"
+        cyclonedx_exe ="cyclonedx-cli"# os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
+        #if GeneralUtilities.current_system_is_windows():
+        #    cyclonedx_exe = cyclonedx_exe+".exe"
         self.__sc.run_program(cyclonedx_exe, f"merge --input-files {source_sbom_file_relative} {target_original_sbom_file_relative} --output-file {target_sbom_file_relative}", repository_folder)
         GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file_relative))
         self.__sc.format_xml_file(os.path.join(repository_folder, target_sbom_file_relative))
@@ -1043,14 +1043,13 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def push_wheel_build_artifact(self, push_build_artifacts_file,  codeunitname, repository: str, apikey: str, gpg_identity: str, repository_folder_name: str,verbosity:LogLevel) -> None:
-        
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
-        wheel_file = self.__get_wheel_file(repository_folder, codeunitname)
+        wheel_file = self.get_wheel_file(repository_folder, codeunitname)
         self.__standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, repository, gpg_identity,verbosity)
 
     @GeneralUtilities.check_arguments
-    def __get_wheel_file(self, repository_folder: str, codeunit_name: str) -> str:
+    def get_wheel_file(self, repository_folder: str, codeunit_name: str) -> str:
         self.__sc.assert_is_git_repository(repository_folder)
         return self.__sc.find_file_by_extension(os.path.join(repository_folder, codeunit_name,"Other","Artifacts", "BuildResult_Wheel"), "whl")
 
