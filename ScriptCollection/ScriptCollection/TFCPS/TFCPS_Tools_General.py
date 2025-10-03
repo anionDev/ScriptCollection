@@ -1040,3 +1040,38 @@ class TFCPS_Tools_General:
         excluded = ["opendms"]
         iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
         iu.check_for_newest_version(dockercomposefile, excluded)
+
+    @GeneralUtilities.check_arguments
+    def push_wheel_build_artifact(self, push_build_artifacts_file,  codeunitname, repository: str, apikey: str, gpg_identity: str, repository_folder_name: str,verbosity:LogLevel) -> None:
+        
+        folder_of_this_file = os.path.dirname(push_build_artifacts_file)
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
+        wheel_file = self.__get_wheel_file(repository_folder, codeunitname)
+        self.__standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, repository, gpg_identity,verbosity)
+
+    @GeneralUtilities.check_arguments
+    def __get_wheel_file(self, repository_folder: str, codeunit_name: str) -> str:
+        self.__sc.assert_is_git_repository(repository_folder)
+        return self.__sc.find_file_by_extension(os.path.join(repository_folder, codeunit_name,"Artifacts", "BuildResult_Wheel"), "whl")
+
+    @GeneralUtilities.check_arguments
+    def __standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository: str, gpg_identity: str,verbosity:LogLevel) -> None:
+        # repository-value when PyPi should be used: "pypi"
+        # gpg_identity-value when wheel-file should not be signed: None
+        folder = os.path.dirname(wheel_file)
+        filename = os.path.basename(wheel_file)
+
+        if gpg_identity is None:
+            gpg_identity_argument = GeneralUtilities.empty_string
+        else:
+            gpg_identity_argument = GeneralUtilities.empty_string  # f" --sign --identity {gpg_identity}"
+            # disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
+
+        if LogLevel.Information<verbosity:
+            verbose_argument = " --verbose"
+        else:
+            verbose_argument = GeneralUtilities.empty_string
+
+        twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar"
+        twine_argument = f"{twine_argument} --username __token__ --password {api_key}{verbose_argument}"
+        self.__sc.run_program("twine", twine_argument, folder, throw_exception_if_exitcode_is_not_zero=True)

@@ -11,7 +11,6 @@ from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
  
 
 
-
 class MergeToStableConfiguration:
     log_level:LogLevel
     source_branch:str#main
@@ -71,8 +70,6 @@ class TFCPS_MergeToStable:
         self.sc.assert_is_git_repository(self.createRelease_configuration.reference_repo)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.reference_repo)
 
-        self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch, True,True)
-        self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
         product_version:str=self.tFCPS_Tools_General.get_version_of_project(self.createRelease_configuration.repository)
  
         tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.createRelease_configuration.repository,self.sc.log.loglevel,"Productive",self.createRelease_configuration.additional_arguments_file,False,False)
@@ -86,6 +83,7 @@ class TFCPS_MergeToStable:
 
         for codeunit in self.tFCPS_Tools_General.get_codeunits(self.createRelease_configuration.repository):
             #export artifacts to local target folder
+            self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch, True,True)
             if self.createRelease_configuration.artifacts_target_folder is not None:
                 source_folder:str=GeneralUtilities.resolve_relative_path(f"./{codeunit}/Other/Artifacts",self.createRelease_configuration.repository)
                 target_folder:str=GeneralUtilities.resolve_relative_path(f"./{product_name}/{product_version}/{codeunit}",self.createRelease_configuration.artifacts_target_folder)
@@ -99,6 +97,8 @@ class TFCPS_MergeToStable:
             if os.path.isfile(push_script):
                 self.sc.log.log(f"Push artifacts of codeunit {codeunit}...")
                 self.sc.run_program("python3",os.path.basename(push_script),os.path.dirname(push_script))
+            else:
+                self.sc.log.log(f"Codeunit {codeunit} does not have artifacts to push. (Scriptfile \"{push_script}\" does not exist.)",LogLevel.Debug)
 
             # Generate reference
             reference_folder:str=os.path.join(self.createRelease_configuration.reference_repo,"ReferenceContent")
@@ -107,13 +107,17 @@ class TFCPS_MergeToStable:
             projectname:str=self.createRelease_configuration.product_name
             public_repository_url:str=self.createRelease_configuration.common_remote_url
             main_branch_name:str=self.createRelease_configuration.source_branch
+            codeunit_version=self.tFCPS_Tools_General.get_version_of_codeunit(os.path.join(repository,codeunit,f"{codeunit}.codeunit.xml"))
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, f"v{project_version}")
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, main_branch_name)
             self.__generate_entire_reference(projectname, project_version, reference_folder)
+        self.sc.git_commit(self.createRelease_configuration.reference_repo,f"Added reference for v{project_version}")
+        
+        self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
         
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.reference_repo)
-        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
+        #self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
 
         self.sc.git_push_with_retry(self.createRelease_configuration.repository,self.createRelease_configuration.common_remote_name,self.createRelease_configuration.target_branch,self.createRelease_configuration.target_branch)
         self.sc.git_push_with_retry(self.createRelease_configuration.build_repo,self.createRelease_configuration.build_repo_remote_name,self.createRelease_configuration.build_repo_main_branch_name,self.createRelease_configuration.build_repo_main_branch_name)
@@ -179,6 +183,7 @@ class TFCPS_MergeToStable:
 </html>
 """  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
         GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
+
 
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str, repository: str, codeunitname: str, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:

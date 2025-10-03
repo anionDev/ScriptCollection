@@ -265,9 +265,9 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         <PlatformTarget>([^<]+)<\\/PlatformTarget>
         <WarningLevel>\\d<\\/WarningLevel>
         <Prefer32Bit>false<\\/Prefer32Bit>
-        <SignAssembly>True<\\/SignAssembly>
+        <SignAssembly>true<\\/SignAssembly>
         <AssemblyOriginatorKeyFile>\\.\\.\\\\\\.\\.\\\\Other\\\\Resources\\\\PublicKeys\\\\StronglyNamedKey\\\\([^<]+)PublicKey\\.snk<\\/AssemblyOriginatorKeyFile>
-        <DelaySign>True<\\/DelaySign>
+        <DelaySign>true<\\/DelaySign>
         <NoWarn>([^<]+)<\\/NoWarn>
         <WarningsAsErrors>([^<]+)<\\/WarningsAsErrors>
         <ErrorLog>\\.\\.\\\\Other\\\\Resources\\\\CodeAnalysisResult\\\\{codeunit_name_regex}\\.sarif<\\/ErrorLog>

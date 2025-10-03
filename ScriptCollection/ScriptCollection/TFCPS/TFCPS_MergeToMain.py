@@ -54,9 +54,7 @@ class TFCPS_MergeToMain:
 
         tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",self.generic_prepare_new_release_arguments.additional_arguments_file,False,True)
         try:
-            enabled:bool=False
-            if enabled:
-                tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
+            tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
             self.sc.git_undo_all_changes(self.generic_prepare_new_release_arguments.repository_folder)
             raise

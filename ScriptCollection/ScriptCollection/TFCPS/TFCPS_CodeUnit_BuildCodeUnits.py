@@ -21,14 +21,15 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.sc.assert_is_git_repository(repository)
         self.repository=repository
         self.tFCPS_Other:TFCPS_Tools_General=TFCPS_Tools_General(self.sc)
+        allowed_target_environment_types=["Development","QualityCheck","Productive"]
+        GeneralUtilities.assert_condition(target_environment_type in allowed_target_environment_types,"Unknown target-environment-type. Allowed values are: "+", ".join(allowed_target_environment_types))
         self.target_environment_type=target_environment_type
         self.additionalargumentsfile=additionalargumentsfile
         self.__is_pre_merge=is_pre_merge
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self) -> None:
-        self.sc.log.log("Start building codeunits.")
-
+        self.sc.log.log(f"Start building codeunits. (Target environment-type: {self.target_environment_type})")
         changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tFCPS_Other.get_version_of_project(self.repository)}.md")
         GeneralUtilities.assert_file_exists(changelog_file,f"Changelogfile \"{changelog_file}\" does not exist. Try to create it for example using \"sccreatechangelogentry -m ...\".")
  
@@ -36,7 +37,9 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
             if not self.__use_cache:
                 arguments=f"{arguments} --nocache"
-                if not self.sc.git_repository_has_uncommitted_changes(self.repository):
+                if self.sc.git_repository_has_uncommitted_changes(self.repository):
+                    self.sc.log.log("No-cache-option can not be applied because there are uncommited changes in the repository.",LogLevel.Warning)
+                else:
                     self.sc.run_program("git","clean -dfx",self.repository)
             self.sc.log.log("Prepare build codeunits...")
             self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
