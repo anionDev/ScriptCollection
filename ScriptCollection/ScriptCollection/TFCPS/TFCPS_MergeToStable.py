@@ -99,7 +99,7 @@ class TFCPS_MergeToStable:
                 self.sc.run_program("tar",f"-cf {target_file} -C {source_folder} .")
 
             #push artifacts
-            push_script:str=os.path.join( self.createRelease_configuration.build_repo,"Script","CreateRelease",f"PushArtifacts.{codeunit}.py")
+            push_script:str=os.path.join( self.createRelease_configuration.build_repo,"Scripts","CreateRelease",f"PushArtifacts.{codeunit}.py")
             if os.path.isfile(push_script):
                 self.sc.log.log(f"Push artifacts of codeunit {codeunit}...")
                 self.sc.run_program("python3",os.path.basename(push_script),os.path.dirname(push_script))
