@@ -63,14 +63,17 @@ class TFCPS_MergeToStable:
         product_name:str=self.createRelease_configuration.product_name
 
         GeneralUtilities.assert_condition(self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.source_branch)!=self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.target_branch),"Source- and target-branch must not be the same commit.")
-        self.sc.assert_is_git_repository(self.createRelease_configuration.build_repo)
-        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
 
         self.sc.assert_is_git_repository(self.createRelease_configuration.repository)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
+        self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
 
         self.sc.assert_is_git_repository(self.createRelease_configuration.reference_repo)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.reference_repo)
+
+        self.sc.assert_is_git_repository(self.createRelease_configuration.build_repo)
+        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
 
         product_version:str=self.tFCPS_Tools_General.get_version_of_project(self.createRelease_configuration.repository)
  
