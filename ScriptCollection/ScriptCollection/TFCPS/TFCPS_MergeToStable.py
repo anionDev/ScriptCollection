@@ -123,7 +123,7 @@ class TFCPS_MergeToStable:
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, main_branch_name)
             self.__generate_entire_reference(projectname, project_version, reference_folder)
             
-        self.sc.log.log(f"Finishing merging to stable...")
+        self.sc.log.log("Finishing merging to stable...")
         self.sc.git_commit(self.createRelease_configuration.reference_repo,f"Added reference for v{project_version}")
         
         self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
