@@ -42,10 +42,10 @@ class TFCPS_MergeToMain:
     @GeneralUtilities.check_arguments
     def merge_to_main_branch(self ) -> None:
         self.sc.log.loglevel=self.generic_prepare_new_release_arguments.log_level
+        self.sc.log.log("Merge to main-branch...")
         fast_forward_source_branch: bool=True
         source_branch: str=self.generic_prepare_new_release_arguments.merge_source_branch
         target_branch: str=self.generic_prepare_new_release_arguments.main_branch
-        self.sc.log.log("Merge to main-branch...")
         self.sc.assert_is_git_repository(self.generic_prepare_new_release_arguments.repository_folder)
 
         self.sc.assert_no_uncommitted_changes(self.generic_prepare_new_release_arguments.repository_folder)
@@ -68,6 +68,7 @@ class TFCPS_MergeToMain:
             self.sc.git_merge(self.generic_prepare_new_release_arguments.repository_folder, target_branch, source_branch, True, True)
             self.sc.git_create_tag(self.generic_prepare_new_release_arguments.repository_folder,target_branch,f"v{project_version}")
 
+        self.sc.log.log("Push branches...")
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,source_branch,source_branch)
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,target_branch,target_branch)
  
