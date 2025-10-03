@@ -995,10 +995,6 @@ class TasksForCommonProjectStructure:
         GeneralUtilities.write_text_to_file(winget_manifest_file, manifest_content)
 
 
-    @GeneralUtilities.check_arguments
-    def repository_has_codeunits(self, repository: str, ignore_disabled_codeunits: bool = True) -> bool:
-        return len(self.get_codeunits(repository, ignore_disabled_codeunits))
-
     def __ensure_changelog_file_is_added(self, repository_folder: str, version_of_project: str):
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
         if not os.path.isfile(changelog_file):

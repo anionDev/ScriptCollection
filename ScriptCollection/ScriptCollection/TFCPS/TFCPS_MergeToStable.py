@@ -97,6 +97,8 @@ class TFCPS_MergeToStable:
             if os.path.isfile(push_script):
                 self.sc.log.log(f"Push artifacts of codeunit {codeunit}...")
                 self.sc.run_program("python3",os.path.basename(push_script),os.path.dirname(push_script))
+            else:
+                self.sc.log.log(f"Codeunit {codeunit} does not have artifacts to push. (Scriptfile \"{push_script}\" does not exist.)",LogLevel.Debug)
 
             # Generate reference
             reference_folder:str=os.path.join(self.createRelease_configuration.reference_repo,"ReferenceContent")
