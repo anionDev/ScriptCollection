@@ -1043,14 +1043,13 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def push_wheel_build_artifact(self, push_build_artifacts_file,  codeunitname, repository: str, apikey: str, gpg_identity: str, repository_folder_name: str,verbosity:LogLevel) -> None:
-        
         folder_of_this_file = os.path.dirname(push_build_artifacts_file)
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}../Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
-        wheel_file = self.__get_wheel_file(repository_folder, codeunitname)
+        wheel_file = self.get_wheel_file(repository_folder, codeunitname)
         self.__standardized_tasks_push_wheel_file_to_registry(wheel_file, apikey, repository, gpg_identity,verbosity)
 
     @GeneralUtilities.check_arguments
-    def __get_wheel_file(self, repository_folder: str, codeunit_name: str) -> str:
+    def get_wheel_file(self, repository_folder: str, codeunit_name: str) -> str:
         self.__sc.assert_is_git_repository(repository_folder)
         return self.__sc.find_file_by_extension(os.path.join(repository_folder, codeunit_name,"Other","Artifacts", "BuildResult_Wheel"), "whl")
 
