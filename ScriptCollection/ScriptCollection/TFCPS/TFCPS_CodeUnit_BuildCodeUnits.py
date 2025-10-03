@@ -36,7 +36,9 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
             if not self.__use_cache:
                 arguments=f"{arguments} --nocache"
-                if not self.sc.git_repository_has_uncommitted_changes(self.repository):
+                if self.sc.git_repository_has_uncommitted_changes(self.repository):
+                    self.sc.log.log("No-cache-option can not be applied because there are uncommited changes in the repository.",LogLevel.Warning)
+                else:
                     self.sc.run_program("git","clean -dfx",self.repository)
             self.sc.log.log("Prepare build codeunits...")
             self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
