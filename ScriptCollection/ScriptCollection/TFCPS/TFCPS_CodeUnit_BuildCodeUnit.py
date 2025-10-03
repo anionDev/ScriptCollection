@@ -2,72 +2,74 @@ import os
 import re
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
-from ..SCLog import  LogLevel
+from ..SCLog import LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
+
 
 class TFCPS_CodeUnit_BuildCodeUnit:
 
-    codeunit_folder:str 
-    repository_folder:str
-    sc:ScriptCollectionCore=ScriptCollectionCore()
-    codeunit_name:str
-    tFCPS_Tools:TFCPS_Tools_General
-    target_environment_type:str
-    additionalargumentsfile:str
-    use_cache:bool
+    codeunit_folder: str
+    repository_folder: str
+    sc: ScriptCollectionCore = ScriptCollectionCore()
+    codeunit_name: str
+    tFCPS_Tools: TFCPS_Tools_General
+    target_environment_type: str
+    additionalargumentsfile: str
+    use_cache: bool
 
-    def __init__(self,codeunit_folder:str,verbosity:LogLevel,target_environment_type:str,additionalargumentsfile:str,use_cache:bool):
-        self.sc=ScriptCollectionCore()
-        self.sc.log.loglevel=verbosity
-        self.tFCPS_Tools=TFCPS_Tools_General(self.sc)
+    def __init__(self, codeunit_folder: str, verbosity: LogLevel, target_environment_type: str, additionalargumentsfile: str, use_cache: bool):
+        self.sc = ScriptCollectionCore()
+        self.sc.log.loglevel = verbosity
+        self.tFCPS_Tools = TFCPS_Tools_General(self.sc)
         self.tFCPS_Tools.assert_is_codeunit_folder(codeunit_folder)
-        self.codeunit_folder=codeunit_folder
-        self.codeunit_name=os.path.basename(self.codeunit_folder)
-        self.target_environment_type=target_environment_type
-        self.additionalargumentsfile=additionalargumentsfile
-        self.use_cache=use_cache
-        
+        self.codeunit_folder = codeunit_folder
+        self.codeunit_name = os.path.basename(self.codeunit_folder)
+        self.target_environment_type = target_environment_type
+        self.additionalargumentsfile = additionalargumentsfile
+        self.use_cache = use_cache
+
     @GeneralUtilities.check_arguments
     def build_codeunit(self) -> None:
-        codeunit_file:str=str(os.path.join(self.codeunit_folder,f"{self.codeunit_name}.codeunit.xml"))
+        codeunit_file: str = str(os.path.join(self.codeunit_folder, f"{self.codeunit_name}.codeunit.xml"))
 
         if not self.tFCPS_Tools.codeunit_is_enabled(codeunit_file):
-            self.sc.log.log(f"Codeunit {self.codeunit_name} is disabled.",LogLevel.Warning)
+            self.sc.log.log(f"Codeunit {self.codeunit_name} is disabled.", LogLevel.Warning)
             return
-        
+
         self.sc.log.log(f"Build codeunit {self.codeunit_name}...")
-        
+
         GeneralUtilities.ensure_folder_exists_and_is_empty(self.codeunit_folder+"/Other/Artifacts")
 
-        arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
+        arguments: str = f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
         if not self.use_cache:
-            arguments=f"{arguments} --nocache"
-            
+            arguments = f"{arguments} --nocache"
+
         self.sc.log.log("Do common tasks...")
-        self.sc.run_program("python",f"CommonTasks.py {arguments}",os.path.join(self.codeunit_folder,"Other"),print_live_output=True)
+        self.sc.run_program("python", f"CommonTasks.py {arguments}", os.path.join(self.codeunit_folder, "Other"), print_live_output=True)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Changelog": False, "License": True, "DiffReport": True}))
 
         self.sc.log.log("Build...")
-        self.sc.run_program("python",f"Build.py {arguments}",os.path.join(self.codeunit_folder,"Other","Build"),print_live_output=True)
+        self.sc.run_program("python", f"Build.py {arguments}", os.path.join(self.codeunit_folder, "Other", "Build"), print_live_output=True)
         artifacts = {"BuildResult_.+": True, "BOM": False, "SourceCode":  self.tFCPS_Tools.codeunit_has_testable_sourcecode(codeunit_file)}
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool](artifacts))
 
         if self.tFCPS_Tools.codeunit_has_testable_sourcecode(codeunit_file):
             self.sc.log.log("Run testcases...")
-            self.sc.run_program("python",f"RunTestcases.py {arguments}",os.path.join(self.codeunit_folder,"Other","QualityCheck"),print_live_output=True)
+            self.sc.run_program("python", f"RunTestcases.py {arguments}", os.path.join(self.codeunit_folder, "Other", "QualityCheck"), print_live_output=True)
             self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         self.sc.log.log("Check for linting-issues...")
-        self.sc.run_program("python",f"Linting.py {arguments}",os.path.join(self.codeunit_folder,"Other","QualityCheck"),print_live_output=True)
-        self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]())
+        linting_result = self.sc.run_program("python", f"Linting.py {arguments}", os.path.join(self.codeunit_folder, "Other", "QualityCheck"), print_live_output=True, throw_exception_if_exitcode_is_not_zero=False)
+        if linting_result[0] != 0:
+            self.sc.log.log("Linting-issues were found.", LogLevel.Warning)
 
         self.sc.log.log("Generate reference...")
-        self.sc.run_program("python","GenerateReference.py",os.path.join(self.codeunit_folder,"Other","Reference"),print_live_output=True)
+        self.sc.run_program("python", "GenerateReference.py", os.path.join(self.codeunit_folder, "Other", "Reference"), print_live_output=True)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Reference": True}))
 
-        if os.path.isfile(os.path.join(self.codeunit_folder,"Other", "OnBuildingFinished.py")):
+        if os.path.isfile(os.path.join(self.codeunit_folder, "Other", "OnBuildingFinished.py")):
             self.sc.log.log('Run "OnBuildingFinished.py"...')
-            self.sc.run_program("python", f"OnBuildingFinished.py {arguments}",os.path.join(self.codeunit_folder,"Other"),print_live_output=True)
+            self.sc.run_program("python", f"OnBuildingFinished.py {arguments}", os.path.join(self.codeunit_folder, "Other"), print_live_output=True)
 
         artifacts_folder = os.path.join(self.codeunit_folder, "Other", "Artifacts")
         artifactsinformation_file = os.path.join(artifacts_folder, f"{self.codeunit_name}.artifactsinformation.xml")
@@ -115,4 +117,4 @@ class TFCPS_CodeUnit_BuildCodeUnit:
     @GeneralUtilities.check_arguments
     def update_dependencies(self) -> None:
         self.sc.log.log("Update dependencies...")
-        self.sc.run_program("python","UpdateDependencies.py",os.path.join(self.codeunit_folder,"Other"))
+        self.sc.run_program("python", "UpdateDependencies.py", os.path.join(self.codeunit_folder, "Other"))

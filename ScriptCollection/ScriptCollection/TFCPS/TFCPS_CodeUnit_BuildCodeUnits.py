@@ -29,10 +29,10 @@ class TFCPS_CodeUnit_BuildCodeUnits:
 
     @GeneralUtilities.check_arguments
     def build_codeunits(self) -> None:
+        self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log(f"Start building codeunits. (Target environment-type: {self.target_environment_type})")
         changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tFCPS_Other.get_version_of_project(self.repository)}.md")
-        GeneralUtilities.assert_file_exists(changelog_file,f"Changelogfile \"{changelog_file}\" does not exist. Try to create it for example using \"sccreatechangelogentry -m ...\".")
- 
+        GeneralUtilities.assert_file_exists(changelog_file,f"Changelogfile \"{changelog_file}\" does not exist. Try to create it for example using \"sccreatechangelogentry -m ...\".") 
         if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
             arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
             if not self.__use_cache:
@@ -44,12 +44,16 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             self.sc.log.log("Prepare build codeunits...")
             self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
         codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
+        self.sc.log.log("Codeunits will be built in the following order:")
+        for codeunit_name in codeunits:
+            self.sc.log.log("  - "+codeunit_name)
         for codeunit_name in codeunits:
             tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache())
             self.sc.log.log(GeneralUtilities.get_line())
             tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()
         self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log("Finished building codeunits.")
+        self.sc.log.log(GeneralUtilities.get_line())
 
 
     @GeneralUtilities.check_arguments

@@ -59,6 +59,7 @@ class TFCPS_MergeToStable:
     @GeneralUtilities.check_arguments
     def merge_to_stable_branch(self):
         self.sc.log.loglevel=self.createRelease_configuration.log_level
+        self.sc.log.log("Merge to stable-branch...")
         product_name:str=self.createRelease_configuration.product_name
 
         self.sc.assert_is_git_repository(self.createRelease_configuration.build_repo)
@@ -78,13 +79,18 @@ class TFCPS_MergeToStable:
         except Exception:
             self.sc.git_undo_all_changes(self.createRelease_configuration.repository)
             raise
-                
-        self.__remove_outdated_version()
 
+        eov_enabled=False
+        if eov_enabled:        
+            self.sc.log.log("Remove outdated versions...")
+            self.__remove_outdated_version()
+
+        self.sc.log.log("Release artifacts...")
         for codeunit in self.tFCPS_Tools_General.get_codeunits(self.createRelease_configuration.repository):
-            #export artifacts to local target folder
             self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch, True,True)
             if self.createRelease_configuration.artifacts_target_folder is not None:
+                #export artifacts to local target folder
+                self.sc.log.log(f"Export artifacts of codeunit {codeunit} to target-folder...")
                 source_folder:str=GeneralUtilities.resolve_relative_path(f"./{codeunit}/Other/Artifacts",self.createRelease_configuration.repository)
                 target_folder:str=GeneralUtilities.resolve_relative_path(f"./{product_name}/{product_version}/{codeunit}",self.createRelease_configuration.artifacts_target_folder)
                 GeneralUtilities.ensure_directory_exists(target_folder)
@@ -101,6 +107,7 @@ class TFCPS_MergeToStable:
                 self.sc.log.log(f"Codeunit {codeunit} does not have artifacts to push. (Scriptfile \"{push_script}\" does not exist.)",LogLevel.Debug)
 
             # Generate reference
+            self.sc.log.log(f"Release artifacts of codeunit {codeunit}...")
             reference_folder:str=os.path.join(self.createRelease_configuration.reference_repo,"ReferenceContent")
             repository:str=self.createRelease_configuration.repository
             project_version:str=self.tFCPS_Tools_General.get_version_of_project(repository)
@@ -111,6 +118,8 @@ class TFCPS_MergeToStable:
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, f"v{project_version}")
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, main_branch_name)
             self.__generate_entire_reference(projectname, project_version, reference_folder)
+            
+        self.sc.log.log(f"Finishing merging to stable...")
         self.sc.git_commit(self.createRelease_configuration.reference_repo,f"Added reference for v{project_version}")
         
         self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
