@@ -1067,7 +1067,7 @@ class TFCPS_Tools_General:
             gpg_identity_argument = GeneralUtilities.empty_string  # f" --sign --identity {gpg_identity}"
             # disabled due to https://blog.pypi.org/posts/2023-05-23-removing-pgp/
 
-        if LogLevel.Information<verbosity:
+        if int(LogLevel.Information)<int(verbosity):
             verbose_argument = " --verbose"
         else:
             verbose_argument = GeneralUtilities.empty_string
