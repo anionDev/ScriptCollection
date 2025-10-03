@@ -1052,7 +1052,7 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def __get_wheel_file(self, repository_folder: str, codeunit_name: str) -> str:
         self.__sc.assert_is_git_repository(repository_folder)
-        return self.__sc.find_file_by_extension(os.path.join(repository_folder, codeunit_name,"Artifacts", "BuildResult_Wheel"), "whl")
+        return self.__sc.find_file_by_extension(os.path.join(repository_folder, codeunit_name,"Other","Artifacts", "BuildResult_Wheel"), "whl")
 
     @GeneralUtilities.check_arguments
     def __standardized_tasks_push_wheel_file_to_registry(self, wheel_file: str, api_key: str, repository: str, gpg_identity: str,verbosity:LogLevel) -> None:
