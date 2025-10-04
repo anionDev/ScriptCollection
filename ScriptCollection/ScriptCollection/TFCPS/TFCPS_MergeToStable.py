@@ -83,11 +83,7 @@ class TFCPS_MergeToStable:
         except Exception:
             self.sc.git_undo_all_changes(self.createRelease_configuration.repository)
             raise
-
-        eov_enabled=False
-        if eov_enabled:        
-            self.sc.log.log("Remove outdated versions...")
-            self.__remove_outdated_version()
+      
 
         self.sc.log.log("Release artifacts...")
         for codeunit in self.tFCPS_Tools_General.get_codeunits(self.createRelease_configuration.repository):
@@ -110,7 +106,7 @@ class TFCPS_MergeToStable:
             else:
                 self.sc.log.log(f"Codeunit {codeunit} does not have artifacts to push. (Scriptfile \"{push_script}\" does not exist.)",LogLevel.Debug)
 
-            # Generate reference
+            # update codeunit-reference
             self.sc.log.log(f"Release artifacts of codeunit {codeunit}...")
             reference_folder:str=os.path.join(self.createRelease_configuration.reference_repo,"ReferenceContent")
             repository:str=self.createRelease_configuration.repository
@@ -121,6 +117,8 @@ class TFCPS_MergeToStable:
             codeunit_version=self.tFCPS_Tools_General.get_version_of_codeunit(os.path.join(repository,codeunit,f"{codeunit}.codeunit.xml"))
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, f"v{project_version}")
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, main_branch_name)
+
+            # Generate reference
             self.__generate_entire_reference(projectname, project_version, reference_folder)
             
         self.sc.log.log("Finishing merging to stable...")
@@ -146,6 +144,9 @@ class TFCPS_MergeToStable:
         
     @GeneralUtilities.check_arguments
     def __generate_entire_reference(self, projectname: str, project_version: str, reference_folder: str) -> None:
+        self.sc.log.log("Remove outdated versions...")
+        self.__remove_outdated_version()
+        self.sc.log.log("Generate reference...")
         all_available_version_identifier_folders_of_reference: list[str] = list(folder for folder in GeneralUtilities.get_direct_folders_of_folder(reference_folder))
         all_available_version_identifier_folders_of_reference = sorted(all_available_version_identifier_folders_of_reference, key=cmp_to_key(TFCPS_Tools_General.sort_reference_folder))
         reference_versions_html_lines = []

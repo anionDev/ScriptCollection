@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
@@ -31,8 +32,12 @@ class TFCPS_CodeUnit_BuildCodeUnits:
     def build_codeunits(self) -> None:
         self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log(f"Start building codeunits. (Target environment-type: {self.target_environment_type})")
+
+        #check if changelog exists
         changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tFCPS_Other.get_version_of_project(self.repository)}.md")
         GeneralUtilities.assert_file_exists(changelog_file,f"Changelogfile \"{changelog_file}\" does not exist. Try to create it for example using \"sccreatechangelogentry -m ...\".") 
+        
+        #run prepare-script
         if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
             arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
             if not self.__use_cache:
@@ -41,9 +46,22 @@ class TFCPS_CodeUnit_BuildCodeUnits:
                     self.sc.log.log("No-cache-option can not be applied because there are uncommited changes in the repository.",LogLevel.Warning)
                 else:
                     self.sc.run_program("git","clean -dfx",self.repository)
+
             self.sc.log.log("Prepare build codeunits...")
             self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
-        codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
+
+        #mark current version as supported
+        now = GeneralUtilities.get_now()
+        project_version:str=self.tFCPS_Other.get_version_of_project(self.repository)
+        if not self.tFCPS_Other.suport_information_exists(self.repository, project_version):
+            amount_of_years_for_support:int=1
+            support_time = timedelta(days=365*amount_of_years_for_support+30*3+1) 
+            until = now + support_time
+            until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
+            from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
+            self.tFCPS_Other.mark_current_version_as_supported(self.repository,project_version,from_day,until_day)
+
+        codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)        
         self.sc.log.log("Codeunits will be built in the following order:")
         for codeunit_name in codeunits:
             self.sc.log.log("  - "+codeunit_name)
@@ -54,7 +72,6 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log("Finished building codeunits.")
         self.sc.log.log(GeneralUtilities.get_line())
-
 
     @GeneralUtilities.check_arguments
     def use_cache(self) -> bool:

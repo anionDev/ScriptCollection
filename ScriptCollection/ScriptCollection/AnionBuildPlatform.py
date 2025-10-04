@@ -37,8 +37,8 @@ class AnionBuildPlatform:
         build_repo_folder:str=os.path.join(self.__configuration.build_repositories_folder,self.__configuration.project_to_build+"Build")
         self.__sc.assert_is_git_repository(build_repo_folder)
         scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
-        self.__sc.run_program("python",f"MergeToMain",scripts_folder)
-        self.__sc.run_program("python","MergeToStable",scripts_folder)
+        self.__sc.run_program("python",f"MergeToMain.py",scripts_folder)
+        self.__sc.run_program("python","MergeToStable.py",scripts_folder)
 
 class TFCPS_AnionBuildPlatform_CLI:
 
