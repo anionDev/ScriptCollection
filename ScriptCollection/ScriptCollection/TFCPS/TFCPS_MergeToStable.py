@@ -278,10 +278,9 @@ class TFCPS_MergeToStable:
 class TFCPS_MergeToStable_CLI:
 
     @staticmethod
-    def get_with_overwritable_defaults(file:str,default_product_name:str=None,default_loglevel:LogLevel=None,default_source_branch:str=None,default_additionalargumentsfile:str=None,default_target_branch:str=None,default_reference_repo:str=None,common_remote_name:str=None,build_repo_main_branch_name:str=None,reference_repo_main_branch_name:str=None,reference_remote_name:str=None,build_repo_remote_name:str=None,artifacts_target_folder:str=None,common_remote_url:str=None)->TFCPS_MergeToMain:
+    def get_with_overwritable_defaults(file:str,default_loglevel:LogLevel=None,default_source_branch:str=None,default_additionalargumentsfile:str=None,default_target_branch:str=None,default_reference_repo:str=None,common_remote_name:str=None,build_repo_main_branch_name:str=None,reference_repo_main_branch_name:str=None,reference_remote_name:str=None,build_repo_remote_name:str=None,artifacts_target_folder:str=None,common_remote_url:str=None)->TFCPS_MergeToMain:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
-        parser.add_argument('-n', '--productname', required=False,default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-s', '--sourcebranch', required=False)#default="main"
         parser.add_argument('-t', '--targetbranch', required=False)#default="stable"
@@ -301,11 +300,7 @@ class TFCPS_MergeToStable_CLI:
         build_repo=GeneralUtilities.resolve_relative_path("../../..",file)
         sc.assert_is_git_repository(build_repo)
 
-        if args.productname is not None: 
-            default_product_name=args.productname
-        if default_product_name is None:
-            default_product_name=os.path.basename(build_repo)[:-len("Build")]
-        GeneralUtilities.assert_not_null(default_product_name,"productname is not set")
+        default_product_name=os.path.basename(build_repo)[:-len("Build")]
 
         if args.verbosity is not None:
             default_loglevel=LogLevel(int( args.verbosity))
