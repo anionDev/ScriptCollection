@@ -48,7 +48,7 @@ class AnionBuildPlatform:
         # Checkout source branch
         build_repo_folder:str=self.__configuration.build_repositories_folder
         self.__sc.assert_is_git_repository(build_repo_folder)
-        repository:str=os.path.join(self.__configuration,self.__configuration.project_to_build+"Build","Submodules",self.__configuration.project_to_build)
+        repository:str=os.path.join(build_repo_folder,self.__configuration.project_to_build+"Build","Submodules",self.__configuration.project_to_build)
         self.__sc.assert_is_git_repository(repository)
         self.__sc.assert_no_uncommitted_changes(build_repo_folder)
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
