@@ -80,10 +80,9 @@ class TFCPS_MergeToMain:
 class TFCPS_MergeToMain_CLI:
 
     @staticmethod
-    def get_with_overwritable_defaults(file:str,default_product_name:str=None,default_merge_source_branch:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_main_branch:str=None,default_common_remote_name:str=None)->TFCPS_MergeToMain:
+    def get_with_overwritable_defaults(file:str,default_merge_source_branch:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_main_branch:str=None,default_common_remote_name:str=None)->TFCPS_MergeToMain:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
-        parser.add_argument('-n', '--productname', required=False,default=None)
         parser.add_argument('-s', '--mergesourcebranch', required=False)
         parser.add_argument('-a', '--additionalargumentsfile', required=False)
         parser.add_argument('-t', '--mainbranch', required=False)
@@ -96,11 +95,7 @@ class TFCPS_MergeToMain_CLI:
         build_repo=GeneralUtilities.resolve_relative_path("../../..",file)
         sc.assert_is_git_repository(build_repo)
 
-        if args.productname is not None: 
-            default_product_name=args.productname
-        if default_product_name is None:
-            default_product_name=os.path.basename(build_repo)[:-len("Build")]
-        GeneralUtilities.assert_not_null(default_product_name,"productname is not set")
+        default_product_name=os.path.basename(build_repo)[:-len("Build")]
 
         if args.mergesourcebranch is not None: 
             default_merge_source_branch=args.mergesourcebranch#other/next-release
