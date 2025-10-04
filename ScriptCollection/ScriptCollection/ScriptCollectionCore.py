@@ -8,6 +8,7 @@ import multiprocessing
 import time
 from io import BytesIO
 import itertools
+import zipfile
 import math
 import base64
 import os
@@ -36,7 +37,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.36"
+version = "4.0.37"
 __version__ = version
 
 
@@ -1841,10 +1842,10 @@ class ScriptCollectionCore:
     # </run programs>
 
     @GeneralUtilities.check_arguments
-    def extract_archive_with_7z(self, unzip_program_file: str, zipfile: str, password: str, output_directory: str) -> None:
+    def extract_archive_with_7z(self, unzip_program_file: str, zip_file: str, password: str, output_directory: str) -> None:
         password_set = not password is None
-        file_name = Path(zipfile).name
-        file_folder = os.path.dirname(zipfile)
+        file_name = Path(zip_file).name
+        file_folder = os.path.dirname(zip_file)
         argument = "x"
         if password_set:
             argument = f"{argument} -p\"{password}\""
@@ -2496,3 +2497,15 @@ OCR-content:
             if fnmatch.fnmatch(file, f"*{pattern}*"):
                 return True
         return False
+    
+    @GeneralUtilities.check_arguments
+    def create_zip_archive(self, folder:str,zip_file:str) -> None:
+        GeneralUtilities.assert_folder_exists(folder)
+        GeneralUtilities.assert_file_does_not_exist(zip_file)
+        folder = os.path.abspath(folder)
+        with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(folder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, start=folder)
+                    zipf.write(file_path, arcname)

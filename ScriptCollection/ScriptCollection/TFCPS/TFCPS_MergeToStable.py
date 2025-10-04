@@ -93,7 +93,7 @@ class TFCPS_MergeToStable:
                 GeneralUtilities.ensure_directory_exists(target_folder)
                 codeunit_version:str=self.tFCPS_Tools_General.get_version_of_codeunit(os.path.join(self.createRelease_configuration.repository,codeunit,f"{codeunit}.codeunit.xml"))
                 target_file:str=os.path.join(target_folder,f"{codeunit}.v{codeunit_version}.Artifacts.zip")
-                self.sc.run_program_argsasarray("tar",[f"-cf",target_file,"-C",source_folder, "."])
+                self.sc.create_zip_archive(source_folder,target_file)
 
             #push artifacts
             push_script:str=os.path.join( self.createRelease_configuration.build_repo,"Scripts","CreateRelease",f"PushArtifacts.{codeunit}.py")
@@ -131,6 +131,7 @@ class TFCPS_MergeToStable:
         self.sc.git_push_with_retry(self.createRelease_configuration.repository,self.createRelease_configuration.common_remote_name,self.createRelease_configuration.target_branch,self.createRelease_configuration.target_branch)
         self.sc.git_push_with_retry(self.createRelease_configuration.build_repo,self.createRelease_configuration.build_repo_remote_name,self.createRelease_configuration.build_repo_main_branch_name,self.createRelease_configuration.build_repo_main_branch_name)
         self.sc.git_push_with_retry(reference_repo,self.createRelease_configuration.reference_remote_name,self.createRelease_configuration.reference_repo_main_branch_name,self.createRelease_configuration.reference_repo_main_branch_name)
+
 
     def __remove_outdated_version(self,reference_repo:str):
         now = GeneralUtilities.get_now()
