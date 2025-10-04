@@ -130,7 +130,7 @@ class TFCPS_MergeToStable:
         
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.reference_repo)
-        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
+        self.sc.git_commit(self.createRelease_configuration.build_repo,"Updated submodules")
 
         self.sc.git_push_with_retry(self.createRelease_configuration.repository,self.createRelease_configuration.common_remote_name,self.createRelease_configuration.target_branch,self.createRelease_configuration.target_branch)
         self.sc.git_push_with_retry(self.createRelease_configuration.build_repo,self.createRelease_configuration.build_repo_remote_name,self.createRelease_configuration.build_repo_main_branch_name,self.createRelease_configuration.build_repo_main_branch_name)
