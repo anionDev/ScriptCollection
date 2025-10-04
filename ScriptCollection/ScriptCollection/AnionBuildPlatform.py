@@ -46,7 +46,7 @@ class AnionBuildPlatform:
 
     def run(self) -> None:
         # Checkout source branch
-        build_repo_folder:str=os.path.join(self.__configuration.build_repositories_folder,self.__configuration.project_to_build+"Build")
+        build_repo_folder:str=self.__configuration.build_repositories_folder
         self.__sc.assert_is_git_repository(build_repo_folder)
         repository:str=os.path.join(self.__configuration,self.__configuration.project_to_build+"Build","Submodules",self.__configuration.project_to_build)
         self.__sc.assert_is_git_repository(repository)
