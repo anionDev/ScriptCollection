@@ -49,6 +49,7 @@ class AnionBuildPlatform:
         build_repo_folder:str=os.path.join(self.__configuration.build_repositories_folder,self.__configuration.project_to_build+"Build")
         self.__sc.assert_is_git_repository(build_repo_folder)
         repository:str=os.path.join(self.__configuration,self.__configuration.project_to_build+"Build","Submodules",self.__configuration.project_to_build)
+        self.__sc.assert_is_git_repository(repository)
         self.__sc.assert_no_uncommitted_changes(build_repo_folder)
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
 
@@ -127,13 +128,13 @@ class TFCPS_AnionBuildPlatform_CLI:
         if args.buildrepositoriesfolder is not None:
             default_build_repositories_folder=args.buildrepositoriesfolder
 
-        if default_project_to_build is None:
+        if default_build_repositories_folder is None:
             current_folder=os.getcwd()
             if os.path.basename(current_folder).endswith("Build"):
                 default_build_repositories_folder=os.path.dirname(current_folder)
         GeneralUtilities.assert_not_null(default_build_repositories_folder,"buildrepositoriesfolder is not set")
         
-        if default_build_repositories_folder is None:
+        if default_project_to_build is None:
             default_project_to_build=os.path.basename(current_folder)[:-len("Build")]
         GeneralUtilities.assert_not_null(default_project_to_build,"projecttobuild is not set")
 
@@ -146,7 +147,7 @@ class TFCPS_AnionBuildPlatform_CLI:
 
         if args.sourcebranch is not None:
             default_source_branch=args.sourcebranch
-        GeneralUtilities.assert_not_null(default_build_repositories_folder,"sourcebranch is not set")
+        GeneralUtilities.assert_not_null(default_source_branch,"sourcebranch is not set")
 
         if args.defaultremotename is not None:
             default_remote_name=args.defaultremotename
