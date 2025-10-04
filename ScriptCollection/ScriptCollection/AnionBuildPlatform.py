@@ -9,7 +9,6 @@ from .ScriptCollectionCore import ScriptCollectionCore
 
 class AnionBuildPlatformConfiguration:
     build_repositories_folder:str
-    project_to_build:str
     additional_arguments_file:str
     verbosity:LogLevel
     source_branch:str
@@ -18,14 +17,12 @@ class AnionBuildPlatformConfiguration:
 
     def __init__(self,
                  build_repositories_folder:str,
-                 project_to_build:str,
                  additional_arguments_file:str,
                  verbosity:LogLevel,
                  source_branch:str,
                  common_remote_name:str,
                  update_dependencies:bool):
         self.build_repositories_folder=build_repositories_folder
-        self.project_to_build=project_to_build
         self.additional_arguments_file=additional_arguments_file
         self.verbosity=verbosity
         self.source_branch=source_branch
@@ -47,8 +44,10 @@ class AnionBuildPlatform:
     def run(self) -> None:
         # Checkout source branch
         build_repo_folder:str=self.__configuration.build_repositories_folder
+        GeneralUtilities.assert_condition(build_repo_folder.endswith("Build"),f"buildrepositoriesfolder {build_repo_folder} must end with 'Build'")
         self.__sc.assert_is_git_repository(build_repo_folder)
-        repository:str=os.path.join(build_repo_folder,"Submodules",self.__configuration.project_to_build)
+        product_name=os.path.basename(build_repo_folder)[:-len("Build")]
+        repository:str=os.path.join(build_repo_folder,"Submodules",product_name)
         self.__sc.assert_is_git_repository(repository)
         self.__sc.git_commit(build_repo_folder,"Updated changes")
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
@@ -60,7 +59,7 @@ class AnionBuildPlatform:
 
         #Update dependencies
         if self.__configuration.update_dependencies:
-            self.__update_dependencies()
+            self.__update_dependencies(product_name)
         
         #Do release
         scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
@@ -112,9 +111,9 @@ class AnionBuildPlatform:
         #prepare for next-release
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
 
-    def __update_dependencies(self) -> None:
+    def __update_dependencies(self,product_name:str) -> None:
         self.__sc.log.log("Update dependencies...")
-        repository:str=os.path.join(self.__configuration,self.__configuration.project_to_build+"Build","Submodules",self.__configuration.project_to_build)
+        repository:str=os.path.join(self.__configuration,product_name+"Build","Submodules",product_name)
         self.__sc.assert_no_uncommitted_changes(repository)
         self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
         codeunits:list[str]=self._tFCPS_Tools_General.get_codeunits(repository)   
@@ -200,6 +199,6 @@ class TFCPS_AnionBuildPlatform_CLI:
             default_remote_name=args.defaultremotename
         GeneralUtilities.assert_not_null(default_remote_name,"defaultremotename is not set")
 
-        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_project_to_build,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name,args.updatedependencies)
+        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name,args.updatedependencies)
         tFCPS_MergeToMain:AnionBuildPlatform=AnionBuildPlatform(config)
         return tFCPS_MergeToMain
