@@ -101,6 +101,7 @@ class TFCPS_CodeUnit_BuildCodeUnit:
         # TODO validate artifactsinformation_file against xsd
         self.sc.log.log(f"Finished building codeunit {self.codeunit_name} without errors.")
 
+
     @GeneralUtilities.check_arguments
     def verify_artifact_exists(self, codeunit_folder: str, artifact_name_regexes: dict[str, bool]) -> None:
         codeunit_name: str = os.path.basename(codeunit_folder)

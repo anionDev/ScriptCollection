@@ -1061,3 +1061,29 @@ class TFCPS_Tools_General:
     def push_nuget_build_artifact(self, push_script_file: str, repository_folder_name: str,  codeunitname: str, registry_address: str,api_key: str):
         build_artifact_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{repository_folder_name}/{codeunitname}/Other/Artifacts/BuildResult_NuGet", os.path.dirname(push_script_file))
         self.__sc.push_nuget_build_artifact(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"), registry_address, api_key)
+
+    @GeneralUtilities.check_arguments
+    def suport_information_exists(self, repository_folder: str, version_of_product: str) -> bool:
+        self.__sc.assert_is_git_repository(repository_folder)
+        folder = os.path.join(repository_folder, "Other", "Resources", "Support")
+        file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
+        if not os.path.isfile(file):
+            return False
+        entries = GeneralUtilities.read_csv_file(file, True)
+        for entry in entries:
+            if entry[0] == version_of_product:
+                return True
+        return False
+    
+    @GeneralUtilities.check_arguments
+    def mark_current_version_as_supported(self, repository_folder: str, version_of_product: str, supported_from: datetime, supported_until: datetime):
+        self.__sc.assert_is_git_repository(repository_folder)
+        if self.suport_information_exists(repository_folder, version_of_product):
+            raise ValueError(f"Version-support for v{version_of_product} already defined.")
+        folder = os.path.join(repository_folder, "Other", "Resources", "Support")
+        GeneralUtilities.ensure_directory_exists(folder)
+        file = os.path.join(folder, "InformationAboutSupportedVersions.csv")
+        if not os.path.isfile(file):
+            GeneralUtilities.ensure_file_exists(file)
+            GeneralUtilities.append_line_to_file(file, "Version;SupportBegin;SupportEnd")
+        GeneralUtilities.append_line_to_file(file, f"{version_of_product};{GeneralUtilities.datetime_to_string(supported_from)};{GeneralUtilities.datetime_to_string(supported_until)}")
