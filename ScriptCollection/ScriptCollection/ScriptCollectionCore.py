@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.16"
+version = "4.0.17"
 __version__ = version
 
 
@@ -282,9 +282,12 @@ class ScriptCollectionCore:
         GeneralUtilities.retry_action(lambda: self.git_push(folder, remotename, localbranchname, remotebranchname, forcepush, pushalltags, verbosity), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
-    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: LogLevel = LogLevel.Quiet) -> None:
+    def git_push(self, folder: str, remotename: str, localbranchname: str, remotebranchname: str, forcepush: bool = False, pushalltags: bool = True, verbosity: LogLevel = LogLevel.Quiet,resurse_submodules:bool=False) -> None:
         self.is_git_or_bare_git_repository(folder)
-        argument = ["push", "--recurse-submodules=on-demand", remotename, f"{localbranchname}:{remotebranchname}"]
+        argument = ["push"]
+        if resurse_submodules:
+            argument = argument + ["--recurse-submodules=on-demand"]
+        argument = argument + [remotename, f"{localbranchname}:{remotebranchname}"]
         if (forcepush):
             argument.append("--force")
         if (pushalltags):
