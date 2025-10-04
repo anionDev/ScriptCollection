@@ -17,8 +17,8 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     is_library:bool
     csproj_file:bool
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool):
-        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool,is_pre_merge:bool):
+        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache,is_pre_merge)
         self.csproj_file=os.path.join(self.get_codeunit_folder(), self.get_codeunit_name(), self.get_codeunit_name() + ".csproj")
         self.is_library="<OutputType>Library</OutputType>" in GeneralUtilities.read_text_from_file(self.csproj_file)#TODO do a real check
 
@@ -475,5 +475,5 @@ class TFCPS_CodeUnitSpecific_DotNet_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_DotNet_Functions=TFCPS_CodeUnitSpecific_DotNet_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache)
+        result:TFCPS_CodeUnitSpecific_DotNet_Functions=TFCPS_CodeUnitSpecific_DotNet_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache,args.ispremerge)
         return result 

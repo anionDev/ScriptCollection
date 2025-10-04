@@ -16,9 +16,10 @@ class MergeToMainConfiguration:
     repository_folder:str
     tFCPS_Generic_Functions:TFCPS_Generic_Functions
     common_remote_name:str
+    build_repo:str
     sc:ScriptCollectionCore=ScriptCollectionCore()
 
-    def __init__(self, current_file: str,repository:str, product_name: str,merge_source_branch:str,log_level:LogLevel,additional_arguments_file:str,main_branch:str,common_remote_name:str):
+    def __init__(self, current_file: str,repository:str, product_name: str,merge_source_branch:str,log_level:LogLevel,additional_arguments_file:str,main_branch:str,common_remote_name:str,build_repo:str):
         self.sc.log.loglevel=log_level
         self.repository_folder = repository
         self.product_name = product_name
@@ -27,6 +28,7 @@ class MergeToMainConfiguration:
         self.log_level=log_level
         self.main_branch=main_branch
         self.common_remote_name=common_remote_name
+        self.build_repo=build_repo
 
 class TFCPS_MergeToMain:
 
@@ -73,6 +75,7 @@ class TFCPS_MergeToMain:
         self.sc.log.log("Push branches...")
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,source_branch,source_branch)
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,target_branch,target_branch)
+        self.sc.git_commit(self.generic_prepare_new_release_arguments.build_repo,"Updated submodule")
  
 class TFCPS_MergeToMain_CLI:
 
@@ -120,6 +123,6 @@ class TFCPS_MergeToMain_CLI:
         GeneralUtilities.assert_not_null(default_common_remote_name,"commonremotename is not set")
 
         repository=os.path.join(build_repo,"Submodules",default_product_name)
-        config:MergeToMainConfiguration=MergeToMainConfiguration(file,repository,default_product_name,default_merge_source_branch,default_loglevel,default_additionalargumentsfile,default_main_branch,default_common_remote_name)
+        config:MergeToMainConfiguration=MergeToMainConfiguration(file,repository,default_product_name,default_merge_source_branch,default_loglevel,default_additionalargumentsfile,default_main_branch,default_common_remote_name,build_repo)
         tFCPS_MergeToMain:TFCPS_MergeToMain=TFCPS_MergeToMain(config)
         return tFCPS_MergeToMain
