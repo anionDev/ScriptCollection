@@ -108,7 +108,7 @@ class TFCPS_MergeToMain_CLI:
 
         if args.verbosity is not None:
             default_loglevel=LogLevel(int( args.verbosity))
-        GeneralUtilities.assert_not_null(default_merge_source_branch,"verbosity is not set")
+        GeneralUtilities.assert_not_null(default_loglevel,"verbosity is not set")
 
         if args.additionalargumentsfile is not None:
             default_additionalargumentsfile=args.additionalargumentsfile
