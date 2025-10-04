@@ -557,22 +557,6 @@ class TasksForCommonProjectStructure:
             self.__log.log(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
 
     @GeneralUtilities.check_arguments
-    def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, additional_attached_files: list[str]) -> None:
-        self.__sc.assert_is_git_repository(repository_folder)
-        self.__log.log(f"Create GitHub-release for {productname}...")
-        verbosity = TasksForCommonProjectStructure.get_verbosity_from_commandline_arguments(commandline_arguments, 1)
-        github_repo = f"{github_username}/{productname}"
-        artifact_files = []
-        codeunits = self.get_codeunits(repository_folder)
-        for codeunit in codeunits:
-            artifact_files.append(self.__sc.find_file_by_extension(f"{build_artifacts_folder}\\{productname}\\{projectversion}\\{codeunit}", "Productive.Artifacts.zip"))
-        if additional_attached_files is not None:
-            for additional_attached_file in additional_attached_files:
-                artifact_files.append(additional_attached_file)
-        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{projectversion}.md")
-        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo, "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifact_files)
-
-    @GeneralUtilities.check_arguments
     def get_dependencies_which_are_ignored_from_updates(self, codeunit_folder: str, print_warnings_for_ignored_dependencies: bool) -> list[str]:
         self.assert_is_codeunit_folder(codeunit_folder)
         namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
