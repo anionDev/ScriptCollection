@@ -843,6 +843,7 @@ def CreateRelease()->int:
     verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('-s', '--sourcebranch', required=False, default="other/next-release")
+    parser.add_argument('-u', '--updatedependencies', required=False, action='store_true', default=False)
     args = parser.parse_args()
 
     build_repo_folder: str = None
@@ -855,6 +856,9 @@ def CreateRelease()->int:
     sc.log.loglevel=LogLevel(verbosity)
 
     scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
-    sc.run_program("python",f"CreateRelease.py --buildrepositoriesfolder {build_repo_folder} --verbosity {verbosity} --sourcebranch {args.sourcebranch}",os.path.join(build_repo_folder,"Scripts","CreateRelease"),scripts_folder)
+    arguments=f"CreateRelease.py --buildrepositoriesfolder {build_repo_folder} --verbosity {verbosity} --sourcebranch {args.sourcebranch}"
+    if args.updatedependencies:
+        arguments=arguments+" --updatedependencies"
+    sc.run_program("python", arguments, scripts_folder)
 
     return 0

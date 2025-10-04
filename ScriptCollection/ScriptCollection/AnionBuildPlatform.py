@@ -1,5 +1,8 @@
 import argparse
 import os
+from .TFCPS.TFCPS_CodeUnit_BuildCodeUnit import TFCPS_CodeUnit_BuildCodeUnit
+from .TFCPS.TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
+from .TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
 from .SCLog import LogLevel
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
@@ -11,6 +14,7 @@ class AnionBuildPlatformConfiguration:
     verbosity:LogLevel
     source_branch:str
     common_remote_name:str
+    update_dependencies:bool
 
     def __init__(self,
                  build_repositories_folder:str,
@@ -18,23 +22,27 @@ class AnionBuildPlatformConfiguration:
                  additional_arguments_file:str,
                  verbosity:LogLevel,
                  source_branch:str,
-                 common_remote_name:str):
+                 common_remote_name:str,
+                 update_dependencies:bool):
         self.build_repositories_folder=build_repositories_folder
         self.project_to_build=project_to_build
         self.additional_arguments_file=additional_arguments_file
         self.verbosity=verbosity
         self.source_branch=source_branch
         self.common_remote_name=common_remote_name
+        self.update_dependencies=update_dependencies
 
 class AnionBuildPlatform:
 
     __configuration: AnionBuildPlatformConfiguration
     __sc:ScriptCollectionCore
+    __tFCPS_Tools_General:TFCPS_Tools_General
 
     def __init__(self, configuration: AnionBuildPlatformConfiguration):
         self.__configuration = configuration
         self.__sc = ScriptCollectionCore()
         self.__sc.log.loglevel=configuration.verbosity
+        self._tFCPS_Tools_General=TFCPS_Tools_General(self.__sc)
 
     def run(self) -> None:
         # Checkout source branch
@@ -49,6 +57,10 @@ class AnionBuildPlatform:
         self.__sc.git_merge(repository,self.__configuration.common_remote_name+"/"+self.__configuration.source_branch,self.__configuration.source_branch,fastforward=True)#TODO check if is anchestor and throw exception if nor
         self.__sc.git_commit(build_repo_folder,"Updated changes")
 
+        #Update dependencies
+        if self.__configuration.update_dependencies:
+            self.__update_dependencies()
+        
         #Do release
         scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
         self.__sc.run_program("python","MergeToMain.py",scripts_folder)
@@ -56,6 +68,43 @@ class AnionBuildPlatform:
 
         #prepare for next-release
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
+
+    def __update_dependencies(self) -> None:
+        self.__sc.log.log("Update dependencies...")
+        repository:str=os.path.join(self.__configuration,self.__configuration.project_to_build+"Build","Submodules",self.__configuration.project_to_build)
+        self.__sc.assert_no_uncommitted_changes(repository)
+        self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
+        codeunits:list[str]=self._tFCPS_Tools_General.get_codeunits(repository)   
+        for codeunit_name in codeunits:
+            self.__sc.log.log(f"Update dependencies of codeunit {codeunit_name}...")
+            codeunit_folder=os.path.join(repository,codeunit_name)
+            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(codeunit_folder,self.__sc.log.loglevel,"QualityCheck",None,True,False)
+            tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()#ensure requirements for updating are there (some programming types needs this)
+            if self.__tFCPS_Tools_General.codeunit_has_updatable_dependencies(os.path.join(codeunit_folder,f"{codeunit_name}.codeunit.xml")):
+                self.__sc.run_program("python","UpdateDependencies.py",os.path.join(codeunit_folder,"Other"))
+            tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()#check if codeunit is still buildable
+
+        if self.__sc.git_repository_has_uncommitted_changes(repository):
+            changelog_folder = os.path.join(repository, "Other", "Resources", "Changelog")
+            project_version:str=self._tFCPS_Tools_General.get_version_of_project(repository)
+            changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
+            if not os.path.isfile(changelog_file):
+                self.__ensure_changelog_file_is_added(repository, project_version)
+            t=TFCPS_CodeUnit_BuildCodeUnits(repository,self.__sc.log.loglevel,"QualityCheck",None,True,False)
+            t.build_codeunits()#check codeunits are buildable at all
+            self.__sc.git_commit(repository, "Updated dependencies", stage_all_changes=True) 
+
+
+    def __ensure_changelog_file_is_added(self, repository_folder: str, version_of_project: str):
+        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
+        if not os.path.isfile(changelog_file):
+            GeneralUtilities.ensure_file_exists(changelog_file)
+            GeneralUtilities.write_text_to_file(changelog_file, """# Release notes
+
+## Changes
+
+- Updated dependencies.
+""")
 
 class TFCPS_AnionBuildPlatform_CLI:
 
@@ -69,6 +118,7 @@ class TFCPS_AnionBuildPlatform_CLI:
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
         parser.add_argument('-s', '--sourcebranch', required=False, default="other/next-release")
         parser.add_argument('-r', '--defaultremotename', required=False, default="origin")
+        parser.add_argument('-u', '--updatedependencies', required=False, action='store_true', default=False)
         args=parser.parse_args()
 
         if args.projecttobuild is not None: 
@@ -100,6 +150,6 @@ class TFCPS_AnionBuildPlatform_CLI:
             default_remote_name=args.defaultremotename
         GeneralUtilities.assert_not_null(default_remote_name,"defaultremotename is not set")
 
-        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_project_to_build,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name)
+        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_project_to_build,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name,args.updatedependencies)
         tFCPS_MergeToMain:AnionBuildPlatform=AnionBuildPlatform(config)
         return tFCPS_MergeToMain
