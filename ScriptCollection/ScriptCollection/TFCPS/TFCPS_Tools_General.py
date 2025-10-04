@@ -1103,3 +1103,57 @@ class TFCPS_Tools_General:
                 artifact_files.append(additional_attached_file)
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{projectversion}.md")
         self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo, "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifact_files)
+
+    @GeneralUtilities.check_arguments
+    def update_dependency_in_resources_folder(self, update_dependencies_file, dependency_name: str, latest_version_function: str) -> None:
+        dependency_folder = GeneralUtilities.resolve_relative_path(f"../Resources/Dependencies/{dependency_name}", update_dependencies_file)
+        version_file = os.path.join(dependency_folder, "Version.txt")
+        version_file_exists = os.path.isfile(version_file)
+        write_to_file = False
+        if version_file_exists:
+            current_version = GeneralUtilities.read_text_from_file(version_file)
+            if current_version != latest_version_function:
+                write_to_file = True
+        else:
+            GeneralUtilities.ensure_directory_exists(dependency_folder)
+            GeneralUtilities.ensure_file_exists(version_file)
+            write_to_file = True
+        if write_to_file:
+            GeneralUtilities.write_text_to_file(version_file, latest_version_function)
+
+
+    @GeneralUtilities.check_arguments
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, push_readme: bool, repository_folder_name: str, remote_image_name: str = None) -> None:
+        folder_of_this_file = os.path.dirname(push_artifacts_file)
+        filename = os.path.basename(push_artifacts_file)
+        codeunitname_regex: str = "([a-zA-Z0-9]+)"
+        filename_regex: str = f"PushArtifacts\\.{codeunitname_regex}\\.py"
+        if match := re.search(filename_regex, filename, re.IGNORECASE):
+            codeunitname = match.group(1)
+        else:
+            raise ValueError(f"Expected push-artifacts-file to match the regex \"{filename_regex}\" where \"{codeunitname_regex}\" represents the codeunit-name.")
+        
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
+        codeunit_folder = os.path.join(repository_folder, codeunitname)
+        artifacts_folder = os.path.join(repository_folder,codeunitname, "Other", "Artifacts")
+        applicationimage_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
+        image_file = self.__sc.find_file_by_extension(applicationimage_folder, "tar")
+        image_filename = os.path.basename(image_file)
+        codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
+        if remote_image_name is None:
+            remote_image_name = codeunitname
+        remote_image_name = remote_image_name.lower()
+        local_image_name = codeunitname.lower()
+        remote_repo = f"{registry}/{remote_image_name}"
+        remote_image_latest = f"{remote_repo}:latest"
+        remote_image_version = f"{remote_repo}:{codeunit_version}"
+        self.__sc.log.log("Load image...")
+        self.__sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder)
+        self.__sc.log.log("Tag image...")
+        self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}")
+        self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}")
+        self.__sc.log.log("Push image...")
+        self.__sc.run_program_with_retry("docker", f"push {remote_image_latest}")
+        self.__sc.run_program_with_retry("docker", f"push {remote_image_version}")
+        if push_readme:
+            self.__sc.run_program_with_retry("docker-pushrm", f"{remote_repo}", codeunit_folder)
