@@ -839,8 +839,8 @@ def LOC() -> int:
 def CreateRelease()->int:
     sc = ScriptCollectionCore()
     parser = argparse.ArgumentParser(description="Creates a release in a git-repository which uses the anion-build-platform.")
-    parser.add_argument('-b', '--buildrepository', required=True)
-    parser.add_argument('-v', '--verbose', action='store_true', default=False)
+    parser.add_argument('-b', '--buildrepository', required=False, default=".")
+    parser.add_argument('-v', '--verbose', action='store_true', required=False, default=False)
     args = parser.parse_args()
 
     folder: str = None

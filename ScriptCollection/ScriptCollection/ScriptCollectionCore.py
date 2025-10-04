@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.22"
+version = "4.0.23"
 __version__ = version
 
 
@@ -124,7 +124,7 @@ class ScriptCollectionCore:
         argument = f"nuget push {nupkg_file_name} --force-english-output --source {registry_address}"
         if api_key is not None:
             argument = f"{argument} --api-key {api_key}" 
-        self.run_program("dotnet", argument, nupkg_file_folder, self.log.loglevel)
+        self.run_program("dotnet", argument, nupkg_file_folder)
 
     @GeneralUtilities.check_arguments
     def dotnet_build(self, folder: str, projectname: str, configuration: str):
