@@ -13,7 +13,6 @@ class AnionBuildPlatformConfiguration:
     additional_arguments_file:str
     verbosity:LogLevel
     source_branch:str
-    main_branch:str
     common_remote_name:str
     update_dependencies:bool
 
@@ -23,7 +22,6 @@ class AnionBuildPlatformConfiguration:
                  additional_arguments_file:str,
                  verbosity:LogLevel,
                  source_branch:str,
-                 main_branch:str,
                  common_remote_name:str,
                  update_dependencies:bool):
         self.build_repositories_folder=build_repositories_folder
@@ -31,7 +29,6 @@ class AnionBuildPlatformConfiguration:
         self.additional_arguments_file=additional_arguments_file
         self.verbosity=verbosity
         self.source_branch=source_branch
-        self.main_branch=main_branch
         self.common_remote_name=common_remote_name
         self.update_dependencies=update_dependencies
 
@@ -199,14 +196,10 @@ class TFCPS_AnionBuildPlatform_CLI:
             default_source_branch=args.sourcebranch
         GeneralUtilities.assert_not_null(default_source_branch,"sourcebranch is not set")
 
-        if args.mainbranch is not None:
-            default_main_branch=args.mainbranch
-        GeneralUtilities.assert_not_null(default_main_branch,"mainbranch is not set")
-
         if args.defaultremotename is not None:
             default_remote_name=args.defaultremotename
         GeneralUtilities.assert_not_null(default_remote_name,"defaultremotename is not set")
 
-        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_project_to_build,default_additionalargumentsfile,default_loglevel,default_source_branch,default_main_branch,default_remote_name,args.updatedependencies)
+        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_project_to_build,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name,args.updatedependencies)
         tFCPS_MergeToMain:AnionBuildPlatform=AnionBuildPlatform(config)
         return tFCPS_MergeToMain
