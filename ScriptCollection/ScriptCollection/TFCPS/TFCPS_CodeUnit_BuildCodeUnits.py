@@ -61,6 +61,9 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.tFCPS_Other.mark_current_version_as_supported(self.repository,project_version,from_day,until_day)
 
+        #TODO search for secrets using TruffleHog
+        #TODO run static code analysis tool to search for vulnerabilities
+
         codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)        
         self.sc.log.log("Codeunits will be built in the following order:")
         for codeunit_name in codeunits:
