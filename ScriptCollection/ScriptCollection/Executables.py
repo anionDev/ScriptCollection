@@ -3,10 +3,8 @@ import os
 import argparse
 import time
 import traceback
-#import sys
 import shutil
 import keyboard
-from .AnionBuildPlatform import AnionBuildPlatform, TFCPS_AnionBuildPlatform_CLI
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
@@ -817,22 +815,45 @@ def LOC() -> int:
     parser.add_argument('-d', '--do_not_add_default_pattern', action='store_true', default=False)
     parser.add_argument('-v', '--verbose', action='store_true', default=False)
     args = parser.parse_args()
+    
     folder: str = None
     if os.path.isabs(args.repository):
         folder = args.repository
     else:
         folder = GeneralUtilities.resolve_relative_path(args.repository, os.getcwd())
     excluded_patterns: list[str] = []
+
     if not args.do_not_add_default_pattern:
         excluded_patterns = excluded_patterns + sc.default_excluded_patterns_for_loc
     if args.excluded_pattern is not None:
         excluded_patterns = excluded_patterns + args.excluded_pattern
+
     if args.verbose:
         sc.log.loglevel=LogLevel.Debug
+    else:
+        sc.log.loglevel=LogLevel.Information
+
     GeneralUtilities.write_message_to_stdout(str(sc.get_lines_of_code(folder, excluded_patterns)))
     return 0
 
 def CreateRelease()->int:
-    anionBuildPlatform:AnionBuildPlatform=TFCPS_AnionBuildPlatform_CLI.get_with_overwritable_defaults()
-    anionBuildPlatform.run()
+    sc = ScriptCollectionCore()
+    parser = argparse.ArgumentParser(description="Creates a release in a git-repository which uses the anion-build-platform.")
+    parser.add_argument('-b', '--buildrepository', required=True)
+    parser.add_argument('-v', '--verbose', action='store_true', default=False)
+    args = parser.parse_args()
+
+    folder: str = None
+    if os.path.isabs(args.buildrepository):
+        folder = args.buildrepository
+    else:
+        folder = GeneralUtilities.resolve_relative_path(args.repository, os.getcwd())
+
+    if args.verbose:
+        sc.log.loglevel=LogLevel.Debug
+    else:
+        sc.log.loglevel=LogLevel.Information
+
+    sc.run_program("python","CreateRelease",os.path.join(folder,"Scripts","CreateRelease"))
+
     return 0
