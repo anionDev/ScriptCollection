@@ -54,6 +54,9 @@ class AnionBuildPlatform:
         self.__sc.run_program("python","MergeToMain.py",scripts_folder)
         self.__sc.run_program("python","MergeToStable.py",scripts_folder)
 
+        #prepare for next-release
+        self.__sc.git_checkout(repository,self.__configuration.source_branch)
+
 class TFCPS_AnionBuildPlatform_CLI:
 
     @staticmethod
