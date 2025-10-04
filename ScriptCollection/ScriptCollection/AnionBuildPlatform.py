@@ -163,7 +163,7 @@ class TFCPS_AnionBuildPlatform_CLI:
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False,  help=f"Sets the loglevel. Possible values: {verbosity_values}")
         parser.add_argument('-s', '--sourcebranch', required=False)#other/next-release
-        parser.add_argument('-s', '--mainbranch', required=False)#main
+        parser.add_argument('-m', '--mainbranch', required=False)#main
         parser.add_argument('-r', '--defaultremotename', required=False)#origin
         parser.add_argument('-u', '--updatedependencies', required=False, action='store_true', default=False)
         args=parser.parse_args()
