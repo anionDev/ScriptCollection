@@ -46,11 +46,11 @@ class AnionBuildPlatform:
 
     def run(self) -> None:
         # Checkout source branch
-        build_repo_folder:str=os.path.join(self.__configuration.build_repositories_folder,self.__configuration.project_to_build+"Build")
+        build_repo_folder:str=self.__configuration.build_repositories_folder
         self.__sc.assert_is_git_repository(build_repo_folder)
-        repository:str=os.path.join(self.__configuration,self.__configuration.project_to_build+"Build","Submodules",self.__configuration.project_to_build)
+        repository:str=os.path.join(build_repo_folder,"Submodules",self.__configuration.project_to_build)
         self.__sc.assert_is_git_repository(repository)
-        self.__sc.assert_no_uncommitted_changes(build_repo_folder)
+        self.__sc.git_commit(build_repo_folder,"Updated changes")
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
 
         # Pull changes from remote
@@ -64,8 +64,50 @@ class AnionBuildPlatform:
         
         #Do release
         scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
-        self.__sc.run_program("python","MergeToMain.py",scripts_folder)
-        self.__sc.run_program("python","MergeToStable.py",scripts_folder)
+
+        merge_to_main_arguments=""
+        #if self.__configuration.project_to_build is not None:
+        #    merge_to_main_arguments+=f" --productname {self.__configuration.project_to_build}"
+        if self.__configuration.source_branch is not None:
+            merge_to_main_arguments+=f" --mergesourcebranch {self.__configuration.source_branch}"
+        #if self.__configuration.additional_arguments_file is not None:
+        #    merge_to_main_arguments+=f" --additionalargumentsfile {self.__configuration.additional_arguments_file}"
+        #if self.__configuration.main_branch is not None:
+        #    merge_to_main_arguments+=f" --mainbranch {self.__configuration.main_branch}"
+        #if self.__configuration.common_remote_name is not None:
+        #    merge_to_main_arguments+=f" --commonremotename {self.__configuration.common_remote_name}"
+        if self.__configuration.verbosity is not None:
+            merge_to_main_arguments+=f" --verbosity {self.__configuration.verbosity.value}"
+        self.__sc.run_program("python",f"MergeToMain.py{merge_to_main_arguments}",scripts_folder)
+
+        merge_to_stable_arguments=""
+        #if self.__configuration.project_to_build is not None:
+        #    merge_to_stable_arguments+=f" --productname {self.__configuration.project_to_build}"
+        #if self.__configuration.additional_arguments_file is not None:
+        #    merge_to_stable_arguments+=f" --additionalargumentsfile {self.__configuration.additional_arguments_file}"
+        #if self.__configuration.source_branch is not None:
+        #    merge_to_stable_arguments+=f" --sourcebranch {self.__configuration.source_branch}"
+        #if self.__configuration.main_branch is not None:
+        #    merge_to_stable_arguments+=f" --targetbranch {self.__configuration.main_branch}"
+        #if self.__configuration.reference_repo is not None:
+        #    merge_to_stable_arguments+=f" --referencerepo {self.__configuration.referencerepo}"
+        #if self.__configuration.common_remote_name is not None:
+        #    merge_to_stable_arguments+=f" --commonremotename {self.__configuration.common_remote_name}"
+        #if self.__configuration.build_repo_main_branch_name is not None:
+        #    merge_to_stable_arguments+=f" --buildrepomainbranchname {self.__configuration.build_repo_main_branch_name}"
+        #if self.__configuration.reference_repo_main_branch_name is not None:
+        #    merge_to_stable_arguments+=f" --referencerepomainbranchname {self.__configuration.reference_repo_main_branch_name}"
+        #if self.__configuration.reference_remote_name is not None:
+        #    merge_to_stable_arguments+=f" --referenceremotename {self.__configuration.reference_remote_name}"
+        #if self.__configuration.build_repo_remote_name is not None:
+        #    merge_to_stable_arguments+=f" --buildreporemotename {self.__configuration.build_repo_remote_name}"
+        #if self.__configuration.artifacts_target_folder is not None:
+        #    merge_to_stable_arguments+=f" --artifactstargetfolder {self.__configuration.artifacts_target_folder}"
+        #if self.__configuration.common_remote_url is not None:
+        #    merge_to_stable_arguments+=f" --commonremoteurl {self.__configuration.common_remote_url}"
+        if self.__configuration.verbosity is not None:
+            merge_to_stable_arguments+=f" --verbosity {self.__configuration.verbosity.value}"
+        self.__sc.run_program("python",f"MergeToStable.py{merge_to_stable_arguments}",scripts_folder)
 
         #prepare for next-release
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
@@ -110,15 +152,16 @@ class AnionBuildPlatform:
 class TFCPS_AnionBuildPlatform_CLI:
 
     @staticmethod
-    def get_with_overwritable_defaults(default_project_to_build:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_build_repositories_folder:str=None,default_source_branch:str=None,default_remote_name:str=None)->AnionBuildPlatform:
+    def get_with_overwritable_defaults(default_project_to_build:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_build_repositories_folder:str=None,default_source_branch:str=None,default_main_branch:str=None,default_remote_name:str=None)->AnionBuildPlatform:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
         parser.add_argument('-b', '--buildrepositoriesfolder', required=False,default=None)
         parser.add_argument('-p', '--projecttobuild', required=False, default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
-        parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
-        parser.add_argument('-s', '--sourcebranch', required=False, default="other/next-release")
-        parser.add_argument('-r', '--defaultremotename', required=False, default="origin")
+        parser.add_argument('-v', '--verbosity', required=False,  help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        parser.add_argument('-s', '--sourcebranch', required=False)#other/next-release
+        parser.add_argument('-m', '--mainbranch', required=False)#main
+        parser.add_argument('-r', '--defaultremotename', required=False)#origin
         parser.add_argument('-u', '--updatedependencies', required=False, action='store_true', default=False)
         args=parser.parse_args()
 
@@ -128,16 +171,18 @@ class TFCPS_AnionBuildPlatform_CLI:
         if args.buildrepositoriesfolder is not None:
             default_build_repositories_folder=args.buildrepositoriesfolder
 
-        current_folder=os.getcwd()
+        scripts_folder=os.getcwd()
         
         if default_build_repositories_folder is None:
-            if os.path.basename(current_folder).endswith("Build"):
-                default_build_repositories_folder=os.path.dirname(current_folder)
+            parent_parent_folder=GeneralUtilities.resolve_relative_path("../..",scripts_folder)
+            if os.path.basename(parent_parent_folder).endswith("Build"):
+                default_build_repositories_folder=os.path.dirname(parent_parent_folder)
         GeneralUtilities.assert_not_null(default_build_repositories_folder,"buildrepositoriesfolder is not set")
         
         if default_project_to_build is None:
-            if os.path.basename(current_folder).endswith("Build"):
-                default_project_to_build=os.path.basename(current_folder)[:-len("Build")]
+            parent_parent_folder=GeneralUtilities.resolve_relative_path("../..",scripts_folder)
+            if os.path.basename(parent_parent_folder).endswith("Build"):
+                default_project_to_build=os.path.basename(parent_parent_folder)[:-len("Build")]
         GeneralUtilities.assert_not_null(default_project_to_build,"projecttobuild is not set")
 
         if args.verbosity is not None:

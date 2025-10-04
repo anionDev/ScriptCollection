@@ -1087,3 +1087,19 @@ class TFCPS_Tools_General:
             GeneralUtilities.ensure_file_exists(file)
             GeneralUtilities.append_line_to_file(file, "Version;SupportBegin;SupportEnd")
         GeneralUtilities.append_line_to_file(file, f"{version_of_product};{GeneralUtilities.datetime_to_string(supported_from)};{GeneralUtilities.datetime_to_string(supported_until)}")
+
+
+    @GeneralUtilities.check_arguments
+    def add_github_release(self, productname: str, projectversion: str, build_artifacts_folder: str, github_username: str, repository_folder: str, additional_attached_files: list[str]) -> None:
+        self.__sc.assert_is_git_repository(repository_folder)
+        self.__sc.log.log(f"Create GitHub-release for {productname}...")
+        github_repo = f"{github_username}/{productname}"
+        artifact_files = []
+        codeunits = self.get_codeunits(repository_folder)
+        for codeunit in codeunits:
+            artifact_files.append(self.__sc.find_file_by_extension(f"{build_artifacts_folder}/{productname}/{projectversion}/{codeunit}", "Productive.Artifacts.zip"))
+        if additional_attached_files is not None:
+            for additional_attached_file in additional_attached_files:
+                artifact_files.append(additional_attached_file)
+        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{projectversion}.md")
+        self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo, "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifact_files)
