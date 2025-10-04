@@ -40,10 +40,7 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 
         GeneralUtilities.ensure_file_exists(bom_file_json)
         GeneralUtilities.write_text_to_file(bom_file_json, result[1])
-        self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(repository_folder,not self.use_cache())
-        cyclonedx_exe ="cyclonedx-cli"# cyclonedx_exe = os.path.join(repository_folder, "Other/Resources/CycloneDXCLI/cyclonedx-cli")
-        #if GeneralUtilities.current_system_is_windows():
-        #    cyclonedx_exe = cyclonedx_exe+".exe"
+        cyclonedx_exe=self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(repository_folder,not self.use_cache())
         self._protected_sc.run_program(cyclonedx_exe, f"convert --input-file ./{codeunitname}/{bom_file_relative_json} --input-format json --output-file ./{codeunitname}/{bom_file_relative_xml} --output-format xml", repository_folder)
         self._protected_sc.format_xml_file(bom_file_xml)
         GeneralUtilities.ensure_file_does_not_exist(bom_file_json)

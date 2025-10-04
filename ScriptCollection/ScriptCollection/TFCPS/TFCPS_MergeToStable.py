@@ -59,7 +59,7 @@ class TFCPS_MergeToStable:
     @GeneralUtilities.check_arguments
     def merge_to_stable_branch(self):
         self.sc.log.loglevel=self.createRelease_configuration.log_level
-        self.sc.log.log("Merge to stable-branch...")
+        self.sc.log.log("Merge to stable-branch...") 
         product_name:str=self.createRelease_configuration.product_name
 
         GeneralUtilities.assert_condition(self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.source_branch)!=self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.target_branch),"Source- and target-branch must not be the same commit.")
@@ -130,7 +130,7 @@ class TFCPS_MergeToStable:
         
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.reference_repo)
-        self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.build_repo)
+        self.sc.git_commit(self.createRelease_configuration.build_repo,"Updated submodules")
 
         self.sc.git_push_with_retry(self.createRelease_configuration.repository,self.createRelease_configuration.common_remote_name,self.createRelease_configuration.target_branch,self.createRelease_configuration.target_branch)
         self.sc.git_push_with_retry(self.createRelease_configuration.build_repo,self.createRelease_configuration.build_repo_remote_name,self.createRelease_configuration.build_repo_main_branch_name,self.createRelease_configuration.build_repo_main_branch_name)
