@@ -48,7 +48,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         for codeunit_name in codeunits:
             self.sc.log.log("  - "+codeunit_name)
         for codeunit_name in codeunits:
-            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache())
+            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache(),self.is_pre_merge())
             self.sc.log.log(GeneralUtilities.get_line())
             tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()
         self.sc.log.log(GeneralUtilities.get_line())
@@ -72,7 +72,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         #TODO update project-wide-dependencies here
         codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
         for codeunit_name in codeunits:
-            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache())
+            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache(),self.is_pre_merge())
             tFCPS_CodeUnit_BuildCodeUnit.update_dependencies() 
 
     @GeneralUtilities.check_arguments

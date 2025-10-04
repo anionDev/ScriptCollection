@@ -28,13 +28,14 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
     __is_pre_merge:bool=False#TODO must be setable to true
     __validate_developers_of_repository:bool=True#TODO must be setable to false
 
-    def __init__(self,current_file:str,verbosity:LogLevel,target_envionment_type:str,use_cache:bool):
+    def __init__(self,current_file:str,verbosity:LogLevel,target_envionment_type:str,use_cache:bool,is_pre_merge:bool):
         self.__verbosity=verbosity
         self.__use_cache=use_cache
         self.__target_environment_type=target_envionment_type
         self.__current_file = str(Path(current_file).absolute())
         self.__current_folder = os.path.dirname(self.__current_file)
         self.__codeunit_folder=self.__search_codeunit_folder()
+        self.__is_pre_merge=is_pre_merge
         self._protected_sc=ScriptCollectionCore()#TODO set loglevel
         self.tfcps_Tools_General=TFCPS_Tools_General(self._protected_sc)
         self.tfcps_Tools_General.assert_is_codeunit_folder(self.__codeunit_folder)
@@ -414,4 +415,5 @@ class TFCPS_CodeUnitSpecific_Base_CLI():
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
         parser.add_argument('-c', '--nocache',  action='store_true', required=False, default=False)
+        parser.add_argument('-p', '--ispremerge',  action='store_true', required=False, default=False)
         return parser

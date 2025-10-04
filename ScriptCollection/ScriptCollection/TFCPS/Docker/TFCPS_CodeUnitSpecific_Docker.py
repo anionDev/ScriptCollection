@@ -5,8 +5,8 @@ from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_Code
 
 class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
-    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool):
-        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache)
+    def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool,is_pre_merge:bool):
+        super().__init__(current_file, verbosity,targetenvironmenttype,use_cache,is_pre_merge)
 
 
     @GeneralUtilities.check_arguments
@@ -84,5 +84,5 @@ class TFCPS_CodeUnitSpecific_Docker_CLI:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
-        result:TFCPS_CodeUnitSpecific_Docker_Functions=TFCPS_CodeUnitSpecific_Docker_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache)
+        result:TFCPS_CodeUnitSpecific_Docker_Functions=TFCPS_CodeUnitSpecific_Docker_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache,args.ispremerge)
         return result
