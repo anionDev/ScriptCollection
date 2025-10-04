@@ -1056,3 +1056,8 @@ class TFCPS_Tools_General:
         twine_argument = f"upload{gpg_identity_argument} --repository {repository} --non-interactive {filename} --disable-progress-bar"
         twine_argument = f"{twine_argument} --username __token__ --password {api_key}{verbose_argument}"
         self.__sc.run_program("twine", twine_argument, folder, throw_exception_if_exitcode_is_not_zero=True)
+
+    @GeneralUtilities.check_arguments
+    def push_nuget_build_artifact(self, push_script_file: str, repository_folder_name: str,  codeunitname: str, registry_address: str,api_key: str):
+        build_artifact_folder = GeneralUtilities.resolve_relative_path(f"../../Submodules/{repository_folder_name}/{codeunitname}/Other/Artifacts/BuildResult_NuGet", os.path.dirname(push_script_file))
+        self.__sc.push_nuget_build_artifact(self.__sc.find_file_by_extension(build_artifact_folder, "nupkg"), registry_address, api_key)
