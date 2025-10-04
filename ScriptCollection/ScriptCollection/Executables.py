@@ -840,20 +840,21 @@ def CreateRelease()->int:
     sc = ScriptCollectionCore()
     parser = argparse.ArgumentParser(description="Creates a release in a git-repository which uses the anion-build-platform.")
     parser.add_argument('-b', '--buildrepository', required=False, default=".")
-    parser.add_argument('-v', '--verbose', action='store_true', required=False, default=False)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+    parser.add_argument('-s', '--sourcebranch', required=False, default="other/next-release")
     args = parser.parse_args()
 
-    folder: str = None
+    build_repo_folder: str = None
     if os.path.isabs(args.buildrepository):
-        folder = args.buildrepository
+        build_repo_folder = args.buildrepository
     else:
-        folder = GeneralUtilities.resolve_relative_path(args.repository, os.getcwd())
+        build_repo_folder = GeneralUtilities.resolve_relative_path(args.buildrepository, os.getcwd())
 
-    if args.verbose:
-        sc.log.loglevel=LogLevel.Debug
-    else:
-        sc.log.loglevel=LogLevel.Information
+    verbosity=int(args.verbosity)
+    sc.log.loglevel=LogLevel(verbosity)
 
-    sc.run_program("python","CreateRelease",os.path.join(folder,"Scripts","CreateRelease"))
+    scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
+    sc.run_program("python",f"CreateRelease.py --buildrepositoriesfolder {build_repo_folder} --verbosity {verbosity} --sourcebranch {args.sourcebranch}",os.path.join(build_repo_folder,"Scripts","CreateRelease"),scripts_folder)
 
     return 0
