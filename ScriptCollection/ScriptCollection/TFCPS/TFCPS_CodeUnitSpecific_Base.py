@@ -197,9 +197,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
         # Generate diff-report
         self.tfcps_Tools_General.generate_diff_report(repository_folder, codeunit_name, self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
-
-        # TODO check for secrets using TruffleHog
-        # TODO run static code analysis tool to search for vulnerabilities
         
         d:TFCPS_Tools_Dependencies=TFCPS_Tools_Dependencies()
         dependencies:list[Dependency]=d.get_dependencies()

@@ -291,7 +291,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
         <DebugType>portable<\\/DebugType>
         <DebugSymbols>true<\\/DebugSymbols>
-        <Optimize>false<\\/Optimize>
+        <Optimize>true<\\/Optimize>
         <DefineConstants>Productive<\\/DefineConstants>
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
@@ -355,7 +355,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
         <DebugType>portable<\\/DebugType>
         <DebugSymbols>true<\\/DebugSymbols>
-        <Optimize>false<\\/Optimize>
+        <Optimize>true<\\/Optimize>
         <DefineConstants>Productive<\\/DefineConstants>
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
@@ -400,7 +400,8 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     @GeneralUtilities.check_arguments
     def update_dependencies(self) -> None:
         self.update_year_for_dotnet_codeunit()
-        #TODO
+        csproj_file:str=os.path.join(self.get_codeunit_folder(), self.get_codeunit_name(), self.get_codeunit_name() + ".csproj")
+        self._protected_sc.update_dependencies_of_dotnet_project(csproj_file,[])#TODO set ignored codeunits
     
     @GeneralUtilities.check_arguments
     def update_year_for_dotnet_codeunit(self) -> None:
