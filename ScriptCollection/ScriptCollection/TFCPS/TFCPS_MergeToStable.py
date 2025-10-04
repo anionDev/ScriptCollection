@@ -93,7 +93,7 @@ class TFCPS_MergeToStable:
                 GeneralUtilities.ensure_directory_exists(target_folder)
                 codeunit_version:str=self.tFCPS_Tools_General.get_version_of_codeunit(os.path.join(self.createRelease_configuration.repository,codeunit,f"{codeunit}.codeunit.xml"))
                 target_file:str=os.path.join(target_folder,f"{codeunit}.v{codeunit_version}.Artifacts.zip")
-                self.sc.run_program("tar",f"-cf {target_file} -C {source_folder} .")
+                self.sc.run_program("tar",f"-cf \"{target_file}\" -C \"{source_folder}\" .")
 
             #push artifacts
             push_script:str=os.path.join( self.createRelease_configuration.build_repo,"Scripts","CreateRelease",f"PushArtifacts.{codeunit}.py")
