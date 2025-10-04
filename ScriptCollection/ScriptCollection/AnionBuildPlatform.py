@@ -13,6 +13,7 @@ class AnionBuildPlatformConfiguration:
     additional_arguments_file:str
     verbosity:LogLevel
     source_branch:str
+    main_branch:str
     common_remote_name:str
     update_dependencies:bool
 
@@ -22,6 +23,7 @@ class AnionBuildPlatformConfiguration:
                  additional_arguments_file:str,
                  verbosity:LogLevel,
                  source_branch:str,
+                 main_branch:str,
                  common_remote_name:str,
                  update_dependencies:bool):
         self.build_repositories_folder=build_repositories_folder
@@ -29,6 +31,7 @@ class AnionBuildPlatformConfiguration:
         self.additional_arguments_file=additional_arguments_file
         self.verbosity=verbosity
         self.source_branch=source_branch
+        self.main_branch=main_branch
         self.common_remote_name=common_remote_name
         self.update_dependencies=update_dependencies
 
@@ -64,8 +67,50 @@ class AnionBuildPlatform:
         
         #Do release
         scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
-        self.__sc.run_program("python","MergeToMain.py",scripts_folder)
-        self.__sc.run_program("python","MergeToStable.py",scripts_folder)
+
+        merge_to_main_arguments=""
+        #if self.__configuration.project_to_build is not None:
+        #    merge_to_main_arguments+=f" --productname {self.__configuration.project_to_build}"
+        if self.__configuration.source_branch is not None:
+            merge_to_main_arguments+=f" --mergesourcebranch {self.__configuration.source_branch}"
+        #if self.__configuration.additional_arguments_file is not None:
+        #    merge_to_main_arguments+=f" --additionalargumentsfile {self.__configuration.additional_arguments_file}"
+        #if self.__configuration.main_branch is not None:
+        #    merge_to_main_arguments+=f" --mainbranch {self.__configuration.main_branch}"
+        #if self.__configuration.common_remote_name is not None:
+        #    merge_to_main_arguments+=f" --commonremotename {self.__configuration.common_remote_name}"
+        if self.__configuration.verbosity is not None:
+            merge_to_main_arguments+=f" --verbosity {self.__configuration.verbosity.value}"
+        self.__sc.run_program("python",f"MergeToMain.py{merge_to_main_arguments}",scripts_folder)
+
+        merge_to_stable_arguments=""
+        #if self.__configuration.project_to_build is not None:
+        #    merge_to_stable_arguments+=f" --productname {self.__configuration.project_to_build}"
+        #if self.__configuration.additional_arguments_file is not None:
+        #    merge_to_stable_arguments+=f" --additionalargumentsfile {self.__configuration.additional_arguments_file}"
+        #if self.__configuration.source_branch is not None:
+        #    merge_to_stable_arguments+=f" --sourcebranch {self.__configuration.source_branch}"
+        #if self.__configuration.main_branch is not None:
+        #    merge_to_stable_arguments+=f" --targetbranch {self.__configuration.main_branch}"
+        #if self.__configuration.reference_repo is not None:
+        #    merge_to_stable_arguments+=f" --referencerepo {self.__configuration.referencerepo}"
+        #if self.__configuration.common_remote_name is not None:
+        #    merge_to_stable_arguments+=f" --commonremotename {self.__configuration.common_remote_name}"
+        #if self.__configuration.build_repo_main_branch_name is not None:
+        #    merge_to_stable_arguments+=f" --buildrepomainbranchname {self.__configuration.build_repo_main_branch_name}"
+        #if self.__configuration.reference_repo_main_branch_name is not None:
+        #    merge_to_stable_arguments+=f" --referencerepomainbranchname {self.__configuration.reference_repo_main_branch_name}"
+        #if self.__configuration.reference_remote_name is not None:
+        #    merge_to_stable_arguments+=f" --referenceremotename {self.__configuration.reference_remote_name}"
+        #if self.__configuration.build_repo_remote_name is not None:
+        #    merge_to_stable_arguments+=f" --buildreporemotename {self.__configuration.build_repo_remote_name}"
+        #if self.__configuration.artifacts_target_folder is not None:
+        #    merge_to_stable_arguments+=f" --artifactstargetfolder {self.__configuration.artifacts_target_folder}"
+        #if self.__configuration.common_remote_url is not None:
+        #    merge_to_stable_arguments+=f" --commonremoteurl {self.__configuration.common_remote_url}"
+        if self.__configuration.verbosity is not None:
+            merge_to_stable_arguments+=f" --verbosity {self.__configuration.verbosity.value}"
+        self.__sc.run_program("python",f"MergeToStable.py{merge_to_stable_arguments}",scripts_folder)
 
         #prepare for next-release
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
@@ -110,15 +155,16 @@ class AnionBuildPlatform:
 class TFCPS_AnionBuildPlatform_CLI:
 
     @staticmethod
-    def get_with_overwritable_defaults(default_project_to_build:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_build_repositories_folder:str=None,default_source_branch:str=None,default_remote_name:str=None)->AnionBuildPlatform:
+    def get_with_overwritable_defaults(default_project_to_build:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_build_repositories_folder:str=None,default_source_branch:str=None,default_main_branch:str=None,default_remote_name:str=None)->AnionBuildPlatform:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
         parser.add_argument('-b', '--buildrepositoriesfolder', required=False,default=None)
         parser.add_argument('-p', '--projecttobuild', required=False, default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
-        parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
-        parser.add_argument('-s', '--sourcebranch', required=False, default="other/next-release")
-        parser.add_argument('-r', '--defaultremotename', required=False, default="origin")
+        parser.add_argument('-v', '--verbosity', required=False,  help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        parser.add_argument('-s', '--sourcebranch', required=False)#other/next-release
+        parser.add_argument('-s', '--mainbranch', required=False)#main
+        parser.add_argument('-r', '--defaultremotename', required=False)#origin
         parser.add_argument('-u', '--updatedependencies', required=False, action='store_true', default=False)
         args=parser.parse_args()
 
@@ -153,10 +199,14 @@ class TFCPS_AnionBuildPlatform_CLI:
             default_source_branch=args.sourcebranch
         GeneralUtilities.assert_not_null(default_source_branch,"sourcebranch is not set")
 
+        if args.mainbranch is not None:
+            default_main_branch=args.mainbranch
+        GeneralUtilities.assert_not_null(default_main_branch,"mainbranch is not set")
+
         if args.defaultremotename is not None:
             default_remote_name=args.defaultremotename
         GeneralUtilities.assert_not_null(default_remote_name,"defaultremotename is not set")
 
-        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_project_to_build,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name,args.updatedependencies)
+        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_project_to_build,default_additionalargumentsfile,default_loglevel,default_source_branch,default_main_branch,default_remote_name,args.updatedependencies)
         tFCPS_MergeToMain:AnionBuildPlatform=AnionBuildPlatform(config)
         return tFCPS_MergeToMain

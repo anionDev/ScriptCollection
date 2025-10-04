@@ -285,17 +285,17 @@ class TFCPS_MergeToStable_CLI:
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
         parser.add_argument('-n', '--productname', required=False,default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
-        parser.add_argument('-s', '--sourcebranch', required=False, default="main")
-        parser.add_argument('-t', '--targetbranch', required=False, default="stable")
+        parser.add_argument('-s', '--sourcebranch', required=False)#default="main"
+        parser.add_argument('-t', '--targetbranch', required=False)#default="stable"
         parser.add_argument( '--referencerepo', required=False, default=None)
         parser.add_argument( '--commonremotename', required=False, default=None)
-        parser.add_argument( '--buildrepomainbranchname', required=False, default="main")
-        parser.add_argument( '--referencerepomainbranchname', required=False, default="main")
+        parser.add_argument( '--buildrepomainbranchname', required=False)#default="main"
+        parser.add_argument( '--referencerepomainbranchname', required=False)#default="main"
         parser.add_argument( '--referenceremotename', required=False, default=None)
         parser.add_argument( '--buildreporemotename', required=False, default=None)
         parser.add_argument( '--artifactstargetfolder', required=False, default=None)
         parser.add_argument( '--commonremoteurl', required=False, default=None)
-        parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+        parser.add_argument('-v', '--verbosity', required=False, help=f"Sets the loglevel. Possible values: {verbosity_values}")
         args=parser.parse_args()
 
         sc:ScriptCollectionCore=ScriptCollectionCore()
