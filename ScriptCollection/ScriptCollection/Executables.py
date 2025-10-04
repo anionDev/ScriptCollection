@@ -6,6 +6,7 @@ import traceback
 #import sys
 import shutil
 import keyboard
+from .AnionBuildPlatform import AnionBuildPlatform, TFCPS_AnionBuildPlatform_CLI
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel
@@ -831,4 +832,9 @@ def LOC() -> int:
     if args.verbose:
         sc.log.loglevel=LogLevel.Debug
     GeneralUtilities.write_message_to_stdout(str(sc.get_lines_of_code(folder, excluded_patterns)))
+    return 0
+
+def CreateRelease()->int:
+    anionBuildPlatform:AnionBuildPlatform=TFCPS_AnionBuildPlatform_CLI.get_with_overwritable_defaults()
+    anionBuildPlatform.run()
     return 0
