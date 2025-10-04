@@ -2,6 +2,7 @@ import argparse
 from ..SCLog import  LogLevel
 from ..ScriptCollectionCore import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
+from .TFCPS_Tools_General import TFCPS_Tools_General
 
 class TFCPS_PreBuildCodeunitsScriptConfiguration:
     targetenvironmenttype:str
@@ -9,13 +10,18 @@ class TFCPS_PreBuildCodeunitsScriptConfiguration:
     verbosity:LogLevel
     use_cache:str
     repository_folder:str=None
+    sc:ScriptCollectionCore=None
+    tfcps_Tools_General:TFCPS_Tools_General
 
     def __init__(self,script_file:str,targetenvironmenttype:str,additionalargumentsfile:str,verbosity:LogLevel,use_cache:bool):
         self.targetenvironmenttype=targetenvironmenttype
         self.additionalargumentsfile=additionalargumentsfile
         self.verbosity=verbosity
         self.use_cache=use_cache
+        self.sc=ScriptCollectionCore()
+        self.sc.log.loglevel=self.verbosity
         self.repository_folder=ScriptCollectionCore().search_repository_folder(script_file)
+        self.tfcps_Tools_General=TFCPS_Tools_General(self.sc)
 
 class TFCPS_PreBuildCodeunitsScript:
     configuration:TFCPS_PreBuildCodeunitsScriptConfiguration

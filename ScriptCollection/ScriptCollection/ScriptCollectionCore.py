@@ -36,7 +36,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.18"
+version = "4.0.19"
 __version__ = version
 
 
