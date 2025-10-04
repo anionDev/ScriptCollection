@@ -50,7 +50,7 @@ class AnionBuildPlatform:
         self.__sc.assert_is_git_repository(build_repo_folder)
         repository:str=os.path.join(build_repo_folder,"Submodules",self.__configuration.project_to_build)
         self.__sc.assert_is_git_repository(repository)
-        self.__sc.assert_no_uncommitted_changes(build_repo_folder)
+        self.__sc.git_commit(build_repo_folder,"Updated changes")
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
 
         # Pull changes from remote
