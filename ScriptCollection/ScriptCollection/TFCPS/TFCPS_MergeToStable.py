@@ -24,11 +24,10 @@ class MergeToStableConfiguration:
     reference_remote_name:str
     build_repo_remote_name:str
     artifacts_target_folder:str
-    product_name:str
     common_remote_url:str
     additional_arguments_file:str
 
-    def __init__(self,loglevel:LogLevel,source_branch:str,target_branch:str,repository:str,build_repo:str,reference_repo:str,common_remote_name:str,build_repo_main_branch_name:str,reference_repo_main_branch_name:str,reference_remote_name:str,build_repo_remote_name:str,artifacts_target_folder:str,product_name:str,common_remote_url:str,additional_arguments_file:str):
+    def __init__(self,loglevel:LogLevel,source_branch:str,target_branch:str,repository:str,build_repo:str,reference_repo:str,common_remote_name:str,build_repo_main_branch_name:str,reference_repo_main_branch_name:str,reference_remote_name:str,build_repo_remote_name:str,artifacts_target_folder:str,common_remote_url:str,additional_arguments_file:str):
         self.log_level=loglevel
         self.source_branch=source_branch
         self.target_branch=target_branch
@@ -41,7 +40,6 @@ class MergeToStableConfiguration:
         self.reference_remote_name=reference_remote_name
         self.build_repo_remote_name=build_repo_remote_name
         self.artifacts_target_folder=artifacts_target_folder
-        self.product_name=product_name
         self.common_remote_url=common_remote_url
         self.additional_arguments_file=additional_arguments_file
 
@@ -60,7 +58,7 @@ class TFCPS_MergeToStable:
     def merge_to_stable_branch(self):
         self.sc.log.loglevel=self.createRelease_configuration.log_level
         self.sc.log.log("Merge to stable-branch...") 
-        product_name:str=self.createRelease_configuration.product_name
+        product_name:str=os.path.basename(self.createRelease_configuration.repository)
 
         GeneralUtilities.assert_condition(self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.source_branch)!=self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.target_branch),"Source- and target-branch must not be the same commit.")
 
@@ -358,6 +356,6 @@ class TFCPS_MergeToStable_CLI:
         GeneralUtilities.assert_not_null(common_remote_url,"commonremoteurl is not set")
 
         repository=os.path.join(build_repo,"Submodules",default_product_name)
-        config:MergeToStableConfiguration=MergeToStableConfiguration(default_loglevel,default_source_branch,default_target_branch,repository,build_repo,default_reference_repo,common_remote_name,build_repo_main_branch_name,reference_repo_main_branch_name,reference_remote_name,build_repo_remote_name,artifacts_target_folder,default_product_name,common_remote_url,default_additionalargumentsfile)
+        config:MergeToStableConfiguration=MergeToStableConfiguration(default_loglevel,default_source_branch,default_target_branch,repository,build_repo,default_reference_repo,common_remote_name,build_repo_main_branch_name,reference_repo_main_branch_name,reference_remote_name,build_repo_remote_name,artifacts_target_folder,common_remote_url,default_additionalargumentsfile)
         tFCPS_MergeToMain:TFCPS_MergeToStable=TFCPS_MergeToStable(config)
         return tFCPS_MergeToMain
