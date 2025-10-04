@@ -859,6 +859,6 @@ def CreateRelease()->int:
     arguments=f"CreateRelease.py --buildrepositoriesfolder {build_repo_folder} --verbosity {verbosity} --sourcebranch {args.sourcebranch}"
     if args.updatedependencies:
         arguments=arguments+" --updatedependencies"
-    sc.run_program("python", arguments, scripts_folder)
+    sc.run_program("python", arguments, scripts_folder,print_live_output=True)
 
     return 0
