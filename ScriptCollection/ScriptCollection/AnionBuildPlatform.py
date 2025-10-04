@@ -50,7 +50,7 @@ class TFCPS_AnionBuildPlatform_CLI:
         parser.add_argument('-p', '--projecttobuild', required=False, default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
-        parser.add_argument('-a', '--sourcebranch', required=False, default="other/next-release")
+        parser.add_argument('-s', '--sourcebranch', required=False, default="other/next-release")
         args=parser.parse_args()
 
         if args.projecttobuild is not None: 
