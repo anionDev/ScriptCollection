@@ -112,7 +112,7 @@ class TFCPS_AnionBuildPlatform_CLI:
     def get_with_overwritable_defaults(default_project_to_build:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_build_repositories_folder:str=None,default_source_branch:str=None,default_remote_name:str=None)->AnionBuildPlatform:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
-        parser.add_argument('-r', '--buildrepositoriesfolder', required=False,default=None)
+        parser.add_argument('-b', '--buildrepositoriesfolder', required=False,default=None)
         parser.add_argument('-p', '--projecttobuild', required=False, default=None)
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
