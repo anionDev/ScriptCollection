@@ -128,14 +128,16 @@ class TFCPS_AnionBuildPlatform_CLI:
         if args.buildrepositoriesfolder is not None:
             default_build_repositories_folder=args.buildrepositoriesfolder
 
+        current_folder=os.getcwd()
+        
         if default_build_repositories_folder is None:
-            current_folder=os.getcwd()
             if os.path.basename(current_folder).endswith("Build"):
                 default_build_repositories_folder=os.path.dirname(current_folder)
         GeneralUtilities.assert_not_null(default_build_repositories_folder,"buildrepositoriesfolder is not set")
         
         if default_project_to_build is None:
-            default_project_to_build=os.path.basename(current_folder)[:-len("Build")]
+            if os.path.basename(current_folder).endswith("Build"):
+                default_project_to_build=os.path.basename(current_folder)[:-len("Build")]
         GeneralUtilities.assert_not_null(default_project_to_build,"projecttobuild is not set")
 
         if args.verbosity is not None:
