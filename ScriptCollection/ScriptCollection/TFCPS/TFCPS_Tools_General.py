@@ -830,7 +830,7 @@ class TFCPS_Tools_General:
                     GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
             GeneralUtilities.ensure_directory_does_not_exist(grylibrary_folder)
             GeneralUtilities.ensure_directory_exists(grylibrary_folder)
-            archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Productive.Artifacts.zip"
+            archive_name = f"GRYLibrary.v{grylibrary_latest_version}.Artifacts.zip"
             archive_download_link = f"https://github.com/anionDev/GRYLibrary/releases/download/v{grylibrary_latest_version}/{archive_name}"
             archive_file = os.path.join(grylibrary_folder, archive_name)
             urllib.request.urlretrieve(archive_download_link, archive_file)
@@ -1097,7 +1097,7 @@ class TFCPS_Tools_General:
         artifact_files = []
         codeunits = self.get_codeunits(repository_folder)
         for codeunit in codeunits:
-            artifact_files.append(self.__sc.find_file_by_extension(f"{build_artifacts_folder}/{productname}/{projectversion}/{codeunit}", "Productive.Artifacts.zip"))
+            artifact_files.append(self.__sc.find_file_by_extension(f"{build_artifacts_folder}/{productname}/{projectversion}/{codeunit}", "Artifacts.zip"))
         if additional_attached_files is not None:
             for additional_attached_file in additional_attached_files:
                 artifact_files.append(additional_attached_file)
