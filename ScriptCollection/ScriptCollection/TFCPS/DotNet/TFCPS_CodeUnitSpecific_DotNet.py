@@ -291,7 +291,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
         <DebugType>portable<\\/DebugType>
         <DebugSymbols>true<\\/DebugSymbols>
-        <Optimize>true<\\/Optimize>
+        <Optimize>false<\\/Optimize>
         <DefineConstants>Productive<\\/DefineConstants>
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
@@ -355,7 +355,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     <PropertyGroup Condition=\\\"'\\$\\(Configuration\\)'=='Productive'\\\">
         <DebugType>portable<\\/DebugType>
         <DebugSymbols>true<\\/DebugSymbols>
-        <Optimize>true<\\/Optimize>
+        <Optimize>false<\\/Optimize>
         <DefineConstants>Productive<\\/DefineConstants>
         <ErrorReport>none<\\/ErrorReport>
     <\\/PropertyGroup>(\\n|.)*
