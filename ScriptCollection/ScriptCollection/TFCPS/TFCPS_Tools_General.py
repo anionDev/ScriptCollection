@@ -819,7 +819,7 @@ class TFCPS_Tools_General:
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
         grylibrary_dll_file_exists = os.path.isfile(grylibrary_dll_file)
         if not os.path.isfile(grylibrary_dll_file):
-            self.__sc.log("Download GRYLibrary to global cache...",LogLevel.Information)
+            self.__sc.log.log("Download GRYLibrary to global cache...",LogLevel.Information)
             grylibrary_latest_codeunit_file = "https://raw.githubusercontent.com/anionDev/GRYLibrary/stable/GRYLibrary/GRYLibrary.codeunit.xml"
             with urllib.request.urlopen(grylibrary_latest_codeunit_file) as url_result:
                 grylibrary_latest_version = self.get_version_of_codeunit_filecontent(url_result.read().decode("utf-8"))
@@ -966,25 +966,18 @@ class TFCPS_Tools_General:
     def ensure_openapigenerator_is_available(self, codeunit_folder: str,use_cache:bool) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         openapigenerator_folder = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator")
-        internet_connection_is_available = GeneralUtilities.internet_connection_is_available()
         filename = "open-api-generator.jar"
         jar_file = f"{openapigenerator_folder}/{filename}"
         jar_file_exists = os.path.isfile(jar_file)
         update:bool=not jar_file_exists or not use_cache
         if update:
-            if internet_connection_is_available:  # Load/Update
-                self.__sc.log("Download OpenAPIGeneratorCLI...",LogLevel.Debug)
-                version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
-                used_version = GeneralUtilities.read_text_from_file(version_file)
-                download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
-                GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
-                GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
-                urllib.request.urlretrieve(download_link, jar_file)
-            else:
-                if jar_file_exists:
-                    self.__sc.log.log("Can not check for updates of OpenAPIGenerator due to missing internet-connection.")
-                else:
-                    raise ValueError("Can not download OpenAPIGenerator.")
+            self.__sc.log.log("Download OpenAPIGeneratorCLI...",LogLevel.Debug)
+            version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
+            used_version = GeneralUtilities.read_text_from_file(version_file)
+            download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
+            GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
+            GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
+            urllib.request.urlretrieve(download_link, jar_file)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, codeunit_folder:str, codeunit_version:str) -> None:
