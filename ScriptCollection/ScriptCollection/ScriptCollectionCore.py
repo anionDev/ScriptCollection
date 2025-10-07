@@ -37,7 +37,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.42"
+version = "4.0.43"
 __version__ = version
 
 
@@ -2509,3 +2509,20 @@ OCR-content:
                     file_path = os.path.join(root, file)
                     arcname = os.path.relpath(file_path, start=folder)
                     zipf.write(file_path, arcname)
+
+    @GeneralUtilities.check_arguments
+    def start_local_test_service(self, file: str):
+        example_folder = os.path.dirname(file)
+        docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
+        for service in self.get_services_from_yaml_file(docker_compose_file):
+            self.kill_docker_container(service)
+        example_name = os.path.basename(example_folder)
+        title = f"Test{example_name}"
+        self.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title)
+
+    @GeneralUtilities.check_arguments
+    def stop_local_test_service(self, file: str):
+        example_folder = os.path.dirname(file)
+        example_name = os.path.basename(example_folder)
+        title = f"Test{example_name}"
+        self.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title)
