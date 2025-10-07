@@ -897,7 +897,7 @@ class TFCPS_Tools_General:
         GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
         GeneralUtilities.copy_content_of_folder(source_folder, target_folder)
 
-    
+
     @GeneralUtilities.check_arguments
     def merge_packages(self,coverage_file:str,package_name:str) -> None:
         tree = etree.parse(coverage_file) 
@@ -906,7 +906,7 @@ class TFCPS_Tools_General:
         all_classes = []
         for pkg in packages:
             pkg_name:str=pkg.get("name")
-            if pkg_name==package_name or pkg_name.startswith(f"{package_name}."):
+            if len(packages)==1 or ( pkg_name==package_name or pkg_name.startswith(f"{package_name}.")):
                 classes = pkg.find("classes")
                 if classes is not None:
                     all_classes.extend(classes.findall("class"))
@@ -918,11 +918,11 @@ class TFCPS_Tools_General:
         packages_node.clear()
         packages_node.append(new_package)
         tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-        self.__calculate_entire_line_rate(coverage_file)
+        self.calculate_entire_line_rate(coverage_file)
 
     
     @GeneralUtilities.check_arguments
-    def __calculate_entire_line_rate(self,coverage_file:str) -> None:
+    def calculate_entire_line_rate(self,coverage_file:str) -> None:
         tree = etree.parse(coverage_file)
         root = tree.getroot()
         package = root.find("./packages/package")
@@ -942,6 +942,7 @@ class TFCPS_Tools_General:
         line_rate = amount_of_hited_lines / amount_of_lines if amount_of_lines > 0 else 0.0
         package.set("line-rate", str(line_rate))
         tree.write(coverage_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+
 
     @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_for_angular(self, codeunit_folder:str, name_of_api_providing_codeunit: str, generated_program_part_name: str,language:str,use_cache:bool) -> None:
@@ -1150,3 +1151,11 @@ class TFCPS_Tools_General:
         self.__sc.run_program_with_retry("docker", f"push {remote_image_version}")
         if push_readme:
             self.__sc.run_program_with_retry("docker-pushrm", f"{remote_repo}", codeunit_folder)
+
+    def prepare_building_codeunits(self,repository_folder:str,use_cache:bool,generate_development_certificate:bool):        
+        if generate_development_certificate:
+            self.ensure_certificate_authority_for_development_purposes_is_generated(repository_folder)
+            self.generate_certificate_for_development_purposes_for_product(repository_folder)
+        self.generate_tasksfile_from_workspace_file(repository_folder)
+        self.generate_codeunits_overview_diagram(repository_folder)
+        self.generate_svg_files_from_plantuml_files_for_repository(repository_folder,use_cache)

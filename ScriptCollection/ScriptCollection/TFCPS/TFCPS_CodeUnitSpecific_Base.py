@@ -369,7 +369,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 found_existing_files = True
             else:
                 coverage_report_class.getparent().remove(coverage_report_class)
-        GeneralUtilities.assert_condition(found_existing_files, f"No existing files in testcoderage-report-file \"{testcoveragefile}\".")
+        GeneralUtilities.assert_condition(found_existing_files, f"No existing files in testcoverage-report-file \"{testcoveragefile}\".")
         result = etree.tostring(root).decode("utf-8")
         GeneralUtilities.write_text_to_file(testcoveragefile, result)
 

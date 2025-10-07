@@ -84,63 +84,6 @@ class TasksForCommonProjectStructure:
     def replace_version_in_python_file(self, file: str, new_version_value: str) -> None:
         GeneralUtilities.write_text_to_file(file, re.sub("version = \"\\d+\\.\\d+\\.\\d+\"", f"version = \"{new_version_value}\"", GeneralUtilities.read_text_from_file(file)))
 
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_build_for_dart_project_in_common_project_structure(self, build_script_file: str, targets: list[str], args: list[str], package_name: str = None):
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", build_script_file)
-        codeunit_name = os.path.basename(codeunit_folder)
-        src_folder: str = None
-        if package_name is None:
-            src_folder = codeunit_folder
-        else:
-            src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
-        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
-        
-        target_names: dict[str, str] = {
-            "web": "WebApplication",
-            "windows": "Windows",
-            "ios": "IOS",
-            "appbundle": "Android",
-        }
-        for target in targets:
-            self.__log.log(f"Build flutter-codeunit {codeunit_name} for target {target_names[target]}...")
-            self.run_with_epew("flutter", f"build {target}", src_folder)
-            if target == "web":
-                web_relase_folder = os.path.join(src_folder, "build/web")
-                web_folder = os.path.join(artifacts_folder, "BuildResult_WebApplication")
-                GeneralUtilities.ensure_directory_does_not_exist(web_folder)
-                GeneralUtilities.ensure_directory_exists(web_folder)
-                GeneralUtilities.copy_content_of_folder(web_relase_folder, web_folder)
-            elif target == "windows":
-                windows_release_folder = os.path.join(src_folder, "build/windows/x64/runner/Release")
-                windows_folder = os.path.join(artifacts_folder, "BuildResult_Windows")
-                GeneralUtilities.ensure_directory_does_not_exist(windows_folder)
-                GeneralUtilities.ensure_directory_exists(windows_folder)
-                GeneralUtilities.copy_content_of_folder(windows_release_folder, windows_folder)
-            elif target == "ios":
-                raise ValueError("building for ios is not implemented yet")
-            elif target == "appbundle":
-                aab_folder = os.path.join(artifacts_folder, "BuildResult_AAB")
-                GeneralUtilities.ensure_directory_does_not_exist(aab_folder)
-                GeneralUtilities.ensure_directory_exists(aab_folder)
-                aab_relase_folder = os.path.join(src_folder, "build/app/outputs/bundle/release")
-                aab_file_original = self.__sc.find_file_by_extension(aab_relase_folder, "aab")
-                aab_file = os.path.join(aab_folder, f"{codeunit_name}.aab")
-                shutil.copyfile(aab_file_original, aab_file)
-                bundletool = os.path.join(codeunit_folder, "Other/Resources/AndroidAppBundleTool/bundletool.jar")
-                apk_folder = os.path.join(artifacts_folder, "BuildResult_APK")
-                GeneralUtilities.ensure_directory_does_not_exist(apk_folder)
-                GeneralUtilities.ensure_directory_exists(apk_folder)
-                apks_file = f"{apk_folder}/{codeunit_name}.apks"
-                self.__sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder)
-                with zipfile.ZipFile(apks_file, "r") as zip_ref:
-                    zip_ref.extract("universal.apk", apk_folder)
-                GeneralUtilities.ensure_file_does_not_exist(apks_file)
-                os.rename(f"{apk_folder}/universal.apk", f"{apk_folder}/{codeunit_name}.apk")
-            else:
-                raise ValueError(f"Not supported target: {target}")
-        self.copy_source_files_to_output_directory(build_script_file)
-        #TODO check for updateable dependencies (in a unified way)
-
 
 
     @staticmethod
@@ -212,10 +155,6 @@ class TasksForCommonProjectStructure:
                     return result
         return result
 
-
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_run_linting_for_flutter_project_in_common_project_structure(self, script_file: str,args: list[str]):
-        pass  # TODO
 
 
     @GeneralUtilities.check_arguments
@@ -314,32 +253,7 @@ class TasksForCommonProjectStructure:
     def standardized_tasks_linting_for_angular_codeunit(self, linting_script_file: str, build_environment_target_type: str) -> None:
         self.standardized_tasks_linting_for_node_codeunit(linting_script_file, build_environment_target_type)
 
-    @GeneralUtilities.check_arguments
-    def standardized_tasks_run_testcases_for_flutter_project_in_common_project_structure(self, script_file: str, args: list[str], package_name: str, build_environment_target_type: str, generate_badges: bool):
-        codeunit_folder = GeneralUtilities.resolve_relative_path("../../..", script_file)
-        repository_folder = GeneralUtilities.resolve_relative_path("..", codeunit_folder)
-        codeunit_name = os.path.basename(codeunit_folder)
-        src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)
-        
-        self.run_with_epew("flutter", "test --coverage", src_folder)
-        test_coverage_folder_relative = "Other/Artifacts/TestCoverage"
-        test_coverage_folder = GeneralUtilities.resolve_relative_path(test_coverage_folder_relative, codeunit_folder)
-        GeneralUtilities.ensure_directory_exists(test_coverage_folder)
-        coverage_file_relative = f"{test_coverage_folder_relative}/TestCoverage.xml"
-        coverage_file = GeneralUtilities.resolve_relative_path(coverage_file_relative, codeunit_folder)
-        self.run_with_epew("lcov_cobertura", f"coverage/lcov.info --base-dir . --excludes test --output ../{coverage_file_relative} --demangle", src_folder)
 
-        # format correctly
-        content = GeneralUtilities.read_text_from_file(coverage_file)
-        content = re.sub('<![^<]+>', '', content)
-        content = re.sub('\\\\', '/', content)
-        content = re.sub('\\ name=\\"lib\\"', '', content)
-        content = re.sub('\\ filename=\\"lib/', f' filename="{package_name}/lib/', content)
-        GeneralUtilities.write_text_to_file(coverage_file, content)
-        self.__testcoverage_for_flutter_project_merge_packages(coverage_file)
-        self.__testcoverage_for_flutter_project_calculate_line_rate(coverage_file)
-
-        self.run_testcases_common_post_task(repository_folder, codeunit_name, generate_badges, build_environment_target_type, args)
 
 
     @GeneralUtilities.check_arguments
@@ -607,23 +521,6 @@ class TasksForCommonProjectStructure:
             self.do_npm_install(folder, True)
         else:
             self.__log.log("Update dependencies resulted in an error.", LogLevel.Error)
-
-    @GeneralUtilities.check_arguments
-    def start_local_test_service(self, file: str):
-        example_folder = os.path.dirname(file)
-        docker_compose_file = os.path.join(example_folder, "docker-compose.yml")
-        for service in self.__sc.get_services_from_yaml_file(docker_compose_file):
-            self.__sc.kill_docker_container(service)
-        example_name = os.path.basename(example_folder)
-        title = f"Test{example_name}"
-        self.__sc.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title)
-
-    @GeneralUtilities.check_arguments
-    def stop_local_test_service(self, file: str):
-        example_folder = os.path.dirname(file)
-        example_name = os.path.basename(example_folder)
-        title = f"Test{example_name}"
-        self.__sc.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title)
 
     @GeneralUtilities.check_arguments
     def start_dockerfile_example(self, current_file: str,remove_old_container: bool, remove_volumes_folder: bool, env_file: str) -> None:
