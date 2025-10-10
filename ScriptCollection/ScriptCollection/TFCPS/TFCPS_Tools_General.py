@@ -88,7 +88,7 @@ class TFCPS_Tools_General:
                                 sys.stdout.write(f"\rDownload: {percent:.2f}%")
                                 sys.stdout.flush()
             self.__sc.log.log(f"Downloaded \"{url}\".", LogLevel.Diagnostic)
-            GeneralUtilities.assert_file_exists(file)
+        GeneralUtilities.assert_file_exists(file)
         return file
 
     def __add_github_api_key_if_available(self, headers: dict):
@@ -1002,7 +1002,7 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def ensure_openapigenerator_is_available(self, codeunit_folder: str,use_cache:bool) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
-        openapigenerator_folder = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator")
+        openapigenerator_folder = os.path.join(self.get_global_cache_folder(), "Tools", "OpenAPIGenerator")
         filename = "open-api-generator.jar"
         jar_file = f"{openapigenerator_folder}/{filename}"
         jar_file_exists = os.path.isfile(jar_file)
@@ -1015,6 +1015,8 @@ class TFCPS_Tools_General:
             GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
             GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
             urllib.request.urlretrieve(download_link, jar_file)
+        GeneralUtilities.assert_file_exists(jar_file)
+        return jar_file
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_update_version_in_docker_examples(self, codeunit_folder:str, codeunit_version:str) -> None:
