@@ -671,9 +671,9 @@ class TFCPS_Tools_General:
             if repository_subname is not None:
                 target_folder = f"{resrepo_data_folder}/{repository_subname}"
             
-            update:bool=GeneralUtilities.folder_is_empty(target_folder) or not use_cache
+            update:bool=not os.path.isdir(target_folder) or GeneralUtilities.folder_is_empty(target_folder) or not use_cache
             if update:
-                self.__sc.run_program(f"Clone {remote_repository_link} as resource", LogLevel.Information)
+                self.__sc.log.log(f"Clone {remote_repository_link} as resource...", LogLevel.Information)
                 GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
                 self.__sc.run_program("git", f"clone --recurse-submodules {remote_repository_link} {target_folder}")
                 self.__sc.run_program("git", f"checkout {latest_version}", target_folder)
@@ -755,7 +755,7 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, npm_force: bool,use_cache:bool) -> None:
         target_folder:str=os.path.join(package_json_folder,"node_modules")
-        update:bool=GeneralUtilities.folder_is_empty(target_folder) or  GeneralUtilities.folder_is_empty(target_folder) or not use_cache
+        update:bool=not os.path.isdir(target_folder) or  GeneralUtilities.folder_is_empty(target_folder) or not use_cache
         if update:
             self.__sc.log.log("Do npm-install...")
             argument1 = "install"
@@ -1159,3 +1159,14 @@ class TFCPS_Tools_General:
         self.generate_tasksfile_from_workspace_file(repository_folder)
         self.generate_codeunits_overview_diagram(repository_folder)
         self.generate_svg_files_from_plantuml_files_for_repository(repository_folder,use_cache)
+
+    @GeneralUtilities.check_arguments
+    def copy_product_resource_to_codeunit_resource_folder(self, codeunit_folder: str, resourcename: str) -> None:
+        repository_folder = GeneralUtilities.resolve_relative_path(f"..", codeunit_folder)
+        self.__sc.assert_is_git_repository(repository_folder)
+        src_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resourcename}", repository_folder)
+        GeneralUtilities.assert_condition(os.path.isdir(src_folder), f"Required product-resource {resourcename} does not exist. Expected folder: {src_folder}")
+        trg_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resourcename}", codeunit_folder)
+        GeneralUtilities.ensure_directory_does_not_exist(trg_folder)
+        GeneralUtilities.ensure_directory_exists(trg_folder)
+        GeneralUtilities.copy_content_of_folder(src_folder, trg_folder)

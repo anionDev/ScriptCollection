@@ -427,11 +427,11 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         GeneralUtilities.ensure_directory_exists(temp_folder)
         runsettings_file = "runsettings.xml"
         codeunit_folder = f"{repository_folder}/{codeunit_name}"
-        arg = f"test . -c {dotnet_build_configuration} -o {temp_folder}"
+        arg = f"test . -c {dotnet_build_configuration}"
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
-        self._protected_sc.run_program("dotnet", arg, codeunit_folder, print_live_output=True)
+        test_run_result=self._protected_sc.run_program("dotnet", arg, codeunit_folder, print_live_output=True)#pylint:disable=unused-variable
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
