@@ -981,8 +981,7 @@ class TFCPS_Tools_General:
 
 
     @GeneralUtilities.check_arguments
-    def generate_api_client_from_dependent_codeunit_for_angular(self, codeunit_folder:str, name_of_api_providing_codeunit: str, generated_program_part_name: str,language:str,use_cache:bool) -> None:
-        target_subfolder_in_codeunit = f"src/app/generated/{generated_program_part_name}"
+    def generate_api_client_from_dependent_codeunit(self, codeunit_folder:str, name_of_api_providing_codeunit: str, target_subfolder_in_codeunit: str,language:str,use_cache:bool) -> None:
         openapigenerator_jar_file = self.ensure_openapigenerator_is_available(use_cache)
         openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
