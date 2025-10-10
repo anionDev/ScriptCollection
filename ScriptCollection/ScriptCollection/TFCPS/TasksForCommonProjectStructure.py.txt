@@ -177,16 +177,6 @@ class TasksForCommonProjectStructure:
         ca_folder: str = os.path.join(codeunit_folder, "Other", "Resources", "CA")
         self.__generate_certificate_for_development_purposes(codeunit_name, os.path.join(codeunit_folder, "Other", "Resources"), ca_folder, domain)
 
-    @GeneralUtilities.check_arguments
-    def copy_product_resource_to_codeunit_resource_folder(self, codeunit_folder: str, resourcename: str) -> None:
-        repository_folder = GeneralUtilities.resolve_relative_path(f"..", codeunit_folder)
-        self.__sc.assert_is_git_repository(repository_folder)
-        src_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resourcename}", repository_folder)
-        GeneralUtilities.assert_condition(os.path.isdir(src_folder), f"Required product-resource {resourcename} does not exist. Expected folder: {src_folder}")
-        trg_folder = GeneralUtilities.resolve_relative_path(f"Other/Resources/{resourcename}", codeunit_folder)
-        GeneralUtilities.ensure_directory_does_not_exist(trg_folder)
-        GeneralUtilities.ensure_directory_exists(trg_folder)
-        GeneralUtilities.copy_content_of_folder(src_folder, trg_folder)
 
     @GeneralUtilities.check_arguments
     def ensure_product_resource_is_imported(self, codeunit_folder: str, product_resource_name: str) -> None:
