@@ -862,3 +862,7 @@ def CreateRelease()->int:
     sc.run_program("python", arguments, scripts_folder,print_live_output=True)
 
     return 0
+
+def CleanToolsCache()->int:
+    GeneralUtilities.ensure_folder_exists_and_is_empty(TFCPS_Tools_General(ScriptCollectionCore()).get_global_cache_folder())
+    return 0
