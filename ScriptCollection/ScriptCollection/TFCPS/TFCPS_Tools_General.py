@@ -983,8 +983,7 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def generate_api_client_from_dependent_codeunit_for_angular(self, codeunit_folder:str, name_of_api_providing_codeunit: str, generated_program_part_name: str,language:str,use_cache:bool) -> None:
         target_subfolder_in_codeunit = f"src/app/generated/{generated_program_part_name}"
-        self.ensure_openapigenerator_is_available(codeunit_folder,use_cache)
-        openapigenerator_jar_file = os.path.join(codeunit_folder, "Other", "Resources", "OpenAPIGenerator", "open-api-generator.jar")
+        openapigenerator_jar_file = self.ensure_openapigenerator_is_available(use_cache)
         openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
         GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
@@ -1000,8 +999,7 @@ class TFCPS_Tools_General:
             json.dump(data, f, indent=2)
 
     @GeneralUtilities.check_arguments
-    def ensure_openapigenerator_is_available(self, codeunit_folder: str,use_cache:bool) -> None:
-        self.assert_is_codeunit_folder(codeunit_folder)
+    def ensure_openapigenerator_is_available(self,use_cache:bool) -> None:
         openapigenerator_folder = os.path.join(self.get_global_cache_folder(), "Tools", "OpenAPIGenerator")
         filename = "open-api-generator.jar"
         jar_file = f"{openapigenerator_folder}/{filename}"
@@ -1009,8 +1007,7 @@ class TFCPS_Tools_General:
         update:bool=not jar_file_exists or not use_cache
         if update:
             self.__sc.log.log("Download OpenAPIGeneratorCLI...",LogLevel.Debug)
-            version_file = os.path.join(codeunit_folder, "Other", "Resources", "Dependencies", "OpenAPIGenerator", "Version.txt")
-            used_version = GeneralUtilities.read_text_from_file(version_file)
+            used_version ="7.16.0"#TODO retrieve latest version
             download_link = f"https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/{used_version}/openapi-generator-cli-{used_version}.jar"
             GeneralUtilities.ensure_directory_does_not_exist(openapigenerator_folder)
             GeneralUtilities.ensure_directory_exists(openapigenerator_folder)
