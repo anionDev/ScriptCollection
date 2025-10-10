@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import zipfile
 import tarfile
+import time
 import re
 import sys
 import json
@@ -61,15 +62,18 @@ class TFCPS_Tools_General:
         if not file_exists:
             self.__sc.log.log(f"Download Asset \"{githubuser}/{githubprojectname}: {resource_name}\" from GitHub to global cache...", LogLevel.Information)
             GeneralUtilities.ensure_folder_exists_and_is_empty(resource_folder)
-            headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.96 Safari/537.36'}
+            headers = { 'User-Agent': 'Mozilla/5.0'}
             self.__add_github_api_key_if_available(headers)
             url = f"https://api.github.com/repos/{githubuser}/{githubprojectname}/releases/latest"
             self.__sc.log.log(f"Download \"{url}\"...", LogLevel.Debug)
+            time.sleep(2)
             response = requests.get(url, headers=headers, allow_redirects=True, timeout=(10, 10))
-            latest_version = response.json()["tag_name"]
+            response_json=response.json()
+            latest_version = response_json["tag_name"]
             filename_on_github = get_filename_on_github(latest_version)
             link = f"https://github.com/{githubuser}/{githubprojectname}/releases/download/{latest_version}/{filename_on_github}"
-            with requests.get(link, headers=headers, stream=True, allow_redirects=True,  timeout=(5, 300)) as r:
+            time.sleep(2)
+            with requests.get(link, headers=headers, stream=True, allow_redirects=True,  timeout=(5, 600)) as r:
                 r.raise_for_status()
                 total_size = int(r.headers.get("Content-Length", 0))
                 downloaded = 0
@@ -555,6 +559,38 @@ class TFCPS_Tools_General:
         lines.append("@enduml")
 
         GeneralUtilities.write_lines_to_file(target_file, lines)
+        
+    @GeneralUtilities.check_arguments
+    def ensure_trufflehog_is_available(self,enforce_update:bool=False) -> dict[str,str]:
+        def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
+            resource_name: str = f"TruffleHog_{osname}"
+            zip_filename: str = f"{resource_name}.{extension}"
+            target_folder_unextracted = os.path.join(self.get_global_cache_folder(),"Tools",resource_name+"_Unextracted")
+            target_folder_extracted = os.path.join(self.get_global_cache_folder(),"Tools",resource_name)
+            update:bool=not os.path.isdir(target_folder_extracted) or GeneralUtilities.folder_is_empty(target_folder_extracted) or enforce_update
+            if update:
+                downloaded_file=self.ensure_file_from_github_assets_is_available_with_retry(target_folder_unextracted, "trufflesecurity", "trufflehog", resource_name+"_Unextracted", zip_filename, lambda latest_version: f"trufflehog_{latest_version[1:]}_{osname_in_github_asset}_amd64.tar.gz",enforce_update=enforce_update)
+                #TODO add option to also download arm-version
+                local_zip_file: str = downloaded_file
+                GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
+                if extension == "zip":
+                    with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
+                        zip_ref.extractall(target_folder_extracted)
+                elif extension == "tar.gz": 
+                    with tarfile.open(local_zip_file, "r:gz") as tar:
+                        tar.extractall(path=target_folder_extracted)
+                else:
+                    raise ValueError(f"Unknown extension: \"{extension}\"")
+                GeneralUtilities.ensure_directory_does_not_exist(target_folder_unextracted)
+            GeneralUtilities.assert_folder_exists(target_folder_extracted)
+            executable=[f for f in GeneralUtilities.get_all_files_of_folder(target_folder_extracted) if os.path.basename(f).startswith("trufflehog")][0]
+            return executable
+
+        result=dict[str,str]()
+        result["Windows"]=download_and_extract("Windows", "windows", "tar.gz")
+        result["Linux"]=download_and_extract("Linux", "linux", "tar.gz")
+        result["MacOS"]=download_and_extract("MacOS", "darwin", "tar.gz")
+        return result
 
     @GeneralUtilities.check_arguments
     def generate_tasksfile_from_workspace_file(self, repository_folder: str, append_cli_args_at_end: bool = False) -> None:
