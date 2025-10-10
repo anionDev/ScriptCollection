@@ -18,6 +18,17 @@
 				"aliases": [
 					"bb"
 				]
+			},
+			{
+				"label": "Base: Update dependencies",
+				"command": "scupdatedependencies {{.CLI_ARGS}}",
+				"type": "shell",
+				"options": {
+					"cwd": "${workspaceFolder}"
+				},
+				"aliases": [
+					"bud"
+				]
 			}
 		]
 	},

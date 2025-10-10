@@ -11,3 +11,13 @@ tasks:
     aliases:
       - basebuildallcodeunits
       - bb
+
+  BaseUpdateDependencies:
+    desc: "Base: Update dependencies"
+    silent: true
+    dir: "."
+    cmds:
+      - "scupdatedependencies {{.CLI_ARGS}}"
+    aliases:
+      - baseupdatedependencies
+      - bud

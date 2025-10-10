@@ -37,7 +37,7 @@ from .ProgramRunnerPopen import ProgramRunnerPopen
 from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.43"
+version = "4.0.44"
 __version__ = version
 
 
@@ -2473,7 +2473,7 @@ OCR-content:
     def get_lines_of_code(self, repository: str, excluded_pattern: list[str]) -> int:
         self.assert_is_git_repository(repository)
         result: int = 0
-        self.log.log(f"Calculate lines of code in repository '{repository}' with excluded patterns: {', '.join(excluded_pattern)}")
+        self.log.log(f"Calculate lines of code in repository '{repository}' with excluded patterns: {', '.join(excluded_pattern)}",LogLevel.Debug)
         git_response = self.run_program("git", "ls-files", repository)
         files: list[str] = GeneralUtilities.string_to_lines(git_response[1])
         for file in files:
