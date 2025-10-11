@@ -981,12 +981,19 @@ class TFCPS_Tools_General:
 
 
     @GeneralUtilities.check_arguments
-    def generate_api_client_from_dependent_codeunit(self, codeunit_folder:str, name_of_api_providing_codeunit: str, target_subfolder_in_codeunit: str,language:str,use_cache:bool) -> None:
+    def generate_api_client_from_dependent_codeunit_with_default_properties(self, codeunit_folder:str, name_of_api_providing_codeunit: str, target_subfolder_in_codeunit: str,language:str,use_cache:bool) -> None:
+        self.generate_api_client_from_dependent_codeunit(codeunit_folder,name_of_api_providing_codeunit,target_subfolder_in_codeunit,language,use_cache,["models","apis"])
+
+    @GeneralUtilities.check_arguments
+    def generate_api_client_from_dependent_codeunit(self, codeunit_folder:str, name_of_api_providing_codeunit: str, target_subfolder_in_codeunit: str,language:str,use_cache:bool,properties:list[str]) -> None:
         openapigenerator_jar_file = self.ensure_openapigenerator_is_available(use_cache)
         openapi_spec_file = os.path.join(codeunit_folder, "Other", "Resources", "DependentCodeUnits", name_of_api_providing_codeunit, "APISpecification", f"{name_of_api_providing_codeunit}.latest.api.json")
         target_folder = os.path.join(codeunit_folder, target_subfolder_in_codeunit)
         GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-        self.__sc.run_program("java", f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder} --global-property supportingFiles --global-property models --global-property apis', codeunit_folder)
+        argument=f'-jar {openapigenerator_jar_file} generate -i {openapi_spec_file} -g {language} -o {target_folder}'
+        for property_value in properties:
+            argument=f"{argument} --global-property {property_value}"
+        self.__sc.run_program("java",argument , codeunit_folder)
 
     @GeneralUtilities.check_arguments
     def replace_version_in_packagejson_file(self, packagejson_file: str, codeunit_version: str) -> None:
