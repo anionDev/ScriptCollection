@@ -11,7 +11,6 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def build(self=None) -> None:
-        use_cache: bool = False
         
         codeunitname: str =self.get_codeunit_name()
         codeunit_folder =self.get_codeunit_folder()
@@ -25,7 +24,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                 args.append("--build-arg")
                 args.append(f"{custom_argument_key}={custom_argument_value}")
         args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
-        if not use_cache:
+        if not self.use_cache():
             args.append("--no-cache")
         args.append(".")
         codeunit_content_folder = os.path.join(codeunit_folder)
