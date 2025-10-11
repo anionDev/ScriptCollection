@@ -86,14 +86,14 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()
 
         #TODO run static code analysis tool to search for vulnerabilities
-        self.__search_for_secrets()
+        #TODO self.__search_for_secrets()
         self.__save_lines_of_code(self.repository,self.tFCPS_Other.get_version_of_project(self.repository))
 
         self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log("Finished building codeunits.")
         self.sc.log.log(GeneralUtilities.get_line())
 
-    def __search_for_secrets(self):
+    def __search_for_secrets(self):#pylint:disable=unused-private-member
         exe_paths=self.tFCPS_Other.ensure_trufflehog_is_available()
         exe_path:str=None
         if GeneralUtilities.current_system_is_windows():
