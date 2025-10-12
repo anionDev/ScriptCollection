@@ -512,57 +512,7 @@ class TasksForCommonProjectStructure:
         else:
             self.__log.log("Update dependencies resulted in an error.", LogLevel.Error)
 
-    @GeneralUtilities.check_arguments
-    def start_dockerfile_example(self, current_file: str,remove_old_container: bool, remove_volumes_folder: bool, env_file: str) -> None:
-        folder = os.path.dirname(current_file)
-        example_name = os.path.basename(folder)
-        oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder)
-        image_filename = os.path.basename(self.__sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
-        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
-        if remove_old_container:
-            docker_compose_file = f"{folder}/docker-compose.yml"
-            container_names = []
-            lines = GeneralUtilities.read_lines_from_file(docker_compose_file)
-            for line in lines:
-                if match := re.search("container_name:\\s*'?([^']+)'?", line):
-                    container_names.append(match.group(1))
-            self.__log.log(f"Ensure container of {docker_compose_file} do not exist...")
-            for container_name in container_names:
-                self.__log.log(f"Ensure container {container_name} does not exist...")
-                self.__sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, throw_exception_if_exitcode_is_not_zero=False)
-        if remove_volumes_folder:
-            volumes_folder = os.path.join(folder, "Volumes")
-            self.__log.log(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
-            GeneralUtilities.ensure_directory_does_not_exist(volumes_folder)
-            GeneralUtilities.ensure_directory_exists(volumes_folder)
-        self.__log.log("Load docker-image...")
-        self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder)
-        docker_project_name = f"{codeunit_name}_{example_name}".lower()
-        self.__log.log("Start docker-container...")
-        argument = f"compose --project-name {docker_project_name}"
-        if env_file is not None:
-            argument = f"{argument} --env-file {env_file}"
-        argument = f"{argument} up --detach"
-        self.__sc.run_program("docker", argument, folder)
 
-    @GeneralUtilities.check_arguments
-    def ensure_env_file_is_generated(self, current_file: str, env_file_name: str, env_values: dict[str, str]):
-        folder = os.path.dirname(current_file)
-        env_file = os.path.join(folder, env_file_name)
-        if not os.path.isfile(env_file):
-            lines = []
-            for key, value in env_values.items():
-                lines.append(f"{key}={value}")
-            GeneralUtilities.write_lines_to_file(env_file, lines)
-
-    @GeneralUtilities.check_arguments
-    def stop_dockerfile_example(self, current_file: str, remove_old_container: bool, remove_volumes_folder: bool) -> None:
-        folder = os.path.dirname(current_file)
-        example_name = os.path.basename(folder)
-        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
-        docker_project_name = f"{codeunit_name}_{example_name}".lower()
-        self.__log.log("Stop docker-container...")
-        self.__sc.run_program("docker", f"compose --project-name {docker_project_name} down", folder)
 
     @GeneralUtilities.check_arguments
     def create_artifact_for_development_certificate(self, codeunit_folder: str):
