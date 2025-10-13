@@ -180,13 +180,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         # set default constants
         self.tfcps_Tools_General.set_default_constants(os.path.join(codeunit_folder))
 
-        # Copy changelog-file
-        changelog_folder = os.path.join(repository_folder, "Other", "Resources", "Changelog")
-        changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
-        target_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "Changelog")
-        GeneralUtilities.ensure_directory_exists(target_folder)
-        shutil.copy(changelog_file, target_folder)
-
         # Hints-file
         hints_file = os.path.join(codeunit_folder, "Other", "Reference", "ReferenceContent", "Hints.md")
         if not os.path.isfile(hints_file):
