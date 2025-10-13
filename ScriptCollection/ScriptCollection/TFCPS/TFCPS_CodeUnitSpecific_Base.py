@@ -202,7 +202,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
 
 
-
     @GeneralUtilities.check_arguments
     def generate_reference_using_docfx(self=None):
         reference_folder =os.path.join( self.get_codeunit_folder(),"Other","Reference")
