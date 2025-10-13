@@ -49,7 +49,7 @@ class SudoPopen:
         pass
 
 
-class SudoRunner(ProgramRunnerBase):
+class ProgramRunnerSudo(ProgramRunnerBase):
     __sc: ScriptCollectionCore
     __password: str
 
