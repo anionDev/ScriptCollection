@@ -23,7 +23,6 @@ from lxml import etree
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 from .SCLog import SCLog, LogLevel
-from .ProgramRunnerEpew import ProgramRunnerEpew
 from .ImageUpdater import ImageUpdater, VersionEcholon
 
 #entire file is obsolete and should be replaced by new TFCPS-files

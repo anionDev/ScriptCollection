@@ -34,10 +34,9 @@ from pypdf import PdfReader, PdfWriter
 from .GeneralUtilities import GeneralUtilities
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
-from .ProgramRunnerEpew import ProgramRunnerEpew, CustomEpewArgument
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.51"
+version = "4.0.52"
 __version__ = version
 
 
@@ -1549,8 +1548,6 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def __run_program_argsasarray_async_helper(self, program: str, arguments_as_array: list[str] = [], working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, custom_argument: object = None, interactive: bool = False) -> Popen:
-        if isinstance(self.program_runner, ProgramRunnerEpew):
-            custom_argument = CustomEpewArgument(print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace,self.log.loglevel, arguments_for_log)
         popen: Popen = self.program_runner.run_program_argsasarray_async_helper(program, arguments_as_array, working_directory, custom_argument, interactive)
         return popen
 
@@ -1833,10 +1830,14 @@ class ScriptCollectionCore:
         pid: int
 
     @GeneralUtilities.check_arguments
-    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False) -> tuple[int, str, str, int]:
-        sc: ScriptCollectionCore = ScriptCollectionCore()
-        sc.program_runner = ProgramRunnerEpew()
-        return sc.run_program(program, argument, working_directory, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive,print_live_output=print_live_output)
+    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False,encode_argument_in_base64:bool=False) -> tuple[int, str, str, int]:
+        epew_argument=f"-p {program} -a {argument} -w {working_directory}"
+        if encode_argument_in_base64:
+            base64_bytes = base64.b64encode(argument)
+            base64_string = base64_bytes.decode('utf-8')
+            argument=base64.b64decode(base64_string)
+            epew_argument=epew_argument+" -b"
+        return self.run_program("epew", epew_argument, working_directory, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive,print_live_output=print_live_output)
 
 
     # </run programs>
