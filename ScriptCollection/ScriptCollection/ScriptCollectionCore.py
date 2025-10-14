@@ -1831,7 +1831,7 @@ class ScriptCollectionCore:
 
     @GeneralUtilities.check_arguments
     def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False,encode_argument_in_base64:bool=False) -> tuple[int, str, str, int]:
-        epew_argument=f"-p {program} -a {argument} -w {working_directory}"
+        epew_argument=f"-p {program} -a \"{argument}\" -w {working_directory}"
         if encode_argument_in_base64:
             base64_bytes = base64.b64encode(argument)
             base64_string = base64_bytes.decode('utf-8')
