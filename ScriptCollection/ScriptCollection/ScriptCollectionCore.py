@@ -36,7 +36,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.55"
+version = "4.0.56"
 __version__ = version
 
 
@@ -1833,11 +1833,15 @@ class ScriptCollectionCore:
     def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False,encode_argument_in_base64:bool=False) -> tuple[int, str, str, int]:
         epew_argument=["-p",program ,"-w", working_directory]
         if encode_argument_in_base64:
+            if arguments_for_log is None:
+                arguments_for_log=epew_argument+["-a",f"\"{argument}\""]
             base64_bytes = base64.b64encode(argument)
             base64_string = base64_bytes.decode('utf-8')
             epew_argument=epew_argument+["-a",base64_string,"-b"]
         else:
             epew_argument=epew_argument+["-a",argument]
+            if arguments_for_log is None:
+                arguments_for_log=epew_argument
         return self.run_program_argsasarray("epew", epew_argument, working_directory, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace, arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive,print_live_output=print_live_output)
 
 
