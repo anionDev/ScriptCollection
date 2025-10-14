@@ -113,7 +113,7 @@ class AnionBuildPlatform:
 
     def __update_dependencies(self,product_name:str) -> None:
         self.__sc.log.log("Update dependencies...")
-        repository:str=os.path.join(self.__configuration,product_name+"Build","Submodules",product_name)
+        repository:str=os.path.join(self.__configuration.build_repositories_folder,product_name+"Build","Submodules",product_name)
         self.__sc.assert_no_uncommitted_changes(repository)
         self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
         codeunits:list[str]=self._tFCPS_Tools_General.get_codeunits(repository)   
