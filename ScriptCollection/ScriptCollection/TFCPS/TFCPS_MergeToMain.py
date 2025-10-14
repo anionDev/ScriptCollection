@@ -63,7 +63,7 @@ class TFCPS_MergeToMain:
             self.sc.git_undo_all_changes(self.generic_prepare_new_release_arguments.repository_folder)
             raise
 
-        self.sc.git_commit(self.generic_prepare_new_release_arguments.repository_folder, 'Built codeunits', stage_all_changes=True, no_changes_behavior=0)
+        self.sc.git_commit(self.generic_prepare_new_release_arguments.repository_folder, 'Pre-merge-commit', stage_all_changes=True, no_changes_behavior=0)
         
         if fast_forward_source_branch:
             self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, source_branch)
