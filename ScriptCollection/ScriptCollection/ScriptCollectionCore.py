@@ -1835,8 +1835,7 @@ class ScriptCollectionCore:
         if encode_argument_in_base64:
             if arguments_for_log is None:
                 arguments_for_log=epew_argument+["-a",f"\"{argument}\""]
-            base64_bytes = base64.b64encode(argument)
-            base64_string = base64_bytes.decode('utf-8')
+            base64_string = base64.b64encode(argument.encode("utf-8")).decode("utf-8")
             epew_argument=epew_argument+["-a",base64_string,"-b"]
         else:
             epew_argument=epew_argument+["-a",argument]
