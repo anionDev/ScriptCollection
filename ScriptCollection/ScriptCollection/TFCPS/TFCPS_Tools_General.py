@@ -1263,3 +1263,20 @@ class TFCPS_Tools_General:
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
         self.__sc.log.log("Stop docker-container...")
         self.__sc.run_program("docker", f"compose --project-name {docker_project_name} down", folder)
+
+    @GeneralUtilities.check_arguments
+    def update_submodule(self, repository_folder: str, submodule_name: str, local_branch: str = "main", remote_branch: str = "main", remote: str = "origin"):
+        submodule_folder = GeneralUtilities.resolve_relative_path("Other/Resources/Submodules/"+submodule_name, repository_folder)
+        self.__sc.git_fetch(submodule_folder, remote)
+        self.__sc.git_checkout(submodule_folder, local_branch)
+        self.__sc.git_pull(submodule_folder, remote, local_branch, remote_branch, True)
+        current_version = self.__sc.get_semver_version_from_gitversion(repository_folder)
+        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{current_version}.md")
+        if (not os.path.isfile(changelog_file)):
+            GeneralUtilities.ensure_file_exists(changelog_file)
+            GeneralUtilities.write_text_to_file(changelog_file, """# Release notes
+
+## Changes
+
+- Updated geo-ip-database.
+""")
