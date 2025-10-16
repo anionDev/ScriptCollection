@@ -83,6 +83,7 @@ class TFCPS_MergeToStable:
       
 
         self.sc.log.log("Release artifacts...")
+        repository:str=self.createRelease_configuration.repository
         project_version:str=self.tFCPS_Tools_General.get_version_of_project(repository)
         for codeunit in self.tFCPS_Tools_General.get_codeunits(self.createRelease_configuration.repository):
             self.sc.git_checkout(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch, True,True)
@@ -107,7 +108,6 @@ class TFCPS_MergeToStable:
             # update codeunit-reference
             self.sc.log.log(f"Release artifacts of codeunit {codeunit}...")
             reference_folder:str=os.path.join(reference_repo,"ReferenceContent")
-            repository:str=self.createRelease_configuration.repository
             projectname:str=os.path.basename(repository)
             public_repository_url:str=self.createRelease_configuration.common_remote_url
             main_branch_name:str=self.createRelease_configuration.source_branch
