@@ -7,7 +7,6 @@ set -e
 scriptfolder="$( dirname -- "$0"; )"
 cwd=$PWD
 cd $scriptfolder
-temp_folder="$(mktemp -d)"
 preseed_template_file="preseedTemplate.cfg"
 preseed_file="preseed.cfg"
 
@@ -22,6 +21,7 @@ architecture=$8
 result_folder=$9
 ssh_port="${10}"
 disk_size="${11}"
+temp_folder="${12}"
 # allowed values/formats for disk_size are: "max", "75%" and "250GB"
 
 echo "Step 1: Prepare"
