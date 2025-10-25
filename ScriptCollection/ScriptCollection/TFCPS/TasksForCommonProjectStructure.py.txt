@@ -423,18 +423,7 @@ class TasksForCommonProjectStructure:
         if 0 < len(dependent_codeunits):
             self.__log.log(f"Finished building dependent codeunits for codeunit {codeunit_name}.")
 
-    @GeneralUtilities.check_arguments
-    def get_dependencies_which_are_ignored_from_updates(self, codeunit_folder: str, print_warnings_for_ignored_dependencies: bool) -> list[str]:
-        self.assert_is_codeunit_folder(codeunit_folder)
-        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-        codeunit_name = os.path.basename(codeunit_folder)
-        codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
-        root: etree._ElementTree = etree.parse(codeunit_file)
-        ignoreddependencies = root.xpath('//cps:codeunit/cps:properties/cps:updatesettings/cps:ignoreddependencies/cps:ignoreddependency', namespaces=namespaces)
-        result = [x.text.replace("\\n", GeneralUtilities.empty_string).replace("\\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).replace("\r", GeneralUtilities.empty_string).strip() for x in ignoreddependencies]
-        if print_warnings_for_ignored_dependencies and len(result) > 0:
-            self.__log.log(f"Codeunit {codeunit_name} contains the following dependencies which will are ignoed for automatic updates: "+', '.join(result), LogLevel.Warning)
-        return result
+
 
     @GeneralUtilities.check_arguments
     def update_dependencies_of_typical_flutter_codeunit(self, update_script_file: str) -> None:
@@ -480,37 +469,6 @@ class TasksForCommonProjectStructure:
         self.__sc.update_dependencies_of_dotnet_project(test_csproj_file, ignored_dependencies)
         csproj_file = os.path.join(codeunit_folder, codeunit_name, f"{codeunit_name}.csproj")
         self.__sc.update_dependencies_of_dotnet_project(csproj_file, ignored_dependencies)
-
-    @GeneralUtilities.check_arguments
-    def update_dependencies_of_package_json(self, folder: str) -> None:
-        if self.is_codeunit_folder(folder):
-            ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(folder, True)
-        else:
-            ignored_dependencies = []
-        # TODO consider ignored_dependencies
-        result = self.run_with_epew("npm", "outdated", folder, throw_exception_if_exitcode_is_not_zero=False)
-        if result[0] == 0:
-            return  # all dependencies up to date
-        elif result[0] == 1:
-            package_json_content = None
-            package_json_file = f"{folder}/package.json"
-            with open(package_json_file, "r", encoding="utf-8") as package_json_file_object:
-                package_json_content = json.load(package_json_file_object)
-                lines = GeneralUtilities.string_to_lines(result[1])[1:][:-1]
-                for line in lines:
-                    normalized_line_splitted = ' '.join(line.split()).split(" ")
-                    package = normalized_line_splitted[0]
-                    latest_version = normalized_line_splitted[3]
-                    if package in package_json_content["dependencies"]:
-                        package_json_content["dependencies"][package] = latest_version
-                    if package in package_json_content["devDependencies"]:
-                        package_json_content["devDependencies"][package] = latest_version
-            with open(package_json_file, "w", encoding="utf-8") as package_json_file_object:
-                json.dump(package_json_content, package_json_file_object, indent=4)
-            self.do_npm_install(folder, True)
-        else:
-            self.__log.log("Update dependencies resulted in an error.", LogLevel.Error)
-
 
 
     @GeneralUtilities.check_arguments
@@ -819,19 +777,3 @@ class TasksForCommonProjectStructure:
     @GeneralUtilities.check_arguments
     def install_requirementstxt_for_repository(self, repository_folde: str):
         self.__sc.install_requirementstxt_file(repository_folde+"/Other/requirements.txt")
-
-
-    def set_latest_version_for_clone_repository_as_resource(self, resourcename: str, github_link: str, branch: str = "main"):
-        current_file = str(Path(__file__).absolute())
-        repository_folder = GeneralUtilities.resolve_relative_path("../../..", current_file)
-
-        resrepo_commit_id_folder: str = os.path.join(repository_folder, "Other", "Resources", f"{resourcename}Version")
-        resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resourcename}Version.txt")
-        current_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)
-
-        stdOut = [l.split("\t") for l in GeneralUtilities.string_to_lines(self.__sc.run_program("git", f"ls-remote {github_link}")[1])]
-        stdOut = [l for l in stdOut if l[1] == f"refs/heads/{branch}"]
-        GeneralUtilities.assert_condition(len(stdOut) == 1)
-        latest_version: str = stdOut[0][0]
-        if current_version != latest_version:
-            GeneralUtilities.write_text_to_file(resrepo_commit_id_file, latest_version)

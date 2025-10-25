@@ -791,7 +791,7 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def do_npm_install(self, package_json_folder: str, npm_force: bool,use_cache:bool) -> None:
         target_folder:str=os.path.join(package_json_folder,"node_modules")
-        update:bool=not os.path.isdir(target_folder) or  GeneralUtilities.folder_is_empty(target_folder) or not use_cache
+        update:bool=not os.path.isdir(target_folder) or GeneralUtilities.folder_is_empty(target_folder) or not use_cache
         if update:
             self.__sc.log.log("Do npm-install...")
             argument1 = "install"
@@ -1263,6 +1263,10 @@ class TFCPS_Tools_General:
         docker_project_name = f"{codeunit_name}_{example_name}".lower()
         self.__sc.log.log("Stop docker-container...")
         self.__sc.run_program("docker", f"compose --project-name {docker_project_name} down", folder)
+        if  remove_old_container:
+            pass#TODO
+        if  remove_volumes_folder:
+            pass#TODO
 
     @GeneralUtilities.check_arguments
     def update_submodule(self, repository_folder: str, submodule_name: str, local_branch: str = "main", remote_branch: str = "main", remote: str = "origin"):
@@ -1280,3 +1284,60 @@ class TFCPS_Tools_General:
 
 - Updated geo-ip-database.
 """)
+
+    def set_latest_version_for_clone_repository_as_resource(self,repository_folder:str, resourcename: str, github_link: str, branch: str = "main"):
+
+        resrepo_commit_id_folder: str = os.path.join(repository_folder, "Other", "Resources", f"{resourcename}Version")
+        resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resourcename}Version.txt")
+        current_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)
+
+        stdOut = [l.split("\t") for l in GeneralUtilities.string_to_lines(self.__sc.run_program("git", f"ls-remote {github_link}")[1])]
+        stdOut = [l for l in stdOut if l[1] == f"refs/heads/{branch}"]
+        GeneralUtilities.assert_condition(len(stdOut) == 1)
+        latest_version: str = stdOut[0][0]
+        if current_version != latest_version:
+            GeneralUtilities.write_text_to_file(resrepo_commit_id_file, latest_version)
+
+    @GeneralUtilities.check_arguments
+    def get_dependencies_which_are_ignored_from_updates(self, codeunit_folder: str, print_warnings_for_ignored_dependencies: bool) -> list[str]:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        codeunit_name = os.path.basename(codeunit_folder)
+        codeunit_file = os.path.join(codeunit_folder, f"{codeunit_name}.codeunit.xml")
+        root: etree._ElementTree = etree.parse(codeunit_file)
+        ignoreddependencies = root.xpath('//cps:codeunit/cps:properties/cps:updatesettings/cps:ignoreddependencies/cps:ignoreddependency', namespaces=namespaces)
+        result = [x.text.replace("\\n", GeneralUtilities.empty_string).replace("\\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).replace("\r", GeneralUtilities.empty_string).strip() for x in ignoreddependencies]
+        if print_warnings_for_ignored_dependencies and len(result) > 0:
+            self.__sc.log.log(f"Codeunit {codeunit_name} contains the following dependencies which will are ignoed for automatic updates: "+', '.join(result), LogLevel.Warning)
+        return result
+    
+    @GeneralUtilities.check_arguments
+    def update_dependencies_of_package_json(self, folder_of_package_json: str) -> None:
+        #TODO move this to TFCPS_CodeUnitSpecific_NodeJS_Functions
+        if self.is_codeunit_folder(folder_of_package_json):
+            ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(folder_of_package_json, True)
+        else:
+            ignored_dependencies = []
+        # TODO consider ignored_dependencies
+        result = self.__sc.run_with_epew("npm", "outdated", folder_of_package_json, throw_exception_if_exitcode_is_not_zero=False)
+        if result[0] == 0:
+            return  # all dependencies up to date
+        elif result[0] == 1:
+            package_json_content = None
+            package_json_file = f"{folder_of_package_json}/package.json"
+            with open(package_json_file, "r", encoding="utf-8") as package_json_file_object:
+                package_json_content = json.load(package_json_file_object)
+                lines = GeneralUtilities.string_to_lines(result[1])[1:][:-1]
+                for line in lines:
+                    normalized_line_splitted = ' '.join(line.split()).split(" ")
+                    package = normalized_line_splitted[0]
+                    latest_version = normalized_line_splitted[3]
+                    if package in package_json_content["dependencies"]:
+                        package_json_content["dependencies"][package] = latest_version
+                    if package in package_json_content["devDependencies"]:
+                        package_json_content["devDependencies"][package] = latest_version
+            with open(package_json_file, "w", encoding="utf-8") as package_json_file_object:
+                json.dump(package_json_content, package_json_file_object, indent=4)
+            self.do_npm_install(folder_of_package_json, True,True)#TODO use_cache might be dangerous here
+        else:
+            self.__sc.log.log("Update dependencies resulted in an error.", LogLevel.Error)
