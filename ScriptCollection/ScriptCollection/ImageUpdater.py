@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from enum import Enum
 import json
 import re
 from urllib.parse import quote
@@ -7,14 +6,7 @@ import yaml
 import requests
 from packaging import version as ve
 from packaging.version import Version
-from .GeneralUtilities import GeneralUtilities
-
-
-class VersionEcholon(Enum):
-    LatestPatch = 0
-    LatestPatchOrLatestMinor = 1
-    LatestPatchOrLatestMinorOrNextMajor = 2
-    Newest = 3
+from .GeneralUtilities import GeneralUtilities,VersionEcholon
 
 
 class ImageUpdaterHelper:
@@ -70,7 +62,7 @@ class ImageUpdaterHelper:
             return ImageUpdaterHelper._internal_get_latest_patch_or_latest_minor_version(newer_versions, current_version)
         elif version_echolon == VersionEcholon.LatestPatchOrLatestMinorOrNextMajor:
             return ImageUpdaterHelper._internal_get_latest_patch_or_latest_minor_or_next_major_version(newer_versions, current_version)
-        elif version_echolon == VersionEcholon.Newest:
+        elif version_echolon == VersionEcholon.LatestVersion: 
             return ImageUpdaterHelper.get_latest_version(newer_versions)
         else:
             raise ValueError(f"Unknown version-echolon")
@@ -96,7 +88,7 @@ class ImageUpdaterHelper:
 
     @staticmethod
     @GeneralUtilities.check_arguments
-    def get_versions_in_docker_hub(image: str, search_string: str, filter_regex: str, maximal_amount_of_items_to_load: int = 250) -> list[Version]:
+    def get_versions_in_docker_hub(image: str, search_string: str, filter_regex: str, maximal_amount_of_items_to_load: int = 250) -> list[Version]:#TODO add option to specify image source url
         if "/" not in image:
             image = f"library/{image}"
         response = requests.get(f"https://hub.docker.com/v2/repositories/{quote(image)}/tags?name={quote(search_string)}&ordering=last_updated&page=1&page_size={str(maximal_amount_of_items_to_load)}", timeout=20, headers={'Cache-Control': 'no-cache'})
@@ -535,7 +527,7 @@ class ImageUpdater:
     @GeneralUtilities.check_arguments
     def check_service_for_newest_version(self, dockercompose_file: str, service_name: str) -> bool:
         imagename, existing_tag, existing_version = self.get_current_version_of_service_from_docker_compose_file(dockercompose_file, service_name)  # pylint:disable=unused-variable
-        newest_version, newest_tag = self.get_latest_version_of_image(imagename, VersionEcholon.Newest, existing_version)  # pylint:disable=unused-variable
+        newest_version, newest_tag = self.get_latest_version_of_image(imagename, VersionEcholon.LatestVersion, existing_version)  # pylint:disable=unused-variable
         if existing_version < newest_version:
             GeneralUtilities.write_message_to_stdout(f"Service {service_name} with image {imagename} uses tag {existing_version}. The newest available version of this image is {newest_version}.")
             return True

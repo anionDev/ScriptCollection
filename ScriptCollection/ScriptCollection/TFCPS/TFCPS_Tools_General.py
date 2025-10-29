@@ -1299,7 +1299,7 @@ class TFCPS_Tools_General:
             GeneralUtilities.write_text_to_file(resrepo_commit_id_file, latest_version)
 
     @GeneralUtilities.check_arguments
-    def get_dependencies_which_are_ignored_from_updates(self, codeunit_folder: str, print_warnings_for_ignored_dependencies: bool) -> list[str]:
+    def get_dependencies_which_are_ignored_from_updates(self, codeunit_folder: str) -> list[str]:
         self.assert_is_codeunit_folder(codeunit_folder)
         namespaces = {'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
         codeunit_name = os.path.basename(codeunit_folder)
@@ -1307,12 +1307,10 @@ class TFCPS_Tools_General:
         root: etree._ElementTree = etree.parse(codeunit_file)
         ignoreddependencies = root.xpath('//cps:codeunit/cps:properties/cps:updatesettings/cps:ignoreddependencies/cps:ignoreddependency', namespaces=namespaces)
         result = [x.text.replace("\\n", GeneralUtilities.empty_string).replace("\\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string).replace("\r", GeneralUtilities.empty_string).strip() for x in ignoreddependencies]
-        if print_warnings_for_ignored_dependencies and len(result) > 0:
-            self.__sc.log.log(f"Codeunit {codeunit_name} contains the following dependencies which will are ignoed for automatic updates: "+', '.join(result), LogLevel.Warning)
         return result
     
     @GeneralUtilities.check_arguments
-    def update_dependencies_of_package_json(self, folder_of_package_json: str) -> None:
+    def update_dependencies_of_package_json(self, folder_of_package_json: str) -> None:#TODO this should probably be implemented in TFCPS_CodeUnitSpecific_NodeJS_Functions
         #TODO move this to TFCPS_CodeUnitSpecific_NodeJS_Functions
         if self.is_codeunit_folder(folder_of_package_json):
             ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(folder_of_package_json, True)

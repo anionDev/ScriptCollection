@@ -757,7 +757,7 @@ def UpdateImagesInDockerComposeFile() -> int:
     iu: ImageUpdater = ImageUpdater()
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', required=False, default=None)
-    parser.add_argument('-v', '--versionecholon', required=False, default=VersionEcholon.Newest.name, dest="Possible values are: " + ", ".join([e.name for e in VersionEcholon]))
+    parser.add_argument('-v', '--versionecholon', required=False, default=VersionEcholon.LatestVersion.name, dest="Possible values are: " + ", ".join([e.name for e in VersionEcholon]))
     parser.add_argument("-s", "--servicename", required=True, default=None)
     parser.add_argument("-u", "--updatertype", required=True, default=None)
     args = parser.parse_args()

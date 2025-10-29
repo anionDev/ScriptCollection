@@ -1,5 +1,5 @@
 import os
-from ...GeneralUtilities import GeneralUtilities
+from ...GeneralUtilities import Dependency, GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -99,7 +99,14 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         os.rename(os.path.join(repository_folder, codeunitname, "coverage.xml"), coveragefile)
         self.tfcps_Tools_General.merge_packages(coveragefile,codeunitname)
         self.run_testcases_common_post_task(repository_folder, codeunitname, True, self.get_type_environment_type())
-        
+
+    
+    def get_dependencies(self)->list[Dependency]:
+        raise ValueError(f"Operation is abstract.")
+    
+    def set_dependency_version(self,name:str,new_version:str)->list[Dependency]:
+        raise ValueError(f"Operation is abstract.")
+    
 class TFCPS_CodeUnitSpecific_Python_CLI:
 
     @staticmethod
