@@ -66,10 +66,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
     def update_dependencies(self):
         dependencies:list[Dependency]=self.get_dependencies()
-        ignored_dependencies=self.tfcps_Tools_General.get_dependencies_which_are_ignored_from_updates(self.get_codeunit_folder(),True)
+        ignored_dependencies=self.tfcps_Tools_General.get_dependencies_which_are_ignored_from_updates(self.get_codeunit_folder())
         for ignored_dependency in ignored_dependencies:
             self._protected_sc.log.log(f"Codeunit {self.get_codeunit_name()} contains the dependency {ignored_dependency} which is ignored for updates.", LogLevel.Warning)
-        used_echolon:VersionEcholon=VersionEcholon.MinorOrPatch
+        used_echolon:VersionEcholon=VersionEcholon.LatestPatchOrLatestMinor
         for dependency in dependencies:
             if dependency.current_version!=dependency.latest_version:
                 latest_version:str=dependency.get_latest_version(used_echolon)
@@ -222,10 +222,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
     @GeneralUtilities.check_arguments
     def use_cache(self)->bool:
         return self.__use_cache
-
-    @GeneralUtilities.check_arguments
-    def update_dependencies_base(self):
-        self.update_dependencies_default()
 
     @GeneralUtilities.check_arguments
     def get_codeunit_folder(self)->str:

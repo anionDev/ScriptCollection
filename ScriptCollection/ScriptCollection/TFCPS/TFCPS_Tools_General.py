@@ -1313,7 +1313,7 @@ class TFCPS_Tools_General:
     def update_dependencies_of_package_json(self, folder_of_package_json: str) -> None:#TODO this should probably be implemented in TFCPS_CodeUnitSpecific_NodeJS_Functions
         #TODO move this to TFCPS_CodeUnitSpecific_NodeJS_Functions
         if self.is_codeunit_folder(folder_of_package_json):
-            ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(folder_of_package_json, True)
+            ignored_dependencies = self.get_dependencies_which_are_ignored_from_updates(folder_of_package_json)
         else:
             ignored_dependencies = []
         # TODO consider ignored_dependencies
