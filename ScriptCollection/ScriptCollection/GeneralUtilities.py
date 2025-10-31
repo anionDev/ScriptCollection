@@ -112,9 +112,9 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def string_to_lines(string: str, add_empty_lines: bool = True, adapt_lines: bool = True) -> list[str]:
-        result = list()
+        result : list[str] = list[str]()
+        lines : list[str] = list[str]()
         if (string is not None):
-            lines = list()
             if ("\n" in string):
                 lines = string.split("\n")
             else:
