@@ -5,14 +5,14 @@ import shutil
 import re
 import json
 import argparse
-from abc import ABC
+from abc import ABC, abstractmethod
 import xmlschema
 from lxml import etree
-from ..GeneralUtilities import GeneralUtilities
+from ..GeneralUtilities import Dependency, GeneralUtilities, VersionEcholon
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
-from .TFCPS_Tools_Dependencies import TFCPS_Tools_Dependencies,Dependency
+
 
 class TFCPS_CodeUnitSpecific_Base(ABC):
     
@@ -56,19 +56,30 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 enabled=False
         raise ValueError(f"Can not find codeunit-folder for folder \"{self.__current_file}\".")
 
-    def update_dependencies_default(self):
-        d:TFCPS_Tools_Dependencies=TFCPS_Tools_Dependencies()
-        dependencies:list[Dependency]=d.get_dependencies()
+    @abstractmethod
+    def get_dependencies(self)->list[Dependency]:
+        raise ValueError(f"Operation is abstract.")
+    
+    @abstractmethod
+    def set_dependency_version(self,name:str,new_version:str)->list[Dependency]:
+        raise ValueError(f"Operation is abstract.")
+
+    def update_dependencies(self):
+        dependencies:list[Dependency]=self.get_dependencies()
+        ignored_dependencies=self.tfcps_Tools_General.get_dependencies_which_are_ignored_from_updates(self.get_codeunit_folder(),True)
+        for ignored_dependency in ignored_dependencies:
+            self._protected_sc.log.log(f"Codeunit {self.get_codeunit_name()} contains the dependency {ignored_dependency} which is ignored for updates.", LogLevel.Warning)
+        used_echolon:VersionEcholon=VersionEcholon.MinorOrPatch
         for dependency in dependencies:
             if dependency.current_version!=dependency.latest_version:
-                pass#TODO update dependency
+                latest_version:str=dependency.get_latest_version(used_echolon)
+                self.set_dependency_version(dependency.dependencyname,latest_version)
         
     def get_version_of_project(self)->str:
         return self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())
 
     @GeneralUtilities.check_arguments
     def do_common_tasks_base(self,current_codeunit_version:str):
-
         repository_folder: str =self.get_repository_folder()
         self._protected_sc.assert_is_git_repository(repository_folder)
         codeunit_name: str = self.get_codeunit_name()
@@ -191,15 +202,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         # Generate diff-report
         self.tfcps_Tools_General.generate_diff_report(repository_folder, codeunit_name, self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
         
-        d:TFCPS_Tools_Dependencies=TFCPS_Tools_Dependencies()
-        dependencies:list[Dependency]=d.get_dependencies()
+        dependencies:list[Dependency]=self.get_dependencies()
         for dependency in dependencies:
-            #TODO show warning if the latest version of dependency is too old
             if dependency.current_version!=dependency.latest_version:
-                dependency_is_disabled_for_update=False#TODO read this value from codeunit-file
-                if not dependency_is_disabled_for_update:
-                    self._protected_sc.log.log(f"Dependency \"{dependency.name}\" is used in the outdated version v{dependency.current_version} and can be upudated to v{dependency.latest_version}",LogLevel.Warning)
-
+                self._protected_sc.log.log(f"Dependency \"{dependency.name}\" is used in the outdated version v{dependency.current_version} and can be upudated to v{dependency.latest_version}",LogLevel.Warning)
 
 
     @GeneralUtilities.check_arguments

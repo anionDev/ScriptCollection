@@ -1,7 +1,7 @@
 import os
 import re
 from lxml import etree
-from ...GeneralUtilities import GeneralUtilities
+from ...GeneralUtilities import Dependency, GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -112,6 +112,13 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file {relative_path_to_bom_file}", self.get_codeunit_folder(),print_live_output=self._protected_sc.log.loglevel==LogLevel.Diagnostic,encode_argument_in_base64=True)
         self._protected_sc.format_xml_file(self.get_codeunit_folder()+"/"+relative_path_to_bom_file)
 
+    
+    def get_dependencies(self)->list[Dependency]:
+        raise ValueError(f"Operation is abstract.")
+    
+    def set_dependency_version(self,name:str,new_version:str)->list[Dependency]:
+        raise ValueError(f"Operation is abstract.")
+    
 class TFCPS_CodeUnitSpecific_NodeJS_CLI:
  
     @staticmethod
