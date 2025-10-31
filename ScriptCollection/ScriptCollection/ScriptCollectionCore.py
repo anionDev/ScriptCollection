@@ -1,4 +1,3 @@
-import traceback
 from datetime import timedelta, datetime
 import json
 import binascii
@@ -36,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.65"
+version = "4.0.66"
 __version__ = version
 
 
@@ -2465,7 +2464,7 @@ OCR-content:
                 result = 0
             return result
         except Exception as e:
-            self.log.log_exception(f"Error while running action \"{name_of_task}\".", e, traceback)
+            self.log.log_exception(f"Error while running action \"{name_of_task}\".", e, LogLevel.Error)
             return 1
         finally:
             self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)

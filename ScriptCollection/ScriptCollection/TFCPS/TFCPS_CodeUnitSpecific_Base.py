@@ -1,5 +1,4 @@
 import os
-import traceback
 from pathlib import Path
 import shutil
 import re
@@ -107,7 +106,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             xmlschema.validate(codeunit_file, schemaLocation)
             # TODO check if the properties codeunithastestablesourcecode, codeunithasupdatabledependencies, throwexceptionifcodeunitfilecannotbevalidated, developmentState and description exist and the values are valid
         except Exception as exception:
-            self._protected_sc.log.log_exception(f'Codeunitfile "{codeunit_file}" can not be validated due to the following exception:', exception,traceback,LogLevel.Warning)
+            self._protected_sc.log.log_exception(f'Codeunitfile "{codeunit_file}" can not be validated due to the following exception:', exception,LogLevel.Warning)
 
         # check codeunit-name
         codeunit_name_in_codeunit_file = root.xpath('//cps:codeunit/cps:name/text()', namespaces=namespaces)[0]
