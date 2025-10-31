@@ -61,7 +61,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         raise ValueError(f"Operation is abstract.")
     
     @abstractmethod
-    def set_dependency_version(self,name:str,new_version:str)->list[Dependency]:
+    def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is abstract.")
 
     def update_dependencies(self):

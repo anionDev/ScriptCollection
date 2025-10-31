@@ -102,9 +102,9 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 
     
     def get_dependencies(self)->list[Dependency]:
-        raise ValueError(f"Operation is not implemented.")
+        return []#TODO
     
-    def set_dependency_version(self,name:str,new_version:str)->list[Dependency]:
+    def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
     
 class TFCPS_CodeUnitSpecific_Python_CLI:
