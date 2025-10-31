@@ -6,9 +6,8 @@ import uuid
 import json
 from lxml import etree
 import yaml
-
 from .CertificateGeneratorInformationBase import CertificateGeneratorInformationBase
-from ...GeneralUtilities import GeneralUtilities
+from ...GeneralUtilities import Dependency, GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -466,6 +465,13 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         filename_relative = f".{file[len(codeunit_folder):]}"
         return f'filename="{filename_relative}"'
 
+    
+    def get_dependencies(self)->list[Dependency]:
+        raise ValueError(f"Operation is not implemented.")
+
+    def set_dependency_version(self,name:str,new_version:str)->list[Dependency]:
+        raise ValueError(f"Operation is not implemented.")
+    
 
 class TFCPS_CodeUnitSpecific_DotNet_CLI:
 

@@ -2,7 +2,7 @@ import os
 import shutil
 import re
 import zipfile
-from ...GeneralUtilities import GeneralUtilities
+from ...GeneralUtilities import Dependency, GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -111,6 +111,13 @@ class TFCPS_CodeUnitSpecific_Flutter_Functions(TFCPS_CodeUnitSpecific_Base):
         self.tfcps_Tools_General.merge_packages(coverage_file, self.get_codeunit_name())
         self.tfcps_Tools_General.calculate_entire_line_rate(coverage_file)
         self.run_testcases_common_post_task(repository_folder, codeunit_name, True, self.get_target_environment_type())
+    
+    
+    def get_dependencies(self)->list[Dependency]:
+        raise ValueError(f"Operation is not implemented.")
+    
+    def set_dependency_version(self,name:str,new_version:str)->list[Dependency]:
+        raise ValueError(f"Operation is not implemented.")
     
 class TFCPS_CodeUnitSpecific_Flutter_CLI:
 

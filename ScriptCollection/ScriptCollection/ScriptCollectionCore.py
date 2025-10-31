@@ -36,7 +36,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.63"
+version = "4.0.64"
 __version__ = version
 
 

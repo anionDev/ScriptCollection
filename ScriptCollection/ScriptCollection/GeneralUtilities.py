@@ -27,12 +27,21 @@ import psutil
 from defusedxml.minidom import parse
 from OpenSSL import crypto
 
-
 class VersionEcholon(Enum):
-    Patch = 0
-    MinorOrPatch = 1
-    MajorOrMinorOrPatch = 2
+    LatestPatch = 0
+    LatestPatchOrLatestMinor = 1
+    LatestPatchOrLatestMinorOrNextMajor = 2
+    LatestVersion = 3
 
+class Dependency:
+    dependencyname:str
+    current_version:str
+    latest_patch_version_for_current_minor_version:str
+    latest_minor_version_for_current_major_version:str
+    latest_version:str
+
+    def get_latest_version(self,echolon:VersionEcholon)->str:
+        return self.latest_patch_version_for_current_minor_version#TODO consider echolon
 
 class GeneralUtilities:
 

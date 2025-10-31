@@ -1,4 +1,4 @@
-
+import traceback
 from enum import Enum
 from datetime import datetime
 from .GeneralUtilities import GeneralUtilities
@@ -36,7 +36,7 @@ class SCLog:
         self.print_as_color = print_as_color
 
     @GeneralUtilities.check_arguments
-    def log_exception(self, message: str, ex: Exception, current_traceback,loglevel:LogLevel=LogLevel.Error):
+    def log_exception(self, message: str, ex: Exception, current_traceback:traceback,loglevel:LogLevel=LogLevel.Error):
         self.log(f"Exception: {message}; Exception-details: {str(ex)}; Traceback:  {current_traceback.format_exc()}", loglevel)
 
     @GeneralUtilities.check_arguments
@@ -53,11 +53,11 @@ class SCLog:
         if loglevel is None:
             loglevel = LogLevel.Information
 
-        if int(self.loglevel)<int(loglevel) :
+        if int(self.loglevel)<int(loglevel):
             return
 
         if message.endswith("\n"):
-            GeneralUtilities.write_message_to_stderr(f"invalid line: '{message}'")  # TODO remove this
+            GeneralUtilities.write_message_to_stderr(f"invalid line: '{message}'") # TODO remove this
 
         part1: str = GeneralUtilities.empty_string
         part2: str = GeneralUtilities.empty_string
