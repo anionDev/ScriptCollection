@@ -36,8 +36,8 @@ class SCLog:
         self.print_as_color = print_as_color
 
     @GeneralUtilities.check_arguments
-    def log_exception(self, message: str, ex: Exception, current_traceback:traceback,loglevel:LogLevel=LogLevel.Error):
-        self.log(f"Exception: {message}; Exception-details: {str(ex)}; Traceback:  {current_traceback.format_exc()}", loglevel)
+    def log_exception(self, message: str, ex: Exception,loglevel:LogLevel = LogLevel.Error):
+        self.log(f"Exception: {message}; Exception-details: {str(ex)}; Traceback: {traceback.format_exc()}", loglevel)
 
     @GeneralUtilities.check_arguments
     def log(self, message: str, loglevel: LogLevel = None):
