@@ -1340,12 +1340,17 @@ class TFCPS_Tools_General:
         else:
             self.__sc.log.log("Update dependencies resulted in an error.", LogLevel.Error)
 
+
     @GeneralUtilities.check_arguments
-    def get_resource_from_submodule(self,codeunit_folder:str,submodule_name:str,resource_name:str):
+    def get_resource_from_submodule_with_default_ignore_patterh(self,codeunit_folder:str,submodule_name:str,resource_name:str):
+        self.get_resource_from_submodule(codeunit_folder,submodule_name,resource_name,[".git",".gitmodules"])
+        
+    @GeneralUtilities.check_arguments
+    def get_resource_from_submodule(self,codeunit_folder:str,submodule_name:str,resource_name:str,ignore_patterns:list[str]):
         self.assert_is_codeunit_folder(codeunit_folder)
         repository=os.path.dirname(codeunit_folder)
         source_folder=os.path.join(repository,"Other","Resources","Submodules",submodule_name)
         GeneralUtilities.assert_folder_exists(source_folder)
         target_folder=os.path.join(codeunit_folder,"Other","Resources",resource_name)
         GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
-        GeneralUtilities.copy_content_of_folder(source_folder,target_folder)
+        GeneralUtilities.copy_content_of_folder(source_folder,target_folder,True,ignore_patterns)
