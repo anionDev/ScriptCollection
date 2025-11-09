@@ -1342,8 +1342,8 @@ class TFCPS_Tools_General:
 
 
     @GeneralUtilities.check_arguments
-    def get_resource_from_submodule_with_default_ignore_patterh(self,codeunit_folder:str,submodule_name:str,resource_name:str):
-        self.get_resource_from_submodule(codeunit_folder,submodule_name,resource_name,[".git",".gitmodules"])
+    def get_resource_from_submodule_with_default_ignore_pattern(self,codeunit_folder:str,submodule_name:str,resource_name:str):
+        self.get_resource_from_submodule(codeunit_folder,submodule_name,resource_name,["**.git","**.gitmodules"])
         
     @GeneralUtilities.check_arguments
     def get_resource_from_submodule(self,codeunit_folder:str,submodule_name:str,resource_name:str,ignore_patterns:list[str]):

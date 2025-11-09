@@ -220,18 +220,14 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8", verbose: bool = False) -> None:
-        """This function iterates over each line in the file and replaces it by the line which applied regex.
-        Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
         if verbose:
             GeneralUtilities.write_message_to_stdout(f"Replace '{replace_from_regex}' to '{replace_to_regex}' in '{file}'")
-        with open(file, encoding=encoding, mode="r") as f:
-            lines = f.readlines()
-            replaced_lines = []
-            for line in lines:
-                replaced_line = re.sub(replace_from_regex, replace_to_regex, line)
-                replaced_lines.append(replaced_line)
-        with open(file, encoding=encoding, mode="w") as f:
-            f.writelines(replaced_lines)
+        lines=GeneralUtilities.read_lines_from_file(file,encoding)
+        replaced_lines = []
+        for line in lines:
+            replaced_line = re.sub(replace_from_regex, replace_to_regex, line)
+            replaced_lines.append(replaced_line)
+        GeneralUtilities.write_lines_to_file(file,replaced_lines,encoding)
 
     @staticmethod
     @check_arguments
