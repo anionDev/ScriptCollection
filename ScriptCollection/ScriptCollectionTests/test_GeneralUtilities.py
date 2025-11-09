@@ -220,3 +220,7 @@ class GeneralUtilitiesTests(unittest.TestCase):
 
         # assert
         assert actual == expected
+
+    def test_is_ignored_by_glob_pattern(self) -> None:
+        assert True==GeneralUtilities.is_ignored_by_glob_pattern("/folder/src", "/folder/src/a/b/c.txt", ["**/b/**"])
+        assert False==GeneralUtilities.is_ignored_by_glob_pattern("/folder/src", "/folder/src/a/b/c.txt", ["**/x/**"])

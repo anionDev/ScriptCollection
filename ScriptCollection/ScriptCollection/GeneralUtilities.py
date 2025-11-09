@@ -10,6 +10,7 @@ import shutil
 import time
 import urllib
 import stat
+import fnmatch
 import secrets
 import string as strin
 import sys
@@ -162,24 +163,40 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def copy_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False, filtertext: str = None) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, False, filtertext)
+    def copy_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False, ignored_glob_patterms: list[str] = None) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, False, ignored_glob_patterms)
 
     @staticmethod
     @check_arguments
-    def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False, filtertext: str = None) -> None:
-        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True, filtertext)
+    def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False, ignored_glob_patterms: list[str] = None) -> None:
+        GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True, ignored_glob_patterms)
+
 
     @staticmethod
     @check_arguments
-    def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files, remove_source: bool, filtertext: str = None) -> None:
+    def is_ignored_by_glob_pattern(source_directory:str,path:str, ignored_glob_patterms: list[str]) -> bool:
+        source_directory=source_directory.replace("\\","/")
+        path=path.replace("\\","/")
+        GeneralUtilities.assert_condition(path.startswith(source_directory), f"Path '{path}' is not located in source directory '{source_directory}'.")
+        if ignored_glob_patterms is None:
+            return False
+        relative_path = os.path.relpath(path, source_directory)
+        for pattern in ignored_glob_patterms:
+            if fnmatch.filter([relative_path], pattern):
+                return True
+        return False
+    
+    
+    @staticmethod
+    @check_arguments
+    def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files:bool, remove_source: bool,ignored_glob_patterms: list[str] = None) -> None:
         srcDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(source_directory)
         dstDirFull = GeneralUtilities.resolve_relative_path_from_current_working_directory(target_directory)
         if (os.path.isdir(source_directory)):
             GeneralUtilities.ensure_directory_exists(target_directory)
             for file in GeneralUtilities.get_direct_files_of_folder(srcDirFull):
                 filename = os.path.basename(file)
-                if filtertext is None or re.match(filtertext, file):
+                if not GeneralUtilities.is_ignored_by_glob_pattern(source_directory,file, ignored_glob_patterms):
                     targetfile = os.path.join(dstDirFull, filename)
                     if (os.path.isfile(targetfile)):
                         if overwrite_existing_files:
@@ -191,29 +208,26 @@ class GeneralUtilities:
                     else:
                         shutil.copy(file, dstDirFull)
             for sub_folder in GeneralUtilities.get_direct_folders_of_folder(srcDirFull):
-                foldername = os.path.basename(sub_folder)
-                sub_target = os.path.join(dstDirFull, foldername)
-                GeneralUtilities.__copy_or_move_content_of_folder(sub_folder, sub_target, overwrite_existing_files, remove_source)
-                if remove_source:
-                    GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
+                if not GeneralUtilities.is_ignored_by_glob_pattern(source_directory,sub_folder, ignored_glob_patterms):
+                    foldername = os.path.basename(sub_folder)
+                    sub_target = os.path.join(dstDirFull, foldername)
+                    GeneralUtilities.__copy_or_move_content_of_folder(sub_folder, sub_target, overwrite_existing_files, remove_source,ignored_glob_patterms)
+                    if remove_source:
+                        GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
         else:
             raise ValueError(f"Folder '{source_directory}' does not exist")
 
     @staticmethod
     @check_arguments
     def replace_regex_each_line_of_file(file: str, replace_from_regex: str, replace_to_regex: str, encoding="utf-8", verbose: bool = False) -> None:
-        """This function iterates over each line in the file and replaces it by the line which applied regex.
-        Note: The lines will be taken from open(...).readlines(). So the lines may contain '\\n' or '\\r\\n' for example."""
         if verbose:
             GeneralUtilities.write_message_to_stdout(f"Replace '{replace_from_regex}' to '{replace_to_regex}' in '{file}'")
-        with open(file, encoding=encoding, mode="r") as f:
-            lines = f.readlines()
-            replaced_lines = []
-            for line in lines:
-                replaced_line = re.sub(replace_from_regex, replace_to_regex, line)
-                replaced_lines.append(replaced_line)
-        with open(file, encoding=encoding, mode="w") as f:
-            f.writelines(replaced_lines)
+        lines=GeneralUtilities.read_lines_from_file(file,encoding)
+        replaced_lines = []
+        for line in lines:
+            replaced_line = re.sub(replace_from_regex, replace_to_regex, line)
+            replaced_lines.append(replaced_line)
+        GeneralUtilities.write_lines_to_file(file,replaced_lines,encoding)
 
     @staticmethod
     @check_arguments
@@ -558,6 +572,14 @@ class GeneralUtilities:
     def ensure_file_does_not_exist(path: str) -> None:
         if (os.path.isfile(path)):
             os.remove(path)
+
+    @staticmethod
+    @check_arguments
+    def ensure_path_does_not_exist(path: str) -> None:
+        if (os.path.isfile(path)):
+            GeneralUtilities.ensure_file_does_not_exist(path)
+        if (os.path.isdir(path)):
+            GeneralUtilities.ensure_directory_does_not_exist(path)
 
     @staticmethod
     @check_arguments
