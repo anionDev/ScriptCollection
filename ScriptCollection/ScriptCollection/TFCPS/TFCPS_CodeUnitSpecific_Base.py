@@ -7,7 +7,7 @@ import argparse
 from abc import ABC, abstractmethod
 import xmlschema
 from lxml import etree
-from ..GeneralUtilities import Dependency, GeneralUtilities, VersionEcholon
+from ..GeneralUtilities import GeneralUtilities, VersionEcholon
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
@@ -209,12 +209,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
         # Generate diff-report
         self.tfcps_Tools_General.generate_diff_report(repository_folder, codeunit_name, self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
-        
-        dependencies:list[Dependency]=self.get_dependencies()
-        for dependency in dependencies:
-            if dependency.current_version!=dependency.latest_version:
-                self._protected_sc.log.log(f"Dependency \"{dependency.name}\" is used in the outdated version v{dependency.current_version} and can be upudated to v{dependency.latest_version}",LogLevel.Warning)
-
 
     @GeneralUtilities.check_arguments
     def generate_reference_using_docfx(self=None):
