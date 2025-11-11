@@ -116,7 +116,8 @@ class AnionBuildPlatform:
         repository:str=os.path.join(self.__configuration.build_repositories_folder,"Submodules",product_name)
         self.__sc.assert_is_git_repository(repository)
         self.__sc.assert_no_uncommitted_changes(repository)
-        self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
+        if os.path.isfile(os.path.join(repository,"Other","Scripts","UpdateDependencies.py")):
+            self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
         codeunits:list[str]=self._tFCPS_Tools_General.get_codeunits(repository)   
         for codeunit_name in codeunits:
             self.__sc.log.log(f"Update dependencies of codeunit {codeunit_name}...")
