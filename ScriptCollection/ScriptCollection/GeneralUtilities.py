@@ -176,7 +176,7 @@ class GeneralUtilities:
         result:dict[str,set[str]]=dict[str,set[str]]()
         for dlist in versions:
             for ditem in dlist:
-                if not ditem[ditem.dependencyname] in result:
+                if not result[ditem.dependencyname] in result:
                     result[ditem.dependencyname]=set[str]()
                 result[ditem.dependencyname].add(ditem.current_version)
         return result
