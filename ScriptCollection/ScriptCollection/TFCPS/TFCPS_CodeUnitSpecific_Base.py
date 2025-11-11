@@ -56,7 +56,11 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         raise ValueError(f"Can not find codeunit-folder for folder \"{self.__current_file}\".")
 
     @abstractmethod
-    def get_dependencies(self)->list[Dependency]:
+    def get_dependencies(self)->dict[str,set[str]]:
+        raise ValueError(f"Operation is abstract.")
+    
+    @abstractmethod
+    def get_available_versions(self,dependencyname:str)->list[str]:
         raise ValueError(f"Operation is abstract.")
     
     @abstractmethod
@@ -64,15 +68,20 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         raise ValueError(f"Operation is abstract.")
 
     def update_dependencies(self):
-        dependencies:list[Dependency]=self.get_dependencies()
+        self.update_dependencies_with_specific_echolon(VersionEcholon.LatestPatchOrLatestMinor)
+
+    def update_dependencies_with_specific_echolon(self, echolon: VersionEcholon):
         ignored_dependencies=self.tfcps_Tools_General.get_dependencies_which_are_ignored_from_updates(self.get_codeunit_folder())
         for ignored_dependency in ignored_dependencies:
-            self._protected_sc.log.log(f"Codeunit {self.get_codeunit_name()} contains the dependency {ignored_dependency} which is ignored for updates.", LogLevel.Warning)
-        used_echolon:VersionEcholon=VersionEcholon.LatestPatchOrLatestMinor
-        for dependency in dependencies:
-            if dependency.current_version!=dependency.latest_version:
-                latest_version:str=dependency.get_latest_version(used_echolon)
-                self.set_dependency_version(dependency.dependencyname,latest_version)
+            self._protected_sc.log.log(f"Codeunit {self.get_codeunit_name()} ignores the dependency {ignored_dependency} in update-checks.", LogLevel.Warning)
+
+        dependencies_dict:dict[str,set[str]]=self.get_dependencies()
+        for dependencyname,dependency_versions in dependencies_dict.items():
+            latest_currently_used_version=GeneralUtilities.get_latest_version(dependency_versions)
+            if dependencyname not in ignored_dependencies: 
+                available_versions:list[str]=self.get_available_versions(dependencyname)
+                desired_version:str=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
+                self.set_dependency_version(dependencyname,desired_version)
         
     def get_version_of_project(self)->str:
         return self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())

@@ -7,7 +7,7 @@ import json
 from lxml import etree
 import yaml
 from .CertificateGeneratorInformationBase import CertificateGeneratorInformationBase
-from ...GeneralUtilities import Dependency, GeneralUtilities
+from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -115,7 +115,6 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
                 sarif_target_file = os.path.join(sarif_folder_target, sarif_filename)
                 GeneralUtilities.ensure_file_does_not_exist(sarif_target_file)
                 shutil.copyfile(sarif_source_file, sarif_target_file)
-        #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_project(self,runtimes:list[str]) -> None:
@@ -394,11 +393,6 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
     def generate_reference(self) -> None:
         self.generate_reference_using_docfx()
 
-    @GeneralUtilities.check_arguments
-    def update_dependencies(self) -> None:
-        self.update_year_for_dotnet_codeunit()
-        csproj_file:str=os.path.join(self.get_codeunit_folder(), self.get_codeunit_name(), self.get_codeunit_name() + ".csproj")
-        self._protected_sc.update_dependencies_of_dotnet_project(csproj_file,[])#TODO set ignored codeunits
     
     @GeneralUtilities.check_arguments
     def update_year_for_dotnet_codeunit(self) -> None:
@@ -466,11 +460,18 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         return f'filename="{filename_relative}"'
 
     
-    def get_dependencies(self)->list[Dependency]:
+    def get_dependencies(self)->dict[str,set[str]]:
+        return []#TODO
+    
+    @GeneralUtilities.check_arguments
+    def get_available_versions(self,dependencyname:str)->list[str]:
         return []#TODO
 
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
+        #self.update_year_for_dotnet_codeunit()
+        #csproj_file:str=os.path.join(self.get_codeunit_folder(), self.get_codeunit_name(), self.get_codeunit_name() + ".csproj")
+        #self._protected_sc.update_dependencies_of_dotnet_project(csproj_file,[])#TODO set ignored codeunits
     
 
 class TFCPS_CodeUnitSpecific_DotNet_CLI:

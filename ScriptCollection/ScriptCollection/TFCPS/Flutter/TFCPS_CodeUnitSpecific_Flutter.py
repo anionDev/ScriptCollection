@@ -2,7 +2,7 @@ import os
 import shutil
 import re
 import zipfile
-from ...GeneralUtilities import Dependency, GeneralUtilities
+from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -68,7 +68,6 @@ class TFCPS_CodeUnitSpecific_Flutter_Functions(TFCPS_CodeUnitSpecific_Base):
             else:
                 raise ValueError(f"Not supported target: {target}")
         self.copy_source_files_to_output_directory()
-        #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
     def linting(self) -> None:
@@ -82,9 +81,6 @@ class TFCPS_CodeUnitSpecific_Flutter_Functions(TFCPS_CodeUnitSpecific_Base):
     def generate_reference(self) -> None:
         self.generate_reference_using_docfx()
 
-    @GeneralUtilities.check_arguments
-    def update_dependencies(self) -> None:
-        pass#TODO
     
     @GeneralUtilities.check_arguments
     def run_testcases(self,package_name:str) -> None:
@@ -113,7 +109,11 @@ class TFCPS_CodeUnitSpecific_Flutter_Functions(TFCPS_CodeUnitSpecific_Base):
         self.run_testcases_common_post_task(repository_folder, codeunit_name, True, self.get_target_environment_type())
     
     
-    def get_dependencies(self)->list[Dependency]:
+    def get_dependencies(self)->dict[str,set[str]]:
+        return []#TODO
+    
+    @GeneralUtilities.check_arguments
+    def get_available_versions(self,dependencyname:str)->list[str]:
         return []#TODO
     
     def set_dependency_version(self,name:str,new_version:str)->None:

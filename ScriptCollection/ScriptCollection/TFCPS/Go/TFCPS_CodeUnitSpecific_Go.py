@@ -1,6 +1,6 @@
 import os
 from lxml import etree
-from ...GeneralUtilities import GeneralUtilities, Dependency
+from ...GeneralUtilities import GeneralUtilities
 from ...ScriptCollectionCore import ScriptCollectionCore
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
@@ -49,7 +49,11 @@ class TFCPS_CodeUnitSpecific_Go_Functions(TFCPS_CodeUnitSpecific_Base):
         self.__update_coverage_file(coverage_file)
         self.run_testcases_common_post_task(self.get_repository_folder(),self.get_codeunit_name(),True,self.get_type_environment_type())
 
-    def get_dependencies(self)->list[Dependency]:
+    def get_dependencies(self)->dict[str,set[str]]:
+        return []#TODO
+    
+    @GeneralUtilities.check_arguments
+    def get_available_versions(self,dependencyname:str)->list[str]:
         return []#TODO
     
     def set_dependency_version(self,name:str,new_version:str)->None:
