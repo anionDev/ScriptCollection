@@ -1,5 +1,5 @@
 import os
-from ...GeneralUtilities import GeneralUtilities, Dependency
+from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -67,18 +67,20 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     @GeneralUtilities.check_arguments
     def generate_reference(self=None) -> None:
         self.generate_reference_using_docfx()
-
-    @GeneralUtilities.check_arguments
-    def update_dependencies(self=None) -> None:
-        pass#TODO
     
     @GeneralUtilities.check_arguments
     def run_testcases(self=None) -> None:
         pass#TODO
     
-    def get_dependencies(self)->list[Dependency]:
+    @GeneralUtilities.check_arguments
+    def get_dependencies(self)->dict[str,set[str]]:
         return []#TODO
     
+    @GeneralUtilities.check_arguments
+    def get_available_versions(self,dependencyname:str)->list[str]:
+        return []#TODO
+
+    @GeneralUtilities.check_arguments
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
     

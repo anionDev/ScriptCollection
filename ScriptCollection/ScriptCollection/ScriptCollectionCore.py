@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.70"
+version = "4.0.71"
 __version__ = version
 
 
@@ -2147,21 +2147,21 @@ chmod {permission} {link_file}
         GeneralUtilities.write_lines_to_file(file, lines)
 
     @GeneralUtilities.check_arguments
-    def get_external_ip(self) -> str:
+    def get_external_ip_address(self) -> str:
         information = self.get_externalnetworkinformation_as_json_string()
         parsed = json.loads(information)
-        return parsed.IPAddress
+        return parsed["IPAddress"]
 
     @GeneralUtilities.check_arguments
-    def get_country_of_external_ip(self) -> str:
+    def get_country_of_external_ip_address(self) -> str:
         information = self.get_externalnetworkinformation_as_json_string()
         parsed = json.loads(information)
-        return parsed.Country
+        return parsed["Country"]
 
     @GeneralUtilities.check_arguments
-    def get_externalnetworkinformation_as_json_string(self) -> str:
+    def get_externalnetworkinformation_as_json_string(self,clientinformation_link:str='https://clientinformation.anion327.de') -> str:
         headers = {'Cache-Control': 'no-cache'}
-        response = requests.get('https://clientinformation.anion327.de/API/v1/ClientInformationBackendController/Information',  timeout=5, headers=headers)
+        response = requests.get(clientinformation_link,  timeout=5, headers=headers)
         network_information_as_json_string = GeneralUtilities.bytes_to_string(response.content)
         return network_information_as_json_string
 

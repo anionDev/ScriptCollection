@@ -1,10 +1,12 @@
+import re
+import os
+from os import listdir
+from os.path import isfile, join, isdir
 import codecs
 import platform
 import inspect
 import ctypes
 import hashlib
-import re
-import os
 import subprocess
 import shutil
 import time
@@ -18,12 +20,10 @@ from enum import Enum
 import traceback
 import warnings
 import functools
-from datetime import datetime, timedelta, date, timezone
-from os import listdir
-from os.path import isfile, join, isdir
 from pathlib import Path
-from shutil import copyfile
+from datetime import datetime, timedelta, date, timezone
 import typing
+from packaging.version import Version
 import psutil
 from defusedxml.minidom import parse
 from OpenSSL import crypto
@@ -34,15 +34,14 @@ class VersionEcholon(Enum):
     LatestPatchOrLatestMinorOrNextMajor = 2
     LatestVersion = 3
 
+
 class Dependency:
     dependencyname:str
     current_version:str
-    latest_patch_version_for_current_minor_version:str
-    latest_minor_version_for_current_major_version:str
-    latest_version:str
 
-    def get_latest_version(self,echolon:VersionEcholon)->str:
-        return self.latest_patch_version_for_current_minor_version#TODO consider echolon
+    def __init__(self,dependencyname:str,current_version:str):
+        self.dependencyname=dependencyname
+        self.current_version=current_version
 
 class GeneralUtilities:
 
@@ -171,7 +170,66 @@ class GeneralUtilities:
     def move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files=False, ignored_glob_patterms: list[str] = None) -> None:
         GeneralUtilities.__copy_or_move_content_of_folder(source_directory, target_directory, overwrite_existing_files, True, ignored_glob_patterms)
 
-
+    @staticmethod
+    @check_arguments
+    def merge_dependency_lists(versions:list[list[Dependency]]) -> dict[str,set[str]]:
+        result:dict[str,set[str]]=dict[str,set[str]]()
+        for dlist in versions:
+            for ditem in dlist:
+                if not ditem[ditem.dependencyname] in result:
+                    result[ditem.dependencyname]=set[str]()
+                result[ditem.dependencyname].add(ditem.current_version)
+        return result
+    
+    @staticmethod
+    @check_arguments
+    def choose_version(available_versions:list[str],current_version:str,echolon:VersionEcholon) -> str:
+        match echolon:
+            case VersionEcholon.LatestPatch:
+                return GeneralUtilities.get_latest_version(GeneralUtilities.filter_versions_by_prefix(available_versions,f"{GeneralUtilities.get_major_part_of_version(current_version)}.{GeneralUtilities.get_minor_part_of_version(current_version)}."))
+            case VersionEcholon.LatestPatchOrLatestMinor:
+                return GeneralUtilities.get_latest_version(GeneralUtilities.filter_versions_by_prefix(available_versions,f"{GeneralUtilities.get_major_part_of_version(current_version)}."))
+            case VersionEcholon.LatestPatchOrLatestMinorOrNextMajor:
+                raise  ValueError("not implemented")#TODO
+            case VersionEcholon.LatestVersion:
+                return GeneralUtilities.get_latest_version(available_versions)
+            case _:
+                raise  ValueError("Unknown echolon-value: "+str(echolon))
+    
+    @staticmethod
+    @check_arguments
+    def get_latest_version(versions:list[str]) -> str:
+        GeneralUtilities.assert_condition(0<len(versions),"Version-list can not be empty.")
+        latest = max(versions, key=Version)
+        return latest
+    
+    @staticmethod
+    @check_arguments
+    def filter_versions_by_prefix(versions:list[str],prefix:str) -> str:
+        return GeneralUtilities. get_latest_version([v for v in versions if v.startswith(prefix)])
+    
+    @staticmethod
+    @check_arguments
+    def get_major_part_of_version(version:str) -> int:
+        return GeneralUtilities.get_version_parts(version)[0]
+    
+    @staticmethod
+    @check_arguments
+    def get_minor_part_of_version(version:str) -> int:
+        return GeneralUtilities.get_version_parts(version)[1]
+    
+    @staticmethod
+    @check_arguments
+    def get_patch_part_of_version(version:str) -> int:
+        return GeneralUtilities.get_version_parts(version)[2]
+    
+    @staticmethod
+    @check_arguments
+    def get_version_parts(version:str) -> tuple[int,int,int]:
+        match = re.match(r"^(\d+).(\d+).(\d+)$", version)
+        GeneralUtilities.assert_condition(match,f"string \"{version}\" is not a valid version.")
+        return (int(match.group(1)),int(match.group(2)),int(match.group(3)))
+    
     @staticmethod
     @check_arguments
     def is_ignored_by_glob_pattern(source_directory:str,path:str, ignored_glob_patterms: list[str]) -> bool:
@@ -681,6 +739,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def read_text_from_file(file: str, encoding="utf-8") -> str:
+        GeneralUtilities.assert_file_exists(file)
         return GeneralUtilities.bytes_to_string(GeneralUtilities.read_binary_from_file(file), encoding)
 
     @staticmethod
@@ -729,7 +788,7 @@ class GeneralUtilities:
                 with open(target_file, 'w', encoding='utf8') as f:
                     f.write(GeneralUtilities.get_metadata_for_file_for_clone_folder_structure(source_file))
             else:
-                copyfile(source_file, target_file)
+                shutil.copyfile(source_file, target_file)
 
     @staticmethod
     @check_arguments
