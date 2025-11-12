@@ -227,7 +227,7 @@ class GeneralUtilities:
     @check_arguments
     def get_version_parts(version:str) -> tuple[int,int,int]:
         match = re.match(r"^(\d+).(\d+).(\d+)$", version)
-        GeneralUtilities.assert_condition(match,f"string \"{version}\" is not a valid version.")
+        GeneralUtilities.assert_condition(match is not None,f"string \"{version}\" is not a valid version.")
         return (int(match.group(1)),int(match.group(2)),int(match.group(3)))
     
     @staticmethod
