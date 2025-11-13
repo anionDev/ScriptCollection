@@ -79,9 +79,15 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         for dependencyname,dependency_versions in dependencies_dict.items():
             latest_currently_used_version=GeneralUtilities.get_latest_version(dependency_versions)
             if dependencyname not in ignored_dependencies: 
-                available_versions:list[str]=self.get_available_versions(dependencyname)
-                desired_version:str=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
-                self.set_dependency_version(dependencyname,desired_version)
+                try:
+                    available_versions:list[str]=self.get_available_versions(dependencyname)
+                    for available_version in available_versions:
+                        GeneralUtilities.assert_condition(re.match(r"^(\d+).(\d+).(\d+)$", available_version) is not None,f"Invalid-version-string: {available_version}")
+                        desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
+                        self.set_dependency_version(dependencyname,desired_version)
+                except Exception:
+                    GeneralUtilities.write_exception_to_stderr(f"Error while updating {dependencyname}.")
+                    raise
         
     def get_version_of_project(self)->str:
         return self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())

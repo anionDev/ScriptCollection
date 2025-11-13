@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.77"
+version = "4.0.78"
 __version__ = version
 
 
@@ -1248,6 +1248,15 @@ class ScriptCollectionCore:
     def SCSearchInFiles(self, folder: str, searchstring: str) -> None:
         for file in GeneralUtilities.absolute_file_paths(folder):
             self.__check_file(file, searchstring)
+
+    @GeneralUtilities.check_arguments
+    def get_string_as_qr_code(self,string: str) -> None:
+        qr = qrcode.QRCode()
+        qr.add_data(string)
+        f = io.StringIO()
+        qr.print_ascii(out=f)
+        f.seek(0)
+        return f.read()
 
     @GeneralUtilities.check_arguments
     def __print_qr_code_by_csv_line(self, displayname: str, website: str, emailaddress: str, key: str, period: str) -> None:

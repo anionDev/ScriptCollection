@@ -155,7 +155,15 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         result=self._protected_sc.run_program("pip3",f"index versions {dependencyname}")
         available_versions_line:str=[line for line in GeneralUtilities.string_to_lines(result[1]) if line.startswith("Available versions: ")][0]
         available_versions=[version_str.strip() for version_str in available_versions_line[len("Available versions: "):].split(",")]
-        return available_versions
+        result=[]
+        for v in available_versions:
+            if re.match(r"^(\d+).(\d+).(\d+)$", v) is not None:
+                result.append(v)
+            elif re.match(r"^(\d+).(\d+)$", v) is not None:
+                result.append(v+".0")
+            elif re.match(r"^(\d+)$", v) is not None:
+                result.append(v+".0.0")
+        return result
     
     def set_dependency_version(self,name:str,new_version:str)->None:
         self.__set_dependency_version_in_setupcfg(name,new_version)

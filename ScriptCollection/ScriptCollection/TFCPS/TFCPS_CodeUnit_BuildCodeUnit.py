@@ -42,7 +42,9 @@ class TFCPS_CodeUnit_BuildCodeUnit:
 
         GeneralUtilities.ensure_folder_exists_and_is_empty(self.codeunit_folder+"/Other/Artifacts")
 
-        arguments: str = f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
+        arguments: str = f"--targetenvironmenttype {self.target_environment_type} --verbosity {int(self.sc.log.loglevel)}"
+        if self.additionalargumentsfile is not None:
+            arguments=arguments+f" --additionalargumentsfile {self.additionalargumentsfile}"
         if not self.use_cache:
             arguments = f"{arguments} --nocache"
 

@@ -205,8 +205,8 @@ class GeneralUtilities:
     
     @staticmethod
     @check_arguments
-    def filter_versions_by_prefix(versions:list[str],prefix:str) -> str:
-        return GeneralUtilities. get_latest_version([v for v in versions if v.startswith(prefix)])
+    def filter_versions_by_prefix(versions:list[str],prefix:str) -> list[str]:
+        return [v for v in versions if v.startswith(prefix)]
     
     @staticmethod
     @check_arguments
