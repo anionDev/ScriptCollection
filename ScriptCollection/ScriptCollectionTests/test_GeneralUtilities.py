@@ -224,3 +224,6 @@ class GeneralUtilitiesTests(unittest.TestCase):
     def test_is_ignored_by_glob_pattern(self) -> None:
         assert True==GeneralUtilities.is_ignored_by_glob_pattern("/folder/src", "/folder/src/a/b/c.txt", ["**/b/**"])
         assert False==GeneralUtilities.is_ignored_by_glob_pattern("/folder/src", "/folder/src/a/b/c.txt", ["**/x/**"])
+
+    def get_latest_version(self)->None:
+        assert "3.1.0"==GeneralUtilities.get_latest_version(["2.3.4","3.1.0","16.5"])
