@@ -92,8 +92,8 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
             GeneralUtilities.ensure_directory_does_not_exist(outputfolder)
             self._protected_sc.run_program("dotnet", "clean", csproj_file_folder)
             GeneralUtilities.ensure_directory_exists(outputfolder)
-            self._protected_sc.run_program("dotnet", "restore", codeunit_folder)
-            self._protected_sc.run_program_argsasarray("dotnet", ["build", csproj_file_name, "-c", dotnet_build_configuration, "-o", outputfolder, "--runtime", runtime], csproj_file_folder)
+            self._protected_sc.run_program("dotnet", "restore", codeunit_folder,print_live_output=self.get_verbosity()==4)
+            self._protected_sc.run_program_argsasarray("dotnet", ["build", csproj_file_name, "-c", dotnet_build_configuration, "-o", outputfolder, "--runtime", runtime], csproj_file_folder,print_live_output=self.get_verbosity()==4)
             if copy_license_file_to_target_folder:
                 license_file = os.path.join(repository_folder, "License.txt")
                 target = os.path.join(outputfolder, f"{codeunit_name}.License.txt")
@@ -422,7 +422,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
-        test_run_result=self._protected_sc.run_program("dotnet", arg, codeunit_folder, print_live_output=True)#pylint:disable=unused-variable
+        self._protected_sc.run_program("dotnet", arg, codeunit_folder, print_live_output=True,print_live_output=self.get_verbosity()==4)
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
