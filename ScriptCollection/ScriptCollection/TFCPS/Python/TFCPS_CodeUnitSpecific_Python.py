@@ -1,5 +1,6 @@
 import os
-from ...GeneralUtilities import Dependency, GeneralUtilities
+import re
+from ...GeneralUtilities import GeneralUtilities,Dependency
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -17,7 +18,6 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.run_program("python", f"-m build --wheel --outdir {target_directory}", codeunit_folder)
         self.generate_bom_for_python_project( )
         self.copy_source_files_to_output_directory()
-        #TODO check for updateable dependencies (in a unified way)
 
     @GeneralUtilities.check_arguments
     def generate_bom_for_python_project(self) -> None:
@@ -82,10 +82,6 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         self.generate_reference_using_docfx()
 
     @GeneralUtilities.check_arguments
-    def update_dependencies(self) -> None:
-        pass
-    
-    @GeneralUtilities.check_arguments
     def run_testcases(self) -> None:
         codeunitname: str =self.get_codeunit_name()
         repository_folder: str = self.get_repository_folder()
@@ -100,12 +96,125 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         self.tfcps_Tools_General.merge_packages(coveragefile,codeunitname)
         self.run_testcases_common_post_task(repository_folder, codeunitname, True, self.get_type_environment_type())
 
+    def get_dependencies(self)->dict[str,set[str]]:
+        return GeneralUtilities.merge_dependency_lists([
+            self.get_dependencies_from_setupcfg(),
+            self.get_dependencies_from_requirementstxt(),
+            self.get_dependencies_from_otherrequirementstxt()
+        ])
     
-    def get_dependencies(self)->list[Dependency]:
-        return []#TODO
+    def get_dependencies_from_setupcfg(self)->list[Dependency]:
+        setupcfg_file=os.path.join(self.get_codeunit_folder(),"setup.cfg")
+        lines = GeneralUtilities.read_lines_from_file(setupcfg_file)
+        result:list[Dependency]=[]
+        is_in_dependency_section=False
+        for line in lines:
+            if line=="install_requires =":
+                is_in_dependency_section=True
+            elif line.startswith(" "):
+                if is_in_dependency_section:
+                    match = re.match(r"^\s*([A-Za-z0-9_\-]+)\s*([<>=!~]+)?\s*(.*)?$", line)
+                    if match:
+                        dep_name = match.group(1)
+                        dep_operator = match.group(2) or None#pylint:disable=unused-variable
+                        dep_version = match.group(3) or None
+                        dep=Dependency(dep_name,dep_version)
+                        result.append(dep)
+                    else:
+                        raise ValueError(f"Unparsable dependency-definition-line: \"{line}\"")
+            else:
+                is_in_dependency_section=False
+        return result
+    
+    def get_dependencies_from_requirementstxt(self)->list[Dependency]:
+        return self.get_dependencies_from_requirementsfile(os.path.join(self.get_codeunit_folder(),"requirements.txt")) 
+    
+    def get_dependencies_from_otherrequirementstxt(self)->list[Dependency]:
+        rfile=os.path.join(self.get_codeunit_folder(),"Other","requirements.txt")
+        if os.path.isfile(rfile):
+            return self.get_dependencies_from_requirementsfile(rfile) 
+        else:
+            return []
+    
+    def get_dependencies_from_requirementsfile(self,file:str)->list[Dependency]:
+        lines = GeneralUtilities.read_lines_from_file(file)
+        result:list[Dependency]=[]
+        for line in lines:
+            match = re.match(r"^([A-Za-z0-9_\-]+)\s*([<>=!~]+)?\s*(.*)?$", line)
+            if match:
+                dep_name = match.group(1)
+                dep_operator = match.group(2) or None#pylint:disable=unused-variable
+                dep_version = match.group(3) or None
+                dep=Dependency(dep_name,dep_version)
+                result.append(dep)
+
+        return result
+    
+    @GeneralUtilities.check_arguments
+    def get_available_versions(self,dependencyname:str)->list[str]:
+        result=self._protected_sc.run_program("pip3",f"index versions {dependencyname}")
+        available_versions_line:str=[line for line in GeneralUtilities.string_to_lines(result[1]) if line.startswith("Available versions: ")][0]
+        available_versions=[version_str.strip() for version_str in available_versions_line[len("Available versions: "):].split(",")]
+        result=[]
+        for v in available_versions:
+            if re.match(r"^(\d+).(\d+).(\d+)$", v) is not None:
+                result.append(v)
+            elif re.match(r"^(\d+).(\d+)$", v) is not None:
+                result.append(v+".0")
+            elif re.match(r"^(\d+)$", v) is not None:
+                result.append(v+".0.0")
+        return result
     
     def set_dependency_version(self,name:str,new_version:str)->None:
-        raise ValueError(f"Operation is not implemented.")
+        self.__set_dependency_version_in_setupcfg(name,new_version)
+        self.__set_dependency_version_in_requirementstxt(name,new_version)
+        self.__set_dependency_version_in_otherrequirementstxt(name,new_version)
+
+    def __set_dependency_version_in_setupcfg(self,name:str,new_version:str)->None:
+        setupcfg_file=os.path.join(self.get_codeunit_folder(),"setup.cfg")
+        lines=GeneralUtilities.read_lines_from_file(setupcfg_file)
+        new_lines:list[str]=[]
+        for line in lines:
+            match = re.match("^(\\s*)("+re.escape(name)+")\\s*([<>=!~]+)?\\s*(.*)?$", line)
+            if match:
+                whitespace = match.group(1)
+                dep_name = match.group(2)#pylint:disable=unused-variable
+                dep_operator = match.group(3) or None
+                dep_version = match.group(4) or None#pylint:disable=unused-variable
+                new_line=whitespace+name
+                if dep_operator is None:
+                    dep_operator=">="
+                new_line=new_line+dep_operator+new_version
+                new_lines.append(new_line)
+            else:
+                new_lines.append(line)
+        GeneralUtilities.write_lines_to_file(setupcfg_file,new_lines)
+
+    def __set_dependency_version_in_requirementstxt(self,name:str,new_version:str)->None:
+        self.__set_dependency_version_in_requirements(name,new_version,os.path.join(self.get_codeunit_folder(),"requirements.txt")) 
+
+    def __set_dependency_version_in_otherrequirementstxt(self,name:str,new_version:str)->None:
+        rfile=os.path.join(self.get_codeunit_folder(),"Other","requirements.txt")
+        if os.path.isfile(rfile):
+            self.__set_dependency_version_in_requirements(name,new_version,rfile) 
+
+    def __set_dependency_version_in_requirements(self,name:str,new_version:str,requirementsfile:str)->None:
+        lines=GeneralUtilities.read_lines_from_file(requirementsfile)
+        new_lines:list[str]=[]
+        for line in lines:
+            match = re.match("^("+re.escape(name)+")\\s*([<>=!~]+)?\\s*(.*)?$", line)
+            if match:
+                dep_name = match.group(1)#pylint:disable=unused-variable
+                dep_operator = match.group(2) or None
+                dep_version = match.group(3) or None#pylint:disable=unused-variable
+                new_line=name
+                if dep_operator is None:
+                    dep_operator=">="
+                new_line=new_line+dep_operator+new_version
+                new_lines.append(new_line)
+            else:
+                new_lines.append(line)
+        GeneralUtilities.write_lines_to_file(requirementsfile,new_lines)
     
 class TFCPS_CodeUnitSpecific_Python_CLI:
 

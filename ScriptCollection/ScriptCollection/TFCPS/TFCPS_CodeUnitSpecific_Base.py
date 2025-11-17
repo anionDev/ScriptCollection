@@ -7,7 +7,7 @@ import argparse
 from abc import ABC, abstractmethod
 import xmlschema
 from lxml import etree
-from ..GeneralUtilities import Dependency, GeneralUtilities, VersionEcholon
+from ..GeneralUtilities import GeneralUtilities, VersionEcholon
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
@@ -56,7 +56,11 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         raise ValueError(f"Can not find codeunit-folder for folder \"{self.__current_file}\".")
 
     @abstractmethod
-    def get_dependencies(self)->list[Dependency]:
+    def get_dependencies(self)->dict[str,set[str]]:
+        raise ValueError(f"Operation is abstract.")
+    
+    @abstractmethod
+    def get_available_versions(self,dependencyname:str)->list[str]:
         raise ValueError(f"Operation is abstract.")
     
     @abstractmethod
@@ -64,15 +68,26 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         raise ValueError(f"Operation is abstract.")
 
     def update_dependencies(self):
-        dependencies:list[Dependency]=self.get_dependencies()
+        self.update_dependencies_with_specific_echolon(VersionEcholon.LatestPatchOrLatestMinor)
+
+    def update_dependencies_with_specific_echolon(self, echolon: VersionEcholon):
         ignored_dependencies=self.tfcps_Tools_General.get_dependencies_which_are_ignored_from_updates(self.get_codeunit_folder())
         for ignored_dependency in ignored_dependencies:
-            self._protected_sc.log.log(f"Codeunit {self.get_codeunit_name()} contains the dependency {ignored_dependency} which is ignored for updates.", LogLevel.Warning)
-        used_echolon:VersionEcholon=VersionEcholon.LatestPatchOrLatestMinor
-        for dependency in dependencies:
-            if dependency.current_version!=dependency.latest_version:
-                latest_version:str=dependency.get_latest_version(used_echolon)
-                self.set_dependency_version(dependency.dependencyname,latest_version)
+            self._protected_sc.log.log(f"Codeunit {self.get_codeunit_name()} ignores the dependency {ignored_dependency} in update-checks.", LogLevel.Warning)
+
+        dependencies_dict:dict[str,set[str]]=self.get_dependencies()
+        for dependencyname,dependency_versions in dependencies_dict.items():
+            latest_currently_used_version=GeneralUtilities.get_latest_version(dependency_versions)
+            if dependencyname not in ignored_dependencies: 
+                try:
+                    available_versions:list[str]=self.get_available_versions(dependencyname)
+                    for available_version in available_versions:
+                        GeneralUtilities.assert_condition(re.match(r"^(\d+).(\d+).(\d+)$", available_version) is not None,f"Invalid-version-string: {available_version}")
+                        desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
+                        self.set_dependency_version(dependencyname,desired_version)
+                except Exception:
+                    GeneralUtilities.write_exception_to_stderr(f"Error while updating {dependencyname}.")
+                    raise
         
     def get_version_of_project(self)->str:
         return self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())
@@ -200,12 +215,6 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
         # Generate diff-report
         self.tfcps_Tools_General.generate_diff_report(repository_folder, codeunit_name, self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
-        
-        dependencies:list[Dependency]=self.get_dependencies()
-        for dependency in dependencies:
-            if dependency.current_version!=dependency.latest_version:
-                self._protected_sc.log.log(f"Dependency \"{dependency.name}\" is used in the outdated version v{dependency.current_version} and can be upudated to v{dependency.latest_version}",LogLevel.Warning)
-
 
     @GeneralUtilities.check_arguments
     def generate_reference_using_docfx(self=None):

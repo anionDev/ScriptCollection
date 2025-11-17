@@ -1,7 +1,7 @@
 import os
 import re
 from lxml import etree
-from ...GeneralUtilities import Dependency, GeneralUtilities
+from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -37,9 +37,6 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
     def generate_reference(self) -> None:
         self.generate_reference_using_docfx()
 
-    @GeneralUtilities.check_arguments
-    def update_dependencies(self) -> None:
-        pass#TODO
     
     @GeneralUtilities.check_arguments
     def run_testcases(self) -> None:
@@ -113,7 +110,11 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.format_xml_file(self.get_codeunit_folder()+"/"+relative_path_to_bom_file)
 
     
-    def get_dependencies(self)->list[Dependency]:
+    def get_dependencies(self)->dict[str,set[str]]:
+        return []#TODO
+    
+    @GeneralUtilities.check_arguments
+    def get_available_versions(self,dependencyname:str)->list[str]:
         return []#TODO
     
     def set_dependency_version(self,name:str,new_version:str)->None:

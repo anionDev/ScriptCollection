@@ -39,7 +39,7 @@ class AnionBuildPlatform:
         self.__configuration = configuration
         self.__sc = ScriptCollectionCore()
         self.__sc.log.loglevel=configuration.verbosity
-        self._tFCPS_Tools_General=TFCPS_Tools_General(self.__sc)
+        self.__tFCPS_Tools_General=TFCPS_Tools_General(self.__sc)
 
     def run(self) -> None:
         # Checkout source branch
@@ -113,10 +113,12 @@ class AnionBuildPlatform:
 
     def __update_dependencies(self,product_name:str) -> None:
         self.__sc.log.log("Update dependencies...")
-        repository:str=os.path.join(self.__configuration.build_repositories_folder,product_name+"Build","Submodules",product_name)
+        repository:str=os.path.join(self.__configuration.build_repositories_folder,"Submodules",product_name)
+        self.__sc.assert_is_git_repository(repository)
         self.__sc.assert_no_uncommitted_changes(repository)
-        self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
-        codeunits:list[str]=self._tFCPS_Tools_General.get_codeunits(repository)   
+        if os.path.isfile(os.path.join(repository,"Other","Scripts","UpdateDependencies.py")):
+            self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
+        codeunits:list[str]=self.__tFCPS_Tools_General.get_codeunits(repository)   
         for codeunit_name in codeunits:
             self.__sc.log.log(f"Update dependencies of codeunit {codeunit_name}...")
             codeunit_folder=os.path.join(repository,codeunit_name)
@@ -128,7 +130,7 @@ class AnionBuildPlatform:
 
         if self.__sc.git_repository_has_uncommitted_changes(repository):
             changelog_folder = os.path.join(repository, "Other", "Resources", "Changelog")
-            project_version:str=self._tFCPS_Tools_General.get_version_of_project(repository)
+            project_version:str=self.__tFCPS_Tools_General.get_version_of_project(repository)
             changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
             if not os.path.isfile(changelog_file):
                 self.__ensure_changelog_file_is_added(repository, project_version)
