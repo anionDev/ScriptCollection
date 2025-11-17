@@ -2526,11 +2526,11 @@ OCR-content:
             self.kill_docker_container(service)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title)
+        self.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title,print_live_output=True)
 
     @GeneralUtilities.check_arguments
     def stop_local_test_service(self, file: str):
         example_folder = os.path.dirname(file)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title)
+        self.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title,print_live_output=True)
