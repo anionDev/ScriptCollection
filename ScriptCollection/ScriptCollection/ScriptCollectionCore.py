@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.78"
+version = "4.0.79"
 __version__ = version
 
 
@@ -1263,12 +1263,7 @@ class ScriptCollectionCore:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
-        qr = qrcode.QRCode()
-        qr.add_data(qrcode_content)
-        f = io.StringIO()
-        qr.print_ascii(out=f)
-        f.seek(0)
-        GeneralUtilities.write_message_to_stdout(f.read())
+        GeneralUtilities.write_message_to_stdout(self.get_string_as_qr_code(qrcode_content))
 
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:

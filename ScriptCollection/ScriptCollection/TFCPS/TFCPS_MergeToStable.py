@@ -118,7 +118,6 @@ class TFCPS_MergeToStable:
             # Generate reference
             self.__generate_entire_reference(projectname, project_version, reference_folder,reference_repo)
             
-        self.sc.log.log("Finishing merging to stable...")
         self.sc.git_commit(reference_repo,f"Added reference for v{project_version}")
         
         self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
@@ -132,6 +131,7 @@ class TFCPS_MergeToStable:
         self.sc.git_push_with_retry(self.createRelease_configuration.build_repo,self.createRelease_configuration.build_repo_remote_name,self.createRelease_configuration.build_repo_main_branch_name,self.createRelease_configuration.build_repo_main_branch_name)
         self.sc.git_push_with_retry(reference_repo,self.createRelease_configuration.reference_remote_name,self.createRelease_configuration.reference_repo_main_branch_name,self.createRelease_configuration.reference_repo_main_branch_name)
 
+        self.sc.log.log(f"Finishing merging {projectname} v{project_version} to stable...")
 
     def __remove_outdated_version(self,reference_repo:str):
         now = GeneralUtilities.get_now()
