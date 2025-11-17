@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.78"
+version = "4.0.79"
 __version__ = version
 
 
@@ -1263,12 +1263,7 @@ class ScriptCollectionCore:
         qrcode_content = f"otpauth://totp/{website}:{emailaddress}?secret={key}&issuer={displayname}&period={period}"
         GeneralUtilities.write_message_to_stdout(f"{displayname} ({emailaddress}):")
         GeneralUtilities.write_message_to_stdout(qrcode_content)
-        qr = qrcode.QRCode()
-        qr.add_data(qrcode_content)
-        f = io.StringIO()
-        qr.print_ascii(out=f)
-        f.seek(0)
-        GeneralUtilities.write_message_to_stdout(f.read())
+        GeneralUtilities.write_message_to_stdout(self.get_string_as_qr_code(qrcode_content))
 
     @GeneralUtilities.check_arguments
     def SCShow2FAAsQRCode(self, csvfile: str) -> None:
@@ -2531,11 +2526,11 @@ OCR-content:
             self.kill_docker_container(service)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title)
+        self.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title,print_live_output=True)
 
     @GeneralUtilities.check_arguments
     def stop_local_test_service(self, file: str):
         example_folder = os.path.dirname(file)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title)
+        self.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title,print_live_output=True)
