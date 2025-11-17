@@ -422,7 +422,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
-        self._protected_sc.run_program("dotnet", arg, codeunit_folder, print_live_output=True,print_live_output=self.get_verbosity()==4)
+        self._protected_sc.run_program("dotnet", arg, codeunit_folder, print_live_output=self.get_verbosity()==4)
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)
