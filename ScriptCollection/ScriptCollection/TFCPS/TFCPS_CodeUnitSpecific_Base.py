@@ -86,7 +86,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                         desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
                         self.set_dependency_version(dependencyname,desired_version)
                 except Exception:
-                    GeneralUtilities.write_exception_to_stderr(f"Error while updating {dependencyname}.")
+                    GeneralUtilities.write_message_to_stderr(f"Error while updating {dependencyname}.")
                     raise
         
     def get_version_of_project(self)->str:
