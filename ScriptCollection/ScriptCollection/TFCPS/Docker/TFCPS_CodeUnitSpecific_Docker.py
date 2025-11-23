@@ -74,7 +74,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     
     @GeneralUtilities.check_arguments
     def get_dependencies(self)->dict[str,set[str]]:
-        return []#TODO
+        return dict[str,set[str]]()#TODO
     
     @GeneralUtilities.check_arguments
     def get_available_versions(self,dependencyname:str)->list[str]:
