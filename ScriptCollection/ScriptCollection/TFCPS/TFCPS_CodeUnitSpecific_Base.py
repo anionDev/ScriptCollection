@@ -77,6 +77,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
         dependencies_dict:dict[str,set[str]]=self.get_dependencies()
         for dependencyname,dependency_versions in dependencies_dict.items():
+            GeneralUtilities.assert_condition(0<len(dependency_versions),f"Dependency {dependencyname} is not used.")
             latest_currently_used_version=GeneralUtilities.get_latest_version(dependency_versions)
             if dependencyname not in ignored_dependencies: 
                 try:
@@ -84,6 +85,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                     for available_version in available_versions:
                         GeneralUtilities.assert_condition(re.match(r"^(\d+).(\d+).(\d+)$", available_version) is not None,f"Invalid-version-string: {available_version}")
                         desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
+                        if len(dependency_versions)==1:
+                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in version "+dependency_versions[0]+") to version "+desired_version+".")
+                        else:
+                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" which is currently used in versions {"+", ".join(dependency_versions)+"} to version "+desired_version+".")
                         self.set_dependency_version(dependencyname,desired_version)
                 except Exception:
                     GeneralUtilities.write_exception_to_stderr(f"Error while updating {dependencyname}.")

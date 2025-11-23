@@ -43,7 +43,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunit_version = self.tfcps_Tools_General.get_version_of_codeunit(os.path.join(codeunit_folder,f"{codeunitname}.codeunit.xml"))
 
         versioned_api_spec_file = f"APISpecification/{codeunitname}.v{codeunit_version}.api.json"
-        self._protected_sc.run_program("swagger", f"tofile --output {versioned_api_spec_file} BuildResult_DotNet_{runtime}/{codeunitname}.dll {swagger_document_name}", artifacts_folder)
+        self._protected_sc.run_program("swagger", f"tofile --output {versioned_api_spec_file} BuildResult_DotNet_{runtime}/{codeunitname}.dll {swagger_document_name}", artifacts_folder,print_live_output=self.get_verbosity()==LogLevel.Debug)
         api_file: str = os.path.join(artifacts_folder, versioned_api_spec_file)
         shutil.copyfile(api_file, os.path.join(artifacts_folder, f"APISpecification/{codeunitname}.latest.api.json"))
 
@@ -146,6 +146,9 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         target_environment_type: str=self.get_target_environment_type()
         copy_license_file_to_target_folder: bool=True
         codeunitname: str = self.get_codeunit_name()
+        
+        workspace_folder=os.path.join(self.get_codeunit_folder(),"Other","Workspace")
+        GeneralUtilities.ensure_directory_does_not_exist(workspace_folder)
         
         files_to_sign: dict[str, str] = self.get_filestosign_from_commandline_arguments(  dict())
         repository_folder: str = self.get_repository_folder()
@@ -461,7 +464,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
 
     
     def get_dependencies(self)->dict[str,set[str]]:
-        return []#TODO
+        return dict[str,set[str]]()#TODO
     
     @GeneralUtilities.check_arguments
     def get_available_versions(self,dependencyname:str)->list[str]:
