@@ -111,7 +111,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
     
     def get_dependencies(self)->dict[str,set[str]]:
-        return []#TODO
+        return dict[str,set[str]]()#TODO
     
     @GeneralUtilities.check_arguments
     def get_available_versions(self,dependencyname:str)->list[str]:
