@@ -2,13 +2,12 @@
 set -e
 #set -o pipefail
 
-# Source https://wiki.debian.org/DebianInstaller/Preseed/EditIso
+# guide to create image for bios: https://wiki.debian.org/DebianInstaller/Preseed/EditIso
+# guide to create image for efi: https://wiki.debian.org/RepackBootableISO
 
-scriptfolder="$( dirname -- "$0"; )"
-cwd=$PWD
-cd $scriptfolder
-preseed_template_file="preseedTemplate.cfg"
-preseed_file="preseed.cfg"
+scriptfolder="/Workspace/Data/Clouds/cloud.now327.de/Documents/Machines/SecMachine/Scripts/Other/ScriptCollection/ServerMaintenance/Debian/CreateConfiguredDebianImage"
+preseed_template_file="$scriptfolder/preseedTemplate.cfg"
+preseed_file="$scriptfolder/preseed.cfg"
 
 isofile=$1
 hostname=$2
@@ -24,22 +23,33 @@ disk_size="${11}"
 temp_folder="${12}"
 # allowed values/formats for disk_size are: "max", "75%" and "250GB"
 
-echo "Step 1: Prepare"
+#-----------------------------------------------------------------------------------------------
+echo "Prepare..."
+pwd=$PWD
+timestamp=$(date +"%Y%m%d%H%M%S")
+
+if [ -d "$temp_folder" ]; then
+  chmod -R 777 $temp_folder # without that you get "permission denied" when trying to remove the folder"
+  rm -rf $temp_folder
+fi
+mkdir $temp_folder
+
 isofile_without_extension=${isofile::-4}
 iso_filename="$hostname-installer"
-hostname_lower="$hostname" | tr '[:upper:]' '[:lower:]'
-preseed_target_file="$result_folder/$iso_filename.iso"
-if [ -f "$preseed_target_file" ] ; then
-  rm -f "$preseed_target_file"
-fi
-if [ -d "$temp_folder" ] ; then
-  rm -rf "$temp_folder"
-fi
+hostname_lower="${hostname,,}"
 if [ -d "$preseed_file" ] ; then
   rm -f "$preseed_file"
 fi
 
-echo "Step 2: Generate preseed-file"
+preseed_target_file="$result_folder/${iso_filename}_$timestamp.iso"
+if [ -f "$preseed_target_file" ] ; then
+  rm -f "$preseed_target_file"
+fi
+
+#-----------------------------------------------------------------------------------------------
+echo "Generate preseed-file..."
+#echo $preseed_template_file
+#echo $preseed_file
 cp $preseed_template_file $preseed_file
 sed -i "s/__\[hostname\]__/$hostname_lower/g" $preseed_file
 sed -i "s/__\[ssh_public_key\]__/$ssh_public_key/g" $preseed_file
@@ -50,57 +60,108 @@ sed -i "s/__\[keymap\]__/$keymap/g" $preseed_file
 sed -i "s/__\[ssh_port\]__/$ssh_port/g" $preseed_file
 sed -i "s/__\[disk_size\]__/$disk_size/g" $preseed_file
 
-echo "Preseed-file:"
-cat $preseed_file
-debconf-set-selections -c preseed.cfg
-if [ $? -eq 0 ]; then
-    echo "Preseed is valid."
-else
-    echo "Preseed is invalid."
-    exit 1
+echo "preseedfile ($preseed_file):"
+#cat "$preseed_file"
+
+#-----------------------------------------------------------------------------------------------
+
+echo "Extract ISO..."
+
+mountpoint="$temp_folder/orginal"
+mkdir -p "$mountpoint"
+mount -o loop "$isofile" "$mountpoint"
+
+work_directory="$temp_folder/files"
+mkdir "$work_directory"
+
+cp -a "$mountpoint/." "$work_directory/"
+umount "$mountpoint"
+chmod 777 -R "$work_directory"
+
+#-----------------------------------------------------------------------------------------------
+echo "Add Preseed..."
+
+cd $scriptfolder
+gunzip $work_directory/install.$architecture/initrd.gz
+echo "preseed.cfg" | cpio -H newc -o -A -F $work_directory/install.$architecture/initrd
+gzip $work_directory/install.$architecture/initrd
+cd -
+
+##-----------------------------------------------------------------------------------------------
+echo "Edit boot menu..."
+
+menu_cfg="$work_directory/debian/isolinux/menu.cfg"
+txt_cfg="$work_directory/debian/isolinux/txt.cfg"
+truncate -s 0 "$menu_cfg"
+inhalt="menu hshift 4
+width 70
+menu title $hostname-Installer
+include stdmenu.cfg
+include txt.cfg"
+
+echo "$inhalt" > "$menu_cfg"
+
+#echo "menu-cfg:"
+#cat $menu_cfg
+
+echo "timeout 20" >> "$txt_cfg"
+echo "ontimeout /install.amd/vmlinuz vga=788 initrd=/install.amd/initrd.gz --- quiet " >> "$txt_cfg"
+echo "menu autoboot Auto-install will be started in # second{,s}..." >> "$txt_cfg"
+#
+##-----------------------------------------------------------------------------------------------
+echo "Build new ISO..."
+ls -l $work_directory/isolinux/isolinux.bin
+#read -p "Press key to continue.. " -n1 -s
+cd $work_directory
+find -follow -type f ! -name md5sum.txt -print0 | xargs -0 md5sum > md5sum.txt
+cd -
+
+ISOLINUX_MBR="/usr/lib/ISOLINUX/isohdpfx.bin"
+#genisoimage -r -J -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $preseed_target_file $work_directory
+xorriso -as mkisofs \
+  -r -J \
+  -b isolinux/isolinux.bin \
+  -c isolinux/boot.cat \
+  -no-emul-boot -boot-load-size 4 -boot-info-table \
+  -eltorito-alt-boot \
+  -e boot/grub/efi.img \
+  -no-emul-boot \
+  -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
+  -o "$preseed_target_file" "$work_directory"
+ls -la $preseed_target_file
+chown $SUDO_USER:$SUDO_USER $preseed_target_file
+
+#-----------------------------------------------------------------------------------------------
+echo "Create test-environment..."
+
+test_disk="/tmp/testdisk.qcow2"
+if [ -f "$test_disk" ] ; then
+    rm "$test_disk"
 fi
+qemu-img create -f qcow2 $test_disk 10G
+chown $SUDO_USER:$SUDO_USER $test_disk
 
-echo "Step 3: Adding preseed-file to the Initrd"
-7z x -o$temp_folder $isofile
-chmod +w -R $temp_folder/install.$architecture/
-gunzip $temp_folder/install.$architecture/initrd.gz
-echo $preseed_file | cpio -H newc -o -A -F $temp_folder/install.$architecture/initrd
-gzip $temp_folder/install.$architecture/initrd
-chmod -w -R $temp_folder/install.$architecture/
+#-----------------------------------------------------------------------------------------------
+echo "Cleanup..."
+rm $preseed_file
+rm -rf "$temp_folder"
 
-echo "Step 4  Update boot-configuration"
+#-----------------------------------------------------------------------------------------------
+echo "Checks..."
+#isohybrid -v $preseed_target_file
+#fdisk -l $preseed_target_file
+#isoinfo -i $preseed_target_file -l
+#xorriso -indev $preseed_target_file -report_el_torito plain
+ls -la $preseed_target_file
+#-----------------------------------------------------------------------------------------------
+echo "Finish..."
+echo "Created ISO: $preseed_target_file"
+echo "Testable with the qemu-command 'qemu-system-x86_64 -hda $test_disk -cdrom "$preseed_target_file" -m 1024 -boot d'"
+echo "Testable with the kvm-command 'kvm -m 2048 -cdrom $preseed_target_file -boot d'"
+echo "✅ Done!"
+#new     : /Workspace/Data/OSImages/BaseImages/debian-13.1.0-amd64-netinst.iso
+#original: /Workspace/Data/OSImages/SpecialImages/r04-installer.iso
 
-menu_config_file="$temp_folder/isolinux/menu.cfg"
-sed -i "s/include gtk.cfg/#include gtk.cfg/g" $menu_config_file
-sed -i "s/include adgtk.cfg/#include adgtk.cfg/g" $menu_config_file
-sed -i "s/include adspkgtk.cfg/#include adspkgtk.cfg/g" $menu_config_file
-sed -i "s/include adspk.cfg/#include adspk.cfg/g" $menu_config_file
-sed -i "s/include spkgtk.cfg/#include spkgtk.cfg/g" $menu_config_file
-sed -i "s/include spk.cfg/#include spk.cfg/g" $menu_config_file
-sed -i "/menu title.*Debian.*GNU/c\\menu title $iso_filename" $menu_config_file
-
-txt_config_file="$temp_folder/isolinux/txt.cfg"
-sed -i "$ a\timeout 100" $txt_config_file
-sed -i "$ a\ontimeout install" $txt_config_file
-
-echo "Step 5: Regenerating md5sum.txt"
-chmod +w $temp_folder/md5sum.txt
-find -follow -type f ! -name $temp_folder/md5sum.txt -print0 | xargs -0 md5sum > $temp_folder/md5sum.txt
-chmod -w $temp_folder/md5sum.txt
-
-echo "Step 6: Creating a New Bootable ISO Image"
-# (May require "sudo apt install -y genisoimage")
-output_file="$preseed_target_file"
-genisoimage -r -J -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $output_file $temp_folder
-
-echo "Step 7: Clean-up"
-rm -f $preseed_file
-chmod -R 777 $temp_folder
-#rm -rf $temp_folder
-echo $temp_folder
-cd $cwd
-
-
-#echo "Step 8: Test image"
-# (Manual task; May require "sudo apt install -y qemu-system-x86")
-#qemu-system-i386 -net user -cdrom $output_file
+#xorriso -indev /Workspace/Data/OSImages/BaseImages/debian-13.1.0-amd64-netinst.iso -report_el_torito plain
+#xorriso -indev /Workspace/Data/OSImages/SpecialImages/r04-installer.iso -report_el_torito plain
+#"sudo kvm -m 2048 -cdrom $preseed_target_file -boot d -enable-kvm -smp 2 -net nic -net user"

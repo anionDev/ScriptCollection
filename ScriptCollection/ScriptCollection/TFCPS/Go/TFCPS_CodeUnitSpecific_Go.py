@@ -50,7 +50,7 @@ class TFCPS_CodeUnitSpecific_Go_Functions(TFCPS_CodeUnitSpecific_Base):
         self.run_testcases_common_post_task(self.get_repository_folder(),self.get_codeunit_name(),True,self.get_type_environment_type())
 
     def get_dependencies(self)->dict[str,set[str]]:
-        return []#TODO
+        return dict[str,set[str]]()#TODO
     
     @GeneralUtilities.check_arguments
     def get_available_versions(self,dependencyname:str)->list[str]:
