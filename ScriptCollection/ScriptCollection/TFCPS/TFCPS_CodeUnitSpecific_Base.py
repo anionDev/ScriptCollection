@@ -86,9 +86,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                         GeneralUtilities.assert_condition(re.match(r"^(\d+).(\d+).(\d+)$", available_version) is not None,f"Invalid-version-string: {available_version}")
                         desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
                         if len(dependency_versions)==1:
-                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in version "+dependency_versions[0]+") to version "+desired_version+".")
+                            set_entry=next(iter(dependency_versions))
+                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in version "+set_entry+") to version "+desired_version+".")
                         else:
-                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" which is currently used in versions {"+", ".join(dependency_versions)+"} to version "+desired_version+".")
+                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in versions {"+", ".join(dependency_versions)+"}) to version "+desired_version+".")
                         self.set_dependency_version(dependencyname,desired_version)
                 except Exception:
                     GeneralUtilities.write_message_to_stderr(f"Error while updating {dependencyname}.")
