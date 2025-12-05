@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.81"
+version = "4.0.82"
 __version__ = version
 
 
@@ -1642,13 +1642,14 @@ class ScriptCollectionCore:
             mock_loader_result = self.__try_load_mock(program, arguments_as_str, working_directory)
             if mock_loader_result[0]:
                 return mock_loader_result[1]
-
-            working_directory = self.__adapt_workingdirectory(working_directory)
+            
+            if self.program_runner.will_be_executed_locally():
+                working_directory = self.__adapt_workingdirectory(working_directory)
 
             if arguments_for_log is None:
                 arguments_for_log = arguments_as_array
 
-            cmd = f'{working_directory}>{program}'
+            cmd = f'{GeneralUtilities.str_none_safe(working_directory)}>{program}'
             if 0 < len(arguments_for_log):
                 arguments_for_log_as_string: str = ' '.join([f'"{argument_for_log}"' for argument_for_log in arguments_for_log])
                 cmd = f'{cmd} {arguments_for_log_as_string}'
