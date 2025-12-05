@@ -89,7 +89,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                             set_entry=next(iter(dependency_versions))
                             GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in version "+set_entry+") to version "+desired_version+".")
                         else:
-                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" which is currently used in versions {"+", ".join(dependency_versions)+"} to version "+desired_version+".")
+                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in versions {"+", ".join(dependency_versions)+"}) to version "+desired_version+".")
                         self.set_dependency_version(dependencyname,desired_version)
                 except Exception:
                     GeneralUtilities.write_message_to_stderr(f"Error while updating {dependencyname}.")
