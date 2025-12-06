@@ -84,7 +84,15 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                     available_versions:list[str]=self.get_available_versions(dependencyname)
                     for available_version in available_versions:
                         GeneralUtilities.assert_condition(re.match(r"^(\d+).(\d+).(\d+)$", available_version) is not None,f"Invalid-version-string: {available_version}")
-                        desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
+                    desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
+                    for available_version in available_versions:
+                        GeneralUtilities.assert_condition(Version(available_version)<=Version(desired_version),f"Desired version {desired_version} for dependency {dependencyname} is less than the actual used version {available_version}.")
+                    update_dependency:bool
+                    if len(dependency_versions)==1:
+                        update_dependency=desired_version!=latest_currently_used_version
+                    else:
+                        update_dependency=len(dependency_versions)>1
+                    if update_dependency:
                         if len(dependency_versions)==1:
                             set_entry=next(iter(dependency_versions))
                             GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in version "+set_entry+") to version "+desired_version+".")
