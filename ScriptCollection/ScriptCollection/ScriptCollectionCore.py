@@ -814,13 +814,13 @@ class ScriptCollectionCore:
                 GeneralUtilities.ensure_file_does_not_exist(path)
         else:
             if self.is_file(path):
-                exit_code, _, stderr, _ = self.run_program_argsasarray("scremovefile", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+                exit_code, stdout, stderr, _ = self.run_program_argsasarray("scremovefile", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
                 if exit_code != 0:
-                    raise ValueError(f"Fatal error occurrs while removing file '{path}'. StdErr: '{stderr}'")
+                    raise ValueError(f"Fatal error occurrs while removing file '{path}'; Exitcode: '{exit_code}'; StdOut: '{stdout}'. StdErr: '{stderr}'")
             if self.is_folder(path):
-                exit_code, _, stderr, _ = self.run_program_argsasarray("scremovefolder", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+                exit_code, stdout, stderr, _ = self.run_program_argsasarray("scremovefolder", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
                 if exit_code != 0:
-                    raise ValueError(f"Fatal error occurrs while removing folder '{path}'. StdErr: '{stderr}'")
+                    raise ValueError(f"Fatal error occurrs while removing folder '{path}'; Exitcode: '{exit_code}'; StdOut: '{stdout}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def rename(self,  source: str, target: str) -> None:
@@ -828,9 +828,9 @@ class ScriptCollectionCore:
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program
             os.rename(source, target)
         else:
-            exit_code, _, stderr, _ = self.run_program_argsasarray("screname", ["--source", source, "--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("screname", ["--source", source, "--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
-                raise ValueError(f"Fatal error occurrs while renaming '{source}' to '{target}'. StdErr: '{stderr}'")
+                raise ValueError(f"Fatal error occurrs while renaming '{source}' to '{target}'; Exitcode: '{exit_code}'; StdOut: '{stdout}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def copy(self, source: str, target: str) -> None:
@@ -846,9 +846,9 @@ class ScriptCollectionCore:
             else:
                 raise ValueError(f"'{source}' can not be copied because the path does not exist.")
         else:
-            exit_code, _, stderr, _ = self.run_program_argsasarray("sccopy", ["--source", source, "--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("sccopy", ["--source", source, "--target", target], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
-                raise ValueError(f"Fatal error occurrs while copying '{source}' to '{target}'. StdErr: '{stderr}'")
+                raise ValueError(f"Fatal error occurrs while copying '{source}' to '{target}'; Exitcode: '{exit_code}'; StdOut: '{stdout}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def create_file(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
@@ -880,9 +880,9 @@ class ScriptCollectionCore:
             if create_necessary_folder:
                 arguments = arguments+["--createnecessaryfolder"]
 
-            exit_code, _, stderr, _ = self.run_program_argsasarray("sccreatefile", arguments, throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("sccreatefile", arguments, throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
-                raise ValueError(f"Fatal error occurrs while create file '{path}'. StdErr: '{stderr}'")
+                raise ValueError(f"Fatal error occurrs while create file '{path}'; Exitcode: '{exit_code}'; StdOut: '{stdout}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def create_folder(self, path: str, error_if_already_exists: bool, create_necessary_folder: bool) -> None:
@@ -914,9 +914,9 @@ class ScriptCollectionCore:
             if create_necessary_folder:
                 arguments = arguments+["--createnecessaryfolder"]
 
-            exit_code, _, stderr, _ = self.run_program_argsasarray("sccreatefolder", arguments, throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("sccreatefolder", arguments, throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
             if exit_code != 0:
-                raise ValueError(f"Fatal error occurrs while create folder '{path}'. StdErr: '{stderr}'")
+                raise ValueError(f"Fatal error occurrs while create folder '{path}'; Exitcode: '{exit_code}'; StdOut: '{stdout}'. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def __sort_fmd(self, line: str):
