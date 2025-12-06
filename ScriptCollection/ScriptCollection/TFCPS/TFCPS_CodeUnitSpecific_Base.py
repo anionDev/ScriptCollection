@@ -6,6 +6,7 @@ import json
 import argparse
 from abc import ABC, abstractmethod
 import xmlschema
+from packaging.version import Version
 from lxml import etree
 from ..GeneralUtilities import GeneralUtilities, VersionEcholon
 from ..ScriptCollectionCore import ScriptCollectionCore
@@ -14,7 +15,7 @@ from .TFCPS_Tools_General import TFCPS_Tools_General
 
 
 class TFCPS_CodeUnitSpecific_Base(ABC):
-    
+
     __current_file:str=None
     __target_environment_type:str
     __repository_folder:str=None
@@ -58,7 +59,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
     @abstractmethod
     def get_dependencies(self)->dict[str,set[str]]:
         raise ValueError(f"Operation is abstract.")
-    
+
     @abstractmethod
     def get_available_versions(self,dependencyname:str)->list[str]:
         raise ValueError(f"Operation is abstract.")
@@ -102,7 +103,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                 except Exception:
                     GeneralUtilities.write_message_to_stderr(f"Error while updating {dependencyname}.")
                     raise
-        
+
     def get_version_of_project(self)->str:
         return self.tfcps_Tools_General.get_version_of_project(self.get_repository_folder())
 
