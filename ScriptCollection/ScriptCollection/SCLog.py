@@ -61,14 +61,15 @@ class SCLog:
 
         part1: str = GeneralUtilities.empty_string
         part2: str = GeneralUtilities.empty_string
-        part3: str = message
+        part3: str = "] "
+        part4: str = message
 
         if loglevel == LogLevel.Warning:
-            part3 = f"Warning: {message}"
+            part4 = f"Warning: {message}"
         if loglevel == LogLevel.Debug:
-            part3 = f"Debug: {message}"
+            part4 = f"Debug: {message}"
         if loglevel == LogLevel.Diagnostic:
-            part3 = f"Diagnostic: {message}"
+            part4 = f"Diagnostic: {message}"
 
         moment: datetime = datetime.now(datetime.now().astimezone().tzinfo)
 
@@ -85,7 +86,6 @@ class SCLog:
             part2 = f"Diagnostic"
         else:
             raise ValueError("Unknown loglevel.")
-        part3 = f"] {message}"
 
         if print_to_console:
             print_to_std_out: bool = loglevel in (LogLevel.Debug, LogLevel.Information)
@@ -103,13 +103,13 @@ class SCLog:
                     GeneralUtilities.print_text_in_cyan(part2, print_to_std_out, self.print_as_color)
                 else:
                     raise ValueError("Unknown loglevel.")
-                GeneralUtilities.print_text(part3+"\n", print_to_std_out)
+                GeneralUtilities.print_text(part3+part4+"\n", print_to_std_out)
             else:
-                GeneralUtilities.print_text(message+"\n", print_to_std_out)
+                GeneralUtilities.print_text(part4+"\n", print_to_std_out)
 
         if print_to_logfile:
             GeneralUtilities.ensure_file_exists(self.log_file)
             if self.add_overhead_to_logfile:
-                GeneralUtilities.append_line_to_file(self.log_file, part1+part2+part3)
+                GeneralUtilities.append_line_to_file(self.log_file, part1+part2+part3+part4)
             else:
-                GeneralUtilities.append_line_to_file(self.log_file, message)
+                GeneralUtilities.append_line_to_file(self.log_file, part4)
