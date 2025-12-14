@@ -79,26 +79,20 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         dependencies_dict:dict[str,set[str]]=self.get_dependencies()
         for dependencyname,dependency_versions in dependencies_dict.items():
             GeneralUtilities.assert_condition(0<len(dependency_versions),f"Dependency {dependencyname} is not used.")
-            latest_currently_used_version=GeneralUtilities.get_latest_version(dependency_versions)
+            GeneralUtilities.assert_condition(len(dependency_versions)<2,f"Dependency {dependencyname} is used {len(dependency_versions)} times. Please consolidate it to on2 version before updating.")
+            dependency_version=next(iter(dependency_versions))
+            latest_currently_used_version=dependency_version
             if dependencyname not in ignored_dependencies: 
                 try:
                     available_versions:list[str]=self.get_available_versions(dependencyname)
                     for available_version in available_versions:
                         GeneralUtilities.assert_condition(re.match(r"^(\d+).(\d+).(\d+)$", available_version) is not None,f"Invalid-version-string: {available_version}")
                     desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
-                    for available_version in available_versions:
-                        GeneralUtilities.assert_condition(Version(available_version)<=Version(desired_version),f"Desired version {desired_version} for dependency {dependencyname} is less than the actual used version {available_version}.")
-                    update_dependency:bool
-                    if len(dependency_versions)==1:
-                        update_dependency=desired_version!=latest_currently_used_version
-                    else:
-                        update_dependency=len(dependency_versions)>1
+                    GeneralUtilities.assert_condition(Version(dependency_version)<=Version(desired_version),f"Desired version {desired_version} for dependency {dependencyname} is less than the actual used version {available_version}.")
+                    update_dependency:bool=desired_version!=latest_currently_used_version
                     if update_dependency:
                         if len(dependency_versions)==1:
-                            set_entry=next(iter(dependency_versions))
-                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in version "+set_entry+") to version "+desired_version+".")
-                        else:
-                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in versions {"+", ".join(dependency_versions)+"}) to version "+desired_version+".")
+                            GeneralUtilities.write_message_to_stdout("Update dependency "+dependencyname+" (which is currently used in version "+dependency_version+") to version "+desired_version+".")
                         self.set_dependency_version(dependencyname,desired_version)
                 except Exception:
                     GeneralUtilities.write_message_to_stderr(f"Error while updating {dependencyname}.")

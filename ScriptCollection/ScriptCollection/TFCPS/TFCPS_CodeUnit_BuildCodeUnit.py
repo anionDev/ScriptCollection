@@ -66,10 +66,13 @@ class TFCPS_CodeUnit_BuildCodeUnit:
             self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"TestCoverage": True, "TestCoverageReport": False}))
 
         self.sc.log.log("Check for linting-issues...")
-        linting_result = self.sc.run_program("python", f"Linting.py {arguments}", os.path.join(self.codeunit_folder, "Other", "QualityCheck"), print_live_output=self.sc.log.loglevel==LogLevel.Debug, throw_exception_if_exitcode_is_not_zero=False)
+        linting_result = self.sc.run_program("python", f"Linting.py {arguments}", os.path.join(self.codeunit_folder, "Other", "QualityCheck"), print_live_output=self.sc.log.loglevel==LogLevel.Quiet, throw_exception_if_exitcode_is_not_zero=False)
         if linting_result[0] != 0:
             self.sc.log.log("Linting-issues were found.", LogLevel.Warning)
-
+            for line in GeneralUtilities.string_to_lines(linting_result[1]):
+                self.sc.log.log(line, LogLevel.Warning)
+            for line in GeneralUtilities.string_to_lines(linting_result[2]):
+                self.sc.log.log(line, LogLevel.Warning)
         self.sc.log.log("Generate reference...")
         self.sc.run_program("python", "GenerateReference.py", os.path.join(self.codeunit_folder, "Other", "Reference"), print_live_output=self.sc.log.loglevel==LogLevel.Debug)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Reference": True}))
@@ -125,4 +128,4 @@ class TFCPS_CodeUnit_BuildCodeUnit:
     @GeneralUtilities.check_arguments
     def update_dependencies(self) -> None:
         self.sc.log.log("Update dependencies...")
-        self.sc.run_program("python", "UpdateDependencies.py", os.path.join(self.codeunit_folder, "Other"))
+        self.sc.run_program("python", "UpdateDependencies.py", os.path.join(self.codeunit_folder, "Other"),print_live_output=True)
