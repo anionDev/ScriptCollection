@@ -1646,7 +1646,7 @@ class ScriptCollectionCore:
             if self.program_runner.will_be_executed_locally():
                 working_directory = self.__adapt_workingdirectory(working_directory)
 
-            if arguments_for_log is None:
+            if arguments_for_log is None or len(arguments_for_log)==0:
                 arguments_for_log = arguments_as_array
 
             cmd = f'{GeneralUtilities.str_none_safe(working_directory)}>{program}'
