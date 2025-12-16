@@ -415,21 +415,23 @@ class TFCPS_Tools_General:
     def create_changelog_entry(self, repositoryfolder: str, message: str, commit: bool, force: bool):
         self.__sc.assert_is_git_repository(repositoryfolder)
         random_file = os.path.join(repositoryfolder, str(uuid.uuid4()))
-        if force and not self.__sc.git_repository_has_uncommitted_changes(repositoryfolder):
-            GeneralUtilities.ensure_file_exists(random_file)
-        current_version = self.get_version_of_project(repositoryfolder)
-        changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
-        if os.path.isfile(changelog_file):
-            self.__sc.log.log(f"Changelog-file '{changelog_file}' already exists.")
-        else:
-            GeneralUtilities.ensure_file_exists(changelog_file)
-            GeneralUtilities.write_text_to_file(changelog_file, f"""# Release notes
+        try:
+            if force and not self.__sc.git_repository_has_uncommitted_changes(repositoryfolder):
+                GeneralUtilities.ensure_file_exists(random_file)
+            current_version = self.get_version_of_project(repositoryfolder)
+            changelog_file = os.path.join(repositoryfolder, "Other", "Resources", "Changelog", f"v{current_version}.md")
+            if os.path.isfile(changelog_file):
+                self.__sc.log.log(f"Changelog-file '{changelog_file}' already exists.")
+            else:
+                GeneralUtilities.ensure_file_exists(changelog_file)
+                GeneralUtilities.write_text_to_file(changelog_file, f"""# Release notes
 
 ## Changes
 
 - {message}
 """)
-        GeneralUtilities.ensure_file_does_not_exist(random_file)
+        finally:
+            GeneralUtilities.ensure_file_does_not_exist(random_file)
         if commit:
             self.__sc.git_commit(repositoryfolder, f"Added changelog-file for v{current_version}.")
  

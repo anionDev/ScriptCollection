@@ -157,9 +157,9 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         available_versions=[version_str.strip() for version_str in available_versions_line[len("Available versions: "):].split(",")]
         result=[]
         for v in available_versions:
-            if re.match(r"^(\d+).(\d+).(\d+)$", v) is not None:
+            if re.match(r"^(\d+)\.(\d+)\.(\d+)$", v) is not None:
                 result.append(v)
-            elif re.match(r"^(\d+).(\d+)$", v) is not None:
+            elif re.match(r"^(\d+)\.(\d+)$", v) is not None:
                 result.append(v+".0")
             elif re.match(r"^(\d+)$", v) is not None:
                 result.append(v+".0.0")
