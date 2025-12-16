@@ -64,11 +64,11 @@ class SCLog:
         part3: str = "] "
         part4: str = message
 
-        if loglevel == LogLevel.Warning:
+        if loglevel == LogLevel.Warning and not message.startswith("Warning: "):
             part4 = f"Warning: {message}"
-        if loglevel == LogLevel.Debug:
+        if loglevel == LogLevel.Debug and not message.startswith("Debug: "):
             part4 = f"Debug: {message}"
-        if loglevel == LogLevel.Diagnostic:
+        if loglevel == LogLevel.Diagnostic and not message.startswith("Diagnostic: "):
             part4 = f"Diagnostic: {message}"
 
         moment: datetime = datetime.now(datetime.now().astimezone().tzinfo)
