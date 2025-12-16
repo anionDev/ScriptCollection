@@ -70,3 +70,5 @@
     postBuffer = 524288000
 [submodule]
     recurse = true
+[pager]
+    diff = false
