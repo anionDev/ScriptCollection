@@ -88,7 +88,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
                     for available_version in available_versions:
                         GeneralUtilities.assert_condition(re.match(r"^(\d+).(\d+).(\d+)$", available_version) is not None,f"Invalid-version-string: {available_version}")
                     desired_version=GeneralUtilities.choose_version(available_versions,latest_currently_used_version,echolon)
-                    GeneralUtilities.assert_condition(Version(dependency_version)<=Version(desired_version),f"Desired version {desired_version} for dependency {dependencyname} is less than the actual used version {available_version}.")
+                    GeneralUtilities.assert_condition(Version(dependency_version)<=Version(desired_version),f"Desired version {desired_version} for dependency {dependencyname} is less than the actual used version {latest_currently_used_version}.")
                     update_dependency:bool=desired_version!=latest_currently_used_version
                     if update_dependency:
                         if len(dependency_versions)==1:
