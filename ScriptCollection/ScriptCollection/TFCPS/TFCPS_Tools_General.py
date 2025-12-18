@@ -1005,6 +1005,7 @@ class TFCPS_Tools_General:
         data['version'] = codeunit_version
         with open(packagejson_file, 'w', encoding=encoding) as f:
             json.dump(data, f, indent=2)
+        GeneralUtilities.write_text_to_file(packagejson_file, GeneralUtilities.read_text_from_file(packagejson_file).replace("\r", ""))
 
     @GeneralUtilities.check_arguments
     def ensure_openapigenerator_is_available(self,use_cache:bool) -> None:
@@ -1338,6 +1339,7 @@ class TFCPS_Tools_General:
                         package_json_content["devDependencies"][package] = latest_version
             with open(package_json_file, "w", encoding="utf-8") as package_json_file_object:
                 json.dump(package_json_content, package_json_file_object, indent=4)
+            GeneralUtilities.write_text_to_file(package_json_file, GeneralUtilities.read_text_from_file(package_json_file).replace("\r", ""))
             self.do_npm_install(folder_of_package_json, True,True)#TODO use_cache might be dangerous here
         else:
             self.__sc.log.log("Update dependencies resulted in an error.", LogLevel.Error)
