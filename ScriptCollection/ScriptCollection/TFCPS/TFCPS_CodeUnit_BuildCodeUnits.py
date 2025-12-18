@@ -44,7 +44,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         for old_line in old_lines:
             if not old_line.startswith(current_version_string+";") and old_line!=header_line:
                 new_lines.append(old_line)
-        c_date:datetime=self.sc.git_get_commit_date(repository_folder,current_version_string).astimezone(timezone.utc)
+        c_date:datetime=GeneralUtilities.get_now().astimezone(timezone.utc)
         commit_date=GeneralUtilities.date_to_string(c_date)
         new_lines.append(f"{current_version_string};{commit_date};{loc}")
         GeneralUtilities.write_lines_to_file(loc_metric_file, new_lines)
