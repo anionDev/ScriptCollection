@@ -2543,4 +2543,4 @@ OCR-content:
         argument=f"{source_file} {target_file}"
         if self.log.loglevel==LogLevel.Debug:
             argument=f"-l debug {argument}"
-        self.run_with_epew("vg2svg",argument,workingfolder)
+        self.run_with_epew("vl2svg",argument,workingfolder)#this uses vega-light. to use vega "vg2svg" should be used instead.

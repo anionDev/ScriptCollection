@@ -6,4 +6,4 @@
 
 ## Lines-of-code
 
-![LinesOfCode-Overview](./Technical/Diagrams/LOC-Diagram.svg)
+![LinesOfCode-Overview](./Technical/Diagrams/LoC-Diagram.svg)

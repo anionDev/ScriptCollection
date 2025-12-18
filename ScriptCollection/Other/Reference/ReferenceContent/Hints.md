@@ -11,6 +11,7 @@ The following requirements from the [tools-list](https://github.com/anionDev/Scr
 - `python`
 - `reportgenerator`
 - `scriptcollection`
+- `vl2svg`
 
 To create a release the following tools are also required:
 
