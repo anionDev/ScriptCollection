@@ -249,12 +249,19 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def set_default_constants(self, codeunit_folder: str) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
+        self.set_constant_for_curenttimestamp(codeunit_folder)
         self.set_constant_for_commitid(codeunit_folder)
         self.set_constant_for_commitdate(codeunit_folder)
         self.set_constant_for_codeunitname(codeunit_folder)
         self.set_constant_for_codeunitversion(codeunit_folder)
         self.set_constant_for_codeunitmajorversion(codeunit_folder)
         self.set_constant_for_description(codeunit_folder)
+
+    @GeneralUtilities.check_arguments
+    def sccreatechangelogentry(self, codeunit_folder: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        timestamp = GeneralUtilities.datetime_to_string_for_logfile_entry(GeneralUtilities.get_now().astimezone(timezone.utc))
+        self.set_constant(codeunit_folder, "CurrentTimestamp", timestamp)
 
     @GeneralUtilities.check_arguments
     def set_constant_for_commitid(self, codeunit_folder: str) -> None:
