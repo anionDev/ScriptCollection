@@ -75,13 +75,13 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.__search_for_vulnerabilities()
         self.__search_for_secrets()
         if self.is_pre_merge():
-            self._x_collect_metrics()
+            self.__collect_metrics()
         self.__generate_loc_diagram()
         self.sc.log.log("Finished building codeunits.")
         self.sc.log.log(GeneralUtilities.get_line())
 
     @GeneralUtilities.check_arguments
-    def _x_collect_metrics(self) -> None:
+    def __collect_metrics(self) -> None:
         project_version: str=self.tFCPS_Other.get_version_of_project(self.repository)
         self.sc.log.log("Collect metrics...")
         loc = self.sc.get_lines_of_code_with_default_excluded_patterns(self.repository)
@@ -89,6 +89,11 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         GeneralUtilities.ensure_directory_exists(loc_metric_folder)
         loc_metric_file = os.path.join(loc_metric_folder, "RepositoryStatisticsPerCommit.csv")
         GeneralUtilities.ensure_file_exists(loc_metric_file)
+
+        #remove legacy metrics-file. the following 2 lines should be removed after 2026-12-31
+        legacy_metrics_file = os.path.join(loc_metric_folder, "LinesOfCode.csv")
+        GeneralUtilities.ensure_file_does_not_exist(legacy_metrics_file)
+
         old_lines = GeneralUtilities.read_nonempty_lines_from_file(loc_metric_file)
         header_line="Version;Timestamp;LinesOfCode"
         new_lines = [header_line]
@@ -108,6 +113,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         loc_metric_folder = os.path.join(self.repository, "Other", "Metrics")
         GeneralUtilities.ensure_directory_exists(loc_metric_folder)
         loc_metric_file = os.path.join(loc_metric_folder, "RepositoryStatisticsPerCommit.csv")
+        GeneralUtilities.ensure_file_exists(loc_metric_file)
 
         filenamebase="LoC-Diagram"
 
