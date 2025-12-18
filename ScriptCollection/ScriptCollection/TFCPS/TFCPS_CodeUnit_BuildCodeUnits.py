@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime, timedelta
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
@@ -86,26 +87,130 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()
 
         #TODO run static code analysis tool to search for vulnerabilities
-        #TODO self.__search_for_secrets()
+        self.__search_for_secrets()
         self.__save_lines_of_code(self.repository,self.tFCPS_Other.get_version_of_project(self.repository))
-
+        self.__generate_loc_diagram(self.repository)
         self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log("Finished building codeunits.")
         self.sc.log.log(GeneralUtilities.get_line())
 
-    def __search_for_secrets(self):#pylint:disable=unused-private-member
-        exe_paths=self.tFCPS_Other.ensure_trufflehog_is_available()
-        exe_path:str=None
-        if GeneralUtilities.current_system_is_windows():
-            exe_path=exe_paths["Windows"]
-        elif GeneralUtilities.current_system_is_linux():
-            exe_path=exe_paths["Linux"]
-        else:
-            raise ValueError("unsupported")#TODO check for macos
-        result=self.sc.run_program(exe_path,"filesystem . --json",self.repository)
 
-        enabled:bool=False
+
+    @GeneralUtilities.check_arguments
+    def __generate_loc_diagram(self,repository_folder:str):
+        loc_metric_folder = os.path.join(repository_folder, "Other", "Metrics")
+        GeneralUtilities.ensure_directory_exists(loc_metric_folder)
+        loc_metric_file = os.path.join(loc_metric_folder, "LinesOfCode.csv")
+
+        diagram_definition_folder=os.path.join(repository_folder, "Other", "Reference","Technical","Diagrams")
+        GeneralUtilities.ensure_directory_exists(diagram_definition_folder)
+
+        diagram_definition_file=os.path.join(diagram_definition_folder,"LOC-Diagram.json")
+        GeneralUtilities.ensure_file_exists(diagram_definition_file)
+        GeneralUtilities.write_text_to_file(diagram_definition_file,GeneralUtilities.empty_string)
+
+        csv_file_relative :str = os.path.relpath(loc_metric_file,diagram_definition_folder).replace("\\","/")
+        vega_spec = {
+            "$schema": "https://vega.github.io/schema/vega/v5.json",
+            "description": "Lines of Code per Version",
+            "width": 800,
+            "height": 400,
+            "padding": 5,
+            "data": [
+                {
+                    "name": "table",
+                    "url": csv_file_relative,
+                    "format": {
+                        "type": "csv",
+                        "delimiter": ";",
+                        "parse": {
+                            "field0": "string", # Version
+                            "field1": "number" # Lines of code
+                        }
+                    }
+                }
+            ],
+            "scales": [
+                {
+                    "name": "xscale",
+                    "type": "point",
+                    "domain": {"data": "table", "field": "field0"},
+                    "range": "width",
+                    "padding": 0.5
+                },
+                {
+                    "name": "yscale",
+                    "type": "linear",
+                    "domain": {"data": "table", "field": "field1"},
+                    "nice": True,
+                    "zero": False,
+                    "range": "height"
+                }
+            ],
+            "axes": [
+                {
+                    "orient": "bottom",
+                    "scale": "xscale",
+                    "title": "Version"
+                },
+                {
+                    "orient": "left",
+                    "scale": "yscale",
+                    "title": "Lines of code"
+                }
+            ],
+            "marks": [
+                {
+                    "type": "line",
+                    "from": {"data": "table"},
+                    "encode": {
+                        "enter": {
+                            "x": {"scale": "xscale", "field": "field0"},
+                            "y": {"scale": "yscale", "field": "field1"},
+                            "strokeWidth": {"value": 2}
+                        }
+                    }
+                },
+                {
+                    "type": "symbol",
+                    "from": {"data": "table"},
+                    "encode": {
+                        "enter": {
+                            "x": {"scale": "xscale", "field": "field0"},
+                            "y": {"scale": "yscale", "field": "field1"},
+                            "size": {"value": 40}
+                        }
+                    }
+                }
+            ]
+        }
+        with open(diagram_definition_file, "w", encoding="utf-8") as f:
+            json.dump(
+                vega_spec,
+                f,
+                indent=2,
+                sort_keys=False,
+                ensure_ascii=False
+            )
+        diagram_svg_file=os.path.join(repository_folder,"Other","Reference","Technical","Diagrams","LOC-Diagram.svg")
+        GeneralUtilities.ensure_file_exists(diagram_svg_file)
+        GeneralUtilities.assert_condition(not self.sc.file_is_git_ignored("Other/Reference/Technical/Diagrams/LOC-Diagram.svg",repository_folder),f"Other/Reference/Technical/Diagrams/LOC-Diagram.svg must not be git-ignored")#because it would produce indeterministic results for repeated loc-calculation on different machines due to different scriptcollection-versions.
+        self.sc.generate_chart_diagram(diagram_definition_file,diagram_svg_file)
+
+
+    def __search_for_secrets(self):#pylint:disable=unused-private-member
+        enabled:bool=False#TODO reenable when a solution is found to ignore false positives
         if enabled:
+            exe_paths=self.tFCPS_Other.ensure_trufflehog_is_available()
+            exe_path:str=None
+            if GeneralUtilities.current_system_is_windows():
+                exe_path=exe_paths["Windows"]
+            elif GeneralUtilities.current_system_is_linux():
+                exe_path=exe_paths["Linux"]
+            else:
+                raise ValueError("unsupported")#TODO check for macos
+            result=self.sc.run_program(exe_path,"filesystem . --json",self.repository)
+
             self.sc.log.log("Secret-scan-result:")#TODO replace this by real analysis
             for line in GeneralUtilities.string_to_lines(result[1]):
                 self.sc.log.log(line)

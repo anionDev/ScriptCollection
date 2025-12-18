@@ -226,7 +226,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         self.tfcps_Tools_General.generate_diff_report(repository_folder, codeunit_name, self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file()))
 
     @GeneralUtilities.check_arguments
-    def generate_reference_using_docfx(self=None):
+    def generate_reference_using_docfx(self):
         reference_folder =os.path.join( self.get_codeunit_folder(),"Other","Reference")
         generated_reference_folder = GeneralUtilities.resolve_relative_path("../Artifacts/Reference", reference_folder)
         GeneralUtilities.ensure_directory_does_not_exist(generated_reference_folder)

@@ -1638,6 +1638,7 @@ class ScriptCollectionCore:
         if self.call_program_runner_directly:
             return self.program_runner.run_program_argsasarray(program, arguments_as_array, working_directory, custom_argument, interactive)
         try:
+            GeneralUtilities.assert_not_null(arguments_as_array,"arguments_as_array must not be null")
             arguments_as_str = ' '.join(arguments_as_array)
             mock_loader_result = self.__try_load_mock(program, arguments_as_str, working_directory)
             if mock_loader_result[0]:
@@ -1834,8 +1835,8 @@ class ScriptCollectionCore:
         pid: int
 
     @GeneralUtilities.check_arguments
-    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  list[str] = None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False,encode_argument_in_base64:bool=False) -> tuple[int, str, str, int]:
-        epew_argument=["-p",program ,"-w", working_directory]
+    def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  str =None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False,encode_argument_in_base64:bool=False) -> tuple[int, str, str, int]:
+        epew_argument:list[str]=["-p",program ,"-w", working_directory]
         if encode_argument_in_base64:
             if arguments_for_log is None:
                 arguments_for_log=epew_argument+["-a",f"\"{argument}\""]
@@ -2477,7 +2478,7 @@ OCR-content:
     def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
         return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc)
 
-    default_excluded_patterns_for_loc: list[str] = [".txt", ".md", ".vscode", "Resources", "Reference", ".gitignore", ".gitattributes", "Other/Metrics"]
+    default_excluded_patterns_for_loc: list[str] = ["**.txt", "**.md", "**.svg", "**.vscode", "**/Resources/**", "**/Reference/**", ".gitignore", ".gitattributes", "Other/Metrics/**"]
 
     def get_lines_of_code(self, repository: str, excluded_pattern: list[str]) -> int:
         self.assert_is_git_repository(repository)
@@ -2503,7 +2504,7 @@ OCR-content:
 
     def __is_excluded_by_glob_pattern(self, file: str, excluded_patterns: list[str]) -> bool:
         for pattern in excluded_patterns:
-            if fnmatch.fnmatch(file, f"*{pattern}*"):
+            if fnmatch.fnmatch(file, pattern):
                 return True
         return False
     
@@ -2535,3 +2536,11 @@ OCR-content:
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
         self.run_program("docker", f"compose -p {title.lower()} down", example_folder, title=title,print_live_output=True)
+
+    @GeneralUtilities.check_arguments
+    def generate_chart_diagram(self,source_file:str,target_file:str):
+        workingfolder=os.path.dirname(source_file)
+        argument=f"{source_file} {target_file}"
+        if self.log.loglevel==LogLevel.Debug:
+            argument=f"-l debug {argument}"
+        self.run_with_epew("vg2svg",argument,workingfolder)
