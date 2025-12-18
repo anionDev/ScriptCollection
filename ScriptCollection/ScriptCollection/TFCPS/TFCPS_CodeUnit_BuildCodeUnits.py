@@ -77,7 +77,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
             self.tFCPS_Other.mark_current_version_as_supported(self.repository,project_version,from_day,until_day)
 
-        codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)        
+        codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
         self.sc.log.log("Codeunits will be built in the following order:")
         for codeunit_name in codeunits:
             self.sc.log.log("  - "+codeunit_name)
@@ -88,6 +88,8 @@ class TFCPS_CodeUnit_BuildCodeUnits:
 
         #TODO run static code analysis tool to search for vulnerabilities
         self.__search_for_secrets()
+        self.sc.log.log(GeneralUtilities.get_line())
+        self.sc.log.log("Generate LoC-diagram...")
         self.__save_lines_of_code(self.repository,self.tFCPS_Other.get_version_of_project(self.repository))
         self.__generate_loc_diagram(self.repository)
         self.sc.log.log(GeneralUtilities.get_line())
@@ -102,100 +104,73 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         GeneralUtilities.ensure_directory_exists(loc_metric_folder)
         loc_metric_file = os.path.join(loc_metric_folder, "LinesOfCode.csv")
 
+        filenamebase="LOC-Diagram"
+
         diagram_definition_folder=os.path.join(repository_folder, "Other", "Reference","Technical","Diagrams")
         GeneralUtilities.ensure_directory_exists(diagram_definition_folder)
 
-        diagram_definition_file=os.path.join(diagram_definition_folder,"LOC-Diagram.json")
+        diagram_definition_file=os.path.join(diagram_definition_folder,f"{filenamebase}.json")
         GeneralUtilities.ensure_file_exists(diagram_definition_file)
         GeneralUtilities.write_text_to_file(diagram_definition_file,GeneralUtilities.empty_string)
 
-        csv_file_relative :str = os.path.relpath(loc_metric_file,diagram_definition_folder).replace("\\","/")
-        vega_spec = {
-            "$schema": "https://vega.github.io/schema/vega/v5.json",
-            "description": "Lines of Code per Version",
+        loc_data_file=os.path.join(diagram_definition_folder,f"{filenamebase}.csv")
+        GeneralUtilities.ensure_file_exists(loc_data_file)
+        csv_lines=["Version,Date,LinesOfCode"]
+        for line in GeneralUtilities.read_lines_from_file(loc_metric_file):
+            splitted=line.split(";")
+            v=splitted[0]
+            loc=splitted[1]
+            timestamp=self.sc.git_get_commit_date(repository_folder,v)
+            timestamp_as_string=timestamp.isoformat()
+            csv_lines.append(f"{v},{timestamp_as_string},{loc}")
+        GeneralUtilities.write_lines_to_file(loc_data_file,csv_lines)
+        diagram_json = {
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "description": "Lines of Code over time",
             "width": 800,
             "height": 400,
-            "padding": 5,
-            "data": [
-                {
-                    "name": "table",
-                    "url": csv_file_relative,
-                    "format": {
-                        "type": "csv",
-                        "delimiter": ";",
-                        "parse": {
-                            "field0": "string", # Version
-                            "field1": "number" # Lines of code
-                        }
-                    }
-                }
-            ],
-            "scales": [
-                {
-                    "name": "xscale",
-                    "type": "point",
-                    "domain": {"data": "table", "field": "field0"},
-                    "range": "width",
-                    "padding": 0.5
+
+            "data": {
+                "url": os.path.basename(loc_data_file),
+                "format": { "type": "csv" }
+            },
+
+            "mark": {
+                "type": "line",
+                "point": True
+            },
+
+            "encoding": {
+                "x": {
+                    "field": "Date",
+                    "type": "temporal",
+                    "title": "Date"
                 },
-                {
-                    "name": "yscale",
-                    "type": "linear",
-                    "domain": {"data": "table", "field": "field1"},
-                    "nice": True,
-                    "zero": False,
-                    "range": "height"
-                }
-            ],
-            "axes": [
-                {
-                    "orient": "bottom",
-                    "scale": "xscale",
-                    "title": "Version"
+                "y": {
+                    "field": "LinesOfCode",
+                    "type": "quantitative",
+                    "title": "Lines of Code"
                 },
-                {
-                    "orient": "left",
-                    "scale": "yscale",
-                    "title": "Lines of code"
-                }
-            ],
-            "marks": [
-                {
-                    "type": "line",
-                    "from": {"data": "table"},
-                    "encode": {
-                        "enter": {
-                            "x": {"scale": "xscale", "field": "field0"},
-                            "y": {"scale": "yscale", "field": "field1"},
-                            "strokeWidth": {"value": 2}
-                        }
-                    }
-                },
-                {
-                    "type": "symbol",
-                    "from": {"data": "table"},
-                    "encode": {
-                        "enter": {
-                            "x": {"scale": "xscale", "field": "field0"},
-                            "y": {"scale": "yscale", "field": "field1"},
-                            "size": {"value": 40}
-                        }
-                    }
-                }
-            ]
+                "tooltip": [
+                    {"field": "Version", "type": "ordinal"},
+                    {"field": "LinesOfCode", "type": "quantitative"},
+                    {"field": "Date", "type": "temporal"}
+                ]
+            }
         }
+
         with open(diagram_definition_file, "w", encoding="utf-8") as f:
             json.dump(
-                vega_spec,
+                diagram_json,
                 f,
                 indent=2,
                 sort_keys=False,
                 ensure_ascii=False
             )
-        diagram_svg_file=os.path.join(repository_folder,"Other","Reference","Technical","Diagrams","LOC-Diagram.svg")
+        diagram_svg_file=os.path.join(repository_folder,"Other","Reference","Technical","Diagrams",f"{filenamebase}.svg")
         GeneralUtilities.ensure_file_exists(diagram_svg_file)
-        GeneralUtilities.assert_condition(not self.sc.file_is_git_ignored("Other/Reference/Technical/Diagrams/LOC-Diagram.svg",repository_folder),f"Other/Reference/Technical/Diagrams/LOC-Diagram.svg must not be git-ignored")#because it would produce indeterministic results for repeated loc-calculation on different machines due to different scriptcollection-versions.
-        self.sc.generate_chart_diagram(diagram_definition_file,diagram_svg_file)
+        GeneralUtilities.assert_condition(not self.sc.file_is_git_ignored(f"Other/Reference/Technical/Diagrams/{filenamebase}.svg",repository_folder),f"Other/Reference/Technical/Diagrams/{filenamebase}.svg must not be git-ignored")#because it should be referencable in markdown-files and viewable without building the codeunits.
+        self.sc.generate_chart_diagram(diagram_definition_file,os.path.basename(diagram_svg_file))
 
 
     def __search_for_secrets(self):#pylint:disable=unused-private-member
