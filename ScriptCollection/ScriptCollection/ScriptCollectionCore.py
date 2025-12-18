@@ -252,7 +252,7 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
         self.is_git_or_bare_git_repository(repository_folder)
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["show", "-s", "--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["log","-1","--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
         date_as_string = result[1].replace('\n', '')
         result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
         return result
