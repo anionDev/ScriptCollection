@@ -139,3 +139,15 @@ It can be installed using MinGW on a Windows-system.
 
 [Twine](https://twine.readthedocs.io/en/stable/) is a utility for publishing [python](https://www.python.org) packages to PyPI and other repositories.
 The commandline-tool can be installed using `pip install twine`.
+
+### vg2svg and vl2svg
+
+[Vega (vg2svg) and Vega-lite (vl2svg)](https://vega.github.io/) are tools to generate chart-diagrams.
+The commandline-tools can be installed using:
+
+```sh
+npm i -g vega
+npm i -g vega-cli
+npm i -g vega-lite
+npm i -g vega-embed
+```
