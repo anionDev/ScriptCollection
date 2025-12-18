@@ -258,7 +258,7 @@ class TFCPS_Tools_General:
         self.set_constant_for_description(codeunit_folder)
 
     @GeneralUtilities.check_arguments
-    def sccreatechangelogentry(self, codeunit_folder: str) -> None:
+    def set_constant_for_curenttimestamp(self, codeunit_folder: str) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
         timestamp = GeneralUtilities.datetime_to_string_for_logfile_entry(GeneralUtilities.get_now().astimezone(timezone.utc))
         self.set_constant(codeunit_folder, "CurrentTimestamp", timestamp)
