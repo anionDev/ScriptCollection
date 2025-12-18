@@ -80,7 +80,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
         self.sc.log.log("Codeunits will be built in the following order:")
         for codeunit_name in codeunits:
-            self.sc.log.log("  - "+codeunit_name)
+            self.sc.log.log(f"  - {codeunit_name}")
         for codeunit_name in codeunits:
             tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache(),self.is_pre_merge())
             self.sc.log.log(GeneralUtilities.get_line())
@@ -116,13 +116,19 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         loc_data_file=os.path.join(diagram_definition_folder,f"{filenamebase}.csv")
         GeneralUtilities.ensure_file_exists(loc_data_file)
         csv_lines=["Version,Date,LinesOfCode"]
+        current_version="v"+self.tFCPS_Other.get_version_of_project(repository_folder)
         for line in GeneralUtilities.read_lines_from_file(loc_metric_file):
-            splitted=line.split(";")
-            v=splitted[0]
-            loc=splitted[1]
-            timestamp=self.sc.git_get_commit_date(repository_folder,v)
-            timestamp_as_string=timestamp.isoformat()
-            csv_lines.append(f"{v},{timestamp_as_string},{loc}")
+            if GeneralUtilities.string_has_content(line):
+                splitted=line.split(";")
+                v=splitted[0]
+                loc=splitted[1]
+                timestamp:datetime
+                if current_version==v:
+                    timestamp=GeneralUtilities.get_now()#use "now", because no git-tag is available for the current working-branch
+                else:
+                    timestamp=self.sc.git_get_commit_date(repository_folder,v)
+                timestamp_as_string=timestamp.isoformat()
+                csv_lines.append(f"{v},{timestamp_as_string},{loc}")
         GeneralUtilities.write_lines_to_file(loc_data_file,csv_lines)
         diagram_json = {
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -173,7 +179,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.sc.generate_chart_diagram(diagram_definition_file,os.path.basename(diagram_svg_file))
 
 
-    def __search_for_secrets(self):#pylint:disable=unused-private-member
+    def __search_for_secrets(self):
         enabled:bool=False#TODO reenable when a solution is found to ignore false positives
         if enabled:
             exe_paths=self.tFCPS_Other.ensure_trufflehog_is_available()

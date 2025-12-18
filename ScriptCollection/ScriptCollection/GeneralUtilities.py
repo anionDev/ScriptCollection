@@ -955,7 +955,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def get_now() -> datetime:
-        return datetime.now().astimezone()
+        return datetime.now().astimezone().replace(microsecond=0)
 
     @staticmethod
     @check_arguments
