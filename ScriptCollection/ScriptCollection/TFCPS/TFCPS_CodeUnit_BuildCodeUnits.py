@@ -30,26 +30,6 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.__is_pre_merge=is_pre_merge
 
     @GeneralUtilities.check_arguments
-    def __collect_metrics(self, repository_folder: str, project_version: str) -> None:
-        self.sc.log.log("Collect metrics...")
-        loc = self.sc.get_lines_of_code_with_default_excluded_patterns(repository_folder)
-        loc_metric_folder = os.path.join(repository_folder, "Other", "Metrics")
-        GeneralUtilities.ensure_directory_exists(loc_metric_folder)
-        loc_metric_file = os.path.join(loc_metric_folder, "RepositoryStatisticsPerCommit.csv")
-        GeneralUtilities.ensure_file_exists(loc_metric_file)
-        old_lines = GeneralUtilities.read_lines_from_file(loc_metric_file)
-        header_line="Version;Timestamp;LinesOfCode"
-        new_lines = [header_line]
-        current_version_string=f"v{project_version}"
-        for old_line in old_lines:
-            if not old_line.startswith(current_version_string+";") and old_line!=header_line:
-                new_lines.append(old_line)
-        c_date:datetime=GeneralUtilities.get_now().astimezone(timezone.utc)
-        commit_date=GeneralUtilities.date_to_string(c_date)
-        new_lines.append(f"{current_version_string};{commit_date};{loc}")
-        GeneralUtilities.write_lines_to_file(loc_metric_file, new_lines)
-
-    @GeneralUtilities.check_arguments
     def build_codeunits(self) -> None:
         self.sc.log.log(GeneralUtilities.get_line())
         self.sc.log.log(f"Start building codeunits. (Target environment-type: {self.target_environment_type})")
@@ -95,22 +75,43 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.__search_for_vulnerabilities()
         self.__search_for_secrets()
         if self.is_pre_merge():
-            self.__collect_metrics(self.repository, self.tFCPS_Other.get_version_of_project(self.repository))
-        self.__generate_loc_diagram(self.repository)
+            self._x_collect_metrics()
+        self.__generate_loc_diagram()
         self.sc.log.log("Finished building codeunits.")
         self.sc.log.log(GeneralUtilities.get_line())
 
+    @GeneralUtilities.check_arguments
+    def _x_collect_metrics(self) -> None:
+        project_version: str=self.tFCPS_Other.get_version_of_project(self.repository)
+        self.sc.log.log("Collect metrics...")
+        loc = self.sc.get_lines_of_code_with_default_excluded_patterns(self.repository)
+        loc_metric_folder = os.path.join(self.repository, "Other", "Metrics")
+        GeneralUtilities.ensure_directory_exists(loc_metric_folder)
+        loc_metric_file = os.path.join(loc_metric_folder, "RepositoryStatisticsPerCommit.csv")
+        GeneralUtilities.ensure_file_exists(loc_metric_file)
+        old_lines = GeneralUtilities.read_nonempty_lines_from_file(loc_metric_file)
+        header_line="Version;Timestamp;LinesOfCode"
+        new_lines = [header_line]
+        current_version_string=f"v{project_version}"
+        for old_line in old_lines:
+            if not old_line.startswith(current_version_string+";") and old_line!=header_line:
+                new_lines.append(old_line)
+        c_date:datetime=GeneralUtilities.get_now().astimezone(timezone.utc)
+        commit_date=GeneralUtilities.datetime_to_string_for_logfile_entry(c_date)
+        new_lines.append(f"{current_version_string};{commit_date};{loc}")
+        GeneralUtilities.write_lines_to_file(loc_metric_file, new_lines)
+
 
     @GeneralUtilities.check_arguments
-    def __generate_loc_diagram(self,repository_folder:str):
+    def __generate_loc_diagram(self):
         self.sc.log.log("Generate LoC-diagram...")
-        loc_metric_folder = os.path.join(repository_folder, "Other", "Metrics")
+        loc_metric_folder = os.path.join(self.repository, "Other", "Metrics")
         GeneralUtilities.ensure_directory_exists(loc_metric_folder)
         loc_metric_file = os.path.join(loc_metric_folder, "RepositoryStatisticsPerCommit.csv")
 
         filenamebase="LoC-Diagram"
 
-        diagram_definition_folder=os.path.join(repository_folder, "Other", "Reference","Technical","Diagrams")
+        diagram_definition_folder=os.path.join(self.repository, "Other", "Reference","Technical","Diagrams")
         GeneralUtilities.ensure_directory_exists(diagram_definition_folder)
 
         diagram_definition_file=os.path.join(diagram_definition_folder,f"{filenamebase}.json")
@@ -179,9 +180,9 @@ class TFCPS_CodeUnit_BuildCodeUnits:
                 sort_keys=False,
                 ensure_ascii=False
             )
-        diagram_svg_file=os.path.join(repository_folder,"Other","Reference","Technical","Diagrams",f"{filenamebase}.svg")
+        diagram_svg_file=os.path.join(self.repository,"Other","Reference","Technical","Diagrams",f"{filenamebase}.svg")
         GeneralUtilities.ensure_file_exists(diagram_svg_file)
-        GeneralUtilities.assert_condition(not self.sc.file_is_git_ignored(f"Other/Reference/Technical/Diagrams/{filenamebase}.svg",repository_folder),f"Other/Reference/Technical/Diagrams/{filenamebase}.svg must not be git-ignored")#because it should be referencable in markdown-files and viewable without building the codeunits.
+        GeneralUtilities.assert_condition(not self.sc.file_is_git_ignored(f"Other/Reference/Technical/Diagrams/{filenamebase}.svg",self.repository),f"Other/Reference/Technical/Diagrams/{filenamebase}.svg must not be git-ignored")#because it should be referencable in markdown-files and viewable without building the codeunits.
         self.sc.generate_chart_diagram(diagram_definition_file,os.path.basename(diagram_svg_file))
         self.sc.format_xml_file(diagram_svg_file)
 
