@@ -12,3 +12,4 @@ Resources/Constants/CodeUnitMajorVersion.*
 Resources/Constants/CommitDate.*
 Resources/Constants/CommitId.*
 Resources/CodeAnalysisResult/*.sarif
+Resources/Constants/CurrentTimestamp.*
