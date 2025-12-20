@@ -76,7 +76,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.__search_for_secrets()
         if self.is_pre_merge():
             self.__collect_metrics()
-        self.__generate_loc_diagram()
+            self.__generate_loc_diagram()
         self.sc.log.log("Finished building codeunits.")
         self.sc.log.log(GeneralUtilities.get_line())
 
