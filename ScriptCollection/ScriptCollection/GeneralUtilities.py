@@ -932,7 +932,7 @@ class GeneralUtilities:
     @check_arguments
     def print_stacktrace() -> None:
         for line in traceback.format_stack():
-            GeneralUtilities.write_message_to_stdout(line.strip())
+            GeneralUtilities.write_message_to_stderr(line.strip())
 
     @staticmethod
     @check_arguments
