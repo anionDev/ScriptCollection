@@ -119,7 +119,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
             self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
 
     @GeneralUtilities.check_arguments
-    def verify_image_is_working_with_detault_arguments(self,environment_variables:dict[str,str]=None):
+    def verify_image_is_working_with_detault_arguments(self,environment_variables:dict[str,str]):
         if environment_variables is None:
             environment_variables=dict[str,str]()
         self.verify_image_is_working(timedelta(seconds=30),environment_variables)
