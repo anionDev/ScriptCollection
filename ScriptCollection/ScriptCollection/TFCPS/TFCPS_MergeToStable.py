@@ -10,7 +10,6 @@ from .TFCPS_MergeToMain import TFCPS_MergeToMain
 from .TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
  
 
-
 class MergeToStableConfiguration:
     log_level:LogLevel
     source_branch:str#main
@@ -74,13 +73,14 @@ class TFCPS_MergeToStable:
 
         product_version:str=self.tFCPS_Tools_General.get_version_of_project(self.createRelease_configuration.repository)
  
+        #TODO do premerge-build instead
         tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.createRelease_configuration.repository,self.sc.log.loglevel,"Productive",self.createRelease_configuration.additional_arguments_file,False,False)
         try:
             tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
+            self.sc.log.log(f"Branch {self.createRelease_configuration.source_branch} is not buildable.",LogLevel.Error)
             self.sc.git_undo_all_changes(self.createRelease_configuration.repository)
             raise
-      
 
         self.sc.log.log("Release artifacts...")
         repository:str=self.createRelease_configuration.repository
@@ -117,11 +117,12 @@ class TFCPS_MergeToStable:
 
             # Generate reference
             self.__generate_entire_reference(projectname, project_version, reference_folder,reference_repo)
-            
+
         self.sc.git_commit(reference_repo,f"Added reference for v{project_version}")
-        
+
+        #TODO do this not as fast-forward-merge anymore, because the changes from the premerge-build should be included
         self.sc.git_merge(self.createRelease_configuration.repository, self.createRelease_configuration.source_branch,self.createRelease_configuration.target_branch, True,True,None,True,True)
-        
+
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)
         self.sc.assert_no_uncommitted_changes(reference_repo)
         self.sc.git_commit(self.createRelease_configuration.build_repo,"Updated submodules")
@@ -197,7 +198,6 @@ class TFCPS_MergeToStable:
 """  # see https://getbootstrap.com/docs/5.1/getting-started/introduction/
         GeneralUtilities.write_text_to_file(reference_index_file, reference_index_file_content)
 
-
     @GeneralUtilities.check_arguments
     def __export_codeunit_reference_content_to_reference_repository(self, project_version_identifier: str, replace_existing_content: bool, target_folder_for_reference_repository: str, repository: str, codeunitname: str, projectname: str, codeunit_version: str, public_repository_url: str, branch: str) -> None:
         codeunit_folder = os.path.join(repository, codeunitname)
@@ -272,8 +272,6 @@ class TFCPS_MergeToStable:
             if os.path.isdir(source_testcoveragereport):  # check, because it is not a mandatory artifact. if the artifact is not available, the user gets already a warning.
                 target_testcoveragereport = os.path.join(target_folder, "TestCoverageReport")
                 shutil.copytree(source_testcoveragereport, target_testcoveragereport)
-
-
 
 class TFCPS_MergeToStable_CLI:
 
