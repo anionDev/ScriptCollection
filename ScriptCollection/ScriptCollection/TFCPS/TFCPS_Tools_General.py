@@ -1234,20 +1234,20 @@ class TFCPS_Tools_General:
     @GeneralUtilities.check_arguments
     def start_dockerfile_example(self, current_file: str,remove_old_container: bool, remove_volumes_folder: bool, env_file: str) -> None:
         container_names_to_remove:list[str]=[]
+        folder_of_current_file = os.path.dirname(current_file)
         if remove_old_container:
-            docker_compose_file = f"{folder}/docker-compose.yml"
+            docker_compose_file = f"{folder_of_current_file}/docker-compose.yml"
             lines = GeneralUtilities.read_lines_from_file(docker_compose_file)
             for line in lines:
                 if match := re.search("container_name:\\s*'?([^']+)'?", line):
                     container_names_to_remove.append(match.group(1))
             self.__sc.log.log(f"Ensure container of {docker_compose_file} do not exist...")
-        oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder)
+        oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder_of_current_file)
         self.load_docker_image(oci_image_artifacts_folder,container_names_to_remove)
-        folder = os.path.dirname(current_file)
-        example_name = os.path.basename(folder)
-        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder))
+        example_name = os.path.basename(folder_of_current_file)
+        codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder_of_current_file))
         if remove_volumes_folder:
-            volumes_folder = os.path.join(folder, "Volumes")
+            volumes_folder = os.path.join(folder_of_current_file, "Volumes")
             self.__sc.log.log(f"Ensure volumes-folder '{volumes_folder}' does not exist...")
             GeneralUtilities.ensure_directory_does_not_exist(volumes_folder)
             GeneralUtilities.ensure_directory_exists(volumes_folder)
@@ -1257,7 +1257,7 @@ class TFCPS_Tools_General:
         if env_file is not None:
             argument = f"{argument} --env-file {env_file}"
         argument = f"{argument} up --detach"
-        self.__sc.run_program("docker", argument, folder)
+        self.__sc.run_program("docker", argument, folder_of_current_file)
 
     @GeneralUtilities.check_arguments
     def ensure_env_file_is_generated(self, current_file: str, env_file_name: str, env_values: dict[str, str]):

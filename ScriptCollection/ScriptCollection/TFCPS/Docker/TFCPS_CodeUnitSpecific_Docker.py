@@ -99,21 +99,21 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         while GeneralUtilities.get_now()<end:
             time.sleep(1)
             try:
-                if self._protected_sc.container_is_running_and_healthy(self._protected_sc,container_name):
+                if self._protected_sc.container_is_running_and_healthy(container_name):
                     return (True,None)
-            except Exception as e:
+            except Exception:
                 pass
-        if not self._protected_sc.container_is_exists(self._protected_sc,container_name):
+        if not self._protected_sc.container_is_exists(container_name):
             return (False,f"Container \"{container_name}\" does not exist.")
-        if not self._protected_sc.container_is_running(self._protected_sc,container_name):
+        if not self._protected_sc.container_is_running(container_name):
             return (False,f"Container \"{container_name}\" is not running.")
-        if not self._protected_sc.container_is_healthy(self._protected_sc,container_name):
-            container_output=self._protected_sc.get_output_of_container(self._protected_sc,container_name)
+        if not self._protected_sc.container_is_healthy(container_name):
+            container_output=self._protected_sc.get_output_of_container(container_name)
             return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}")
         return (False,f"Unknown problem with container \"{container_name}\".")
 
     def verify_image_is_working_with_detault_arguments(self):
-        self.verify_image_is_working(tf,timedelta(seconds=30))
+        self.verify_image_is_working(timedelta(seconds=30))
 
     def verify_image_is_working(self,timeout:timedelta):
         check_result:tuple[bool,str]= self.image_is_working(timeout)

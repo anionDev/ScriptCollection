@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.0.97"
+version = "4.1.0"
 __version__ = version
 
 
@@ -2566,14 +2566,14 @@ OCR-content:
         return program_result[0]==0
 
     def container_is_running(self,container_name:str)->bool:
-        data = self.inspect_container(self, container_name)
+        data = self.inspect_container( container_name)
         if data is None:
             return False
 
         return data["State"]["Status"] == "running"
 
     def container_is_healthy(self,container_name:str)->bool:
-        data = self.inspect_container(self, container_name)
+        data = self.inspect_container( container_name)
         if data is None:
             return False
 
