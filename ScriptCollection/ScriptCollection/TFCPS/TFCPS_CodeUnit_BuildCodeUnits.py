@@ -39,17 +39,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         GeneralUtilities.assert_file_exists(changelog_file,f"Changelogfile \"{changelog_file}\" does not exist. Try to create it for example using \"sccreatechangelogentry -m ...\".") 
         
         #run prepare-script
-        if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
-            arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
-            if not self.__use_cache:
-                arguments=f"{arguments} --nocache"
-                if self.sc.git_repository_has_uncommitted_changes(self.repository):
-                    self.sc.log.log("No-cache-option can not be applied because there are uncommited changes in the repository.",LogLevel.Warning)
-                else:
-                    self.sc.run_program("git","clean -dfx",self.repository)
-
-            self.sc.log.log("Prepare build codeunits...")
-            self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
+        self.run_prepare_script()
 
         #mark current version as supported
         now = GeneralUtilities.get_now()
@@ -79,6 +69,19 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             self.__generate_loc_diagram()
         self.sc.log.log("Finished building codeunits.")
         self.sc.log.log(GeneralUtilities.get_line())
+
+    @GeneralUtilities.check_arguments
+    def run_prepare_script(self):
+        if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
+            arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
+            if not self.__use_cache:
+                arguments=f"{arguments} --nocache"
+                if self.sc.git_repository_has_uncommitted_changes(self.repository):
+                    self.sc.log.log("No-cache-option can not be applied because there are uncommited changes in the repository.",LogLevel.Warning)
+                else:
+                    self.sc.run_program("git","clean -dfx",self.repository)
+            self.sc.log.log("Prepare build codeunits...")
+            self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
 
     @GeneralUtilities.check_arguments
     def build_codeunits_in_container(self) -> None:
@@ -236,6 +239,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.update_year_in_license_file()
         self.sc.assert_is_git_repository(repository)
         self.sc.assert_no_uncommitted_changes(repository)
+        self.run_prepare_script()
         if os.path.isfile(os.path.join(repository,"Other","Scripts","UpdateDependencies.py")):
             self.sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
         codeunits:list[str]=self.tfcps_tools_general.get_codeunits(repository)   

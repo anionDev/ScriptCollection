@@ -129,7 +129,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         check_result:tuple[bool,str]= self.image_is_working(timeout,environment_variables)
         if not check_result[0]:
             raise ValueError("Image not working: "+check_result[1])
-    
+
 class TFCPS_CodeUnitSpecific_Docker_CLI:
 
     @staticmethod
