@@ -9,7 +9,7 @@ from .TFCPS_Tools_General import TFCPS_Tools_General
 
 class TFCPS_CodeUnit_BuildCodeUnits:
     repository:str=None
-    tFCPS_Other:TFCPS_Tools_General=None 
+    tfcps_tools_general:TFCPS_Tools_General=None 
     sc:ScriptCollectionCore=None
     target_environment_type:str=None
     additionalargumentsfile:str=None
@@ -22,7 +22,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.__use_cache=use_cache
         self.sc.assert_is_git_repository(repository)
         self.repository=repository
-        self.tFCPS_Other:TFCPS_Tools_General=TFCPS_Tools_General(self.sc)
+        self.tfcps_tools_general:TFCPS_Tools_General=TFCPS_Tools_General(self.sc)
         allowed_target_environment_types=["Development","QualityCheck","Productive"]
         GeneralUtilities.assert_condition(target_environment_type in allowed_target_environment_types,"Unknown target-environment-type. Allowed values are: "+", ".join(allowed_target_environment_types))
         self.target_environment_type=target_environment_type
@@ -35,7 +35,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.sc.log.log(f"Start building codeunits. (Target environment-type: {self.target_environment_type})")
 
         #check if changelog exists
-        changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tFCPS_Other.get_version_of_project(self.repository)}.md")
+        changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tfcps_tools_general.get_version_of_project(self.repository)}.md")
         GeneralUtilities.assert_file_exists(changelog_file,f"Changelogfile \"{changelog_file}\" does not exist. Try to create it for example using \"sccreatechangelogentry -m ...\".") 
         
         #run prepare-script
@@ -53,16 +53,16 @@ class TFCPS_CodeUnit_BuildCodeUnits:
 
         #mark current version as supported
         now = GeneralUtilities.get_now()
-        project_version:str=self.tFCPS_Other.get_version_of_project(self.repository)
-        if not self.tFCPS_Other.suport_information_exists(self.repository, project_version):
+        project_version:str=self.tfcps_tools_general.get_version_of_project(self.repository)
+        if not self.tfcps_tools_general.suport_information_exists(self.repository, project_version):
             amount_of_years_for_support:int=1
             support_time = timedelta(days=365*amount_of_years_for_support+30*3+1) 
             until = now + support_time
             until_day = datetime(until.year, until.month, until.day, 0, 0, 0)
             from_day = datetime(now.year, now.month, now.day, 0, 0, 0)
-            self.tFCPS_Other.mark_current_version_as_supported(self.repository,project_version,from_day,until_day)
+            self.tfcps_tools_general.mark_current_version_as_supported(self.repository,project_version,from_day,until_day)
 
-        codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
+        codeunits:list[str]=self.tfcps_tools_general.get_codeunits(self.repository)
         self.sc.log.log("Codeunits will be built in the following order:")
         for codeunit_name in codeunits:
             self.sc.log.log(f"  - {codeunit_name}")
@@ -81,8 +81,12 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.sc.log.log(GeneralUtilities.get_line())
 
     @GeneralUtilities.check_arguments
+    def build_codeunits_in_container(self) -> None:
+        raise ValueError("Not implemented.")
+
+    @GeneralUtilities.check_arguments
     def __collect_metrics(self) -> None:
-        project_version: str=self.tFCPS_Other.get_version_of_project(self.repository)
+        project_version: str=self.tfcps_tools_general.get_version_of_project(self.repository)
         self.sc.log.log("Collect metrics...")
         loc = self.sc.get_lines_of_code_with_default_excluded_patterns(self.repository)
         loc_metric_folder = os.path.join(self.repository, "Other", "Metrics")
@@ -199,7 +203,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
     def __search_for_secrets(self):
         enabled:bool=False#TODO reenable when a solution is found to ignore false positives
         if enabled:
-            exe_paths=self.tFCPS_Other.ensure_trufflehog_is_available()
+            exe_paths=self.tfcps_tools_general.ensure_trufflehog_is_available()
             exe_path:str=None
             if GeneralUtilities.current_system_is_windows():
                 exe_path=exe_paths["Windows"]
@@ -226,13 +230,44 @@ class TFCPS_CodeUnit_BuildCodeUnits:
 
     @GeneralUtilities.check_arguments
     def update_dependencies(self) -> None:
+        repository=self.repository
+        self.sc.log.log("Update dependencies...")
         self.update_year_in_license_file()
-
-        #TODO update project-wide-dependencies here
-        codeunits:list[str]=self.tFCPS_Other.get_codeunits(self.repository)
+        self.sc.assert_is_git_repository(repository)
+        self.sc.assert_no_uncommitted_changes(repository)
+        if os.path.isfile(os.path.join(repository,"Other","Scripts","UpdateDependencies.py")):
+            self.sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
+        codeunits:list[str]=self.tfcps_tools_general.get_codeunits(repository)   
         for codeunit_name in codeunits:
-            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(os.path.join(self.repository,codeunit_name),self.sc.log.loglevel,self.target_environment_type,self.additionalargumentsfile,self.use_cache(),self.is_pre_merge())
-            tFCPS_CodeUnit_BuildCodeUnit.update_dependencies() 
+            self.sc.log.log(f"Update dependencies of codeunit {codeunit_name}...")
+            codeunit_folder=os.path.join(repository,codeunit_name)
+            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(codeunit_folder,self.sc.log.loglevel,"QualityCheck",None,True,False)
+            tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()#ensure requirements for updating are there (some programming types needs this)
+            if self.tfcps_tools_general.codeunit_has_updatable_dependencies(os.path.join(codeunit_folder,f"{codeunit_name}.codeunit.xml")):
+                self.sc.run_program("python","UpdateDependencies.py",os.path.join(codeunit_folder,"Other"))
+            tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()#check if codeunit is still buildable
+
+        if self.sc.git_repository_has_uncommitted_changes(repository):
+            changelog_folder = os.path.join(repository, "Other", "Resources", "Changelog")
+            project_version:str=self.tfcps_tools_general.get_version_of_project(repository)
+            changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
+            if not os.path.isfile(changelog_file):
+                self.__ensure_changelog_file_is_added(repository, project_version)
+            t=TFCPS_CodeUnit_BuildCodeUnits(repository,self.sc.log.loglevel,"QualityCheck",None,True,False)
+            t.build_codeunits()#check codeunits are buildable at all
+            self.sc.git_commit(repository, "Updated dependencies", stage_all_changes=True) 
+
+
+    def __ensure_changelog_file_is_added(self, repository_folder: str, version_of_project: str):
+        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
+        if not os.path.isfile(changelog_file):
+            GeneralUtilities.ensure_file_exists(changelog_file)
+            GeneralUtilities.write_text_to_file(changelog_file, """# Release notes
+
+## Changes
+
+- Updated dependencies.
+""")
 
     @GeneralUtilities.check_arguments
     def update_year_in_license_file(self) -> None:

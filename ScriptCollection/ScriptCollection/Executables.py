@@ -297,37 +297,33 @@ def BuildCodeUnits() -> int:
 
 def BuildCodeUnitsC() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--repositoryfolder', required=False, default=".")
-    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
-    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
-    parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
-    parser.add_argument('--additionalargumentsfile', required=False, default=None)
-    parser.add_argument('--image', required=False, default="scbuilder:latest")
-    #args = parser.parse_args()
-    GeneralUtilities.reconfigure_standrd_input_and_outputs()
-    #t=TasksForCommonProjectStructure(args)
-    #t.build_codeunitsC(args.repositoryfolder, args.image, args.targetenvironment, args.additionalargumentsfile, sys.argv)
-    #return 0
-    return 1#TODO
-
-def UpdateDependencies() -> int:
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--repositoryfolder', required=False, default=".")
+    parser.add_argument('--repositoryfolder', required=False)
     verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
     parser.add_argument('--additionalargumentsfile', required=False, default=None)
     parser.add_argument("-c",'--nocache', required=False, default=False, action='store_true')
-
+    parser.add_argument('--ispremerge', required=False, default=False, action='store_true')
+    parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
-    
+    GeneralUtilities.reconfigure_standrd_input_and_outputs()
+    repo:str=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
     verbosity=LogLevel(int(args.verbosity))
+    t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,args.ispremerge) 
+    t.build_codeunits_in_container()
+    return 1#TODO
 
-    repo:str=args.repositoryfolder
-    if not os.path.isabs(args.repositoryfolder):
-        repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
-
+def UpdateDependencies() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--repositoryfolder', required=False)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+    parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
+    parser.add_argument('--additionalargumentsfile', required=False, default=None)
+    parser.add_argument("-c",'--nocache', required=False, default=False, action='store_true')
+    args = parser.parse_args()    
+    verbosity=LogLevel(int(args.verbosity))
+    repo:str=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
     t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,False) 
     t.update_dependencies()
     return 0

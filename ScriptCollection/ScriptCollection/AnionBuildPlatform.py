@@ -1,8 +1,6 @@
 import argparse
 import os
-from .TFCPS.TFCPS_CodeUnit_BuildCodeUnit import TFCPS_CodeUnit_BuildCodeUnit
 from .TFCPS.TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
-from .TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
 from .SCLog import LogLevel
 from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
@@ -11,7 +9,7 @@ class AnionBuildPlatformConfiguration:
     build_repositories_folder:str
     additional_arguments_file:str
     verbosity:LogLevel
-    source_branch:str
+    source_branch:str#other/next-release
     common_remote_name:str
     update_dependencies:bool
 
@@ -33,15 +31,22 @@ class AnionBuildPlatform:
 
     __configuration: AnionBuildPlatformConfiguration
     __sc:ScriptCollectionCore
-    __tFCPS_Tools_General:TFCPS_Tools_General
 
     def __init__(self, configuration: AnionBuildPlatformConfiguration):
         self.__configuration = configuration
         self.__sc = ScriptCollectionCore()
         self.__sc.log.loglevel=configuration.verbosity
-        self.__tFCPS_Tools_General=TFCPS_Tools_General(self.__sc)
 
     def run(self) -> None:
+        #TODO refactor this
+        # ensure that if
+        # - main is up to date and
+        # - all dependencies are up to date and
+        # - other/next-release==main and
+        # - main is buildable and
+        # - the latest main is already merged in stable
+        # then this function does nothing
+
         # Checkout source branch
         build_repo_folder:str=self.__configuration.build_repositories_folder
         GeneralUtilities.assert_condition(build_repo_folder.endswith("Build"),f"buildrepositoriesfolder {build_repo_folder} must end with 'Build'")
@@ -104,7 +109,7 @@ class AnionBuildPlatform:
         #    merge_to_stable_arguments+=f" --artifactstargetfolder {self.__configuration.artifacts_target_folder}"
         #if self.__configuration.common_remote_url is not None:
         #    merge_to_stable_arguments+=f" --commonremoteurl {self.__configuration.common_remote_url}"
-        if self.__configuration.verbosity is not None:
+        if self.__configuration.verbosity == LogLevel.Debug:
             merge_to_stable_arguments+=f" --verbosity {self.__configuration.verbosity.value}"
         self.__sc.run_program("python",f"MergeToStable.py{merge_to_stable_arguments}",scripts_folder,print_live_output=True)
 
@@ -114,41 +119,10 @@ class AnionBuildPlatform:
     def __update_dependencies(self,product_name:str) -> None:
         self.__sc.log.log("Update dependencies...")
         repository:str=os.path.join(self.__configuration.build_repositories_folder,"Submodules",product_name)
-        self.__sc.assert_is_git_repository(repository)
-        self.__sc.assert_no_uncommitted_changes(repository)
-        if os.path.isfile(os.path.join(repository,"Other","Scripts","UpdateDependencies.py")):
-            self.__sc.run_program("python","UpdateDependencies.py",os.path.join(repository,"Other","Scripts"))
-        codeunits:list[str]=self.__tFCPS_Tools_General.get_codeunits(repository)   
-        for codeunit_name in codeunits:
-            self.__sc.log.log(f"Update dependencies of codeunit {codeunit_name}...")
-            codeunit_folder=os.path.join(repository,codeunit_name)
-            tFCPS_CodeUnit_BuildCodeUnit:TFCPS_CodeUnit_BuildCodeUnit = TFCPS_CodeUnit_BuildCodeUnit(codeunit_folder,self.__sc.log.loglevel,"QualityCheck",None,True,False)
-            tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()#ensure requirements for updating are there (some programming types needs this)
-            if self.__tFCPS_Tools_General.codeunit_has_updatable_dependencies(os.path.join(codeunit_folder,f"{codeunit_name}.codeunit.xml")):
-                self.__sc.run_program("python","UpdateDependencies.py",os.path.join(codeunit_folder,"Other"))
-            tFCPS_CodeUnit_BuildCodeUnit.build_codeunit()#check if codeunit is still buildable
-
-        if self.__sc.git_repository_has_uncommitted_changes(repository):
-            changelog_folder = os.path.join(repository, "Other", "Resources", "Changelog")
-            project_version:str=self.__tFCPS_Tools_General.get_version_of_project(repository)
-            changelog_file = os.path.join(changelog_folder, f"v{project_version}.md")
-            if not os.path.isfile(changelog_file):
-                self.__ensure_changelog_file_is_added(repository, project_version)
-            t=TFCPS_CodeUnit_BuildCodeUnits(repository,self.__sc.log.loglevel,"QualityCheck",None,True,False)
-            t.build_codeunits()#check codeunits are buildable at all
-            self.__sc.git_commit(repository, "Updated dependencies", stage_all_changes=True) 
+        t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repository,self.__sc.log.loglevel,"QualityCheck",None,True,False)
+        t.update_dependencies()
 
 
-    def __ensure_changelog_file_is_added(self, repository_folder: str, version_of_project: str):
-        changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
-        if not os.path.isfile(changelog_file):
-            GeneralUtilities.ensure_file_exists(changelog_file)
-            GeneralUtilities.write_text_to_file(changelog_file, """# Release notes
-
-## Changes
-
-- Updated dependencies.
-""")
 
 class TFCPS_AnionBuildPlatform_CLI:
 

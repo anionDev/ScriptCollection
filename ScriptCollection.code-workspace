@@ -20,6 +20,17 @@
 				]
 			},
 			{
+				"label": "Base: Build all codeunits containerized",
+				"command": "scbuildcodeunitsc {{.CLI_ARGS}}",
+				"type": "shell",
+				"options": {
+					"cwd": "${workspaceFolder}"
+				},
+				"aliases": [
+					"bd"
+				]
+			},
+			{
 				"label": "Base: Update dependencies",
 				"command": "scupdatedependencies {{.CLI_ARGS}}",
 				"type": "shell",

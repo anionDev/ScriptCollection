@@ -12,6 +12,16 @@ tasks:
       - basebuildallcodeunits
       - bb
 
+  BaseBuildAllCodeunitsContainerized:
+    desc: "Base: Build all codeunits containerized"
+    silent: true
+    dir: "."
+    cmds:
+      - "scbuildcodeunitsc {{.CLI_ARGS}}"
+    aliases:
+      - basebuildallcodeunitscontainerized
+      - bd
+
   BaseUpdateDependencies:
     desc: "Base: Update dependencies"
     silent: true

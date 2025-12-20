@@ -1223,11 +1223,14 @@ class TFCPS_Tools_General:
         GeneralUtilities.copy_content_of_folder(src_folder, trg_folder)
         
     @GeneralUtilities.check_arguments
-    def load_docker_image(self, oci_image_artifacts_folder:str,container_names_to_remove:list[str]) -> None:
-        image_filename = os.path.basename(self.__sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
+    def ensure_containers_are_not_running(self, container_names_to_remove:list[str]) -> None:
         for container_name in container_names_to_remove:
             self.__sc.log.log(f"Ensure container {container_name} does not exist...")
-            self.__sc.run_program("docker", f"container rm -f {container_name}", oci_image_artifacts_folder, throw_exception_if_exitcode_is_not_zero=False)
+            self.__sc.run_program("docker", f"container rm -f {container_name}", throw_exception_if_exitcode_is_not_zero=False)
+        
+    @GeneralUtilities.check_arguments
+    def load_docker_image(self, oci_image_artifacts_folder:str) -> None:
+        image_filename = os.path.basename(self.__sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
         self.__sc.log.log("Load docker-image...")
         self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder)
 
@@ -1243,7 +1246,8 @@ class TFCPS_Tools_General:
                     container_names_to_remove.append(match.group(1))
             self.__sc.log.log(f"Ensure container of {docker_compose_file} do not exist...")
         oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder_of_current_file)
-        self.load_docker_image(oci_image_artifacts_folder,container_names_to_remove)
+        self.ensure_containers_are_not_running(container_names_to_remove)
+        self.load_docker_image(oci_image_artifacts_folder)
         example_name = os.path.basename(folder_of_current_file)
         codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder_of_current_file))
         if remove_volumes_folder:

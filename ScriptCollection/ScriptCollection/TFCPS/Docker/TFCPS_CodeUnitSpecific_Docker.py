@@ -42,7 +42,6 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def __generate_sbom_for_docker_image(self) -> None:
-        
         codeunitname=self.get_codeunit_name()
         codeunit_folder =self.get_codeunit_folder()
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
@@ -90,27 +89,31 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     def image_is_working(self,timeout:timedelta)->tuple[bool,str]:
         oci_image_artifacts_folder :str= GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_OCIImage", self.get_codeunit_folder())
         container_name:str=f"{self.get_codeunit_name()}finaltest".lower()
-        self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder,[container_name])
+        self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
+        self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder)
         codeunit_file:str=os.path.join(self.get_codeunit_folder(),f"{self.get_codeunit_name()}.codeunit.xml")
         image=f"{self.get_codeunit_name()}:{self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)}".lower()
-        self._protected_sc.run_program("docker",f"run -d --name {container_name} -p 80:80 -e InitialDatabaseType=Transient {image}")
-        start:datetime=GeneralUtilities.get_now()
-        end:datetime=start+timeout
-        while GeneralUtilities.get_now()<end:
-            time.sleep(1)
-            try:
-                if self._protected_sc.container_is_running_and_healthy(container_name):
-                    return (True,None)
-            except Exception:
-                pass
-        if not self._protected_sc.container_is_exists(container_name):
-            return (False,f"Container \"{container_name}\" does not exist.")
-        if not self._protected_sc.container_is_running(container_name):
-            return (False,f"Container \"{container_name}\" is not running.")
-        if not self._protected_sc.container_is_healthy(container_name):
-            container_output=self._protected_sc.get_output_of_container(container_name)
-            return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}")
-        return (False,f"Unknown problem with container \"{container_name}\".")
+        try:
+            self._protected_sc.run_program("docker",f"run -d --name {container_name} -p 80:80 -e InitialDatabaseType=Transient {image}")
+            start:datetime=GeneralUtilities.get_now()
+            end:datetime=start+timeout
+            while GeneralUtilities.get_now()<end:
+                time.sleep(1)
+                try:
+                    if self._protected_sc.container_is_running_and_healthy(container_name):
+                        return (True,None)
+                except Exception:
+                    pass
+            if not self._protected_sc.container_is_exists(container_name):
+                return (False,f"Container \"{container_name}\" does not exist.")
+            if not self._protected_sc.container_is_running(container_name):
+                return (False,f"Container \"{container_name}\" is not running.")
+            if not self._protected_sc.container_is_healthy(container_name):
+                container_output=self._protected_sc.get_output_of_container(container_name)
+                return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}")
+            return (False,f"Unknown problem with container \"{container_name}\".")
+        finally:
+            self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
 
     def verify_image_is_working_with_detault_arguments(self):
         self.verify_image_is_working(timedelta(seconds=30))

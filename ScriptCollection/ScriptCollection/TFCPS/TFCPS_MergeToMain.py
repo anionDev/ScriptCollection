@@ -56,15 +56,18 @@ class TFCPS_MergeToMain:
         self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, source_branch)
         self.sc.assert_no_uncommitted_changes(self.generic_prepare_new_release_arguments.repository_folder)
 
-        tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",self.generic_prepare_new_release_arguments.additional_arguments_file,False,True)
+        #premerge-build
+        #TODO the premerge-build is now supposed to be in MergeToStable
         try:
+            tfcps_CodeUnit_BuildCodeUnits:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(self.generic_prepare_new_release_arguments.repository_folder,self.sc.log.loglevel,"QualityCheck",self.generic_prepare_new_release_arguments.additional_arguments_file,False,True)
             tfcps_CodeUnit_BuildCodeUnits.build_codeunits()
         except Exception:
+            self.sc.log.log(f"Branch {source_branch} is not buildable.",LogLevel.Error)
             self.sc.git_undo_all_changes(self.generic_prepare_new_release_arguments.repository_folder)
             raise
-
         self.sc.git_commit(self.generic_prepare_new_release_arguments.repository_folder, 'Pre-merge-commit', stage_all_changes=True, no_changes_behavior=0)
-        
+
+
         if fast_forward_source_branch:
             self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, source_branch)
             project_version:str=self.tFCPS_Tools_General.get_version_of_project(self.generic_prepare_new_release_arguments.repository_folder)
@@ -76,7 +79,7 @@ class TFCPS_MergeToMain:
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,source_branch,source_branch)
         self.sc.git_push_with_retry(self.generic_prepare_new_release_arguments.repository_folder,self.generic_prepare_new_release_arguments.common_remote_name,target_branch,target_branch)
         self.sc.git_commit(self.generic_prepare_new_release_arguments.build_repo,"Updated submodule")
- 
+
 class TFCPS_MergeToMain_CLI:
 
     @staticmethod
