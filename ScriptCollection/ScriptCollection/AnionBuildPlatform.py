@@ -37,6 +37,7 @@ class AnionBuildPlatform:
         self.__sc = ScriptCollectionCore()
         self.__sc.log.loglevel=configuration.verbosity
 
+    @GeneralUtilities.check_arguments
     def run(self) -> None:
         #TODO refactor this
         # ensure that if
@@ -116,6 +117,7 @@ class AnionBuildPlatform:
         #prepare for next-release
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
 
+    @GeneralUtilities.check_arguments
     def __update_dependencies(self,product_name:str) -> None:
         self.__sc.log.log("Update dependencies...")
         repository:str=os.path.join(self.__configuration.build_repositories_folder,"Submodules",product_name)
@@ -127,6 +129,7 @@ class AnionBuildPlatform:
 class TFCPS_AnionBuildPlatform_CLI:
 
     @staticmethod
+    @GeneralUtilities.check_arguments
     def get_with_overwritable_defaults(default_project_to_build:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_build_repositories_folder:str=None,default_source_branch:str=None,default_main_branch:str=None,default_remote_name:str=None)->AnionBuildPlatform:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)

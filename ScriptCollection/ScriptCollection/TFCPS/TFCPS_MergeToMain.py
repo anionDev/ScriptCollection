@@ -83,6 +83,7 @@ class TFCPS_MergeToMain:
 class TFCPS_MergeToMain_CLI:
 
     @staticmethod
+    @GeneralUtilities.check_arguments
     def get_with_overwritable_defaults(file:str,default_merge_source_branch:str=None,default_loglevel:LogLevel=None,default_additionalargumentsfile:str=None,default_main_branch:str=None,default_common_remote_name:str=None)->TFCPS_MergeToMain:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)

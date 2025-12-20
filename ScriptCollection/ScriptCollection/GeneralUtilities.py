@@ -89,6 +89,7 @@ class GeneralUtilities:
         return __check_function
 
     @staticmethod
+    @check_arguments
     def deprecated(func):
         @functools.wraps(func)
         def new_func(*args, **kwargs):

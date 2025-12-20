@@ -117,12 +117,14 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
     def get_available_versions(self,dependencyname:str)->list[str]:
         return []#TODO
     
+    @GeneralUtilities.check_arguments
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
     
 class TFCPS_CodeUnitSpecific_NodeJS_CLI:
  
     @staticmethod
+    @GeneralUtilities.check_arguments
     def parse(file:str)->TFCPS_CodeUnitSpecific_NodeJS_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired

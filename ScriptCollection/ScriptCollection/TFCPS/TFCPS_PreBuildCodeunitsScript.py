@@ -29,6 +29,7 @@ class TFCPS_PreBuildCodeunitsScript:
     def __init__(self,configuration:TFCPS_PreBuildCodeunitsScriptConfiguration):
         self.configuration=configuration
 
+    @GeneralUtilities.check_arguments
     def pre_merge(self):
         pass#TODO
 

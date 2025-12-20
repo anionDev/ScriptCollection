@@ -56,19 +56,17 @@ class TFCPS_CodeUnitSpecific_Go_Functions(TFCPS_CodeUnitSpecific_Base):
     def get_available_versions(self,dependencyname:str)->list[str]:
         return []#TODO
     
+    @GeneralUtilities.check_arguments
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
     
 class TFCPS_CodeUnitSpecific_Go_CLI:
 
     @staticmethod
+    @GeneralUtilities.check_arguments
     def parse(file:str)->TFCPS_CodeUnitSpecific_Go_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired
         args=parser.parse_args()
         result:TFCPS_CodeUnitSpecific_Go_Functions=TFCPS_CodeUnitSpecific_Go_Functions(file,LogLevel(int(args.verbosity)),args.targetenvironmenttype,not args.nocache,args.ispremerge)
         return result
-
-def run_testcases():
-    t :TFCPS_CodeUnitSpecific_Go_Functions= TFCPS_CodeUnitSpecific_Go_CLI().parse(__file__)
-    t.run_testcases()

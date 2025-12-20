@@ -196,10 +196,11 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         self.sc.generate_chart_diagram(diagram_definition_file,os.path.basename(diagram_svg_file))
         self.sc.format_xml_file(diagram_svg_file)
 
-
+    @GeneralUtilities.check_arguments
     def __search_for_vulnerabilities(self):
         pass#TODO
 
+    @GeneralUtilities.check_arguments
     def __search_for_secrets(self):
         enabled:bool=False#TODO reenable when a solution is found to ignore false positives
         if enabled:
@@ -257,7 +258,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             t.build_codeunits()#check codeunits are buildable at all
             self.sc.git_commit(repository, "Updated dependencies", stage_all_changes=True) 
 
-
+    @GeneralUtilities.check_arguments
     def __ensure_changelog_file_is_added(self, repository_folder: str, version_of_project: str):
         changelog_file = os.path.join(repository_folder, "Other", "Resources", "Changelog", f"v{version_of_project}.md")
         if not os.path.isfile(changelog_file):

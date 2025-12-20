@@ -134,6 +134,7 @@ class TFCPS_MergeToStable:
 
         self.sc.log.log(f"Finishing merging {projectname} v{project_version} to stable...")
 
+    @GeneralUtilities.check_arguments
     def __remove_outdated_version(self,reference_repo:str):
         now = GeneralUtilities.get_now()
         for unsupported_version in self.tFCPS_Tools_General.get_unsupported_versions(self.createRelease_configuration.repository, now):
@@ -276,6 +277,7 @@ class TFCPS_MergeToStable:
 class TFCPS_MergeToStable_CLI:
 
     @staticmethod
+    @GeneralUtilities.check_arguments
     def get_with_overwritable_defaults(file:str,default_loglevel:LogLevel=None,default_source_branch:str=None,default_additionalargumentsfile:str=None,default_target_branch:str=None,common_remote_name:str=None,build_repo_main_branch_name:str=None,reference_repo_main_branch_name:str=None,reference_remote_name:str=None,build_repo_remote_name:str=None,artifacts_target_folder:str=None,common_remote_url:str=None)->TFCPS_MergeToMain:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
