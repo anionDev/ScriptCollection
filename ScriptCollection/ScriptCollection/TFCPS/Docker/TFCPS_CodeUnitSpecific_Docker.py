@@ -1,6 +1,7 @@
 import os
 from urllib import request
 import time
+import ssl
 from datetime import timedelta,datetime
 from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
@@ -116,7 +117,10 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                         if test_port is not None:
                             url=url+":"+str(test_port)
                         url=url+http_test_route
-                        with request.urlopen(url) as response:
+                        ctx = ssl.create_default_context()
+                        ctx.check_hostname = False
+                        ctx.verify_mode = ssl.CERT_NONE
+                        with request.urlopen(url, context=ctx) as response:
                             status = response.status
                             if status<200 or status < 300:
                                 raise ValueError(f"Test-call \"GET {url}\" had response-statuscode {status}.")
@@ -132,7 +136,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                 return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}")
             message=f"Container \"{container_name}\" is not working properly."
             if last_exception is not None:
-                message=message+" Last exception: "+str(last_exception)
+                message=message+" Last exception: "+GeneralUtilities.exception_to_str(last_exception)
             return (False,message)
         finally:
             self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])

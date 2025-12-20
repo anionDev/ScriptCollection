@@ -420,16 +420,23 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def write_exception_to_stderr_with_traceback(exception: Exception, current_traceback=None, extra_message: str = None):
-        GeneralUtilities.write_message_to_stderr("Exception(")
-        GeneralUtilities.write_message_to_stderr("Type: " + str(type(exception)))
-        GeneralUtilities.write_message_to_stderr("Message: " + str(exception))
+        GeneralUtilities.write_message_to_stderr(GeneralUtilities.exception_to_str(exception,current_traceback,extra_message))
+
+    @staticmethod
+    @check_arguments
+    def exception_to_str(exception: Exception, current_traceback=None, extra_message: str = None)->str:
+        result=""
+        result=result+"Exception("
+        result=result+"\n  Type: " + str(type(exception))
+        result=result+"\n  Message: " + str(exception)
         if extra_message is not None:
-            GeneralUtilities.write_message_to_stderr("Extra-message: " + str(extra_message))
+            result=result+"\n  Extra-message: " + str(extra_message)
         if isinstance(exception, OSError):
-            GeneralUtilities.write_message_to_stderr(GeneralUtilities.get_advanced_errormessage_for_os_error(exception))
+            result=result+"\n  "+GeneralUtilities.get_advanced_errormessage_for_os_error(exception)
         if current_traceback is not None:
-            GeneralUtilities.write_message_to_stderr("Traceback: " + current_traceback.format_exc())
-        GeneralUtilities.write_message_to_stderr(")")
+            result=result+"\n  Traceback:\n" +str(current_traceback.format_exc())
+        result=result+"\n)"
+        return result
 
     @staticmethod
     @check_arguments
@@ -925,7 +932,7 @@ class GeneralUtilities:
     @check_arguments
     def print_stacktrace() -> None:
         for line in traceback.format_stack():
-            GeneralUtilities.write_message_to_stdout(line.strip())
+            GeneralUtilities.write_message_to_stderr(line.strip())
 
     @staticmethod
     @check_arguments
