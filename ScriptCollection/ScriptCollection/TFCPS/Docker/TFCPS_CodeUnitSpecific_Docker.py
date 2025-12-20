@@ -10,21 +10,20 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool,is_pre_merge:bool):
         super().__init__(current_file, verbosity,targetenvironmenttype,use_cache,is_pre_merge)
 
-
     @GeneralUtilities.check_arguments
-    def build(self=None) -> None:
-        
+    def build(self,custom_arguments:dict[str,str]) -> None:
+
         codeunitname: str =self.get_codeunit_name()
         codeunit_folder =self.get_codeunit_folder()
         codeunitname_lower = codeunitname.lower()
         codeunit_file =self.get_codeunit_file()
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)
         args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}"]
-        custom_arguments:dict[str,str]={}#TODO must be setable from outside
-        if custom_arguments is not None:
-            for custom_argument_key, custom_argument_value in custom_arguments.items():
-                args.append("--build-arg")
-                args.append(f"{custom_argument_key}={custom_argument_value}")
+        if custom_arguments is None:
+            custom_arguments=dict[str,str]()
+        for custom_argument_key, custom_argument_value in custom_arguments.items():
+            args.append("--build-arg")
+            args.append(f"{custom_argument_key}={custom_argument_value}")
         args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
         if not self.use_cache():
             args.append("--no-cache")
@@ -53,7 +52,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
  
     @GeneralUtilities.check_arguments
-    def linting(self=None) -> None:
+    def linting(self) -> None:
         pass#TODO
 
     @GeneralUtilities.check_arguments
@@ -66,11 +65,11 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         self.tfcps_Tools_General.standardized_tasks_update_version_in_docker_examples(codeunit_folder,codeunit_version)
  
     @GeneralUtilities.check_arguments
-    def generate_reference(self=None) -> None:
+    def generate_reference(self) -> None:
         self.generate_reference_using_docfx()
     
     @GeneralUtilities.check_arguments
-    def run_testcases(self=None) -> None:
+    def run_testcases(self) -> None:
         pass#TODO
     
     @GeneralUtilities.check_arguments
@@ -84,17 +83,20 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     @GeneralUtilities.check_arguments
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
-    
-        
-    def image_is_working(self,timeout:timedelta)->tuple[bool,str]:
+
+    def image_is_working(self,timeout:timedelta,environment_variables:dict[str,str])->tuple[bool,str]:
         oci_image_artifacts_folder :str= GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_OCIImage", self.get_codeunit_folder())
         container_name:str=f"{self.get_codeunit_name()}finaltest".lower()
         self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
         self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder)
         codeunit_file:str=os.path.join(self.get_codeunit_folder(),f"{self.get_codeunit_name()}.codeunit.xml")
         image=f"{self.get_codeunit_name()}:{self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)}".lower()
+        argument=f"run -d --name {container_name} -p 80:80"
+        for k,v in environment_variables.items():
+            argument=f"{argument} -e {k}={v}"#TODO switch to argument-array to also allow values with white-space
+        argument=f"{argument} {image}"
         try:
-            self._protected_sc.run_program("docker",f"run -d --name {container_name} -p 80:80 -e InitialDatabaseType=Transient {image}")
+            self._protected_sc.run_program("docker",)
             start:datetime=GeneralUtilities.get_now()
             end:datetime=start+timeout
             while GeneralUtilities.get_now()<end:
@@ -115,11 +117,13 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         finally:
             self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
 
-    def verify_image_is_working_with_detault_arguments(self):
-        self.verify_image_is_working(timedelta(seconds=30))
+    def verify_image_is_working_with_detault_arguments(self,environment_variables:dict[str,str]=None):
+        if environment_variables is None:
+            environment_variables=dict[str,str]()
+        self.verify_image_is_working(timedelta(seconds=30),environment_variables)
 
-    def verify_image_is_working(self,timeout:timedelta):
-        check_result:tuple[bool,str]= self.image_is_working(timeout)
+    def verify_image_is_working(self,timeout:timedelta,environment_variables:dict[str,str]):
+        check_result:tuple[bool,str]= self.image_is_working(timeout,environment_variables)
         if not check_result[0]:
             raise ValueError("Image not working: "+check_result[1])
     

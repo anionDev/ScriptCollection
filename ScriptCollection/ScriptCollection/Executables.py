@@ -256,21 +256,6 @@ def HealthCheck() -> int:
     return ScriptCollectionCore().SCHealthcheck(args.file)
 
 
-def BuildCodeUnit() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--codeunitfolder', required=False, default=".")
-    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
-    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
-    parser.add_argument('-e','--targetenvironment', required=False, default="QualityCheck")
-    parser.add_argument('-a','--additionalargumentsfile', required=False, default=None)
-    parser.add_argument('--assume_dependent_codeunits_are_already_built', type=GeneralUtilities.string_to_boolean, const=True, default=False, nargs='?')
-    #args = parser.parse_args()
-    #t=TasksForCommonProjectStructure(args)
-    #t.build_codeunit(args.codeunitfolder,  args.targetenvironment, args.additionalargumentsfile, False, None, args.assume_dependent_codeunits_are_already_built, sys.argv)
-    #return 0
-    return 1#TODO
-
-
 def BuildCodeUnits() -> int:
     parser = argparse.ArgumentParser()
 
@@ -286,9 +271,7 @@ def BuildCodeUnits() -> int:
     
     verbosity=LogLevel(int(args.verbosity))
 
-    repo:str=args.repositoryfolder
-    if not os.path.isabs(args.repositoryfolder):
-        repo=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
+    repo:str=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
 
     t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,args.ispremerge) 
     t.build_codeunits()
@@ -297,7 +280,7 @@ def BuildCodeUnits() -> int:
 
 def BuildCodeUnitsC() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--repositoryfolder', required=False)
+    parser.add_argument('--repositoryfolder', required=False, default=".")
     verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
@@ -315,7 +298,7 @@ def BuildCodeUnitsC() -> int:
 
 def UpdateDependencies() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--repositoryfolder', required=False)
+    parser.add_argument('--repositoryfolder', required=False, default=".")
     verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('--targetenvironment', required=False, default="QualityCheck")
