@@ -2544,3 +2544,67 @@ OCR-content:
         if self.log.loglevel==LogLevel.Debug:
             argument=f"-l debug {argument}"
         self.run_with_epew("vl2svg",argument,workingfolder)#this uses vega-light. to use vega "vg2svg" should be used instead.
+
+    def inspect_container(self, container_name: str) :
+        program_result = self.run_program(
+            "docker",
+            f"inspect {container_name}",
+            throw_exception_if_exitcode_is_not_zero=True
+        )
+        stdout=program_result[1]
+
+        data = json.loads(stdout)
+        GeneralUtilities.assert_condition(len(data)==1,f"Unexpected array-length of docker-inspect-output for container \"{container_name}\".")
+        return data[0]
+
+    def container_is_exists(self,container_name:str)->bool:
+        program_result = self.run_program(
+            "docker",
+            f"inspect {container_name}",
+            throw_exception_if_exitcode_is_not_zero=False
+        )
+        return program_result[0]==0
+
+    def container_is_running(self,container_name:str)->bool:
+        data = self.inspect_container(self, container_name)
+        if data is None:
+            return False
+
+        return data["State"]["Status"] == "running"
+
+    def container_is_healthy(self,container_name:str)->bool:
+        data = self.inspect_container(self, container_name)
+        if data is None:
+            return False
+
+        state = data["State"]
+        health = state.get("Health")
+
+        if health is None:
+            return False  # kein HEALTHCHECK definiert
+
+        return health["Status"] == "healthy"
+
+    def get_output_of_container(self,container_name:str)->str:
+    
+        program_result= self.run_program_argsasarray(
+            "docker",
+            ["logs",container_name],
+            throw_exception_if_exitcode_is_not_zero=False
+        )
+        exit_code=program_result[0]
+        stdout=program_result[1]
+        stderr=program_result[2]
+        if exit_code != 0:
+            return ""
+
+        return stdout+"\n"+stderr
+
+    def container_is_running_and_healthy(self,container_name:str)->bool:
+        if not self.container_is_exists(container_name):
+            return False
+        if not self.container_is_running(container_name):
+            return False
+        if not self.container_is_healthy(container_name):
+            return False
+        return True

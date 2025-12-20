@@ -1,4 +1,6 @@
 import os
+import time
+from datetime import timedelta,datetime
 from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
@@ -83,6 +85,40 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     @GeneralUtilities.check_arguments
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
+    
+        
+    def image_is_working(self,timeout:timedelta)->tuple[bool,str]:
+        oci_image_artifacts_folder :str= GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_OCIImage", self.get_codeunit_folder())
+        container_name:str=f"{self.get_codeunit_name()}finaltest".lower()
+        self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder,[container_name])
+        codeunit_file:str=os.path.join(self.get_codeunit_folder(),f"{self.get_codeunit_name()}.codeunit.xml")
+        image=f"{self.get_codeunit_name()}:{self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)}".lower()
+        self._protected_sc.run_program("docker",f"run -d --name {container_name} -p 80:80 -e InitialDatabaseType=Transient {image}")
+        start:datetime=GeneralUtilities.get_now()
+        end:datetime=start+timeout
+        while GeneralUtilities.get_now()<end:
+            time.sleep(1)
+            try:
+                if self._protected_sc.container_is_running_and_healthy(self._protected_sc,container_name):
+                    return (True,None)
+            except Exception as e:
+                pass
+        if not self._protected_sc.container_is_exists(self._protected_sc,container_name):
+            return (False,f"Container \"{container_name}\" does not exist.")
+        if not self._protected_sc.container_is_running(self._protected_sc,container_name):
+            return (False,f"Container \"{container_name}\" is not running.")
+        if not self._protected_sc.container_is_healthy(self._protected_sc,container_name):
+            container_output=self._protected_sc.get_output_of_container(self._protected_sc,container_name)
+            return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}")
+        return (False,f"Unknown problem with container \"{container_name}\".")
+
+    def verify_image_is_working_with_detault_arguments(self):
+        self.verify_image_is_working(tf,timedelta(seconds=30))
+
+    def verify_image_is_working(self,timeout:timedelta):
+        check_result:tuple[bool,str]= self.image_is_working(timeout)
+        if not check_result[0]:
+            raise ValueError("Image not working: "+check_result[1])
     
 class TFCPS_CodeUnitSpecific_Docker_CLI:
 
