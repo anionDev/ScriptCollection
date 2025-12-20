@@ -88,6 +88,10 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def image_is_working(self,timeout:timedelta,environment_variables:dict[str,str],test_port:int,http_test_route:str,use_https_for_test:bool)->tuple[bool,str]:
+        if timeout is None:
+            timeout=timedelta(seconds=120)
+        if environment_variables is None:
+            environment_variables={}
         oci_image_artifacts_folder :str= GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_OCIImage", self.get_codeunit_folder())
         container_name:str=f"{self.get_codeunit_name()}finaltest".lower()
         self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
@@ -100,10 +104,10 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         argument=f"{argument} {image}"
         GeneralUtilities.assert_condition(http_test_route is None or http_test_route.startswith("/"),"If a test-route is given then it must start with \"/\".")
         try:
+            last_exception:Exception=None
             self._protected_sc.run_program("docker",argument)
             start:datetime=GeneralUtilities.get_now()
             end:datetime=start+timeout
-            last_exception:Exception=None
             while GeneralUtilities.get_now()<end:
                 time.sleep(1)
                 try:
@@ -113,7 +117,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                         url="http"
                         if use_https_for_test:
                             url=url+"s"
-                        url=url+"//localhost"
+                        url=url+"://localhost"
                         if test_port is not None:
                             url=url+":"+str(test_port)
                         url=url+http_test_route
@@ -124,28 +128,22 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                             status = response.status
                             if status<200 or status < 300:
                                 raise ValueError(f"Test-call \"GET {url}\" had response-statuscode {status}.")
-                        return (True,None)
+                    return (True,None)
                 except Exception as e:
                     last_exception=e
+            exception_message=""
+            if last_exception is not None:
+                exception_message=exception_message+"\nLast exception: "+GeneralUtilities.exception_to_str(last_exception)
             if not self._protected_sc.container_is_exists(container_name):
-                return (False,f"Container \"{container_name}\" does not exist.")
+                return (False,f"Container \"{container_name}\" does not exist.{exception_message}")
             if not self._protected_sc.container_is_running(container_name):
-                return (False,f"Container \"{container_name}\" is not running.")
+                return (False,f"Container \"{container_name}\" is not running.{exception_message}")
             if not self._protected_sc.container_is_healthy(container_name):
                 container_output=self._protected_sc.get_output_of_container(container_name)
-                return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}")
-            message=f"Container \"{container_name}\" is not working properly."
-            if last_exception is not None:
-                message=message+" Last exception: "+GeneralUtilities.exception_to_str(last_exception)
-            return (False,message)
+                return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}{exception_message}")
+            return (False,f"Container \"{container_name}\" is not working properly.{exception_message}")
         finally:
             self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
-
-    @GeneralUtilities.check_arguments
-    def verify_image_is_working_with_detault_arguments(self,environment_variables:dict[str,str],test_port:int,http_test_route:str,use_https_for_test:bool):
-        if environment_variables is None:
-            environment_variables=dict[str,str]()
-        self.verify_image_is_working(timedelta(seconds=30),environment_variables,test_port,http_test_route,use_https_for_test)
 
     @GeneralUtilities.check_arguments
     def verify_image_is_working(self,timeout:timedelta,environment_variables:dict[str,str],test_port:int,http_test_route:str,use_https_for_test:bool):
