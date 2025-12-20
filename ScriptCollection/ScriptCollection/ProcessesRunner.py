@@ -1,4 +1,5 @@
 import psutil
+from .GeneralUtilities import GeneralUtilities
 from .ScriptCollectionCore import ScriptCollectionCore
 
 # runs multiple processes in parallel and terminate all if at least one is terminated
@@ -23,6 +24,7 @@ class ProcessesRunner:
         self.sc = ScriptCollectionCore()
         self.processes = processes
 
+    @GeneralUtilities.check_arguments
     def run(self):
         pids: list[int] = list[int]()
         for processstartinfo in self.processes:

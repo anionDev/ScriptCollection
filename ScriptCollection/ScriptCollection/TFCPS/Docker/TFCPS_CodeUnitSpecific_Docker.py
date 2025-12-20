@@ -84,6 +84,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
 
+    @GeneralUtilities.check_arguments
     def image_is_working(self,timeout:timedelta,environment_variables:dict[str,str])->tuple[bool,str]:
         oci_image_artifacts_folder :str= GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_OCIImage", self.get_codeunit_folder())
         container_name:str=f"{self.get_codeunit_name()}finaltest".lower()
@@ -117,19 +118,22 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         finally:
             self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
 
-    def verify_image_is_working_with_detault_arguments(self,environment_variables:dict[str,str]=None):
+    @GeneralUtilities.check_arguments
+    def verify_image_is_working_with_detault_arguments(self,environment_variables:dict[str,str]):
         if environment_variables is None:
             environment_variables=dict[str,str]()
         self.verify_image_is_working(timedelta(seconds=30),environment_variables)
 
+    @GeneralUtilities.check_arguments
     def verify_image_is_working(self,timeout:timedelta,environment_variables:dict[str,str]):
         check_result:tuple[bool,str]= self.image_is_working(timeout,environment_variables)
         if not check_result[0]:
             raise ValueError("Image not working: "+check_result[1])
-    
+
 class TFCPS_CodeUnitSpecific_Docker_CLI:
 
     @staticmethod
+    @GeneralUtilities.check_arguments
     def parse(file:str)->TFCPS_CodeUnitSpecific_Docker_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired

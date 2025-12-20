@@ -96,13 +96,15 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         self.tfcps_Tools_General.merge_packages(coveragefile,codeunitname)
         self.run_testcases_common_post_task(repository_folder, codeunitname, True, self.get_type_environment_type())
 
+    @GeneralUtilities.check_arguments
     def get_dependencies(self)->dict[str,set[str]]:
         return GeneralUtilities.merge_dependency_lists([
             self.get_dependencies_from_setupcfg(),
             self.get_dependencies_from_requirementstxt(),
             self.get_dependencies_from_otherrequirementstxt()
         ])
-    
+
+    @GeneralUtilities.check_arguments
     def get_dependencies_from_setupcfg(self)->list[Dependency]:
         setupcfg_file=os.path.join(self.get_codeunit_folder(),"setup.cfg")
         lines = GeneralUtilities.read_lines_from_file(setupcfg_file)
@@ -125,17 +127,20 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
             else:
                 is_in_dependency_section=False
         return result
-    
+
+    @GeneralUtilities.check_arguments
     def get_dependencies_from_requirementstxt(self)->list[Dependency]:
         return self.get_dependencies_from_requirementsfile(os.path.join(self.get_codeunit_folder(),"requirements.txt")) 
-    
+
+    @GeneralUtilities.check_arguments
     def get_dependencies_from_otherrequirementstxt(self)->list[Dependency]:
         rfile=os.path.join(self.get_codeunit_folder(),"Other","requirements.txt")
         if os.path.isfile(rfile):
             return self.get_dependencies_from_requirementsfile(rfile) 
         else:
             return []
-    
+
+    @GeneralUtilities.check_arguments
     def get_dependencies_from_requirementsfile(self,file:str)->list[Dependency]:
         lines = GeneralUtilities.read_lines_from_file(file)
         result:list[Dependency]=[]
@@ -165,11 +170,13 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
                 result.append(v+".0.0")
         return result
     
+    @GeneralUtilities.check_arguments
     def set_dependency_version(self,name:str,new_version:str)->None:
         self.__set_dependency_version_in_setupcfg(name,new_version)
         self.__set_dependency_version_in_requirementstxt(name,new_version)
         self.__set_dependency_version_in_otherrequirementstxt(name,new_version)
 
+    @GeneralUtilities.check_arguments
     def __set_dependency_version_in_setupcfg(self,name:str,new_version:str)->None:
         setupcfg_file=os.path.join(self.get_codeunit_folder(),"setup.cfg")
         lines=GeneralUtilities.read_lines_from_file(setupcfg_file)
@@ -190,14 +197,17 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
                 new_lines.append(line)
         GeneralUtilities.write_lines_to_file(setupcfg_file,new_lines)
 
+    @GeneralUtilities.check_arguments
     def __set_dependency_version_in_requirementstxt(self,name:str,new_version:str)->None:
         self.__set_dependency_version_in_requirements(name,new_version,os.path.join(self.get_codeunit_folder(),"requirements.txt")) 
 
+    @GeneralUtilities.check_arguments
     def __set_dependency_version_in_otherrequirementstxt(self,name:str,new_version:str)->None:
         rfile=os.path.join(self.get_codeunit_folder(),"Other","requirements.txt")
         if os.path.isfile(rfile):
             self.__set_dependency_version_in_requirements(name,new_version,rfile) 
 
+    @GeneralUtilities.check_arguments
     def __set_dependency_version_in_requirements(self,name:str,new_version:str,requirementsfile:str)->None:
         lines=GeneralUtilities.read_lines_from_file(requirementsfile)
         new_lines:list[str]=[]
@@ -219,6 +229,7 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 class TFCPS_CodeUnitSpecific_Python_CLI:
 
     @staticmethod
+    @GeneralUtilities.check_arguments
     def parse(file:str)->TFCPS_CodeUnitSpecific_Python_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired

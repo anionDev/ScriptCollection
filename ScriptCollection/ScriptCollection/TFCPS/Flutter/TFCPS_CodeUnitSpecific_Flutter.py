@@ -122,6 +122,7 @@ class TFCPS_CodeUnitSpecific_Flutter_Functions(TFCPS_CodeUnitSpecific_Base):
 class TFCPS_CodeUnitSpecific_Flutter_CLI:
 
     @staticmethod
+    @GeneralUtilities.check_arguments
     def parse(file:str)->TFCPS_CodeUnitSpecific_Flutter_Functions:
         parser=TFCPS_CodeUnitSpecific_Base_CLI.get_base_parser()
         #add custom parameter if desired

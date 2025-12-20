@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.1.2"
+version = "4.1.3"
 __version__ = version
 
 
@@ -2462,6 +2462,7 @@ OCR-content:
                 new_lines.append(line)
         GeneralUtilities.write_lines_to_file(target_file, new_lines)
 
+    @GeneralUtilities.check_arguments
     def do_and_log_task(self, name_of_task: str, task):
         try:
             self.log.log(f"Start action \"{name_of_task}\".", LogLevel.Information)
@@ -2475,11 +2476,14 @@ OCR-content:
         finally:
             self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
-    def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
-        return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc)
 
     default_excluded_patterns_for_loc: list[str] = ["**.txt", "**.md", "**.svg", "**.vscode", "**/Resources/**", "**/Reference/**", ".gitignore", ".gitattributes", "Other/Metrics/**"]
 
+    @GeneralUtilities.check_arguments
+    def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
+        return self.get_lines_of_code(repository, self.default_excluded_patterns_for_loc)
+
+    @GeneralUtilities.check_arguments
     def get_lines_of_code(self, repository: str, excluded_pattern: list[str]) -> int:
         self.assert_is_git_repository(repository)
         result: int = 0
@@ -2502,6 +2506,7 @@ OCR-content:
                 self.log.log(f"File '{file}' is ignored because it does not exist.",LogLevel.Diagnostic)
         return result
 
+    @GeneralUtilities.check_arguments
     def __is_excluded_by_glob_pattern(self, file: str, excluded_patterns: list[str]) -> bool:
         for pattern in excluded_patterns:
             if fnmatch.fnmatch(file, pattern):
@@ -2545,6 +2550,7 @@ OCR-content:
             argument=f"-l debug {argument}"
         self.run_with_epew("vl2svg",argument,workingfolder)#this uses vega-light. to use vega "vg2svg" should be used instead.
 
+    @GeneralUtilities.check_arguments
     def inspect_container(self, container_name: str) :
         program_result = self.run_program(
             "docker",
@@ -2557,6 +2563,7 @@ OCR-content:
         GeneralUtilities.assert_condition(len(data)==1,f"Unexpected array-length of docker-inspect-output for container \"{container_name}\".")
         return data[0]
 
+    @GeneralUtilities.check_arguments
     def container_is_exists(self,container_name:str)->bool:
         program_result = self.run_program(
             "docker",
@@ -2565,6 +2572,7 @@ OCR-content:
         )
         return program_result[0]==0
 
+    @GeneralUtilities.check_arguments
     def container_is_running(self,container_name:str)->bool:
         data = self.inspect_container( container_name)
         if data is None:
@@ -2572,6 +2580,7 @@ OCR-content:
 
         return data["State"]["Status"] == "running"
 
+    @GeneralUtilities.check_arguments
     def container_is_healthy(self,container_name:str)->bool:
         data = self.inspect_container( container_name)
         if data is None:
@@ -2585,6 +2594,7 @@ OCR-content:
 
         return health["Status"] == "healthy"
 
+    @GeneralUtilities.check_arguments
     def get_output_of_container(self,container_name:str)->str:
     
         program_result= self.run_program_argsasarray(
@@ -2600,6 +2610,7 @@ OCR-content:
 
         return stdout+"\n"+stderr
 
+    @GeneralUtilities.check_arguments
     def container_is_running_and_healthy(self,container_name:str)->bool:
         if not self.container_is_exists(container_name):
             return False

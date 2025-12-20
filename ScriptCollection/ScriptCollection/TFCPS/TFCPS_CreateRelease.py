@@ -1,4 +1,5 @@
 import os
+from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import LogLevel
 from .TFCPS_Tools_General import TFCPS_Tools_General
@@ -52,10 +53,12 @@ class TFCPS_CreateRelease:
         self.sc=ScriptCollectionCore()
         self.tFCPS_Tools_General=TFCPS_Tools_General(self.sc)
 
+    @GeneralUtilities.check_arguments
     def do_release(self,tfcps_CreateReleaseConfiguration:TFCPS_CreateReleaseConfiguration)->bool:
         self.sc.log.loglevel=tfcps_CreateReleaseConfiguration.log_level
         return self.sc.do_and_log_task(f"Release {tfcps_CreateReleaseConfiguration.product_name}",lambda : self.__do(tfcps_CreateReleaseConfiguration))
 
+    @GeneralUtilities.check_arguments
     def __do(self,tfcps_CreateReleaseConfiguration:TFCPS_CreateReleaseConfiguration)->bool:
         self.sc.log.log("Do checks...",LogLevel.Information)
 
