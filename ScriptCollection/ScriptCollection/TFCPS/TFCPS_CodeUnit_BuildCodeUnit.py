@@ -78,7 +78,7 @@ class TFCPS_CodeUnit_BuildCodeUnit:
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Reference": True}))
 
         if os.path.isfile(os.path.join(self.codeunit_folder, "Other", "OnBuildingFinished.py")):
-            self.sc.log.log('Run "OnBuildingFinished.py"...')
+            self.sc.log.log('Finalize building codeunits...')
             self.sc.run_program("python", f"OnBuildingFinished.py {arguments}", os.path.join(self.codeunit_folder, "Other"), print_live_output=self.sc.log.loglevel==LogLevel.Debug)
 
         artifacts_folder = os.path.join(self.codeunit_folder, "Other", "Artifacts")

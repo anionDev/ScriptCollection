@@ -1383,4 +1383,4 @@ class TFCPS_Tools_General:
         for test_service_folder in test_services:
             test_service_name=os.path.basename(test_service_folder)
             self.__sc.log.log(f"Pull image for test-service {test_service_name}...")
-            self.__sc.run_program("docker",f"compose -f docker-compose.yml pull --quiet",test_service_folder,print_live_output=True)
+            self.__sc.run_program("docker",f"compose -f docker-compose.yml pull --quiet",test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)

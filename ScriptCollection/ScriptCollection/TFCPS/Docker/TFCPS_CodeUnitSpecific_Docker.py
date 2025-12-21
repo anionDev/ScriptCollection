@@ -50,7 +50,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         sbom_folder = os.path.join(artifacts_folder, "BOM")
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
         GeneralUtilities.ensure_directory_exists(sbom_folder)
-        self._protected_sc.run_program_argsasarray("docker", ["sbom", "--format", "cyclonedx", f"{codeunitname_lower}:{codeunitversion}", "--output", f"{codeunitname}.{codeunitversion}.sbom.xml"], sbom_folder, print_errors_as_information=True)
+        self._protected_sc.run_program_argsasarray("docker", ["run","--rm","-v","/var/run/docker.sock:/var/run/docker.sock","-v","./BOM:/BOM","anchore/syft:latest",f"{codeunitname_lower}:{codeunitversion}","-o",f"cyclonedx-xml=/BOM/{codeunitname}.{codeunitversion}.sbom.xml"], artifacts_folder, print_errors_as_information=True)
         self._protected_sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
  
     @GeneralUtilities.check_arguments
@@ -126,7 +126,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                         ctx.verify_mode = ssl.CERT_NONE
                         with request.urlopen(url, context=ctx) as response:
                             status = response.status
-                            if status<200 or status < 300:
+                            if status < 200 or 300 <= status:
                                 raise ValueError(f"Test-call \"GET {url}\" had response-statuscode {status}.")
                     return (True,None)
                 except Exception as e:

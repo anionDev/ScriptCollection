@@ -36,7 +36,8 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         self.__current_folder = os.path.dirname(self.__current_file)
         self.__codeunit_folder=self.__search_codeunit_folder()
         self.__is_pre_merge=is_pre_merge
-        self._protected_sc=ScriptCollectionCore()#TODO set loglevel
+        self._protected_sc=ScriptCollectionCore()
+        self._protected_sc.log.loglevel=self.__verbosity
         self.tfcps_Tools_General=TFCPS_Tools_General(self._protected_sc)
         self.tfcps_Tools_General.assert_is_codeunit_folder(self.__codeunit_folder)
         self.__repository_folder=GeneralUtilities.resolve_relative_path("..",self.__codeunit_folder)
