@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.1.6"
+version = "4.1.7"
 __version__ = version
 
 
@@ -2619,3 +2619,28 @@ OCR-content:
         if not self.container_is_healthy(container_name):
             return False
         return True
+
+    def reclaim_space_from_docker(self):
+        self.log.log("Reclaim disk space from docker",LogLevel.Debug)
+        #TODO add cli-script to call this function
+        #TODO remove all running containers
+        self.run_program("docker","system prune -a -f")
+        self.run_program("docker","volume prune -f")
+        #(add more calls if required)
+        self.run_program("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug)
+
+    @GeneralUtilities.check_arguments
+    def get_docker_networks(self)->list[str]:
+        program_result=self.run_program("docker","network list")
+        result=[]
+        lines=program_result[1].split("\n")[1:]
+        for line in lines:
+            splitted=[item for item in line.split(' ') if GeneralUtilities.string_has_content(item)]
+            result.append(splitted[1])
+        return result
+
+    @GeneralUtilities.check_arguments
+    def ensure_docker_network_is_available(self,network_name:str):
+        #TODO add cli-script to call this function
+        if not (network_name  in self.get_docker_networks(self)):
+            self.run_program("docker",f"network create {network_name}")
