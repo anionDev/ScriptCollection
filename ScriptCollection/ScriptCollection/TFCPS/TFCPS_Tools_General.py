@@ -1373,3 +1373,14 @@ class TFCPS_Tools_General:
         target_folder=os.path.join(codeunit_folder,"Other","Resources",resource_name)
         GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
         GeneralUtilities.copy_content_of_folder(source_folder,target_folder,True,ignore_patterns)
+
+
+    @GeneralUtilities.check_arguments
+    def pull_images_of_test_services(self,repository_folder:str):
+        test_services=GeneralUtilities.get_direct_folders_of_folder(os.path.join(repository_folder,"Other","Resources","LocalTestServices"))
+        if 0<len(test_services):
+            self.__sc.log.log("Pull images for local test-services...")
+        for test_service_folder in test_services:
+            test_service_name=os.path.basename(test_service_folder)
+            self.__sc.log.log(f"Pull image for test-service {test_service_name}...")
+            self.__sc.run_program("docker",f"compose -f docker-compose.yml pull --quiet",test_service_folder,print_live_output=True)
