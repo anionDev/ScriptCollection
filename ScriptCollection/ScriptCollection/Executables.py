@@ -845,3 +845,28 @@ def CreateRelease()->int:
 def CleanToolsCache()->int:
     GeneralUtilities.ensure_folder_exists_and_is_empty(TFCPS_Tools_General(ScriptCollectionCore()).get_global_cache_folder())
     return 0
+
+
+def EnsureDockerNetworkIsAvailable()->int:
+    sc = ScriptCollectionCore()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--networkname', required=True)
+    args = parser.parse_args()
+
+    sc:ScriptCollectionCore=ScriptCollectionCore()
+    sc.ensure_docker_network_is_available(args.networkname)
+    return 0
+
+
+def ReclaimSpaceFromDocker()->int:
+    sc = ScriptCollectionCore()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--networkname', required=True)
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+    args = parser.parse_args()
+    sc:ScriptCollectionCore=ScriptCollectionCore()
+    verbosity=int(args.verbosity)
+    sc.log.loglevel=LogLevel(verbosity)
+    sc.reclaim_space_from_docker()
+    return 0
