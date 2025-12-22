@@ -1383,7 +1383,7 @@ class TFCPS_Tools_General:
         for test_service_folder in test_services:
             test_service_name=os.path.basename(test_service_folder)
             self.__sc.log.log(f"Pull image for test-service {test_service_name}...")
-            arguments=f"compose -f docker-compose.yml pull --quiet"
+            arguments=f"compose -f docker-compose.yml"
             if env_variables:
                 env_variables_file=os.path.join(test_service_folder,"Parameters.env")
                 GeneralUtilities.ensure_file_exists(env_variables_file)
@@ -1394,4 +1394,5 @@ class TFCPS_Tools_General:
                 arguments=arguments+" --env-file Parameters.env"
             else:
                 GeneralUtilities.ensure_file_does_not_exist(env_variables_file)
+            arguments=arguments+" pull --quiet"
             self.__sc.run_program("docker",arguments,test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
