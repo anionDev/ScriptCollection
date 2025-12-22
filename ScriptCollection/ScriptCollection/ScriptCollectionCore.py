@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.1"
+version = "4.2.2"
 __version__ = version
 
 
@@ -109,8 +109,10 @@ class ScriptCollectionCore:
         result=tag in tags 
         return result
 
+    default_fallback_docker_registry:str="docker.io/library"
+
     @GeneralUtilities.check_arguments
-    def get_image_with_registry_for_docker_image(self,image:str,tag:str)->str:
+    def get_image_with_registry_for_docker_image(self,image:str,tag:str,fallback_registry:str)->str:
         tag_with_colon:str=None
         if tag is None:
             tag_with_colon=""
@@ -120,18 +122,26 @@ class ScriptCollectionCore:
         docker_image_cache_definition_file=self.__get_docker_image_cache_definition_file()
         for line in [f.split(";")[0] for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
             if line.endswith("/"+image):
-                result= line+tag_with_colon
+                result = line+tag_with_colon
                 #TODO check if docker image is available and if not show warning
                 return result
-        raise ValueError(f"For image \"{image}\" no cache-registry is defined.",LogLevel.Warning)
-    
+        if fallback_registry is None:
+            raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)
+        else:
+            return f"{fallback_registry}/{image}{tag_with_colon}"
+        
     @GeneralUtilities.check_arguments
-    def get_docker_build_args_for_base_images(self,dockerfile:str)->list[str]:
+    def get_docker_build_args_for_base_images(self,dockerfile:str,fallback_registries:dict[str,str])->list[str]:
         result=[]
         GeneralUtilities.assert_file_exists(dockerfile)
+        if fallback_registries is None:
+            fallback_registries={}
         required_images=[line.split("_")[1] for line in GeneralUtilities.read_nonempty_lines_from_file(dockerfile) if line.startswith("ARG image_")]
         for required_image in required_images:
-            image_with_registry=self.get_image_with_registry_for_docker_image(required_image,None)
+            fallback_registry:str=None
+            if required_image in fallback_registries:
+                fallback_registry=fallback_registries[required_image]
+            image_with_registry=self.get_image_with_registry_for_docker_image(required_image,None,fallback_registry)
             result=result+["--build-arg",f"image_{required_image}={image_with_registry}"]
         return result
 
