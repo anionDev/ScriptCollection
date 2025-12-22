@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.0"
+version = "4.2.1"
 __version__ = version
 
 
@@ -86,6 +86,30 @@ class ScriptCollectionCore:
         self.run_program("docker",f"push {target_address}")
 
     @GeneralUtilities.check_arguments
+    def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
+        catalog_url = f"{registry_url}/v2/_catalog"
+        response = requests.get(catalog_url, auth=(registry_username, registry_password),timeout=20)
+        response.raise_for_status() # check if statuscode = 200
+        data = response.json()
+        # expected: {"repositories": ["nginx", "myapp"]}
+        images = data.get("repositories", [])
+        result=image in images
+        return result
+
+    @GeneralUtilities.check_arguments
+    def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
+        if not self.registry_contains_image(registry_url,image,registry_username,registry_password):
+            return False
+        tags_url = f"{registry_url}/v2/{image}/tags/list"
+        response = requests.get(tags_url, auth=(registry_username, registry_password),timeout=20)
+        response.raise_for_status() # check if statuscode = 200
+        data=response.json()
+        # expected: {"name":"myapp","tags":["1.2.22","1.2.21","1.2.20"]}
+        tags = data.get("tags", [])
+        result=tag in tags 
+        return result
+
+    @GeneralUtilities.check_arguments
     def get_image_with_registry_for_docker_image(self,image:str,tag:str)->str:
         tag_with_colon:str=None
         if tag is None:
@@ -99,10 +123,7 @@ class ScriptCollectionCore:
                 result= line+tag_with_colon
                 #TODO check if docker image is available and if not show warning
                 return result
-        default_registry:str="docker.io/library"
-        result= default_registry+"/"+image
-        self.log.log(f"For image \"{image}\" no cache-registry is defined, so default-registry \"{default_registry}\" will be used instead, which can lead to problems due docker-hub to rate-limits.",LogLevel.Warning)
-        return result+tag_with_colon
+        raise ValueError(f"For image \"{image}\" no cache-registry is defined.",LogLevel.Warning)
     
     @GeneralUtilities.check_arguments
     def get_docker_build_args_for_base_images(self,dockerfile:str)->list[str]:
