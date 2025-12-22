@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.6"
+version = "4.2.7"
 __version__ = version
 
 
@@ -2618,7 +2618,7 @@ OCR-content:
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
         argument=f"compose -p {title.lower()}"
-        if os.path.isfile(example_folder,"Parameters.env"):
+        if os.path.isfile(os.path.join(example_folder,"Parameters.env")):
             argument=argument+" --env-file Parameters.env"
         argument=argument+" up --detach"
         self.run_program("docker", argument, example_folder, title=title,print_live_output=True)
