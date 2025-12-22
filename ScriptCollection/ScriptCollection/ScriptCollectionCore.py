@@ -86,6 +86,30 @@ class ScriptCollectionCore:
         self.run_program("docker",f"push {target_address}")
 
     @GeneralUtilities.check_arguments
+    def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
+        catalog_url = f"{registry_url}/v2/_catalog"
+        response = requests.get(catalog_url, auth=(registry_username, registry_password))
+        response.raise_for_status()  # check if statuscode== 200
+        data = response.json()
+        # expected: {"repositories": ["nginx", "myapp"]}
+        images = data.get("repositories", [])
+        result=image in images
+        return result
+
+    @GeneralUtilities.check_arguments
+    def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
+        if not self.registry_contains_image(registry_url,image,registry_username,registry_password):
+            return False
+        tags_url = f"{registry_url}/v2/{image}/tags/list"
+        response = requests.get(tags_url, auth=(registry_username, registry_password))
+        response.raise_for_status()
+        data=response.json()
+        # expected: {"name":"myapp","tags":["1.2.22","1.2.21","1.2.20""]}
+        tags = data.get("tags", [])
+        result=tag in tags 
+        return result
+
+    @GeneralUtilities.check_arguments
     def get_image_with_registry_for_docker_image(self,image:str,tag:str)->str:
         tag_with_colon:str=None
         if tag is None:
