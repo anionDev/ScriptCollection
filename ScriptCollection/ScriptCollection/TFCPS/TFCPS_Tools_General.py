@@ -1388,7 +1388,7 @@ class TFCPS_Tools_General:
                 env_variables_file=os.path.join(test_service_folder,"Parameters.env")
                 GeneralUtilities.ensure_file_exists(env_variables_file)
                 lines=[]
-                for k,v in env_variables.items:
+                for k,v in env_variables.items():
                     lines=lines+[f"{k}={v}"]
                 GeneralUtilities.write_lines_to_file(env_variables_file,lines)
                 arguments=arguments+" --env-file Parameters.env"
