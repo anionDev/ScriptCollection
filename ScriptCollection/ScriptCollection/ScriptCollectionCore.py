@@ -128,6 +128,7 @@ class ScriptCollectionCore:
         if fallback_registry is None:
             raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)
         else:
+            self.log.log(f"Using fallback-registry for image \"{image}\".",LogLevel.Warning)
             return f"{fallback_registry}/{image}{tag_with_colon}"
         
     @GeneralUtilities.check_arguments

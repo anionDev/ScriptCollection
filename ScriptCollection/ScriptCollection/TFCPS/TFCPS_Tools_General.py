@@ -1370,11 +1370,28 @@ class TFCPS_Tools_General:
 
 
     @GeneralUtilities.check_arguments
-    def pull_images_of_test_services(self,repository_folder:str):
+    def pull_images_of_test_services(self,repository_folder:str,env_variables:dict[str,str],fallback_registries:dict[str,str]):
+        if env_variables is None:
+            env_variables={}
+        if fallback_registries is None:
+            fallback_registries={}
+        for image,fallback_registry in fallback_registries.items():
+            env_variables[f"image_{image}"]=self.__sc.get_image_with_registry_for_docker_image(image,None,fallback_registry)
         test_services=GeneralUtilities.get_direct_folders_of_folder(os.path.join(repository_folder,"Other","Resources","LocalTestServices"))
         if 0<len(test_services):
             self.__sc.log.log("Pull images for local test-services...")
         for test_service_folder in test_services:
             test_service_name=os.path.basename(test_service_folder)
             self.__sc.log.log(f"Pull image for test-service {test_service_name}...")
-            self.__sc.run_program("docker",f"compose -f docker-compose.yml pull --quiet",test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
+            arguments=f"compose -f docker-compose.yml pull --quiet"
+            if env_variables:
+                env_variables_file=os.path.join(test_service_folder,"Parameters.env")
+                GeneralUtilities.ensure_file_exists(env_variables_file)
+                lines=[]
+                for k,v in env_variables.items:
+                    lines=lines+[f"{k}={v}"]
+                GeneralUtilities.write_lines_to_file(env_variables_file,lines)
+                arguments=arguments+" --env-file Parameters.env"
+            else:
+                GeneralUtilities.ensure_file_does_not_exist(env_variables_file)
+            self.__sc.run_program("docker",arguments,test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
