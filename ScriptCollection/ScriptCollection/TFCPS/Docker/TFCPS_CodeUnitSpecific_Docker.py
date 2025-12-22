@@ -52,7 +52,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         sbom_folder = os.path.join(artifacts_folder, "BOM")
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
         GeneralUtilities.ensure_directory_exists(sbom_folder)
-        self._protected_sc.run_program_argsasarray("docker", ["run","--rm","-v","/var/run/docker.sock:/var/run/docker.sock","-v","./BOM:/BOM",self._protected_sc.get_image_with_registry_for_docker_image("syft","image","docker.io/anchore/syft"),f"{codeunitname_lower}:{codeunitversion}","-o",f"cyclonedx-xml=/BOM/{codeunitname}.{codeunitversion}.sbom.xml"], artifacts_folder, print_errors_as_information=True)
+        self._protected_sc.run_program_argsasarray("docker", ["run","--rm","-v","/var/run/docker.sock:/var/run/docker.sock","-v","./BOM:/BOM",self._protected_sc.get_image_with_registry_for_docker_image("syft",None,"docker.io/anchore/syft"),f"{codeunitname_lower}:{codeunitversion}","-o",f"cyclonedx-xml=/BOM/{codeunitname}.{codeunitversion}.sbom.xml"], artifacts_folder, print_errors_as_information=True)
         self._protected_sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
  
     @GeneralUtilities.check_arguments
