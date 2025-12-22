@@ -28,12 +28,6 @@ class TFCPS_Tools_General:
         self.__sc=sc
 
 
-    def get_global_cache_folder(self)->str:
-        user_folder = str(Path.home())
-        global_cache_folder = os.path.join(user_folder, ".scriptcollection", "GlobalCache")
-        GeneralUtilities.ensure_directory_exists(global_cache_folder)
-        return global_cache_folder
-
     @GeneralUtilities.check_arguments
     def codeunit_is_enabled(self, codeunit_file: str) -> bool:
         root: etree._ElementTree = etree.parse(codeunit_file)
@@ -56,7 +50,7 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github,enforce_update:bool) -> str:
-        resource_folder =os.path.join( self.get_global_cache_folder(),"Tools",resource_name)
+        resource_folder =os.path.join( self.__sc.get_global_cache_folder(),"Tools",resource_name)
         file = f"{resource_folder}/{local_filename}"
         file_exists = os.path.isfile(file)
         if not file_exists:
@@ -574,8 +568,8 @@ class TFCPS_Tools_General:
         def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
             resource_name: str = f"TruffleHog_{osname}"
             zip_filename: str = f"{resource_name}.{extension}"
-            target_folder_unextracted = os.path.join(self.get_global_cache_folder(),"Tools",resource_name+"_Unextracted")
-            target_folder_extracted = os.path.join(self.get_global_cache_folder(),"Tools",resource_name)
+            target_folder_unextracted = os.path.join(self.__sc.get_global_cache_folder(),"Tools",resource_name+"_Unextracted")
+            target_folder_extracted = os.path.join(self.__sc.get_global_cache_folder(),"Tools",resource_name)
             update:bool=not os.path.isdir(target_folder_extracted) or GeneralUtilities.folder_is_empty(target_folder_extracted) or enforce_update
             if update:
                 downloaded_file=self.ensure_file_from_github_assets_is_available_with_retry(target_folder_unextracted, "trufflesecurity", "trufflehog", resource_name+"_Unextracted", zip_filename, lambda latest_version: f"trufflehog_{latest_version[1:]}_{osname_in_github_asset}_amd64.tar.gz",enforce_update=enforce_update)
@@ -860,7 +854,7 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def __ensure_grylibrary_is_available(self, use_cache:bool) -> None:
-        grylibrary_folder =os.path.join( self.get_global_cache_folder(),"Tools","GRYLibrary")
+        grylibrary_folder =os.path.join( self.__sc.get_global_cache_folder(),"Tools","GRYLibrary")
         grylibrary_dll_file = os.path.join(grylibrary_folder, "BuildResult_DotNet_win-x64", "GRYLibrary.dll")
         grylibrary_dll_file_exists = os.path.isfile(grylibrary_dll_file)
         if not os.path.isfile(grylibrary_dll_file):
@@ -1016,7 +1010,7 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def ensure_openapigenerator_is_available(self,use_cache:bool) -> None:
-        openapigenerator_folder = os.path.join(self.get_global_cache_folder(), "Tools", "OpenAPIGenerator")
+        openapigenerator_folder = os.path.join(self.__sc.get_global_cache_folder(), "Tools", "OpenAPIGenerator")
         filename = "open-api-generator.jar"
         jar_file = f"{openapigenerator_folder}/{filename}"
         jar_file_exists = os.path.isfile(jar_file)

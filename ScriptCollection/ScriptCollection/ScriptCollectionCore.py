@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.1.9"
+version = "4.1.10"
 __version__ = version
 
 
@@ -61,6 +61,58 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_scriptcollection_version() -> str:
         return __version__
+
+    @GeneralUtilities.check_arguments
+    def get_global_cache_folder(self)->str:
+        user_folder = str(Path.home())
+        global_cache_folder = os.path.join(user_folder, ".scriptcollection", "GlobalCache")
+        GeneralUtilities.ensure_directory_exists(global_cache_folder)
+        return global_cache_folder
+
+    @GeneralUtilities.check_arguments
+    def __get_docker_image_cache_definition_file(self)->str:
+        result=os.path.join(self.get_global_cache_folder(),"ImageCache.csv")
+        if not os.path.isfile(result):
+            GeneralUtilities.ensure_file_exists(result)
+            GeneralUtilities.write_lines_to_file(result,["Image;UpstreamImage"])
+        return result
+
+    @GeneralUtilities.check_arguments
+    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str)->None:
+        source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
+        target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
+        self.run_program("docker",f"pull {source_address}")
+        self.run_program("docker",f"tag {source_address} {target_address}")
+        self.run_program("docker",f"push {target_address}")
+
+    @GeneralUtilities.check_arguments
+    def get_image_with_registry_for_docker_image(self,image:str,tag:str)->str:
+        tag_with_colon:str=None
+        if tag is None:
+            tag_with_colon=""
+        else:
+            tag_with_colon=":"+tag
+        GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
+        docker_image_cache_definition_file=self.__get_docker_image_cache_definition_file()
+        for line in [f.split(";")[0] for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
+            if line.endswith("/"+image):
+                result= line+tag_with_colon
+                #TODO check if docker image is available and if not show warning
+                return result
+        default_registry:str="docker.io/library"
+        result= default_registry+"/"+image
+        self.log.log(f"For image \"{image}\" no cache-registry is defined, so default-registry \"{default_registry}\" will be used instead, which can lead to problems due docker-hub to rate-limits.",LogLevel.Warning)
+        return result+tag_with_colon
+    
+    @GeneralUtilities.check_arguments
+    def get_docker_build_args_for_base_images(self,dockerfile:str)->list[str]:
+        result=[]
+        GeneralUtilities.assert_file_exists(dockerfile)
+        required_images=[line.split("_")[1] for line in GeneralUtilities.read_nonempty_lines_from_file(dockerfile) if line.startswith("ARG image_")]
+        for required_image in required_images:
+            image_with_registry=self.get_image_with_registry_for_docker_image(required_image,None)
+            result=result+["--build-arg",f"image_{required_image}={image_with_registry}"]
+        return result
 
     @GeneralUtilities.check_arguments
     def python_file_has_errors(self, file: str, working_directory: str, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
