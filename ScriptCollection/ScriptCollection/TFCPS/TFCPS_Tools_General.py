@@ -1382,7 +1382,7 @@ class TFCPS_Tools_General:
             self.__sc.log.log("Pull images for local test-services...")
         for test_service_folder in test_services:
             test_service_name=os.path.basename(test_service_folder)
-            self.__sc.log.log(f"Pull image for test-service {test_service_name}...")
+            self.__sc.log.log(f"Pull images for test-service {test_service_name}...")
             arguments=f"compose -f docker-compose.yml"
             if env_variables:
                 env_variables_file=os.path.join(test_service_folder,"Parameters.env")
