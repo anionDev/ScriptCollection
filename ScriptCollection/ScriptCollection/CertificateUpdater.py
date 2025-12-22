@@ -102,7 +102,7 @@ class CertificateUpdater:
                 else:
                     GeneralUtilities.write_message_to_stdout(f"Create certificate for domain {domain}")
                 dockerargument = f"run --name {certbot_container_name} --volume {self.__letsencrypt_folder}:/etc/letsencrypt"
-                dockerargument = dockerargument + f" --volume {self.__log_folder}:/var/log/letsencrypt -p 80:80 certbot/certbot:latest"
+                dockerargument = dockerargument + f" --volume {self.__log_folder}:/var/log/letsencrypt -p 80:80 "+self.__sc.get_image_with_registry_for_docker_image("certbot","latest")
                 certbotargument = f"--standalone --email {self.__email} --agree-tos --force-renewal --rsa-key-size 4096 --non-interactive --no-eff-email --domain {domain}"
                 if (certificate_for_domain_already_exists):
                     self.__sc.run_program("docker", f"{dockerargument} certonly --no-random-sleep-on-renew {certbotargument}", self.__current_folder)
