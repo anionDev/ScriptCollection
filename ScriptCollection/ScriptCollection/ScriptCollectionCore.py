@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.5"
+version = "4.2.6"
 __version__ = version
 
 
@@ -2617,7 +2617,11 @@ OCR-content:
             self.kill_docker_container(service)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title,print_live_output=True)
+        argument=f"compose -p {title.lower()}"
+        if os.path.isfile(example_folder,"Parameters.env"):
+            argument=argument+" --env-file Parameters.env"
+        argument=argument+" up --detach"
+        self.run_program("docker", argument, example_folder, title=title,print_live_output=True)
 
     @GeneralUtilities.check_arguments
     def stop_local_test_service(self, file: str):
