@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.7"
+version = "4.2.8"
 __version__ = version
 
 
@@ -128,7 +128,7 @@ class ScriptCollectionCore:
         if fallback_registry is None:
             raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)
         else:
-            self.log.log(f"Using fallback-registry for image \"{image}\".",LogLevel.Warning)
+            self.log.log(f"Using fallback-registry for image \"{image}\". See https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/UsingCustomImageRegistry.md for information about how to setup a fallback-registry.",LogLevel.Warning)
             return f"{fallback_registry}/{image}{tag_with_colon}"
         
     @GeneralUtilities.check_arguments
