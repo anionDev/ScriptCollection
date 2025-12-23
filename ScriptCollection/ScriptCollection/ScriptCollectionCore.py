@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.1.10"
+version = "4.2.8"
 __version__ = version
 
 
@@ -61,6 +61,90 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_scriptcollection_version() -> str:
         return __version__
+
+    @GeneralUtilities.check_arguments
+    def get_global_cache_folder(self)->str:
+        user_folder = str(Path.home())
+        global_cache_folder = os.path.join(user_folder, ".scriptcollection", "GlobalCache")
+        GeneralUtilities.ensure_directory_exists(global_cache_folder)
+        return global_cache_folder
+
+    @GeneralUtilities.check_arguments
+    def __get_docker_image_cache_definition_file(self)->str:
+        result=os.path.join(self.get_global_cache_folder(),"ImageCache.csv")
+        if not os.path.isfile(result):
+            GeneralUtilities.ensure_file_exists(result)
+            GeneralUtilities.write_lines_to_file(result,["Image;UpstreamImage"])
+        return result
+
+    @GeneralUtilities.check_arguments
+    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str)->None:
+        source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
+        target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
+        self.run_program("docker",f"pull {source_address}")
+        self.run_program("docker",f"tag {source_address} {target_address}")
+        self.run_program("docker",f"push {target_address}")
+
+    @GeneralUtilities.check_arguments
+    def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
+        catalog_url = f"{registry_url}/v2/_catalog"
+        response = requests.get(catalog_url, auth=(registry_username, registry_password),timeout=20)
+        response.raise_for_status() # check if statuscode = 200
+        data = response.json()
+        # expected: {"repositories": ["nginx", "myapp"]}
+        images = data.get("repositories", [])
+        result=image in images
+        return result
+
+    @GeneralUtilities.check_arguments
+    def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
+        if not self.registry_contains_image(registry_url,image,registry_username,registry_password):
+            return False
+        tags_url = f"{registry_url}/v2/{image}/tags/list"
+        response = requests.get(tags_url, auth=(registry_username, registry_password),timeout=20)
+        response.raise_for_status() # check if statuscode = 200
+        data=response.json()
+        # expected: {"name":"myapp","tags":["1.2.22","1.2.21","1.2.20"]}
+        tags = data.get("tags", [])
+        result=tag in tags 
+        return result
+
+    default_fallback_docker_registry:str="docker.io/library"
+
+    @GeneralUtilities.check_arguments
+    def get_image_with_registry_for_docker_image(self,image:str,tag:str,fallback_registry:str)->str:
+        tag_with_colon:str=None
+        if tag is None:
+            tag_with_colon=""
+        else:
+            tag_with_colon=":"+tag
+        GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
+        docker_image_cache_definition_file=self.__get_docker_image_cache_definition_file()
+        for line in [f.split(";")[0] for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
+            if line.endswith("/"+image):
+                result = line+tag_with_colon
+                #TODO check if docker image is available and if not show warning
+                return result
+        if fallback_registry is None:
+            raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)
+        else:
+            self.log.log(f"Using fallback-registry for image \"{image}\". See https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/UsingCustomImageRegistry.md for information about how to setup a fallback-registry.",LogLevel.Warning)
+            return f"{fallback_registry}/{image}{tag_with_colon}"
+        
+    @GeneralUtilities.check_arguments
+    def get_docker_build_args_for_base_images(self,dockerfile:str,fallback_registries:dict[str,str])->list[str]:
+        result=[]
+        GeneralUtilities.assert_file_exists(dockerfile)
+        if fallback_registries is None:
+            fallback_registries={}
+        required_images=[line.split("_")[1] for line in GeneralUtilities.read_nonempty_lines_from_file(dockerfile) if line.startswith("ARG image_")]
+        for required_image in required_images:
+            fallback_registry:str=None
+            if required_image in fallback_registries:
+                fallback_registry=fallback_registries[required_image]
+            image_with_registry=self.get_image_with_registry_for_docker_image(required_image,None,fallback_registry)
+            result=result+["--build-arg",f"image_{required_image}={image_with_registry}"]
+        return result
 
     @GeneralUtilities.check_arguments
     def python_file_has_errors(self, file: str, working_directory: str, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
@@ -2533,7 +2617,11 @@ OCR-content:
             self.kill_docker_container(service)
         example_name = os.path.basename(example_folder)
         title = f"Test{example_name}"
-        self.run_program("docker", f"compose -p {title.lower()} up --detach", example_folder, title=title,print_live_output=True)
+        argument=f"compose -p {title.lower()}"
+        if os.path.isfile(os.path.join(example_folder,"Parameters.env")):
+            argument=argument+" --env-file Parameters.env"
+        argument=argument+" up --detach"
+        self.run_program("docker", argument, example_folder, title=title,print_live_output=True)
 
     @GeneralUtilities.check_arguments
     def stop_local_test_service(self, file: str):

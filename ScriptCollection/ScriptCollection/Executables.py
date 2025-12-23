@@ -843,7 +843,8 @@ def CreateRelease()->int:
     return 0
 
 def CleanToolsCache()->int:
-    GeneralUtilities.ensure_folder_exists_and_is_empty(TFCPS_Tools_General(ScriptCollectionCore()).get_global_cache_folder())
+    sc=ScriptCollectionCore()
+    GeneralUtilities.ensure_folder_exists_and_is_empty(sc.get_global_cache_folder())
     return 0
 
 
@@ -869,4 +870,22 @@ def ReclaimSpaceFromDocker()->int:
     verbosity=int(args.verbosity)
     sc.log.loglevel=LogLevel(verbosity)
     sc.reclaim_space_from_docker()
+    return 0
+
+
+def AddImageToCustomRegistry()->int:
+    sc = ScriptCollectionCore()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--remotehub', required=True)
+    parser.add_argument('-i', '--imagenameonremotehub', required=True)
+    parser.add_argument('-o', '--ownregistryaddress', required=True)
+    parser.add_argument('-l', '--imagenameonownregistry', required=True)
+    parser.add_argument('-t', '--tag', required=False,default="latest")
+    verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+    parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+    args = parser.parse_args()
+    sc:ScriptCollectionCore=ScriptCollectionCore()
+    verbosity=int(args.verbosity)
+    sc.log.loglevel=LogLevel(verbosity)
+    sc.add_image_to_custom_docker_image_registry(args.remotehub,args.imagenameonremotehub,args.ownregistryaddress,args.imagenameonownregistry,args.tag)
     return 0
