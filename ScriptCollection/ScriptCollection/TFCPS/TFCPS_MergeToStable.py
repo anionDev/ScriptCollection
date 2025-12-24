@@ -57,7 +57,9 @@ class TFCPS_MergeToStable:
         self.sc.log.log("Merge to stable-branch...") 
         product_name:str=os.path.basename(self.createRelease_configuration.repository)
 
-        GeneralUtilities.assert_condition(self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.source_branch)!=self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.target_branch),"Source- and target-branch must not be the same commit.")
+        if self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.source_branch)==self.sc.git_get_commit_id(self.createRelease_configuration.repository,self.createRelease_configuration.target_branch):
+            self.sc.log.log("Source- and target-branch are on the same commit.")
+            return
 
         self.sc.assert_is_git_repository(self.createRelease_configuration.repository)
         self.sc.assert_no_uncommitted_changes(self.createRelease_configuration.repository)

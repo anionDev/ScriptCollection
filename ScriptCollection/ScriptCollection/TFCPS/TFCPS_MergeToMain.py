@@ -50,7 +50,9 @@ class TFCPS_MergeToMain:
         target_branch: str=self.generic_prepare_new_release_arguments.main_branch
         self.sc.assert_is_git_repository(self.generic_prepare_new_release_arguments.repository_folder)
 
-        GeneralUtilities.assert_condition(self.sc.git_get_commit_id(self.generic_prepare_new_release_arguments.repository_folder,source_branch)!=self.sc.git_get_commit_id(self.generic_prepare_new_release_arguments.repository_folder,target_branch),"Source- and target-branch must not be the same commit.")
+        if self.sc.git_get_commit_id(self.generic_prepare_new_release_arguments.repository_folder,source_branch)==self.sc.git_get_commit_id(self.generic_prepare_new_release_arguments.repository_folder,target_branch):
+            self.sc.log.log("Source- and target-branch are on the same commit.")
+            return
 
         self.sc.assert_no_uncommitted_changes(self.generic_prepare_new_release_arguments.repository_folder)
         self.sc.git_checkout(self.generic_prepare_new_release_arguments.repository_folder, source_branch)
