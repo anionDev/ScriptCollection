@@ -862,14 +862,16 @@ def EnsureDockerNetworkIsAvailable()->int:
 def ReclaimSpaceFromDocker()->int:
     sc = ScriptCollectionCore()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--networkname', required=True)
+    parser.add_argument('-c', '--removecontainers', action='store_true', default=False)
+    parser.add_argument('-v', '--removevolumes', action='store_true', default=False)
+    parser.add_argument('-i', '--removeimages', action='store_true', default=False)
     verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     args = parser.parse_args()
     sc:ScriptCollectionCore=ScriptCollectionCore()
     verbosity=int(args.verbosity)
     sc.log.loglevel=LogLevel(verbosity)
-    sc.reclaim_space_from_docker()
+    sc.reclaim_space_from_docker(args.removecontainers,args.removevolumes,args.removeimages)
     return 0
 
 

@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.11"
+version = "4.2.12"
 __version__ = version
 
 
@@ -2708,13 +2708,14 @@ OCR-content:
             return False
         return True
 
-    def reclaim_space_from_docker(self):
-        self.log.log("Reclaim disk space from docker",LogLevel.Debug)
-        #TODO add cli-script to call this function
-        #TODO remove all running containers
-        self.run_program("docker","system prune -a -f")
-        self.run_program("docker","volume prune -f")
-        #(add more calls if required)
+    def reclaim_space_from_docker(self,remove_containers:bool,remove_volumes:bool,remove_images:bool):
+        self.log.log("Reclaim disk space from docker...",LogLevel.Debug)
+        if remove_containers:
+            self.run_program("docker","container prune -f")
+        if remove_volumes:
+            self.run_program("docker","volume prune -f")
+        if remove_images:
+            self.run_program("docker","image prune -a -f")
         self.run_program("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug)
 
     @GeneralUtilities.check_arguments
