@@ -93,7 +93,7 @@ class ImageUpdaterHelper:
             image = f"library/{image}"
         response = requests.get(f"https://hub.docker.com/v2/repositories/{quote(image)}/tags?name={quote(search_string)}&ordering=last_updated&page=1&page_size={str(maximal_amount_of_items_to_load)}", timeout=20, headers={'Cache-Control': 'no-cache'})
         if response.status_code != 200:
-            raise ValueError(f"Failed to fetch data from Docker Hub: {response.status_code}")
+            raise ValueError(f"Failed to fetch data for image {image} from Docker Hub: {response.status_code}")
         response_text = response.text
         data = json.loads(response_text)
         tags: list[str] = [tag["name"] for tag in data["results"] if re.match(filter_regex, tag["name"])]
