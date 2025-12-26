@@ -627,13 +627,13 @@ class ImageUpdater:
         return updater.get_version_from_tag(image, tag)
 
     @GeneralUtilities.check_arguments
-    def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version, updatertype: str = None) -> tuple[Version, str]:
+    def get_latest_version_of_image(self, image: str, version_echolon: VersionEcholon, current_version: Version, updatertype: str = None) -> tuple[Version, str]:
 
         updater: ConcreteImageUpdater = None
         if updatertype is None:
-            self.__get_updater_for_image(image)
+            updater=self.__get_updater_for_image(image)
         else:
-            self.__get_updater_by_name(updatertype)
+            updater=self.__get_updater_by_name(updatertype)
 
         newest_version: Version = updater.get_latest_version_of_image(image, version_echolon, current_version)
         newest_tag: str = updater.version_to_tag(newest_version)
