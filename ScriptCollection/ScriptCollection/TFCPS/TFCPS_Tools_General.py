@@ -50,6 +50,7 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github,enforce_update:bool) -> str:
+        #TODO use or remove target_folder-parameter
         resource_folder =os.path.join( self.__sc.get_global_cache_folder(),"Tools",resource_name)
         file = f"{resource_folder}/{local_filename}"
         file_exists = os.path.isfile(file)
