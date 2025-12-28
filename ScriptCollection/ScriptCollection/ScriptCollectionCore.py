@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.12"
+version = "4.2.13"
 __version__ = version
 
 
@@ -556,17 +556,14 @@ class ScriptCollectionCore:
             self.git_undo_all_changes(directory)
 
     @GeneralUtilities.check_arguments
-    def merge_repository(self, repository_folder: str, remote: str, branch: str, pull_first_if_there_are_no_uncommitted_changes: bool = True):
-        if pull_first_if_there_are_no_uncommitted_changes:
+    def merge_repository(self, repository_folder: str, remote: str, branch: str):
+        GeneralUtilities.assert_condition(not self.git_repository_has_uncommitted_changes(repository_folder),f"Can not merge. There are uncommitted changes in \"{repository_folder}\".")
+        is_pullable: bool = self.git_commit_is_ancestor(repository_folder, branch, f"{remote}/{branch}")
+        if is_pullable:
+            self.git_pull(repository_folder, remote, branch, branch)
             uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
-            if not uncommitted_changes:
-                is_pullable: bool = self.git_commit_is_ancestor(repository_folder, branch, f"{remote}/{branch}")
-                if is_pullable:
-                    self.git_pull(repository_folder, remote, branch, branch)
-                    uncommitted_changes = self.git_repository_has_uncommitted_changes(repository_folder)
-                    GeneralUtilities.assert_condition(not uncommitted_changes, f"Pulling remote \"{remote}\" in \"{repository_folder}\" caused new uncommitted files.")
+            GeneralUtilities.assert_condition(not uncommitted_changes, f"Pulling remote \"{remote}\" in \"{repository_folder}\" caused new uncommitted files.")
         self.git_checkout(repository_folder, branch)
-        self.git_commit(repository_folder, "Automatic commit due to merge")
         self.git_fetch(repository_folder, remote)
         self.git_merge(repository_folder, f"{remote}/{branch}", branch)
         self.git_push_with_retry(repository_folder, remote, branch, branch)
