@@ -704,10 +704,10 @@ class ScriptCollectionCore:
         return self.run_program_argsasarray("git", ["rev-parse", "--verify", "HEAD"], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0] == 0
 
     @GeneralUtilities.check_arguments
-    def run_git_command_in_repository_and_submodules(self, repository_folder: str, arguments: list[str]) -> None:
-        self.is_git_or_bare_git_repository(repository_folder)
-        self.run_program_argsasarray("git", arguments, repository_folder)
-        self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder)
+    def run_git_command_in_repository_and_submodules(self, repository_folder: str, arguments: list[str],print_live_output:bool) -> None:
+        GeneralUtilities.assert_condition(self.is_git_or_bare_git_repository(repository_folder),f"\"{repository_folder}\" is not a git-repository.")
+        self.run_program_argsasarray("git", arguments, repository_folder,print_live_output=print_live_output)
+        self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder,print_live_output=print_live_output)
 
     @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
