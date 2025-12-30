@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.13"
+version = "4.2.14"
 __version__ = version
 
 
@@ -328,15 +328,15 @@ class ScriptCollectionCore:
         return False
 
     @GeneralUtilities.check_arguments
-    def git_get_commit_id(self, repository_folder: str, commit: str = "HEAD") -> str:
+    def git_get_commit_id(self, repository_folder: str, rev: str = "HEAD") -> str:
         self.is_git_or_bare_git_repository(repository_folder)
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["rev-parse", "--verify", rev], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
         return result[1].replace('\n', '')
 
     @GeneralUtilities.check_arguments
-    def git_get_commit_date(self, repository_folder: str, commit: str = "HEAD") -> datetime:
+    def git_get_commit_date(self, repository_folder: str, rev: str = "HEAD") -> datetime:
         self.is_git_or_bare_git_repository(repository_folder)
-        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["log","-1","--format=%ci", commit], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
+        result: tuple[int, str, str, int] = self.run_program_argsasarray("git", ["log","-1","--format=%ci", rev], repository_folder, throw_exception_if_exitcode_is_not_zero=True)
         date_as_string = result[1].replace('\n', '')
         result = datetime.strptime(date_as_string, '%Y-%m-%d %H:%M:%S %z')
         return result
@@ -645,9 +645,9 @@ class ScriptCollectionCore:
         return result[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
 
     @GeneralUtilities.check_arguments
-    def git_get_commit_id(self, repository: str, rev: str) -> str:
+    def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
         self.is_git_or_bare_git_repository(repository)
-        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", rev], repository)
+        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository)
         result = stdout[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
 
