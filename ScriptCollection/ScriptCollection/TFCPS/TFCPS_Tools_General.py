@@ -390,7 +390,7 @@ class TFCPS_Tools_General:
         src_prefix = "Begin"
         if self.__sc.get_current_git_branch_has_tag(repository_folder):
             latest_tag = self.__sc.get_latest_git_tag(repository_folder)
-            src = self.__sc.git_get_commitid_of_tag(repository_folder, latest_tag)
+            src = self.__sc.git_get_commit_id(repository_folder, latest_tag)
             src_prefix = latest_tag
         dst = "HEAD"
         dst_prefix = f"v{current_version}"

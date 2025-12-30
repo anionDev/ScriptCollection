@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.13"
+version = "4.2.14"
 __version__ = version
 
 
@@ -546,12 +546,14 @@ class ScriptCollectionCore:
         self.run_program_argsasarray("git", ["tag", "--delete", tag], directory, throw_exception_if_exitcode_is_not_zero=True)
 
     @GeneralUtilities.check_arguments
-    def git_checkout(self, directory: str, branch: str, undo_all_changes_after_checkout: bool = True, assert_no_uncommitted_changes: bool = True) -> None:
+    def git_checkout(self, directory: str, rev: str, undo_all_changes_after_checkout: bool = True, assert_no_uncommitted_changes: bool = True) -> None:
         self.assert_is_git_repository(directory)
         if assert_no_uncommitted_changes:
-            GeneralUtilities.assert_condition(not self.git_repository_has_uncommitted_changes(directory), f"Repository '{directory}' has uncommitted changes.")
-        self.run_program_argsasarray("git", ["checkout", branch], directory, throw_exception_if_exitcode_is_not_zero=True)
+            GeneralUtilities.assert_condition(not self.git_repository_has_uncommitted_changes(directory), f"Repository \"{directory}\" has uncommitted changes.")
+        self.run_program_argsasarray("git", ["checkout", rev], directory, throw_exception_if_exitcode_is_not_zero=True)
         self.run_program_argsasarray("git", ["submodule", "update", "--recursive"], directory, throw_exception_if_exitcode_is_not_zero=True)
+        commit_id=self.git_get_commit_id(directory,"HEAD")
+        self.log.log(f"Checked out {commit_id} in \"{directory}\".", LogLevel.Debug)
         if undo_all_changes_after_checkout:
             self.git_undo_all_changes(directory)
 
@@ -643,9 +645,9 @@ class ScriptCollectionCore:
         return result[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
 
     @GeneralUtilities.check_arguments
-    def git_get_commitid_of_tag(self, repository: str, tag: str) -> str:
+    def git_get_commit_id(self, repository: str, rev: str) -> str:
         self.is_git_or_bare_git_repository(repository)
-        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", tag], repository)
+        stdout = self.run_program_argsasarray("git", ["rev-list", "-n", "1", rev], repository)
         result = stdout[1].replace("\r", GeneralUtilities.empty_string).replace("\n", GeneralUtilities.empty_string)
         return result
 
@@ -667,7 +669,7 @@ class ScriptCollectionCore:
             self.log.log(f"Process tag {counter}/{tags_count}.", LogLevel.Information)
             # tag is on source-branch
             if self.git_commit_is_ancestor(repository, tag, tag_source_branch):
-                commit_id_old = self.git_get_commitid_of_tag(repository, tag)
+                commit_id_old = self.git_get_commit_id(repository, tag)
                 commit_date: datetime = self.git_get_commit_date(repository, commit_id_old)
                 date_as_string = self.__datetime_to_string_for_git(commit_date)
                 search_commit_result = self.run_program_argsasarray("git", ["log", f'--after="{date_as_string}"', f'--before="{date_as_string}"', "--pretty=format:%H", tag_target_branch], repository, throw_exception_if_exitcode_is_not_zero=False)
@@ -704,10 +706,11 @@ class ScriptCollectionCore:
         return self.run_program_argsasarray("git", ["rev-parse", "--verify", "HEAD"], repository_folder, throw_exception_if_exitcode_is_not_zero=False)[0] == 0
 
     @GeneralUtilities.check_arguments
-    def run_git_command_in_repository_and_submodules(self, repository_folder: str, arguments: list[str]) -> None:
-        self.is_git_or_bare_git_repository(repository_folder)
-        self.run_program_argsasarray("git", arguments, repository_folder)
-        self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder)
+    def run_git_command_in_repository_and_submodules(self, repository_folder: str, arguments: list[str],print_live_output:bool) -> None:
+        GeneralUtilities.assert_condition(self.is_git_or_bare_git_repository(repository_folder),f"\"{repository_folder}\" is not a git-repository.")
+        self.log.log("Run \"git "+" ".join(arguments)+f"\" in {repository_folder} and its submodules...",LogLevel.Debug)
+        self.run_program_argsasarray("git", arguments, repository_folder,print_live_output=print_live_output)
+        self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder,print_live_output=print_live_output)
 
     @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
@@ -1992,7 +1995,7 @@ class ScriptCollectionCore:
             result = self.get_version_from_gitversion(repository_folder, "MajorMinorPatch")
             if self.git_repository_has_uncommitted_changes(repository_folder):
                 if self.get_current_git_branch_has_tag(repository_folder):
-                    id_of_latest_tag = self.git_get_commitid_of_tag(repository_folder, self.get_latest_git_tag(repository_folder))
+                    id_of_latest_tag = self.git_get_commit_id(repository_folder, self.get_latest_git_tag(repository_folder))
                     current_commit = self.git_get_commit_id(repository_folder)
                     current_commit_is_on_latest_tag = id_of_latest_tag == current_commit
                     if current_commit_is_on_latest_tag:
