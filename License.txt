@@ -1,4 +1,4 @@
-Copyright © 2025 Marius Göcke
+Copyright © 2026 Marius Göcke
 
 ScriptCollection itself is licensed under the terms of the GPL-v3-license (see appendix 6).
 ScriptCollection uses dependencies which are released under their own license:

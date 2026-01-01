@@ -1392,8 +1392,8 @@ class TFCPS_Tools_General:
                 for k,v in env_variables.items():
                     lines=lines+[f"{k}={v}"]
                 GeneralUtilities.write_lines_to_file(env_variables_file,lines)
-                arguments=arguments+" --env-file Parameters.env"
+                arguments=arguments + " --env-file Parameters.env"
             else:
                 GeneralUtilities.ensure_file_does_not_exist(env_variables_file)
-            arguments=arguments+" pull --quiet"
-            self.__sc.run_program("docker",arguments,test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
+            arguments=arguments + " pull --quiet"
+            self.__sc.run_program_with_retry("docker",arguments,test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
