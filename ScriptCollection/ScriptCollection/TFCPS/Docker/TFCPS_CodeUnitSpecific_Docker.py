@@ -103,7 +103,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         image=f"{self.get_codeunit_name()}:{self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)}".lower()
         argument=f"run -d --name {container_name}"
         if test_port is not None:
-             argument=f"{argument} -p {test_port}:{test_port}"
+            argument=f"{argument} -p {test_port}:{test_port}"
         for k,v in environment_variables.items():
             argument=f"{argument} -e {k}={v}"#TODO switch to argument-array to also allow values with white-space
         argument=f"{argument} {image}"
