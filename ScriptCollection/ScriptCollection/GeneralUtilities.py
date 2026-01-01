@@ -1217,21 +1217,23 @@ class GeneralUtilities:
     @check_arguments
     def retry_action(action, amount_of_attempts: int, action_name: str = None) -> None:
         amount_of_fails = 0
-        enabled = True
-        while enabled:
+        last_exception:Exception=None
+        GeneralUtilities.assert_condition(0<amount_of_attempts,"amount_of_attempts must be greater than 0.")
+        while amount_of_fails<amount_of_attempts:
             try:
                 result = action()
                 return result
-            except Exception:
-                time.sleep(1.1)
+            except Exception as e:
+                time.sleep(2)
                 amount_of_fails = amount_of_fails+1
-                GeneralUtilities.assert_condition(not (amount_of_attempts < amount_of_fails))
-                message = f"Action failed {amount_of_attempts} times."
-                if action_name is not None:
-                    message = f"{message} Name of action: {action_name}"
-                GeneralUtilities.write_message_to_stderr(message)
-                raise
-        return None
+                last_exception=e
+        GeneralUtilities.assert_not_null(last_exception)
+        message = "Action"
+        if action_name is not None:
+            message = f"{message} \"{action_name}\""
+        message = f"{message} failed {amount_of_attempts} time(s)."
+        GeneralUtilities.write_message_to_stderr(message)
+        raise last_exception
 
     @staticmethod
     @check_arguments
