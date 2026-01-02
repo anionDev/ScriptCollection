@@ -136,17 +136,21 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                     return (True,None)
                 except Exception as e:
                     last_exception=e
-            exception_message=""
+            container_output:str=None
+            if not self._protected_sc.container_is_exists(container_name):
+                return (False,f"Container \"{container_name}\" does not exist.")
+            try:
+                container_output="\nContainer-output:\n"+self._protected_sc.get_output_of_container(container_name)
+            except Exception:
+                container_output="\n(Container-output not retrievable.)"
+            exception_message=GeneralUtilities.empty_string
             if last_exception is not None:
                 exception_message=exception_message+"\nLast exception: "+GeneralUtilities.exception_to_str(last_exception)
-            if not self._protected_sc.container_is_exists(container_name):
-                return (False,f"Container \"{container_name}\" does not exist.{exception_message}")
             if not self._protected_sc.container_is_running(container_name):
-                return (False,f"Container \"{container_name}\" is not running.{exception_message}")
+                return (False,f"Container \"{container_name}\" is not running.{exception_message}{container_output}")
             if not self._protected_sc.container_is_healthy(container_name):
-                container_output=self._protected_sc.get_output_of_container(container_name)
-                return (False,f"Container \"{container_name}\" is not healthy. Container-output:\n{container_output}{exception_message}")
-            return (False,f"Container \"{container_name}\" is not working properly.{exception_message}")
+                return (False,f"Container \"{container_name}\" is not healthy.{exception_message}{container_output}")
+            return (False,f"Container \"{container_name}\" is not working properly.{exception_message}{container_output}")
         finally:
             self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
 

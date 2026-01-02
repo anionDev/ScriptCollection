@@ -117,8 +117,12 @@ class TFCPS_MergeToStable:
             self.__export_codeunit_reference_content_to_reference_repository(f"v{project_version}", False, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, f"v{project_version}")
             self.__export_codeunit_reference_content_to_reference_repository("Latest", True, reference_folder, repository, codeunit, projectname, codeunit_version, public_repository_url, main_branch_name)
 
-            # Generate reference
-            self.__generate_entire_reference(projectname, project_version, reference_folder,reference_repo)
+        #TODO set (update/overwrite) project-specific reference in reference_repo
+        
+        #TODO set (update/overwrite) project-issues in reference_repo
+
+        # Generate reference
+        self.__generate_entire_reference(projectname, project_version, reference_folder,reference_repo)
 
         self.sc.git_commit(reference_repo,f"Added reference for v{project_version}")
 
