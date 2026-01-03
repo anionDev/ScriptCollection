@@ -1280,3 +1280,9 @@ class GeneralUtilities:
                 process.kill()
         else:
             GeneralUtilities.write_message_to_stdout(f"Process with id {process_id} is not running anymore.")
+
+    @staticmethod
+    @check_arguments
+    def get_only_item_from_list(list_with_one_element:list):
+        GeneralUtilities.assert_condition(len(list_with_one_element)==1,f"List does not contain exactly one item. It contains {len(list_with_one_element)} items.")
+        return list_with_one_element[0]
