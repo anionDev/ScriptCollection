@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.22"
+version = "4.2.23"
 __version__ = version
 
 
@@ -66,21 +66,15 @@ class ScriptCollectionCore:
     def get_scriptcollection_configuration_folder(self)->str:
         user_folder = str(Path.home())
         result = os.path.join(user_folder, ".scriptcollection")
+        result=GeneralUtilities.normaliza_path(result)
         GeneralUtilities.ensure_directory_exists(result)
-        if GeneralUtilities.current_system_is_windows():
-            result=result.replace("/","\\") 
-        else:
-            result=result.replace("\\","/")
         return result
 
     @GeneralUtilities.check_arguments
     def get_global_cache_folder(self)->str:
         result = os.path.join(self.get_scriptcollection_configuration_folder(), "GlobalCache")
+        result=GeneralUtilities.normaliza_path(result)
         GeneralUtilities.ensure_directory_exists(result)
-        if GeneralUtilities.current_system_is_windows():
-            result=result.replace("/","\\")
-        else:
-            result=result.replace("\\","/")
         return result
 
     @GeneralUtilities.check_arguments
