@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.21"
+version = "4.2.22"
 __version__ = version
 
 
@@ -63,11 +63,25 @@ class ScriptCollectionCore:
         return __version__
 
     @GeneralUtilities.check_arguments
-    def get_global_cache_folder(self)->str:
+    def get_scriptcollection_configuration_folder(self)->str:
         user_folder = str(Path.home())
-        global_cache_folder = os.path.join(user_folder, ".scriptcollection", "GlobalCache")
-        GeneralUtilities.ensure_directory_exists(global_cache_folder)
-        return global_cache_folder
+        result = os.path.join(user_folder, ".scriptcollection")
+        GeneralUtilities.ensure_directory_exists(result)
+        if GeneralUtilities.current_system_is_windows():
+            result=result.replace("/","\\") 
+        else:
+            result=result.replace("\\","/")
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_global_cache_folder(self)->str:
+        result = os.path.join(self.get_scriptcollection_configuration_folder(), "GlobalCache")
+        GeneralUtilities.ensure_directory_exists(result)
+        if GeneralUtilities.current_system_is_windows():
+            result=result.replace("/","\\")
+        else:
+            result=result.replace("\\","/")
+        return result
 
     @GeneralUtilities.check_arguments
     def __get_docker_image_cache_definition_file(self)->str:
