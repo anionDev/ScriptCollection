@@ -752,6 +752,11 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def read_text_from_file_without_linebreak(file: str, encoding="utf-8") -> str:
+        return GeneralUtilities.read_text_from_file(file,encoding).replace("\n","").replace("\r","")
+
+    @staticmethod
+    @check_arguments
     def read_binary_from_file(file: str) -> bytes:
         with open(file, "rb") as file_object:
             return file_object.read()
@@ -1235,6 +1240,17 @@ class GeneralUtilities:
         GeneralUtilities.write_message_to_stderr(message)
         raise last_exception
 
+
+    @staticmethod
+    @check_arguments
+    def normaliza_path(path)->str:
+        path=str(path)
+        if GeneralUtilities.current_system_is_windows():
+            path=path.replace("/","\\")
+        else:
+            path=path.replace("\\","/")
+        return path
+    
     @staticmethod
     @check_arguments
     def int_to_string(number: int, leading_zeroplaces: int, trailing_zeroplaces: int) -> str:
