@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.20"
+version = "4.2.21"
 __version__ = version
 
 
@@ -2733,3 +2733,9 @@ OCR-content:
         #TODO add cli-script to call this function
         if not (network_name  in self.get_docker_networks()):
             self.run_program("docker",f"network create {network_name}")
+
+    @GeneralUtilities.check_arguments
+    def ensure_docker_network_is_not_available(self,network_name:str):
+        #TODO add cli-script to call this function
+        if network_name  in self.get_docker_networks():
+            self.run_program("docker",f"network rm {network_name}")
