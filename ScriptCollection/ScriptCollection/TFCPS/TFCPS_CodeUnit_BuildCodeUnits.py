@@ -72,8 +72,16 @@ class TFCPS_CodeUnit_BuildCodeUnits:
 
     @GeneralUtilities.check_arguments
     def run_prepare_script(self):
+        pre_script_file:str=os.path.join( self.sc.get_global_cache_folder(),"TFCPS","CustomPreCodeunitBuild.py")
+        if  os.path.isfile( pre_script_file):
+            self.sc.log.log("Run custom pre-codeunitbuild script...")
+            argument= f"CustomPreCodeunitBuild.py --repository \"{self.repository}\" --targetenvironmenttype {self.target_environment_type} --additionalargumentsfile \"{self.additionalargumentsfile}\" --verbosity {int(self.sc.log.loglevel)}"
+            if not self.__use_cache:
+                arguments=f"{arguments} --nocache"
+            self.sc.run_program("python",argument, os.path.join( self.sc.get_global_cache_folder(),"TFCPS"),print_live_output=True)
+
         if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
-            arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile {self.additionalargumentsfile} --verbosity {int(self.sc.log.loglevel)}"
+            arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile \"{self.additionalargumentsfile}\" --verbosity {int(self.sc.log.loglevel)}"
             if not self.__use_cache:
                 arguments=f"{arguments} --nocache"
                 if self.sc.git_repository_has_uncommitted_changes(self.repository):
