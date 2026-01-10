@@ -143,7 +143,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
                 container_output="\nContainer-output:\n"+self._protected_sc.get_output_of_container(container_name)
             except Exception:
                 container_output="\n(Container-output not retrievable.)"
-            exception_message=GeneralUtilities.empty_string
+            exception_message=f"\nContainer was started with \"docker {argument}\"."
             if last_exception is not None:
                 exception_message=exception_message+"\nLast exception: "+GeneralUtilities.exception_to_str(last_exception)
             if not self._protected_sc.container_is_running(container_name):
