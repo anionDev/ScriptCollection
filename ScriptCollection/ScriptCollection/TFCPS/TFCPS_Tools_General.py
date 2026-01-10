@@ -1055,11 +1055,14 @@ class TFCPS_Tools_General:
         return latest_version
 
     @GeneralUtilities.check_arguments
-    def update_images_in_example(self, codeunit_folder: str):
+    def update_images_in_example_with_default_excluded(self, codeunit_folder: str):
+        self.update_images_in_example(codeunit_folder,[])
+
+    @GeneralUtilities.check_arguments
+    def update_images_in_example(self, codeunit_folder: str,excluded:list[str]):
         iu = ImageUpdater()
         iu.add_default_mapper()
         dockercomposefile: str = f"{codeunit_folder}\\Other\\Reference\\ReferenceContent\\Examples\\MinimalDockerComposeFile\\docker-compose.yml"
-        excluded = ["opendms"]
         iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
         iu.check_for_newest_version(dockercomposefile, excluded)
 
