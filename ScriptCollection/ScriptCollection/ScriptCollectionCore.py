@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.25"
+version = "4.2.26"
 __version__ = version
 
 
@@ -2716,15 +2716,15 @@ OCR-content:
             return False
         return True
 
-    def reclaim_space_from_docker(self,remove_containers:bool,remove_volumes:bool,remove_images:bool):
+    def reclaim_space_from_docker(self,remove_containers:bool,remove_volumes:bool,remove_images:bool, amount_of_attempts: int = 5):
         self.log.log("Reclaim disk space from docker...",LogLevel.Debug)
         if remove_containers:
-            self.run_program("docker","container prune -f")
+            self.run_program_with_retry("docker","container prune -f",amount_of_attempts=amount_of_attempts)
         if remove_volumes:
-            self.run_program("docker","volume prune -f")
+            self.run_program_with_retry("docker","volume prune -f",amount_of_attempts=amount_of_attempts)
         if remove_images:
-            self.run_program("docker","image prune -a -f")
-        self.run_program("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug)
+            self.run_program_with_retry("docker","image prune -f",amount_of_attempts=amount_of_attempts)
+        self.run_program_with_retry("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug,amount_of_attempts=amount_of_attempts)
 
     @GeneralUtilities.check_arguments
     def get_docker_networks(self)->list[str]:
