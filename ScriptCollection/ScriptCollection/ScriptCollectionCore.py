@@ -114,8 +114,11 @@ class ScriptCollectionCore:
         data=response.json()
         # expected: {"name":"myapp","tags":["1.2.22","1.2.21","1.2.20"]}
         tags = data.get("tags", [])
-        result=tag in tags 
-        return result
+        if tags is None:
+            return False
+        else:
+            result = tag in tags 
+            return result
 
     default_fallback_docker_registry:str="docker.io/library"
 
