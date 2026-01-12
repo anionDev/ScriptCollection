@@ -106,6 +106,11 @@ class ConcreteImageUpdater:
 
     @abstractmethod
     @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
         raise NotImplementedError
 
@@ -133,6 +138,10 @@ class ConcreteImageUpdater:
 class ConcreteImageUpdaterForNginx(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
+
+    @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
         return f"{version.major}.{version.minor}.{version.micro}"
 
@@ -158,6 +167,10 @@ class ConcreteImageUpdaterForNginx(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForWordpress(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -185,6 +198,10 @@ class ConcreteImageUpdaterForWordpress(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForGitLab(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -209,6 +226,10 @@ class ConcreteImageUpdaterForGitLab(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForRegistry(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -237,6 +258,10 @@ class ConcreteImageUpdaterForRegistry(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForPrometheus(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -264,6 +289,10 @@ class ConcreteImageUpdaterForPrometheus(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForPrometheusBlackboxExporter(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -291,6 +320,10 @@ class ConcreteImageUpdaterForPrometheusBlackboxExporter(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForPrometheusNginxExporter(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -318,6 +351,10 @@ class ConcreteImageUpdaterForPrometheusNginxExporter(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForPrometheusNodeExporter(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -345,6 +382,10 @@ class ConcreteImageUpdaterForPrometheusNodeExporter(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForKeycloak(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -369,6 +410,10 @@ class ConcreteImageUpdaterForKeycloak(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForMariaDB(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -396,6 +441,10 @@ class ConcreteImageUpdaterForMariaDB(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForPostgreSQL(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -423,6 +472,10 @@ class ConcreteImageUpdaterForPostgreSQL(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForAdminer(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        raise NotImplementedError
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -449,7 +502,48 @@ class ConcreteImageUpdaterForAdminer(ConcreteImageUpdater):
         return "Adminer"
 
 
+class ConcreteImageUpdaterForDebian(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\-slim$", 999)
+
+    @GeneralUtilities.check_arguments
+    def version_to_tag(self,  version: Version) -> str:
+        return f"{version.major}.{version.minor}-slim"
+
+    @GeneralUtilities.check_arguments
+    def get_latest_version_of_image(self, image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
+        versions =self.get_all_available_versions(image)
+        newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
+        result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
+        return result
+
+    @GeneralUtilities.check_arguments
+    def get_supported_images(self) -> list[str]:
+        return "debian"
+
+    @GeneralUtilities.check_arguments
+    def get_version_from_tag(self, image: str, tag: str) -> Version:
+        GeneralUtilities.assert_condition(tag.endswith("-slim"))
+        version_str=tag.split("-")[0]
+        if re.match(r"^\d+\.\d+$", version_str):
+            version_str=version_str+".0"
+        else:
+            raise ValueError(f"Cannot parse debian version from tag '{tag}'.")
+        return ve.parse(version_str)
+
+    @abstractmethod
+    @GeneralUtilities.check_arguments
+    def get_name(self, image: str, tag: str) -> str:
+        return "Debian"
+
+
 class ConcreteImageUpdaterForGeneric(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        return  ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -457,7 +551,7 @@ class ConcreteImageUpdaterForGeneric(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        versions =self.get_all_available_versions(image)
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -477,6 +571,10 @@ class ConcreteImageUpdaterForGeneric(ConcreteImageUpdater):
 
 
 class ConcreteImageUpdaterForGenericV(ConcreteImageUpdater):
+    
+    @GeneralUtilities.check_arguments
+    def get_all_available_versions(self,image:str) -> list[str]:
+        return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -484,7 +582,7 @@ class ConcreteImageUpdaterForGenericV(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        versions =self.get_all_available_versions(image)
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
