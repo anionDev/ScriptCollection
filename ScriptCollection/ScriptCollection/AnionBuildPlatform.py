@@ -12,6 +12,7 @@ class AnionBuildPlatformConfiguration:
     source_branch:str#other/next-release
     common_remote_name:str
     update_dependencies:bool
+    lazy_mode:bool
 
     def __init__(self,
                  build_repositories_folder:str,
@@ -19,13 +20,15 @@ class AnionBuildPlatformConfiguration:
                  verbosity:LogLevel,
                  source_branch:str,
                  common_remote_name:str,
-                 update_dependencies:bool):
+                 update_dependencies:bool,
+                 lazy_mode:bool):
         self.build_repositories_folder=build_repositories_folder
         self.additional_arguments_file=additional_arguments_file
         self.verbosity=verbosity
         self.source_branch=source_branch
         self.common_remote_name=common_remote_name
         self.update_dependencies=update_dependencies
+        self.lazy_mode=lazy_mode
 
 class AnionBuildPlatform:
 
@@ -63,11 +66,17 @@ class AnionBuildPlatform:
         self.__sc.git_merge(repository,self.__configuration.common_remote_name+"/"+self.__configuration.source_branch,self.__configuration.source_branch,fastforward=True)#TODO check if is anchestor and throw exception if nor
         self.__sc.git_commit(build_repo_folder,"Updated changes")
 
-        #Update dependencies
+        # Added changelog entry and build to verify buildability and to update versions etc.
+        if self.__configuration.lazy_mode:
+            self.__sc.run_program("sccreatechangelogentry","-m Update.",repository)
+            self.__sc.run_program("task","bb",repository)
+            self.__sc.git_commit(repository,"update")
+
+        # Update dependencies
         if self.__configuration.update_dependencies:
             self.__update_dependencies(product_name)
         
-        #Do release
+        # Do release
         scripts_folder:str=os.path.join(build_repo_folder,"Scripts","CreateRelease")
 
         merge_to_main_arguments=""
@@ -141,6 +150,7 @@ class TFCPS_AnionBuildPlatform_CLI:
         parser.add_argument('-m', '--mainbranch', required=False)#main
         parser.add_argument('-r', '--defaultremotename', required=False)#origin
         parser.add_argument('-u', '--updatedependencies', required=False, action='store_true', default=False)
+        parser.add_argument('-l', '--lazymode', required=False, action='store_true', default=False)
         args=parser.parse_args()
 
         if args.projecttobuild is not None: 
@@ -178,6 +188,6 @@ class TFCPS_AnionBuildPlatform_CLI:
             default_remote_name=args.defaultremotename
         GeneralUtilities.assert_not_null(default_remote_name,"defaultremotename is not set")
 
-        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name,args.updatedependencies)
+        config:AnionBuildPlatformConfiguration=AnionBuildPlatformConfiguration(default_build_repositories_folder,default_additionalargumentsfile,default_loglevel,default_source_branch,default_remote_name,args.updatedependencies,args.lazymode)
         tFCPS_MergeToMain:AnionBuildPlatform=AnionBuildPlatform(config)
         return tFCPS_MergeToMain
