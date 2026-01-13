@@ -823,6 +823,7 @@ def CreateRelease()->int:
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
     parser.add_argument('-s', '--sourcebranch', required=False, default="other/next-release")
     parser.add_argument('-u', '--updatedependencies', required=False, action='store_true', default=False)
+    parser.add_argument('-l', '--lazymode', required=False, action='store_true', default=False)
     args = parser.parse_args()
 
     build_repo_folder: str = None
@@ -838,6 +839,8 @@ def CreateRelease()->int:
     arguments=f"CreateRelease.py --buildrepositoriesfolder {build_repo_folder} --verbosity {verbosity} --sourcebranch {args.sourcebranch}"
     if args.updatedependencies:
         arguments=arguments+" --updatedependencies"
+    if args.lazymode:
+        arguments=arguments+" --lazymode"
     sc.run_program("python", arguments, scripts_folder,print_live_output=True)
 
     return 0
