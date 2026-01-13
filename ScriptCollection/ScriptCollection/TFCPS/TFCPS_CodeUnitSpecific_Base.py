@@ -80,7 +80,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         dependencies_dict:dict[str,set[str]]=self.get_dependencies()
         for dependencyname,dependency_versions in dependencies_dict.items():
             GeneralUtilities.assert_condition(0<len(dependency_versions),f"Dependency {dependencyname} is not used.")
-            GeneralUtilities.assert_condition(len(dependency_versions)<2,f"Dependency {dependencyname} is used {len(dependency_versions)} times. Please consolidate it to on2 version before updating.")
+            GeneralUtilities.assert_condition(len(dependency_versions)<2,f"Dependency {dependencyname} is used {len(dependency_versions)} times. Please consolidate it to one version before updating.")
             dependency_version=next(iter(dependency_versions))
             latest_currently_used_version=dependency_version
             if dependencyname not in ignored_dependencies: 
