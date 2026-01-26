@@ -78,7 +78,7 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
-    def __get_docker_image_cache_definition_file(self)->str:
+    def get_global_docker_image_cache_definition_file(self)->str:
         result=os.path.join(self.get_global_cache_folder(),"ImageCache.csv")
         if not os.path.isfile(result):
             GeneralUtilities.ensure_file_exists(result)
@@ -175,7 +175,7 @@ class ScriptCollectionCore:
         if "/" in image:
             image=image.rsplit("/", 1)[-1]
         GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
-        docker_image_cache_definition_file=self.__get_docker_image_cache_definition_file()
+        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
         for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
             imagename=line[0]
             if imagename==image:
@@ -194,7 +194,7 @@ class ScriptCollectionCore:
         if "/" in image:
             image=image.rsplit("/", 1)[-1]
         GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
-        docker_image_cache_definition_file=self.__get_docker_image_cache_definition_file()
+        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
         for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
             imagename=line[0]
             imagelink=line[1]#image with custom upstream link, for example "myownregistry1.example.com/debian"
