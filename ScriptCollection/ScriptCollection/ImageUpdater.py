@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 import json
 import re
 from urllib.parse import quote
@@ -7,6 +7,7 @@ import requests
 from packaging import version as ve
 from packaging.version import Version
 from .GeneralUtilities import GeneralUtilities,VersionEcholon
+from .ScriptCollectionCore import ScriptCollectionCore
 
 
 class ImageUpdaterHelper:
@@ -102,7 +103,27 @@ class ImageUpdaterHelper:
         return result
 
 
-class ConcreteImageUpdater:
+class ConcreteImageUpdater(ABC):
+    use_fallback_registry_only:bool=False
+    _protected_sc:ScriptCollectionCore=None
+    
+    def __init__(self):
+        self._protected_sc=ScriptCollectionCore()
+
+    def custom_registry_for_image_is_defined(self,image:str)->bool:
+        return self._protected_sc.custom_registry_for_image_is_defined(image)
+    
+    @GeneralUtilities.check_arguments
+    def get_available_versions_from_custom_registry(self,image:str) -> list[str]:
+        """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
+        custom_registry_url=self._protected_sc.get_image_with_registry_for_docker_image(image,None,self._protected_sc.default_fallback_docker_registry)
+        # registry_base_url= "/".join(custom_registry_url.split("/", 3)[:3]) # with https://
+        if custom_registry_url.startswith("https://"):
+            registry_base_url=custom_registry_url[8:] # without https://
+        else:
+            registry_base_url=custom_registry_url
+        registry_base_url=registry_base_url.split("/", 1)[0]
+        return self._protected_sc.get_tags_of_images_from_registry("https://"+registry_base_url,image,None,None)
 
     @abstractmethod
     @GeneralUtilities.check_arguments
@@ -131,15 +152,20 @@ class ConcreteImageUpdater:
 
     @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         raise NotImplementedError
 
 
 class ConcreteImageUpdaterForNginx(ConcreteImageUpdater):
 
+    def __init__(self):
+        super().__init__()
+
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -147,7 +173,7 @@ class ConcreteImageUpdaterForNginx(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -160,17 +186,21 @@ class ConcreteImageUpdaterForNginx(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag)
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "Nginx"
 
 
 class ConcreteImageUpdaterForWordpress(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return  ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -178,7 +208,7 @@ class ConcreteImageUpdaterForWordpress(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -191,16 +221,20 @@ class ConcreteImageUpdaterForWordpress(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag)
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "Wordpress"
 
 
 class ConcreteImageUpdaterForGitLab(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
         raise NotImplementedError
 
     @GeneralUtilities.check_arguments
@@ -219,17 +253,21 @@ class ConcreteImageUpdaterForGitLab(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         raise NotImplementedError
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "GitLab"
 
 
 class ConcreteImageUpdaterForRegistry(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -237,12 +275,11 @@ class ConcreteImageUpdaterForRegistry(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
         return ["registry"]
@@ -251,17 +288,21 @@ class ConcreteImageUpdaterForRegistry(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag)
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "Registry"
 
 
 class ConcreteImageUpdaterForPrometheus(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -269,7 +310,7 @@ class ConcreteImageUpdaterForPrometheus(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -282,17 +323,21 @@ class ConcreteImageUpdaterForPrometheus(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag[1:])
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "Prometheus"
 
 
 class ConcreteImageUpdaterForPrometheusBlackboxExporter(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return  ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -300,7 +345,7 @@ class ConcreteImageUpdaterForPrometheusBlackboxExporter(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -313,17 +358,21 @@ class ConcreteImageUpdaterForPrometheusBlackboxExporter(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag[1:])
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "PrometheusBlackboxExporter"
 
 
 class ConcreteImageUpdaterForPrometheusNginxExporter(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return  ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -331,7 +380,7 @@ class ConcreteImageUpdaterForPrometheusNginxExporter(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -344,17 +393,21 @@ class ConcreteImageUpdaterForPrometheusNginxExporter(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag[1:])
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "NginxPrometheusExporter"
 
 
 class ConcreteImageUpdaterForPrometheusNodeExporter(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return  ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -362,7 +415,7 @@ class ConcreteImageUpdaterForPrometheusNodeExporter(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -375,16 +428,20 @@ class ConcreteImageUpdaterForPrometheusNodeExporter(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag[1:])
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "PrometheusNodeExporter"
 
 
 class ConcreteImageUpdaterForKeycloak(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
         raise NotImplementedError
 
     @GeneralUtilities.check_arguments
@@ -403,17 +460,21 @@ class ConcreteImageUpdaterForKeycloak(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         raise NotImplementedError
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "KeyCloak"
 
 
 class ConcreteImageUpdaterForMariaDB(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return  ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -421,7 +482,7 @@ class ConcreteImageUpdaterForMariaDB(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -434,17 +495,21 @@ class ConcreteImageUpdaterForMariaDB(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag)
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "MariaDB"
 
 
 class ConcreteImageUpdaterForPostgreSQL(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -452,7 +517,7 @@ class ConcreteImageUpdaterForPostgreSQL(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -465,17 +530,21 @@ class ConcreteImageUpdaterForPostgreSQL(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag+".0")
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "PostgreSQL"
 
 
 class ConcreteImageUpdaterForAdminer(ConcreteImageUpdater):
+
+    def __init__(self):
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
-        raise NotImplementedError
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
+        return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
     def version_to_tag(self,  version: Version) -> str:
@@ -483,7 +552,7 @@ class ConcreteImageUpdaterForAdminer(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions = ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -496,16 +565,20 @@ class ConcreteImageUpdaterForAdminer(ConcreteImageUpdater):
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag)
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "Adminer"
 
 
 class ConcreteImageUpdaterForDebian(ConcreteImageUpdater):
-    
+
+    def __init__(self):
+        super().__init__()
+
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
         return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\-slim$", 999)
 
     @GeneralUtilities.check_arguments
@@ -514,7 +587,7 @@ class ConcreteImageUpdaterForDebian(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self, image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions =self.get_all_available_versions(image)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
@@ -533,16 +606,24 @@ class ConcreteImageUpdaterForDebian(ConcreteImageUpdater):
             raise ValueError(f"Cannot parse debian version from tag '{tag}'.")
         return ve.parse(version_str)
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
+    def get_name(self) -> str:
         return "Debian"
 
 
 class ConcreteImageUpdaterForGeneric(ConcreteImageUpdater):
+
+    __tool_name:str
+    __image_name:str
+    def __init__(self,tool_name:str,image_name:str):
+        self.__tool_name=tool_name
+        self.__image_name=image_name
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
         return  ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
@@ -551,29 +632,36 @@ class ConcreteImageUpdaterForGeneric(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions =self.get_all_available_versions(image)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return [".*"]
+        return [self.__image_name]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag)
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
-        return "Generic"
+    def get_name(self) -> str:
+        return self.__tool_name
 
 
 class ConcreteImageUpdaterForGenericV(ConcreteImageUpdater):
+
+    __tool_name:str
+    __image_name:str
+    def __init__(self,tool_name:str,image_name:str):
+        self.__tool_name=tool_name
+        super().__init__()
     
     @GeneralUtilities.check_arguments
     def get_all_available_versions(self,image:str) -> list[str]:
+        if self.custom_registry_for_image_is_defined(image) and not self.use_fallback_registry_only:
+            return self.get_available_versions_from_custom_registry(image)
         return ImageUpdaterHelper.get_versions_in_docker_hub(image, ".", "^v\\d+\\.\\d+\\.\\d+$", 999)
 
     @GeneralUtilities.check_arguments
@@ -582,23 +670,23 @@ class ConcreteImageUpdaterForGenericV(ConcreteImageUpdater):
 
     @GeneralUtilities.check_arguments
     def get_latest_version_of_image(self,  image: str, version_echolon: VersionEcholon, current_version: Version) -> Version:
-        versions =self.get_all_available_versions(image)
+        versions =[Version(v) for v in  self.get_all_available_versions(image)]
         newer_versions = ImageUpdaterHelper.filter_for_newer_versions(current_version, versions)
         result = ImageUpdaterHelper.filter_considering_echolon(newer_versions, current_version, version_echolon)
         return result
 
     @GeneralUtilities.check_arguments
     def get_supported_images(self) -> list[str]:
-        return [".*"]
+        return [self.__image_name]
 
     @GeneralUtilities.check_arguments
     def get_version_from_tag(self, image: str, tag: str) -> Version:
         return ve.parse(tag[1:])
 
-    @abstractmethod
     @GeneralUtilities.check_arguments
-    def get_name(self, image: str, tag: str) -> str:
-        return "GenericV"
+    def get_name(self) -> str:
+        return self.__tool_name
+
 
 
 class ImageUpdater:
@@ -624,7 +712,7 @@ class ImageUpdater:
 
     @GeneralUtilities.check_arguments
     def check_service_for_newest_version(self, dockercompose_file: str, service_name: str) -> bool:
-        imagename, existing_tag, existing_version = self.get_current_version_of_service_from_docker_compose_file(dockercompose_file, service_name)  # pylint:disable=unused-variable
+        imagename, existing_tag, existing_version,original_image = self.get_current_version_of_service_from_docker_compose_file(dockercompose_file, service_name)  # pylint:disable=unused-variable
         newest_version, newest_tag = self.get_latest_version_of_image(imagename, VersionEcholon.LatestVersion, existing_version)  # pylint:disable=unused-variable
         if existing_version < newest_version:
             GeneralUtilities.write_message_to_stdout(f"Service {service_name} with image {imagename} uses tag {existing_version}. The newest available version of this image is {newest_version}.")
@@ -664,11 +752,12 @@ class ImageUpdater:
 
     @GeneralUtilities.check_arguments
     def update_service_in_docker_compose_file(self, dockercompose_file: str, service_name: str, version_echolon: VersionEcholon, updatertype: str = None):
-        imagename, existing_tag, existing_version = self.get_current_version_of_service_from_docker_compose_file(dockercompose_file, service_name)  # pylint:disable=unused-variable
+        imagename, existing_tag, existing_version,original_image = self.get_current_version_of_service_from_docker_compose_file(dockercompose_file, service_name)  # pylint:disable=unused-variable
         result = self.get_latest_version_of_image(imagename, version_echolon, existing_version, updatertype)
         newest_version = result[0]
         newest_tag = result[1]
         # TODO write info to console if there is a newwer version available if versionecoholon==latest would have been chosen
+        sc=ScriptCollectionCore()
         if existing_version < newest_version:
 
             with open(dockercompose_file, 'r', encoding="utf-8") as f:
@@ -681,34 +770,59 @@ class ImageUpdater:
             image = services[service_name].get("image")
             if not image:
                 raise ValueError(f"Service '{service_name}' does not have an image-field.")
+            match = re.search(r"\$\{([^}]+)\}", image)
+            if match:
+                variable=match.group(1)
+                if variable.startswith("image_"):
+                    image_name:str=variable.split("_")[1]
+                    tag=image.split(":")[1]
+                    image=sc.get_image_with_registry_for_docker_image(image_name,None,sc.default_fallback_docker_registry)+":"+tag
 
             imagename = image.split(":")[0]
-            services[service_name]["image"] = imagename+":"+newest_tag
+            services[service_name]["image"] = original_image+":"+newest_tag
 
             with open(dockercompose_file, 'w', encoding="utf-8") as f:
                 yaml.dump(compose_data, f, default_flow_style=False)
 
+    
+
     @GeneralUtilities.check_arguments
-    def get_current_version_of_service_from_docker_compose_file(self, dockercompose_file: str, service_name: str) -> tuple[str, str, Version]:  # returns (image,existing_tag,existing_version)
+    def __resolve_variable(self, image: str) -> str:
+        sc=ScriptCollectionCore()
+        match = re.search(r"\$\{([^}]+)\}", image)
+        if match:
+            variable=match.group(1)
+            if variable.startswith("image_"):
+                image_name:str=variable.split("_")[1]
+                tag=image.split(":")[1]
+                image=sc.get_image_with_registry_for_docker_image(image_name,None,sc.default_fallback_docker_registry)+":"+tag
+        return image
+
+    @GeneralUtilities.check_arguments
+    def get_current_version_of_service_from_docker_compose_file(self, dockercompose_file: str, service_name: str) -> tuple[str, str, Version,str]:
+        """returns (image,existing_tag,existing_version,original_image)"""
         with open(dockercompose_file, 'r', encoding="utf-8") as file:
             compose_data = yaml.safe_load(file)
             service = compose_data.get('services', {}).get(service_name, {})
-            image = str(service.get('image', None))
+            original_image = str(service.get('image', None))
+            image=self.__resolve_variable(original_image)
             if image:
                 if ':' in image:
                     name, tag = image.rsplit(':', 1)
                 else:
                     name, tag = image, 'latest'
-                return name, tag, self.get_docker_version_from_tag(name, tag)
+                return name, tag, self.get_docker_version_from_tag(name, tag), original_image
             else:
                 raise ValueError(f"Service '{service_name}' in '{dockercompose_file}'")
 
     @GeneralUtilities.check_arguments
-    def __get_updater_for_image(self,  image: str) -> ConcreteImageUpdater:
+    def get_updater_for_image(self,  image: str) -> ConcreteImageUpdater:
+        if "/" in image:
+            image=image.rsplit("/", 1)[-1]
         for updater in self.updater:
             for supported_image_regex in updater.get_supported_images():
                 r = re.compile("^"+supported_image_regex+"$")
-                if r.match(supported_image_regex):
+                if r.match(image):
                     return updater
         raise ValueError(f"No updater available for image '{image}'")
 
@@ -721,7 +835,7 @@ class ImageUpdater:
 
     @GeneralUtilities.check_arguments
     def get_docker_version_from_tag(self,  image: str, tag: str) -> Version:
-        updater: ConcreteImageUpdater = self.__get_updater_for_image(image)
+        updater: ConcreteImageUpdater = self.get_updater_for_image(image)
         return updater.get_version_from_tag(image, tag)
 
     @GeneralUtilities.check_arguments
@@ -729,7 +843,7 @@ class ImageUpdater:
 
         updater: ConcreteImageUpdater = None
         if updatertype is None:
-            updater=self.__get_updater_for_image(image)
+            updater=self.get_updater_for_image(image)
         else:
             updater=self.__get_updater_by_name(updatertype)
 
