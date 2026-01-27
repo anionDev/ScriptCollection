@@ -1,5 +1,6 @@
 from packaging.version import Version
 from abc import ABC, abstractmethod
+from ScriptCollection.GeneralUtilities import GeneralUtilities
 
 class AbstractImageHandler(ABC):
     
@@ -11,7 +12,14 @@ class AbstractImageHandler(ABC):
         """return (username, password) for basic auth.
         Data will be taken from "~/.scriptcollection/GlobalCache/RegistryCredentials.csv" if available.
         If no credentials are available then None will be returned for the missing values."""
-        raise NotImplementedError()#because it is abstract
+        raise NotImplementedError()
+    
+    def _protected_get_tags_from_images_from_custom_registry(self,registry_address:str)->list[str]:
+        raise NotImplementedError()
+    
+    def _protected_get_tags_from_images_from_docker_hub(self,registry_address:str,filter:str)->list[str]:
+        GeneralUtilities.assert_condition(registry_address.startswith("docker.io/",f"Image \"{registry_address}\" is not from docker-hub."))
+        raise NotImplementedError()
     
     @abstractmethod
     def get_available_tags_of_image(image_name:str,registry_address:str)->list[str]:
