@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.31"
+version = "4.2.32"
 __version__ = version
 
 
@@ -78,15 +78,24 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
-    def __get_docker_image_cache_definition_file(self)->str:
+    def get_global_docker_image_cache_definition_file(self)->str:
         result=os.path.join(self.get_global_cache_folder(),"ImageCache.csv")
         if not os.path.isfile(result):
             GeneralUtilities.ensure_file_exists(result)
-            GeneralUtilities.write_lines_to_file(result,["Image;UpstreamImage"])
+            GeneralUtilities.write_lines_to_file(result,["ImageName;Image;UpstreamImage"])
         return result
 
     @GeneralUtilities.check_arguments
-    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str)->None:
+    def __get_docker_registry_credentials_file(self)->str:
+        result=os.path.join(self.get_global_cache_folder(),"RegistryCredentials.csv")
+        if not os.path.isfile(result):
+            GeneralUtilities.ensure_file_exists(result)
+            GeneralUtilities.write_lines_to_file(result,["RegistryName;Username;Password"])
+        return result
+
+    @GeneralUtilities.check_arguments
+    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str)->None:
+        registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
         source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
         target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
         self.run_program("docker",f"pull {source_address}")
@@ -94,7 +103,31 @@ class ScriptCollectionCore:
         self.run_program("docker",f"push {target_address}")
 
     @GeneralUtilities.check_arguments
+    def __load_credentials_if_required_and_available(self,registry_url:str,registry_username:str,registry_password:str)->tuple[str,str]:
+        if registry_url.startswith("https://"):
+            registry_url=registry_url[len("https://"):]
+        if registry_password is None:
+            credential_file=self.__get_docker_registry_credentials_file()
+            lines=GeneralUtilities.read_nonempty_lines_from_file(credential_file)[1:]
+            for line in lines:
+                splitted=line.split(";")
+                registry=splitted[0]
+                username=splitted[1]
+                password=splitted[2]
+                if registry_url==registry and (registry_username is None or username==registry_username):
+                    registry_username=username
+                    registry_password=password
+                    break
+        else:
+            GeneralUtilities.assert_not_null(registry_username)
+        return (registry_username,registry_password)
+
+    @GeneralUtilities.check_arguments
     def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
+        """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
+        if "/" in image:
+            image=image.rsplit("/", 1)[-1]
+        registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_url,registry_username,registry_password)
         catalog_url = f"{registry_url}/v2/_catalog"
         response = requests.get(catalog_url, auth=(registry_username, registry_password),timeout=20)
         response.raise_for_status() # check if statuscode = 200
@@ -105,15 +138,29 @@ class ScriptCollectionCore:
         return result
 
     @GeneralUtilities.check_arguments
-    def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
-        if not self.registry_contains_image(registry_url,image,registry_username,registry_password):
-            return False
-        tags_url = f"{registry_url}/v2/{image}/tags/list"
+    def get_tags_of_images_from_registry(self,registry_base_url:str,image:str,registry_username:str,registry_password:str)->list[str]:
+        """registry_base_url must be in the format 'https://myregistry.example.com'
+        This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
+        registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_base_url,registry_username,registry_password)
+        if "/" in image:
+            image=image.rsplit("/", 1)[-1]
+        if not self.registry_contains_image(registry_base_url,image,registry_username,registry_password):
+            return []
+        tags_url = f"{registry_base_url}/v2/{image}/tags/list"
         response = requests.get(tags_url, auth=(registry_username, registry_password),timeout=20)
         response.raise_for_status() # check if statuscode = 200
         data=response.json()
         # expected: {"name":"myapp","tags":["1.2.22","1.2.21","1.2.20"]}
         tags = data.get("tags", [])
+        return tags
+    
+    @GeneralUtilities.check_arguments
+    def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
+        """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
+        registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_url,registry_username,registry_password)
+        if "/" in image:
+            image=image.rsplit("/", 1)[-1]
+        tags=self.get_tags_of_images_from_registry(registry_url,image,registry_username,registry_password)
         if tags is None:
             return False
         else:
@@ -123,18 +170,37 @@ class ScriptCollectionCore:
     default_fallback_docker_registry:str="docker.io/library"
 
     @GeneralUtilities.check_arguments
+    def custom_registry_for_image_is_defined(self,image:str)->bool:
+        """This function assumes that the custom registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
+        if "/" in image:
+            image=image.rsplit("/", 1)[-1]
+        GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
+        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
+        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
+            imagename=line[0]
+            if imagename==image:
+                return True
+        return False
+
+
+    @GeneralUtilities.check_arguments
     def get_image_with_registry_for_docker_image(self,image:str,tag:str,fallback_registry:str)->str:
+        """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry ) and that the fallback-registry is available without authentication"""
         tag_with_colon:str=None
         if tag is None:
             tag_with_colon=""
         else:
             tag_with_colon=":"+tag
+        if "/" in image:
+            image=image.rsplit("/", 1)[-1]
         GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
-        docker_image_cache_definition_file=self.__get_docker_image_cache_definition_file()
-        for line in [f.split(";")[0] for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
-            if line.endswith("/"+image):
-                result = line+tag_with_colon
-                #TODO check if docker image is available and if not show warning
+        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
+        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
+            imagename=line[0]
+            imagelink=line[1]#image with custom upstream link, for example "myownregistry1.example.com/debian"
+            upstreamImage=line[2]#pylint:disable=unused-variable
+            if imagename.lower()==image:
+                result = imagelink+tag_with_colon
                 return result
         if fallback_registry is None:
             raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)

@@ -18,7 +18,7 @@ from lxml import etree
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
-from ..ImageUpdater import ImageUpdater, VersionEcholon
+from ..ImageUpdater import ConcreteImageUpdater, ImageUpdater, VersionEcholon
 
 class TFCPS_Tools_General:
 
@@ -42,7 +42,7 @@ class TFCPS_Tools_General:
             local_filename = local_filename+".exe"
         else:
             filename_on_github = "cyclonedx-linux-x64"
-        return self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github,enforce_update=False)
+        return self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github,enforce_update=enforce_update)
     
     @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5,enforce_update:bool=False) -> str:
@@ -1055,13 +1055,16 @@ class TFCPS_Tools_General:
         return latest_version
 
     @GeneralUtilities.check_arguments
-    def update_images_in_example_with_default_excluded(self, codeunit_folder: str):
-        self.update_images_in_example(codeunit_folder,[])
+    def update_images_in_example_with_default_excluded(self, codeunit_folder: str,custom_updater:list[ConcreteImageUpdater]):
+        self.update_images_in_example(codeunit_folder,[],custom_updater)
 
     @GeneralUtilities.check_arguments
-    def update_images_in_example(self, codeunit_folder: str,excluded:list[str]):
+    def update_images_in_example(self, codeunit_folder: str,excluded:list[str],custom_updater:list[ConcreteImageUpdater]):
         iu = ImageUpdater()
         iu.add_default_mapper()
+        if custom_updater is not None:
+            for item in custom_updater:
+                iu.updater.append(item)
         dockercomposefile: str = f"{codeunit_folder}\\Other\\Reference\\ReferenceContent\\Examples\\MinimalDockerComposeFile\\docker-compose.yml"
         iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
         iu.check_for_newest_version(dockercomposefile, excluded)
