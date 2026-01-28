@@ -31,14 +31,15 @@ class OCIImageManager:
         image_definition_file=os.path.join(sc_folder_in_repo,"ImageDefinition.csv")
         if not os.path.isfile(image_definition_file):
             GeneralUtilities.ensure_file_exists(image_definition_file)
-            GeneralUtilities.write_text_to_file("ImageName;FallbackRegistryAddress")
+            GeneralUtilities.write_text_to_file(image_definition_file,"ImageName;FallbackRegistryAddress")
         return image_definition_file
-    
+
     def custom_registry_is_defined(self,image_name:str)->str: 
         docker_image_cache_definition_file=self.__sc.get_global_docker_image_cache_definition_file()
         for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
             if image_name==line[0]:
                 return True
+        return False
 
     def get_registry_address_for_image(self,repository:str,image_name:str)->str:
         """if image_name==Debian this function returns something like "myregistry.example.com/debian"."""
@@ -54,6 +55,8 @@ class OCIImageManager:
             for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(repository_image_definition_file)[1:]]:
                 if image_name==line[0]:
                     return line[1]
+
+        raise ValueError(f"No registry defined for image \"{image_name}\".")
 
 
     def get_available_versions_of_image_which_are_newer(self,image_name:str,registry_address:str,outdated_version:Version,echolon:VersionEcholon)->list[Version]:

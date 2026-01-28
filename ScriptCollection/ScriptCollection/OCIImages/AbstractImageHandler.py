@@ -1,6 +1,6 @@
-from packaging.version import Version
 from abc import ABC, abstractmethod
-from ScriptCollection.GeneralUtilities import GeneralUtilities
+from packaging.version import Version
+from ..GeneralUtilities import GeneralUtilities
 
 class AbstractImageHandler(ABC):
     
@@ -17,18 +17,18 @@ class AbstractImageHandler(ABC):
     def _protected_get_tags_from_images_from_custom_registry(self,registry_address:str)->list[str]:
         raise NotImplementedError()
     
-    def _protected_get_tags_from_images_from_docker_hub(self,registry_address:str,filter:str)->list[str]:
+    def _protected_get_tags_from_images_from_docker_hub(self,registry_address:str,tag_filter:str)->list[str]:
         GeneralUtilities.assert_condition(registry_address.startswith("docker.io/",f"Image \"{registry_address}\" is not from docker-hub."))
         raise NotImplementedError()
     
     @abstractmethod
-    def get_available_tags_of_image(image_name:str,registry_address:str)->list[str]:
+    def get_available_tags_of_image(self,image_name:str,registry_address:str)->list[str]:
         raise NotImplementedError()#because it is abstract
 
     @abstractmethod
-    def tag_to_version(image_name:str,registry_address:str,tag:str)->Version:
+    def tag_to_version(self,image_name:str,registry_address:str,tag:str)->Version:
         raise NotImplementedError()#because it is abstract
 
     @abstractmethod
-    def version_to_tag(image_name:str,registry_address:str,version:Version)->str:
+    def version_to_tag(self,image_name:str,registry_address:str,version:Version)->str:
         raise NotImplementedError()#because it is abstract
