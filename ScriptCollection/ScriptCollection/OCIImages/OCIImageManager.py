@@ -76,4 +76,3 @@ class OCIImageManager:
         returns something like "13.3-slim".
         If there are multiple tags available for a certain version then the image-handler decides which one will be returned."""
         return self.get_image_handler(image_name).version_to_tag(image_name,registry_address,version)# 
- 

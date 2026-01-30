@@ -206,7 +206,7 @@ class ScriptCollectionCore:
             raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)
         else:
             self.log.log(f"Using fallback-registry for image \"{image}\". See https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/UsingCustomImageRegistry.md for information about how to setup a fallback-registry.",LogLevel.Warning)
-            return f"{fallback_registry}/{image}{tag_with_colon}"
+            return f"{fallback_registry}/{tag_with_colon}"
         
     @GeneralUtilities.check_arguments
     def get_docker_build_args_for_base_images(self,dockerfile:str,fallback_registries:dict[str,str])->list[str]:
@@ -787,7 +787,8 @@ class ScriptCollectionCore:
         GeneralUtilities.assert_condition(self.is_git_or_bare_git_repository(repository_folder),f"\"{repository_folder}\" is not a git-repository.")
         self.log.log("Run \"git "+" ".join(arguments)+f"\" in {repository_folder} and its submodules...",LogLevel.Debug)
         self.run_program_argsasarray("git", arguments, repository_folder,print_live_output=print_live_output)
-        self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder,print_live_output=print_live_output)
+        if not self.is_bare_git_repository(repository_folder) and 0<len(self.get_git_submodules(repository_folder)):
+            self.run_program_argsasarray("git", ["submodule", "foreach", "--recursive", "git"]+arguments, repository_folder,print_live_output=print_live_output)
 
     @GeneralUtilities.check_arguments
     def export_filemetadata(self, folder: str, target_file: str, encoding: str = "utf-8", filter_function=None) -> None:
