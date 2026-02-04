@@ -139,7 +139,7 @@ def OrganizeLinesInFile() -> int:
     parser.add_argument('--ignored_start_character', default="", help='Characters which should not be considered at the begin of a line')
 
     args = parser.parse_args()
-    return ScriptCollectionCore().sc_organize_lines_in_file(args.file, args.encoding,                                                            args.sort, args.remove_duplicated_lines, args.ignore_first_line,                                                            args.remove_empty_lines, list(args.ignored_start_character))
+    ScriptCollectionCore().sc_organize_lines_in_file(args.file, args.encoding, args.sort, args.remove_duplicated_lines, args.ignore_first_line, args.remove_empty_lines, list(args.ignored_start_character))
 
 
 def CreateHashOfAllFiles() -> int:
@@ -201,13 +201,6 @@ def MergePDFs() -> int:
     return 0
 
 
-def PDFToImage() -> int:
-    parser = argparse.ArgumentParser(description='Converts a PDF-document to an image')
-    parser.add_argument('file', help='Input-file')
-    parser.add_argument('outputfilename_without_extension', help='File for the resulting image')
-    args = parser.parse_args()
-    ScriptCollectionCore().pdf_to_image(args.file, args.outputfilename_without_extension)
-    return 0
 
 
 def KeyboardDiagnosis() -> None:

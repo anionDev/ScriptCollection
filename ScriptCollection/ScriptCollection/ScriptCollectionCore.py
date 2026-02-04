@@ -1233,18 +1233,6 @@ class ScriptCollectionCore:
             pdfFileMerger.close()
 
     @GeneralUtilities.check_arguments
-    def pdf_to_image(self, file: str, outputfilename_without_extension: str) -> None:
-        raise ValueError("Function currently not available")
-        # PyMuPDF can be used for that but sometimes it throws
-        # "ImportError: DLL load failed while importing _fitz: Das angegebene Modul wurde nicht gefunden."
-
-        # doc = None  # fitz.open(file)
-        # for i, page in enumerate(doc):
-        #     pix = page.get_pixmap()
-        #     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        #     img.save(f"{outputfilename_without_extension}_{i}.png", "PNG")
-
-    @GeneralUtilities.check_arguments
     def show_missing_files(self, folderA: str, folderB: str):
         for file in GeneralUtilities.get_missing_files(folderA, folderB):
             GeneralUtilities.write_message_to_stdout(file)
@@ -1297,46 +1285,41 @@ class ScriptCollectionCore:
             self.git_remove_branch(repository, sourcebranch)
 
     @GeneralUtilities.check_arguments
-    def sc_organize_lines_in_file(self, file: str, encoding: str, sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False, remove_empty_lines: bool = True, ignored_start_character: list = list()) -> int:
-        if os.path.isfile(file):
+    def sc_organize_lines_in_file(self, file: str, encoding: str="utf-8", sort: bool = False, remove_duplicated_lines: bool = False, ignore_first_line: bool = False, remove_empty_lines: bool = True, ignored_start_character: list = list()):
+        GeneralUtilities.assert_file_exists(file)
 
-            # read file
-            lines = GeneralUtilities.read_lines_from_file(file, encoding)
-            if (len(lines) == 0):
-                return 0
+        # read file
+        lines = GeneralUtilities.read_lines_from_file(file, encoding)
+        if (len(lines) == 0):
+            return
 
-            # store first line if desiredpopd
+        # store first line if desired
+        if (ignore_first_line):
+            first_line = lines.pop(0)
 
-            if (ignore_first_line):
-                first_line = lines.pop(0)
+        # remove empty lines if desired
+        if remove_empty_lines:
+            temp = lines
+            lines = []
+            for line in temp:
+                if (not (GeneralUtilities.string_is_none_or_whitespace(line))):
+                    lines.append(line)
 
-            # remove empty lines if desired
-            if remove_empty_lines:
-                temp = lines
-                lines = []
-                for line in temp:
-                    if (not (GeneralUtilities.string_is_none_or_whitespace(line))):
-                        lines.append(line)
+        # remove duplicated lines if desired
+        if remove_duplicated_lines:
+            lines = GeneralUtilities.remove_duplicates(lines)
 
-            # remove duplicated lines if desired
-            if remove_duplicated_lines:
-                lines = GeneralUtilities.remove_duplicates(lines)
+        # sort lines if desired
+        if sort:
+            lines = sorted(lines, key=lambda singleline: self.__adapt_line_for_sorting(singleline, ignored_start_character))
 
-            # sort lines if desired
-            if sort:
-                lines = sorted(lines, key=lambda singleline: self.__adapt_line_for_sorting(singleline, ignored_start_character))
+        # reinsert first line if required
+        if ignore_first_line:
+            lines.insert(0, first_line)
 
-            # reinsert first line
-            if ignore_first_line:
-                lines.insert(0, first_line)
+        # write result to file
+        GeneralUtilities.write_lines_to_file(file, lines, encoding)
 
-            # write result to file
-            GeneralUtilities.write_lines_to_file(file, lines, encoding)
-
-            return 0
-        else:
-            self.log.log(f"File '{file}' does not exist.", LogLevel.Error)
-            return 1
 
     @GeneralUtilities.check_arguments
     def __adapt_line_for_sorting(self, line: str, ignored_start_characters: list):
