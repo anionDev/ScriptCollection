@@ -97,10 +97,10 @@ class OCIImageManager:
     def get_registry_address_for_image_with_default_tag(self,repository:str,image_name:str,strict_mode:bool=True)->str:
         return f"{self.get_registry_address_for_image(repository,image_name)}:{self.get_default_tag(repository,image_name,strict_mode)}"
 
-    def update_default_tag_for_image(self,repository:str,image_name:str,echolon:VersionEcholon)->None:
-        pass#TODO
+    def update_default_tag_for_image(self,repository:str,image_name:str,echolon:VersionEcholon,search_in_custom_registry_only_if_available:bool)->None:
+        pass#TODO update in ImageDefinition.csv using get_available_versions_of_image_which_are_newer
 
-    def get_available_versions_of_image_which_are_newer(self,image_name:str,registry_address:str,outdated_version:Version,echolon:VersionEcholon)->list[Version]:
+    def get_available_versions_of_image_which_are_newer(self,image_name:str,registry_address:str,outdated_version:Version,echolon:VersionEcholon,search_in_custom_registry_only_if_available:bool)->list[Version]:
         return []#TODO calculate this using get_available_tags_of_image and echolon
 
     def get_available_tags_of_image(self,image_name:str,registry_address:str)->list[str]:
