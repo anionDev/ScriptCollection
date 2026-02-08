@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.36"
+version = "4.2.37"
 __version__ = version
 
 
@@ -65,19 +65,19 @@ class ScriptCollectionCore:
     @GeneralUtilities.check_arguments
     def get_scriptcollection_configuration_folder(self)->str:
         user_folder = str(Path.home())
-        result = os.path.join(user_folder, ".scriptcollection")
+        result = os.path.join(user_folder, ".ScriptCollection")
         result=GeneralUtilities.normaliza_path(result)
         GeneralUtilities.ensure_directory_exists(result)
         return result
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_global_cache_folder(self)->str:
         result = os.path.join(self.get_scriptcollection_configuration_folder(), "GlobalCache")
         result=GeneralUtilities.normaliza_path(result)
         GeneralUtilities.ensure_directory_exists(result)
         return result
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_global_docker_image_cache_definition_file(self)->str:
         result=os.path.join(self.get_global_cache_folder(),"ImageCache.csv")
         if not os.path.isfile(result):
@@ -85,7 +85,6 @@ class ScriptCollectionCore:
             GeneralUtilities.write_lines_to_file(result,["ImageName;Image;UpstreamImage"])
         return result
 
-    @GeneralUtilities.check_arguments
     def __get_docker_registry_credentials_file(self)->str:
         result=os.path.join(self.get_global_cache_folder(),"RegistryCredentials.csv")
         if not os.path.isfile(result):
@@ -93,7 +92,7 @@ class ScriptCollectionCore:
             GeneralUtilities.write_lines_to_file(result,["RegistryName;Username;Password"])
         return result
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str)->None:
         registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
         source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
@@ -102,7 +101,6 @@ class ScriptCollectionCore:
         self.run_program("docker",f"tag {source_address} {target_address}")
         self.run_program("docker",f"push {target_address}")
 
-    @GeneralUtilities.check_arguments
     def __load_credentials_if_required_and_available(self,registry_url:str,registry_username:str,registry_password:str)->tuple[str,str]:
         if registry_url.startswith("https://"):
             registry_url=registry_url[len("https://"):]
@@ -122,7 +120,7 @@ class ScriptCollectionCore:
             GeneralUtilities.assert_not_null(registry_username)
         return (registry_username,registry_password)
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         if "/" in image:
@@ -137,7 +135,7 @@ class ScriptCollectionCore:
         result=image in images
         return result
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_tags_of_images_from_registry(self,registry_base_url:str,image:str,registry_username:str,registry_password:str)->list[str]:
         """registry_base_url must be in the format 'https://myregistry.example.com'
         This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
@@ -154,7 +152,7 @@ class ScriptCollectionCore:
         tags = data.get("tags", [])
         return tags
     
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_url,registry_username,registry_password)
@@ -169,7 +167,7 @@ class ScriptCollectionCore:
 
     default_fallback_docker_registry:str="docker.io/library"
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def custom_registry_for_image_is_defined(self,image:str)->bool:
         """This function assumes that the custom registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         if "/" in image:
@@ -183,7 +181,7 @@ class ScriptCollectionCore:
         return False
 
 
-    @GeneralUtilities.check_arguments
+    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_image_with_registry_for_docker_image(self,image:str,tag:str,fallback_registry:str)->str:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry ) and that the fallback-registry is available without authentication"""
         tag_with_colon:str=None
@@ -207,21 +205,6 @@ class ScriptCollectionCore:
         else:
             self.log.log(f"Using fallback-registry for image \"{image}\". See https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/UsingCustomImageRegistry.md for information about how to setup a fallback-registry.",LogLevel.Warning)
             return f"{fallback_registry}/{tag_with_colon}"
-        
-    @GeneralUtilities.check_arguments
-    def get_docker_build_args_for_base_images(self,dockerfile:str,fallback_registries:dict[str,str])->list[str]:
-        result=[]
-        GeneralUtilities.assert_file_exists(dockerfile)
-        if fallback_registries is None:
-            fallback_registries={}
-        required_images=[line.split("_")[1] for line in GeneralUtilities.read_nonempty_lines_from_file(dockerfile) if line.startswith("ARG image_")]
-        for required_image in required_images:
-            fallback_registry:str=None
-            if required_image in fallback_registries:
-                fallback_registry=fallback_registries[required_image]
-            image_with_registry=self.get_image_with_registry_for_docker_image(required_image,None,fallback_registry)
-            result=result+["--build-arg",f"image_{required_image}={image_with_registry}"]
-        return result
 
     @GeneralUtilities.check_arguments
     def python_file_has_errors(self, file: str, working_directory: str, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
