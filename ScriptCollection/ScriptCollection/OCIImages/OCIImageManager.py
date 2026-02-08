@@ -26,27 +26,63 @@ class OCIImageManager:
 
     def get_repository_image_definition_file(self,repository:str)->str:
         self.__sc.assert_is_git_repository(repository)
-        sc_folder_in_repo=os.path.join(repository,".ScriptCollection")
+        sc_folder_in_repo=os.path.join(repository,".ScriptCollection","OCIImages")
         GeneralUtilities.ensure_directory_exists(sc_folder_in_repo)
         image_definition_file=os.path.join(sc_folder_in_repo,"ImageDefinition.csv")
         if not os.path.isfile(image_definition_file):
             GeneralUtilities.ensure_file_exists(image_definition_file)
-            GeneralUtilities.write_text_to_file(image_definition_file,"ImageName;FallbackRegistryAddress")
+            GeneralUtilities.write_text_to_file(image_definition_file,"ImageName;UpstreamRegistryAddress;DefaultTag")
         return image_definition_file
+    
+    @GeneralUtilities.check_arguments
+    def get_global_docker_image_registries_file(self)->str:
+        folder=os.path.join(self.__sc.get_global_cache_folder(),"OCIImages")
+        GeneralUtilities.ensure_directory_exists(folder)
+        result=os.path.join(folder,"ImageRegistries.csv")
+        if not os.path.isfile(result):
+            GeneralUtilities.ensure_file_exists(result)
+            GeneralUtilities.write_lines_to_file(result,["ImageName;RegistryAddress"])
+        return result
+    
+    @GeneralUtilities.check_arguments
+    def get_used_images_in_repository(self,repository:str)->list[str]:
+        result:list[str]=[]
+        repository_image_definition_file=self.get_repository_image_definition_file(repository)
+        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(repository_image_definition_file)[1:]]:
+            result.append(line[0])
+        return result
 
     def custom_registry_is_defined(self,image_name:str)->str: 
-        docker_image_cache_definition_file=self.__sc.get_global_docker_image_cache_definition_file()
-        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
-            if image_name==line[0]:
+        global_docker_image_registries_file=self.get_global_docker_image_registries_file()
+        for line in  GeneralUtilities.read_nonempty_lines_from_file(global_docker_image_registries_file)[1:]:
+            splitted_line=line.split(";")
+            if image_name==splitted_line[0]:
+                GeneralUtilities.assert_condition( GeneralUtilities.string_has_content(splitted_line[1]),f"No registry defined for image {image_name}.")
                 return True
         return False
 
+    def get_default_tag(self,repository:str,image_name:str,strict_mode:bool)->str:
+        """this functions returns a string like "17.7" or "latest"."""
+        if self.custom_registry_is_defined(image_name):
+            repository_image_definition_file=self.get_repository_image_definition_file(repository)
+            for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(repository_image_definition_file)[1:]]:
+                if image_name==line[0]:
+                    GeneralUtilities.assert_condition( GeneralUtilities.string_has_content(line[2]),f"No default-tag defined for image {image_name}.")
+                    return line[2]
+        else:
+            if strict_mode:
+                raise ValueError(f"No default-tag is defined for image \"{image_name}\".")
+            else:
+                return "latest"
+
+        raise ValueError(f"No registry defined for image \"{image_name}\".")
+
     def get_registry_address_for_image(self,repository:str,image_name:str)->str:
-        """if image_name==Debian this function returns something like "myregistry.example.com/debian"."""
+        """if image_name==Debian this function returns something like "myregistry.example.com/debian", always without tag."""
         if self.custom_registry_is_defined(image_name):
             #return image from custom registry-address
-            global_docker_image_cache_definition_file=self.__sc.get_global_docker_image_cache_definition_file()
-            for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(global_docker_image_cache_definition_file)[1:]]:
+            global_docker_image_registries_file=self.get_global_docker_image_registries_file()
+            for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(global_docker_image_registries_file)[1:]]:
                 if image_name==line[0]:
                     return line[1]
         else:
@@ -58,9 +94,14 @@ class OCIImageManager:
 
         raise ValueError(f"No registry defined for image \"{image_name}\".")
 
+    def get_registry_address_for_image_with_default_tag(self,repository:str,image_name:str,strict_mode:bool=True)->str:
+        return f"{self.get_registry_address_for_image(repository,image_name)}:{self.get_default_tag(repository,image_name,strict_mode)}"
 
-    def get_available_versions_of_image_which_are_newer(self,image_name:str,registry_address:str,outdated_version:Version,echolon:VersionEcholon)->list[Version]:
-        raise NotImplementedError()#TODO calculate this using get_available_tags_of_image
+    def update_default_tag_for_image(self,repository:str,image_name:str,echolon:VersionEcholon,search_in_custom_registry_only_if_available:bool)->None:
+        pass#TODO update in ImageDefinition.csv using get_available_versions_of_image_which_are_newer
+
+    def get_available_versions_of_image_which_are_newer(self,image_name:str,registry_address:str,outdated_version:Version,echolon:VersionEcholon,search_in_custom_registry_only_if_available:bool)->list[Version]:
+        return []#TODO calculate this using get_available_tags_of_image and echolon
 
     def get_available_tags_of_image(self,image_name:str,registry_address:str)->list[str]:
         """registry_address must have one of theese formats: "myregistry.example.com/debian" or "docker.io/debian" or "docker.io/myuser/debian".

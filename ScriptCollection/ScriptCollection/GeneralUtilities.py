@@ -89,15 +89,21 @@ class GeneralUtilities:
         return __check_function
 
     @staticmethod
-    @check_arguments
-    def deprecated(func):
-        @functools.wraps(func)
-        def new_func(*args, **kwargs):
-            warnings.simplefilter('always', DeprecationWarning)
-            warnings.warn(f"Call to deprecated function {func.__name__}", category=DeprecationWarning, stacklevel=2)
-            warnings.simplefilter('default', DeprecationWarning)
-            return func(*args, **kwargs)
-        return new_func
+    def deprecated(reason: str=None):
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                msg = f"Function {func.__name__}() is deprecated."
+                if GeneralUtilities.string_has_content(reason):
+                    msg += f" {reason}"
+                warnings.warn(
+                    msg,
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+                return func(*args, **kwargs)
+            return wrapper
+        return decorator
 
     @staticmethod
     @check_arguments

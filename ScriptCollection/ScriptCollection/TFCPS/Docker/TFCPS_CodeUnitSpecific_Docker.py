@@ -14,16 +14,13 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         super().__init__(current_file, verbosity,targetenvironmenttype,use_cache,is_pre_merge)
 
     @GeneralUtilities.check_arguments
-    def build(self,custom_arguments:dict[str,str],fallback_registries:dict[str,str]) -> None:
-
+    def build(self,custom_arguments:dict[str,str]) -> None:
         codeunitname: str =self.get_codeunit_name()
         codeunit_folder =self.get_codeunit_folder() 
         codeunitname_lower = codeunitname.lower()
         codeunit_file =self.get_codeunit_file()
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)
         args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}"]
-        docker_file=os.path.join(self.get_codeunit_folder(),codeunitname,"Dockerfile")
-        args=args+self._protected_sc.get_docker_build_args_for_base_images(docker_file,fallback_registries)
         if custom_arguments is None:
             custom_arguments=dict[str,str]()
         for custom_argument_key, custom_argument_value in custom_arguments.items():
@@ -54,7 +51,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
         GeneralUtilities.ensure_directory_exists(sbom_folder)
         #TODO ensure syft-image-tag will be updated by update-dependencies-script.
-        self._protected_sc.run_program_argsasarray("docker", ["run","--rm","-v","/var/run/docker.sock:/var/run/docker.sock","-v","./BOM:/BOM",self._protected_sc.get_image_with_registry_for_docker_image("syft","v1.39.0","docker.io/anchore/syft"),f"{codeunitname_lower}:{codeunitversion}","-o",f"cyclonedx-xml=/BOM/{codeunitname}.{codeunitversion}.sbom.xml"], artifacts_folder, print_errors_as_information=True)
+        self._protected_sc.run_program_argsasarray("docker", ["run","--rm","-v","/var/run/docker.sock:/var/run/docker.sock","-v","./BOM:/BOM",self.tfcps_Tools_General.oci_image_manager.get_registry_address_for_image_with_default_tag(self.get_repository_folder(),"Syft",True),f"{codeunitname_lower}:{codeunitversion}","-o",f"cyclonedx-xml=/BOM/{codeunitname}.{codeunitversion}.sbom.xml"], artifacts_folder, print_errors_as_information=True)
         self._protected_sc.format_xml_file(sbom_folder+f"/{codeunitname}.{codeunitversion}.sbom.xml")
  
     @GeneralUtilities.check_arguments

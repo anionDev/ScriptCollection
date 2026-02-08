@@ -19,13 +19,16 @@ from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
 from ..SCLog import  LogLevel
 from ..ImageUpdater import ConcreteImageUpdater, ImageUpdater, VersionEcholon
+from ..OCIImages.OCIImageManager import OCIImageManager
 
 class TFCPS_Tools_General:
 
-    __sc:ScriptCollectionCore=ScriptCollectionCore()
+    __sc:ScriptCollectionCore=None
+    oci_image_manager:OCIImageManager=None
 
     def __init__(self,sc:ScriptCollectionCore):
         self.__sc=sc
+        self.oci_image_manager=OCIImageManager(self.__sc)
 
 
     @GeneralUtilities.check_arguments
@@ -1060,6 +1063,7 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def update_images_in_example(self, codeunit_folder: str,excluded:list[str],custom_updater:list[ConcreteImageUpdater]):
+        #only the version of the project itself must be updated. dependencies like postgresql or adminer for example should be updated by the usual used-image-update-mechanism
         iu = ImageUpdater()
         iu.add_default_mapper()
         if custom_updater is not None:
@@ -1377,13 +1381,11 @@ class TFCPS_Tools_General:
 
 
     @GeneralUtilities.check_arguments
-    def pull_images_of_test_services(self,repository_folder:str,env_variables:dict[str,str],fallback_registries:dict[str,str]):
+    def pull_images_of_test_services(self,repository_folder:str,env_variables:dict[str,str]):
         if env_variables is None:
-            env_variables={}
-        if fallback_registries is None:
-            fallback_registries={}
-        for image,fallback_registry in fallback_registries.items():
-            env_variables[f"image_{image}"]=self.__sc.get_image_with_registry_for_docker_image(image,None,fallback_registry)
+            env_variables={} 
+        for image in self.oci_image_manager.get_used_images_in_repository(repository_folder):
+            env_variables[f"image_{image.lower()}"]=self.oci_image_manager.get_registry_address_for_image(repository_folder,image)+":"+self.oci_image_manager.get_default_tag(repository_folder,image, True)
         test_services=GeneralUtilities.get_direct_folders_of_folder(os.path.join(repository_folder,"Other","Resources","LocalTestServices"))
         if 0<len(test_services):
             self.__sc.log.log("Pull images for local test-services...")
@@ -1391,15 +1393,11 @@ class TFCPS_Tools_General:
             test_service_name=os.path.basename(test_service_folder)
             self.__sc.log.log(f"Pull images for test-service {test_service_name}...")
             arguments=f"compose -f docker-compose.yml"
-            if env_variables:
-                env_variables_file=os.path.join(test_service_folder,"Parameters.env")
-                GeneralUtilities.ensure_file_exists(env_variables_file)
-                lines=[]
-                for k,v in env_variables.items():
-                    lines=lines+[f"{k}={v}"]
-                GeneralUtilities.write_lines_to_file(env_variables_file,lines)
-                arguments=arguments + " --env-file Parameters.env"
-            else:
-                GeneralUtilities.ensure_file_does_not_exist(env_variables_file)
-            arguments=arguments + " pull --quiet"
+            env_variables_file=os.path.join(test_service_folder,"Parameters.env")
+            GeneralUtilities.ensure_file_exists(env_variables_file)
+            lines=[]
+            for k,v in env_variables.items():
+                lines=lines+[f"{k}={v}"]
+            GeneralUtilities.write_lines_to_file(env_variables_file,lines)
+            arguments=arguments + " --env-file Parameters.env pull --quiet"
             self.__sc.run_program_with_retry("docker",arguments,test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
