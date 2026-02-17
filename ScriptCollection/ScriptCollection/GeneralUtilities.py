@@ -1308,3 +1308,46 @@ class GeneralUtilities:
     def get_only_item_from_list(list_with_one_element:list):
         GeneralUtilities.assert_condition(len(list_with_one_element)==1,f"List does not contain exactly one item. It contains {len(list_with_one_element)} items.")
         return list_with_one_element[0]
+    
+    @staticmethod
+    @check_arguments
+    def trim_newlines(s: str) -> str:
+        return s.strip("\n")
+    
+    @staticmethod
+    @check_arguments
+    def log_merger(folder:str):
+        """For each log file in this folder this function looks for log-rotation-files and merges them together again into one file."""
+        all_files=GeneralUtilities.get_direct_files_of_folder(folder)
+        for log_file in all_files:
+            filename=os.path.basename(log_file)
+            filename_without_extension=Path(log_file).stem
+
+            #merge with rotated logs
+            if filename.endswith(".log") and not ".archive." in filename:
+                rotated_log_files=sorted([f for f in all_files if f.startswith(filename_without_extension+".archive.")], key=GeneralUtilities.__extract_log_file_number)
+                result=GeneralUtilities.empty_string
+                if len(rotated_log_files)>0:
+                    for rotated_log_file in rotated_log_files:
+                        result+="\n"+GeneralUtilities.read_text_from_file(log_file)
+                result+="\n"+GeneralUtilities.read_text_from_file(log_file)
+                GeneralUtilities.write_text_to_file(log_file, result)
+                for rotated_log_file in rotated_log_files:
+                    GeneralUtilities.ensure_file_does_not_exist(rotated_log_file)
+            
+            #normalize
+            logs=GeneralUtilities.read_text_from_file(logs)
+            logs=logs.replace("\r\n", "\n")
+            logs=logs.replace("\r", GeneralUtilities.empty_string)
+            logs=re.sub(r"\n+", "\n", logs)
+            logs=GeneralUtilities.trim_newlines(logs)
+            GeneralUtilities.write_text_to_file(log_file, logs)
+
+    @staticmethod
+    @check_arguments
+    def __extract_log_file_number(s: str) -> int:
+        m = re.search(r"\.archive\.(\d+)\.log$", s)
+        if m:
+            return int(m.group(1))
+        else:
+            raise ValueError(f"Filename '{s}' does not match the expected pattern for rotated log files.")
