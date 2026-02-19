@@ -4,6 +4,7 @@ from lxml import etree
 from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
+from ...CultureChooser import CultureChooser
 
 class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
@@ -120,6 +121,21 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
     @GeneralUtilities.check_arguments
     def set_dependency_version(self,name:str,new_version:str)->None:
         raise ValueError(f"Operation is not implemented.")
+    
+    @GeneralUtilities.check_arguments
+    def add_culture_chooser(self,site_title:str,supported_cultures:list[str])->None:
+        cc:CultureChooser=CultureChooser()
+        output_folder=self.get_codeunit_folder()+"/Other/Artifacts/Build_WebApplication"
+
+        index_html_file=output_folder+"/index.html"
+        GeneralUtilities.ensure_file_exists(index_html_file)
+        index_html_content=cc.get_index_html(site_title)
+        GeneralUtilities.write_text_to_file(index_html_file, index_html_content)
+
+        cc_script_file=output_folder+"/CultureChooser.js"
+        GeneralUtilities.ensure_file_exists(cc_script_file)
+        cc_script_content=cc.get_culture_chooser_script(supported_cultures)
+        GeneralUtilities.write_text_to_file(cc_script_file, cc_script_content)
     
 class TFCPS_CodeUnitSpecific_NodeJS_CLI:
  
