@@ -1236,7 +1236,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def retry_action(action, amount_of_attempts: int, action_name: str = None) -> None:
+    def retry_action(action, amount_of_attempts: int, action_name: str = None,delay_in_seconds:int=2) -> None:
         amount_of_fails = 0
         last_exception:Exception=None
         GeneralUtilities.assert_condition(0<amount_of_attempts,"amount_of_attempts must be greater than 0.")
@@ -1245,7 +1245,7 @@ class GeneralUtilities:
                 result = action()
                 return result
             except Exception as e:
-                time.sleep(2)
+                time.sleep(delay_in_seconds)
                 amount_of_fails = amount_of_fails+1
                 last_exception=e
         GeneralUtilities.assert_not_null(last_exception)
