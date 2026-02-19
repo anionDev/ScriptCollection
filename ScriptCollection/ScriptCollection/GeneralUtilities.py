@@ -16,6 +16,7 @@ import fnmatch
 import secrets
 import string as strin
 import sys
+from importlib import resources
 from enum import Enum
 import traceback
 import warnings
@@ -1351,3 +1352,12 @@ class GeneralUtilities:
             return int(m.group(1))
         else:
             raise ValueError(f"Filename '{s}' does not match the expected pattern for rotated log files.")
+
+    @staticmethod
+    @check_arguments
+    def _internal_load_resource(relative_path: str) -> bytes:
+        res = resources.files("ScriptCollection.Resources")
+        for part in relative_path.split("/"):
+            res = res.joinpath(part)
+        result= res.read_bytes()
+        return result
