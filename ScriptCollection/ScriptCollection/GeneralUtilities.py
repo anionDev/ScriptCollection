@@ -16,6 +16,7 @@ import fnmatch
 import secrets
 import string as strin
 import sys
+from importlib import resources
 from enum import Enum
 import traceback
 import warnings
@@ -1165,9 +1166,18 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def replace_variable_in_string(input_string: str, variable_name: str, variable_value: str) -> None:
+    def replace_variable_in_string(input_string: str, variable_name: str, variable_value: str) -> str:
         GeneralUtilities.assert_condition(not "__" in variable_name, f"'{variable_name}' is an invalid variable name because it contains '__' which is treated as control-sequence.")
         return input_string.replace(f"__[{variable_name}]__", variable_value)
+    
+    @staticmethod
+    @check_arguments
+    def replace_variable(prefix:str, variable_name:str, suffix:str, value:str, content: str) -> str:
+        GeneralUtilities.assert_condition(not "__" in variable_name, f"'{variable_name}' is an invalid variable name because it contains '__' which is treated as control-sequence.")
+        pattern = re.escape(GeneralUtilities.str_none_safe( prefix)) + r"\s*" +"__"+ re.escape(variable_name) + "__"+r"\s*" + re.escape(GeneralUtilities.str_none_safe( suffix))
+        result:str= re.sub(pattern, value, content)
+        GeneralUtilities.assert_condition(not f"__{variable_name}__" in result, f"Variable '{variable_name}' was not replaced in the content. This is likely caused by an error in the content or the variable name.")
+        return result
 
     @staticmethod
     @check_arguments
@@ -1226,7 +1236,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def retry_action(action, amount_of_attempts: int, action_name: str = None) -> None:
+    def retry_action(action, amount_of_attempts: int, action_name: str = None,delay_in_seconds:int=2) -> None:
         amount_of_fails = 0
         last_exception:Exception=None
         GeneralUtilities.assert_condition(0<amount_of_attempts,"amount_of_attempts must be greater than 0.")
@@ -1235,7 +1245,7 @@ class GeneralUtilities:
                 result = action()
                 return result
             except Exception as e:
-                time.sleep(2)
+                time.sleep(delay_in_seconds)
                 amount_of_fails = amount_of_fails+1
                 last_exception=e
         GeneralUtilities.assert_not_null(last_exception)
@@ -1308,3 +1318,55 @@ class GeneralUtilities:
     def get_only_item_from_list(list_with_one_element:list):
         GeneralUtilities.assert_condition(len(list_with_one_element)==1,f"List does not contain exactly one item. It contains {len(list_with_one_element)} items.")
         return list_with_one_element[0]
+    
+    @staticmethod
+    @check_arguments
+    def trim_newlines(s: str) -> str:
+        return s.strip("\n")
+    
+    @staticmethod
+    @check_arguments
+    def log_merger(folder:str):
+        """For each log file in this folder this function looks for log-rotation-files and merges them together again into one file."""
+        all_files=GeneralUtilities.get_direct_files_of_folder(folder)
+        for log_file in all_files:
+            filename=os.path.basename(log_file)
+            filename_without_extension=Path(log_file).stem
+
+            #merge with rotated logs
+            if filename.endswith(".log") and not ".archive." in filename:
+                rotated_log_files=sorted([f for f in all_files if f.startswith(filename_without_extension+".archive.")], key=GeneralUtilities.__extract_log_file_number)
+                result=GeneralUtilities.empty_string
+                if len(rotated_log_files)>0:
+                    for rotated_log_file in rotated_log_files:
+                        result+="\n"+GeneralUtilities.read_text_from_file(log_file)
+                result+="\n"+GeneralUtilities.read_text_from_file(log_file)
+                GeneralUtilities.write_text_to_file(log_file, result)
+                for rotated_log_file in rotated_log_files:
+                    GeneralUtilities.ensure_file_does_not_exist(rotated_log_file)
+            
+            #normalize
+            logs=GeneralUtilities.read_text_from_file(logs)
+            logs=logs.replace("\r\n", "\n")
+            logs=logs.replace("\r", GeneralUtilities.empty_string)
+            logs=re.sub(r"\n+", "\n", logs)
+            logs=GeneralUtilities.trim_newlines(logs)
+            GeneralUtilities.write_text_to_file(log_file, logs)
+
+    @staticmethod
+    @check_arguments
+    def __extract_log_file_number(filename: str) -> int:
+        m = re.search(r"\.archive\.(\d+)\.log$", filename)
+        if m:
+            return int(m.group(1))
+        else:
+            raise ValueError(f"Filename '{filename}' does not match the expected pattern for rotated log files.")
+
+    @staticmethod
+    @check_arguments
+    def _internal_load_resource(relative_path: str) -> bytes:
+        res = resources.files("ScriptCollection.Resources")
+        for part in relative_path.split("/"):
+            res = res.joinpath(part)
+        result= res.read_bytes()
+        return result

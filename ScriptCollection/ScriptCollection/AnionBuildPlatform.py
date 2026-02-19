@@ -58,8 +58,11 @@ class AnionBuildPlatform:
         product_name=os.path.basename(build_repo_folder)[:-len("Build")]
         repository:str=os.path.join(build_repo_folder,"Submodules",product_name)
         self.__sc.assert_is_git_repository(repository)
-        self.__sc.git_commit(build_repo_folder,"Updated changes")
+        reference_repo:str=os.path.join(build_repo_folder,"Submodules",product_name+"Reference")
+        self.__sc.assert_is_git_repository(reference_repo)
+        self.__sc.git_commit(reference_repo,"Updated changes")
         self.__sc.git_checkout(repository,self.__configuration.source_branch)
+        self.__sc.git_commit(build_repo_folder,"Updated changes")
 
         # Pull changes from remote
         self.__sc.git_fetch(repository)

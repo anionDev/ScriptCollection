@@ -1272,11 +1272,11 @@ class TFCPS_Tools_General:
     def ensure_env_file_is_generated(self, current_file: str, env_file_name: str, env_values: dict[str, str]):
         folder = os.path.dirname(current_file)
         env_file = os.path.join(folder, env_file_name)
-        if not os.path.isfile(env_file):
-            lines = []
-            for key, value in env_values.items():
-                lines.append(f"{key}={value}")
-            GeneralUtilities.write_lines_to_file(env_file, lines)
+        GeneralUtilities.ensure_file_exists(env_file)
+        lines = []
+        for key, value in env_values.items():
+            lines.append(f"{key}={value}")
+        GeneralUtilities.write_lines_to_file(env_file, lines)
 
     @GeneralUtilities.check_arguments
     def stop_dockerfile_example(self, current_file: str, remove_old_container: bool, remove_volumes_folder: bool) -> None:
