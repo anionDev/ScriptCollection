@@ -1166,9 +1166,18 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def replace_variable_in_string(input_string: str, variable_name: str, variable_value: str) -> None:
+    def replace_variable_in_string(input_string: str, variable_name: str, variable_value: str) -> str:
         GeneralUtilities.assert_condition(not "__" in variable_name, f"'{variable_name}' is an invalid variable name because it contains '__' which is treated as control-sequence.")
         return input_string.replace(f"__[{variable_name}]__", variable_value)
+    
+    @staticmethod
+    @check_arguments
+    def replace_variable(prefix:str, variable_name:str, suffix:str, value:str, content: str) -> str:
+        GeneralUtilities.assert_condition(not "__" in variable_name, f"'{variable_name}' is an invalid variable name because it contains '__' which is treated as control-sequence.")
+        pattern = re.escape(GeneralUtilities.str_none_safe( prefix)) + r"\s*" +"__"+ re.escape(variable_name) + "__"+r"\s*" + re.escape(GeneralUtilities.str_none_safe( suffix))
+        result:str= re.sub(pattern, value, content)
+        GeneralUtilities.assert_condition(not f"__{variable_name}__" in result, f"Variable '{variable_name}' was not replaced in the content. This is likely caused by an error in the content or the variable name.")
+        return result
 
     @staticmethod
     @check_arguments
@@ -1346,12 +1355,12 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def __extract_log_file_number(s: str) -> int:
-        m = re.search(r"\.archive\.(\d+)\.log$", s)
+    def __extract_log_file_number(filename: str) -> int:
+        m = re.search(r"\.archive\.(\d+)\.log$", filename)
         if m:
             return int(m.group(1))
         else:
-            raise ValueError(f"Filename '{s}' does not match the expected pattern for rotated log files.")
+            raise ValueError(f"Filename '{filename}' does not match the expected pattern for rotated log files.")
 
     @staticmethod
     @check_arguments
