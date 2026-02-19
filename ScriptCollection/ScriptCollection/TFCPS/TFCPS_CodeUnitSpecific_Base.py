@@ -255,6 +255,10 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
         return self.__repository_folder
     
     @GeneralUtilities.check_arguments
+    def get_product_name(self)->str:
+        return os.path.basename(self.get_repository_folder())
+    
+    @GeneralUtilities.check_arguments
     def get_current_folder(self)->str:
         return self.__current_folder
     
