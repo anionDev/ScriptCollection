@@ -137,8 +137,12 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         cc_script_content=cc.get_culture_chooser_script(supported_cultures)
         GeneralUtilities.write_text_to_file(cc_script_file, cc_script_content)
     
+    @GeneralUtilities.check_arguments
+    def get_available_cultures_for_angular_app(self)->None:
+        return self._protected_sc.get_available_cultures_for_angular_app(self.get_codeunit_folder()+"/angular.json")
+    
 class TFCPS_CodeUnitSpecific_NodeJS_CLI:
- 
+
     @staticmethod
     @GeneralUtilities.check_arguments
     def parse(file:str)->TFCPS_CodeUnitSpecific_NodeJS_Functions:
