@@ -654,10 +654,12 @@ def Espoc() -> int:
         time.sleep(1)
     GeneralUtilities.write_message_to_stdout(f"Process with id {process_id} is not running anymore. Start terminating remaining processes.")
     if os.path.exists(process_list_file):
-        for line in GeneralUtilities.read_lines_from_file(process_list_file):
-            if GeneralUtilities.string_has_content(line):
-                current_process_id = int(line.strip())
+        for line in GeneralUtilities.read_nonempty_lines_from_file(process_list_file):
+            current_process_id = int(line.strip())
+            try:
                 GeneralUtilities.kill_process(current_process_id, True)
+            except Exception as exception:
+                GeneralUtilities.write_exception_to_stderr(exception,"Error while terminating process with id "+str(current_process_id))
         GeneralUtilities.ensure_file_does_not_exist(process_list_file)
         GeneralUtilities.write_message_to_stdout("All started processes terminated.")
     else:

@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.39"
+version = "4.2.40"
 __version__ = version
 
 
@@ -2783,3 +2783,16 @@ OCR-content:
         #TODO add cli-script to call this function
         if network_name  in self.get_docker_networks():
             self.run_program("docker",f"network rm {network_name}")
+
+    @GeneralUtilities.check_arguments
+    def get_available_cultures_for_angular_app(self,angular_json_file:str)->list[str]:
+        languages = ["en"]
+        with open(angular_json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for project in data.get("projects", {}).values():
+            i18n = project.get("i18n", {})
+            locales = i18n.get("locales", {})
+            languages.extend(locales.keys())
+
+        languages=list(languages)
+        return languages
