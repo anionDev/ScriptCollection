@@ -4,9 +4,7 @@ function getBrowserCulture() {
     return match ? match[0] : "en";
 }
 function redirectToCulture() {
-    const supportedCultures = [
-        /*__supportedCultures__*/
-    ];
+    const supportedCultures = [ /*__supportedCultures__*/];
 
     let culture = getBrowserCulture();
     if (supportedCultures.includes(culture)) {
