@@ -23,7 +23,7 @@ class CultureChooser:
         GeneralUtilities.assert_condition("en" in supported_languages, "The default language 'en' must be included in the list of supported languages.")
         for supported_language in supported_languages:
             GeneralUtilities.assert_condition(self.is_valid_culture(supported_language), f"Invalid language code '{supported_language}'. Supported languages must be in the format 'en' or 'en-US'.") 
-        content = GeneralUtilities._internal_load_resource("CultureChooser/index.html")
+        content = GeneralUtilities._internal_load_resource("CultureChooser/CultureChooser.js")
         content_as_string = content.decode("utf-8")
         result=GeneralUtilities.replace_variable("/*","supportedCultures","*/", ", ".join([f"\"{supported_language}\"" for supported_language in supported_languages]), content_as_string)
         return result
