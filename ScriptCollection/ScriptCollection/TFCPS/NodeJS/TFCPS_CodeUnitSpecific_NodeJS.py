@@ -124,8 +124,9 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
     
     @GeneralUtilities.check_arguments
     def add_culture_chooser(self,site_title:str,supported_cultures:list[str])->None:
+        output_folder=self.get_codeunit_folder()+"/Other/Artifacts/BuildResult_WebApplication/browser"
+        GeneralUtilities.assert_folder_exists(output_folder)
         cc:CultureChooser=CultureChooser()
-        output_folder=self.get_codeunit_folder()+"/Other/Artifacts/Build_WebApplication"
 
         index_html_file=output_folder+"/index.html"
         GeneralUtilities.ensure_file_exists(index_html_file)

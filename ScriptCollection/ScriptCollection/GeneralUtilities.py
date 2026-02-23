@@ -2,7 +2,6 @@ import re
 import os
 from os import listdir
 from os.path import isfile, join, isdir
-import codecs
 import platform
 import inspect
 import ctypes
@@ -527,6 +526,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def file_ends_with_newline(file: str) -> bool:
+        file=GeneralUtilities.normaliza_path(file)
         with open(file, "rb") as file_object:
             return GeneralUtilities.ends_with_newline_character(file_object.read())
 
@@ -559,11 +559,13 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def append_line_to_file(file: str, line: str, encoding: str = "utf-8") -> None:
+        file=GeneralUtilities.normaliza_path(file)
         GeneralUtilities.append_lines_to_file(file, [line], encoding)
 
     @staticmethod
     @check_arguments
     def append_lines_to_file(file: str, lines: list[str], encoding: str = "utf-8") -> None:
+        file=GeneralUtilities.normaliza_path(file)
         if len(lines) == 0:
             return
         is_first_line = True
@@ -586,6 +588,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def append_to_file(file: str, content: str, encoding: str = "utf-8") -> None:
+        file=GeneralUtilities.normaliza_path(file)
         GeneralUtilities.assert_condition(not "\n" in content, "Appending multiple lines is not allowed. Use append_lines_to_file instead.")
         with open(file, "a", encoding=encoding) as fileObject:
             fileObject.write(content)
@@ -593,12 +596,14 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def ensure_directory_exists(path: str) -> None:
+        path=GeneralUtilities.normaliza_path(path)
         if not os.path.isdir(path):
             os.makedirs(path)
 
     @staticmethod
     @check_arguments
     def ensure_file_exists(path: str) -> None:
+        path=GeneralUtilities.normaliza_path(path)
         if (not os.path.isfile(path)):
             with open(path, "a+", encoding="utf-8"):
                 pass
@@ -662,10 +667,10 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def format_xml_file_with_encoding(filepath: str, encoding: str) -> None:
-        with codecs.open(filepath, 'r', encoding=encoding) as file:
+        with open(filepath, 'r', encoding=encoding) as file:
             text = file.read()
         text = parse(text).toprettyxml()
-        with codecs.open(filepath, 'w', encoding=encoding) as file:
+        with open(filepath, 'w', encoding=encoding) as file:
             file.write(text)
 
     @staticmethod
@@ -765,6 +770,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def read_binary_from_file(file: str) -> bytes:
+        file=GeneralUtilities.normaliza_path(file)
         with open(file, "rb") as file_object:
             return file_object.read()
 
@@ -1330,32 +1336,35 @@ class GeneralUtilities:
         """For each log file in this folder this function looks for log-rotation-files and merges them together again into one file."""
         all_files=GeneralUtilities.get_direct_files_of_folder(folder)
         for log_file in all_files:
+            if "AutoRename" in log_file:
+                continue
             filename=os.path.basename(log_file)
             filename_without_extension=Path(log_file).stem
+            if not ".archive." in filename:
 
-            #merge with rotated logs
-            if filename.endswith(".log") and not ".archive." in filename:
-                rotated_log_files=sorted([f for f in all_files if f.startswith(filename_without_extension+".archive.")], key=GeneralUtilities.__extract_log_file_number)
-                result=GeneralUtilities.empty_string
-                if len(rotated_log_files)>0:
-                    for rotated_log_file in rotated_log_files:
+                #merge with rotated logs
+                if filename.endswith(".log") and not ".archive." in filename:
+                    rotated_log_files=sorted([f for f in all_files if os.path.basename(f).startswith(filename_without_extension+".archive.")], key=GeneralUtilities._internal_extract_log_file_number)
+                    result=GeneralUtilities.empty_string
+                    if 0<len(rotated_log_files):
+                        for rotated_log_file in rotated_log_files:
+                            result+="\n"+GeneralUtilities.read_text_from_file(rotated_log_file)
                         result+="\n"+GeneralUtilities.read_text_from_file(log_file)
-                result+="\n"+GeneralUtilities.read_text_from_file(log_file)
-                GeneralUtilities.write_text_to_file(log_file, result)
-                for rotated_log_file in rotated_log_files:
-                    GeneralUtilities.ensure_file_does_not_exist(rotated_log_file)
-            
-            #normalize
-            logs=GeneralUtilities.read_text_from_file(logs)
-            logs=logs.replace("\r\n", "\n")
-            logs=logs.replace("\r", GeneralUtilities.empty_string)
-            logs=re.sub(r"\n+", "\n", logs)
-            logs=GeneralUtilities.trim_newlines(logs)
-            GeneralUtilities.write_text_to_file(log_file, logs)
+                        GeneralUtilities.write_text_to_file(log_file, result)
+                        for rotated_log_file in rotated_log_files:
+                            GeneralUtilities.ensure_file_does_not_exist(rotated_log_file)
+                
+                #normalize
+                logs=GeneralUtilities.read_text_from_file(log_file)
+                logs=logs.replace("\r\n", "\n")
+                logs=logs.replace("\r", GeneralUtilities.empty_string)
+                logs=re.sub(r"\n+", "\n", logs)
+                logs=GeneralUtilities.trim_newlines(logs)
+                GeneralUtilities.write_text_to_file(log_file, logs)
 
     @staticmethod
     @check_arguments
-    def __extract_log_file_number(filename: str) -> int:
+    def _internal_extract_log_file_number(filename: str) -> int:
         m = re.search(r"\.archive\.(\d+)\.log$", filename)
         if m:
             return int(m.group(1))
