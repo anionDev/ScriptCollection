@@ -1337,32 +1337,35 @@ class GeneralUtilities:
         """For each log file in this folder this function looks for log-rotation-files and merges them together again into one file."""
         all_files=GeneralUtilities.get_direct_files_of_folder(folder)
         for log_file in all_files:
+            if "AutoRename" in log_file:
+                continue
             filename=os.path.basename(log_file)
             filename_without_extension=Path(log_file).stem
+            if not ".archive." in filename:
 
-            #merge with rotated logs
-            if filename.endswith(".log") and not ".archive." in filename:
-                rotated_log_files=sorted([f for f in all_files if f.startswith(filename_without_extension+".archive.")], key=GeneralUtilities.__extract_log_file_number)
-                result=GeneralUtilities.empty_string
-                if len(rotated_log_files)>0:
-                    for rotated_log_file in rotated_log_files:
+                #merge with rotated logs
+                if filename.endswith(".log") and not ".archive." in filename:
+                    rotated_log_files=sorted([f for f in all_files if os.path.basename(f).startswith(filename_without_extension+".archive.")], key=GeneralUtilities._internal_extract_log_file_number)
+                    result=GeneralUtilities.empty_string
+                    if 0<len(rotated_log_files):
+                        for rotated_log_file in rotated_log_files:
+                            result+="\n"+GeneralUtilities.read_text_from_file(rotated_log_file)
                         result+="\n"+GeneralUtilities.read_text_from_file(log_file)
-                result+="\n"+GeneralUtilities.read_text_from_file(log_file)
-                GeneralUtilities.write_text_to_file(log_file, result)
-                for rotated_log_file in rotated_log_files:
-                    GeneralUtilities.ensure_file_does_not_exist(rotated_log_file)
-            
-            #normalize
-            logs=GeneralUtilities.read_text_from_file(logs)
-            logs=logs.replace("\r\n", "\n")
-            logs=logs.replace("\r", GeneralUtilities.empty_string)
-            logs=re.sub(r"\n+", "\n", logs)
-            logs=GeneralUtilities.trim_newlines(logs)
-            GeneralUtilities.write_text_to_file(log_file, logs)
+                        GeneralUtilities.write_text_to_file(log_file, result)
+                        for rotated_log_file in rotated_log_files:
+                            GeneralUtilities.ensure_file_does_not_exist(rotated_log_file)
+                
+                #normalize
+                logs=GeneralUtilities.read_text_from_file(log_file)
+                logs=logs.replace("\r\n", "\n")
+                logs=logs.replace("\r", GeneralUtilities.empty_string)
+                logs=re.sub(r"\n+", "\n", logs)
+                logs=GeneralUtilities.trim_newlines(logs)
+                GeneralUtilities.write_text_to_file(log_file, logs)
 
     @staticmethod
     @check_arguments
-    def __extract_log_file_number(filename: str) -> int:
+    def _internal_extract_log_file_number(filename: str) -> int:
         m = re.search(r"\.archive\.(\d+)\.log$", filename)
         if m:
             return int(m.group(1))
