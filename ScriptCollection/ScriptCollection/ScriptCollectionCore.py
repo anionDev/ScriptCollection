@@ -2591,7 +2591,7 @@ OCR-content:
         GeneralUtilities.write_lines_to_file(target_file, new_lines)
 
     @GeneralUtilities.check_arguments
-    def do_and_log_task(self, name_of_task: str, task):
+    def do_and_log_task(self, name_of_task: str, task,do_and_log_task:bool=True):
         try:
             self.log.log(f"Start action \"{name_of_task}\".", LogLevel.Information)
             result = task()
@@ -2602,7 +2602,8 @@ OCR-content:
             self.log.log_exception(f"Error while running action \"{name_of_task}\".", e, LogLevel.Error)
             return 1
         finally:
-            self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
+            if do_and_log_task:
+                self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
 
     default_excluded_patterns_for_loc: list[str] = ["**.txt", "**.md", "**.svg", "**.vscode", "**/Resources/**", "**/Reference/**", ".gitignore", ".gitattributes", "Other/Metrics/**"]
