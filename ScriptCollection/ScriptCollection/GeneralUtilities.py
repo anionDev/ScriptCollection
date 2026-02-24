@@ -154,7 +154,9 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def datetime_to_string_with_timezone(value: datetime) -> str:
-        return value.strftime(GeneralUtilities.__datetime_format_with_offset)  # returns "2025-08-21 15:30:00 +0200" for example
+        result= value.strftime(GeneralUtilities.__datetime_format_with_offset)  # returns "2025-08-21 15:30:00 +02:00" for example
+        result=result[:-2] + ":" + result[-2:]
+        return result
 
     @staticmethod
     @check_arguments
