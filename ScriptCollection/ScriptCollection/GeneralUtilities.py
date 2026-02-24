@@ -2,7 +2,6 @@ import re
 import os
 from os import listdir
 from os.path import isfile, join, isdir
-import codecs
 import platform
 import inspect
 import ctypes
@@ -668,10 +667,10 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def format_xml_file_with_encoding(filepath: str, encoding: str) -> None:
-        with codecs.open(filepath, 'r', encoding=encoding) as file:
+        with open(filepath, 'r', encoding=encoding) as file:
             text = file.read()
         text = parse(text).toprettyxml()
-        with codecs.open(filepath, 'w', encoding=encoding) as file:
+        with open(filepath, 'w', encoding=encoding) as file:
             file.write(text)
 
     @staticmethod
