@@ -1,7 +1,8 @@
 import re
 from .GeneralUtilities import GeneralUtilities
 
-class CultureChooser:
+class HTTPMaintenanceOverheadHelper:
+
     __culture_regex = re.compile(r"^[a-zA-Z]+(-[a-zA-Z]+)?$")
 
     def is_valid_culture(self,culture_string: str) -> bool:
@@ -26,4 +27,10 @@ class CultureChooser:
         content = GeneralUtilities._internal_load_resource("CultureChooser/CultureChooser.js")
         content_as_string = content.decode("utf-8")
         result=GeneralUtilities.replace_variable("/*","supportedCultures","*/", ", ".join([f"\"{supported_language}\"" for supported_language in supported_languages]), content_as_string)
+        return result
+    
+    def get_maintenance_file(self,site_title:str) -> str:
+        content = GeneralUtilities._internal_load_resource("MaintenanceSite/MaintenanceSite.html")
+        content_as_string = content.decode("utf-8")
+        result=GeneralUtilities.replace_variable("<!--","title","-->", site_title, content_as_string)
         return result
