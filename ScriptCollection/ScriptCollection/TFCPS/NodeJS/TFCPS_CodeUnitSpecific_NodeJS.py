@@ -4,7 +4,7 @@ from lxml import etree
 from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
-from ...CultureChooser import CultureChooser
+from ...HTTPMaintenanceOverheadHelper import HTTPMaintenanceOverheadHelper
 
 class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
@@ -126,7 +126,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
     def add_culture_chooser(self,site_title:str,supported_cultures:list[str])->None:
         output_folder=self.get_codeunit_folder()+"/Other/Artifacts/BuildResult_WebApplication/browser"
         GeneralUtilities.assert_folder_exists(output_folder)
-        cc:CultureChooser=CultureChooser()
+        cc:HTTPMaintenanceOverheadHelper=HTTPMaintenanceOverheadHelper()
 
         index_html_file=output_folder+"/index.html"
         GeneralUtilities.ensure_file_exists(index_html_file)
@@ -137,6 +137,20 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         GeneralUtilities.ensure_file_exists(cc_script_file)
         cc_script_content=cc.get_culture_chooser_script(supported_cultures)
         GeneralUtilities.write_text_to_file(cc_script_file, cc_script_content)
+    
+    @GeneralUtilities.check_arguments
+    def add_maintenance_site(self,site_title:str)->None:
+        output_folder_base=self.get_codeunit_folder()+"/Other/Artifacts/BuildResult_WebApplication"
+        GeneralUtilities.assert_folder_exists(output_folder_base)
+        output_folder=os.path.join(output_folder_base,"maintenance")
+        GeneralUtilities.ensure_directory_exists(output_folder)
+        cc:HTTPMaintenanceOverheadHelper=HTTPMaintenanceOverheadHelper()
+
+        maintenance_file=output_folder+"/MaintenanceSite.html"
+        GeneralUtilities.ensure_file_exists(maintenance_file)
+        maintenance_content=cc.get_maintenance_file(site_title)
+        GeneralUtilities.write_text_to_file(maintenance_file, maintenance_content)
+
     
     @GeneralUtilities.check_arguments
     def get_available_cultures_for_angular_app(self)->None:

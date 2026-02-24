@@ -1,5 +1,6 @@
 from datetime import datetime,timezone
 from graphlib import TopologicalSorter
+import math
 import os
 from pathlib import Path
 import shutil
@@ -1401,3 +1402,59 @@ class TFCPS_Tools_General:
             GeneralUtilities.write_lines_to_file(env_variables_file,lines)
             arguments=arguments + " --env-file Parameters.env pull --quiet"
             self.__sc.run_program_with_retry("docker",arguments,test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
+
+    def load_deb_control_file_content(self, file: str, codeunitname: str, codeunitversion: str, installedsize: int, maintainername: str, maintaineremail: str, description: str) -> str:
+        content = GeneralUtilities.read_text_from_file(file)
+        content = GeneralUtilities.replace_variable_in_string(content, "codeunitname", codeunitname)
+        content = GeneralUtilities.replace_variable_in_string(content, "codeunitversion", codeunitversion)
+        content = GeneralUtilities.replace_variable_in_string(content, "installedsize", str(installedsize))
+        content = GeneralUtilities.replace_variable_in_string(content, "maintainername", maintainername)
+        content = GeneralUtilities.replace_variable_in_string(content, "maintaineremail", maintaineremail)
+        content = GeneralUtilities.replace_variable_in_string(content, "description", description)
+        return content
+
+    def calculate_deb_package_size(self, binary_folder: str) -> int:
+        size_in_bytes = 0
+        for file in GeneralUtilities.get_all_files_of_folder(binary_folder):
+            size_in_bytes = size_in_bytes+os.path.getsize(file)
+        result = math.ceil(size_in_bytes/1024)
+        return result
+
+    def create_deb_package_for_artifact(self,codeunit_folder: str, maintainername: str, maintaineremail: str, description: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        codeunit_name = os.path.basename(codeunit_folder)
+        binary_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_DotNet_linux-x64", codeunit_folder)
+        deb_output_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_Deb", codeunit_folder)
+        control_file = GeneralUtilities.resolve_relative_path("Other/Build/DebControlFile.txt", codeunit_folder)
+        installedsize = self.calculate_deb_package_size(binary_folder)
+        control_file_content = self.load_deb_control_file_content(control_file, codeunit_name, self.get_version_of_codeunit(os.path.join(codeunit_folder,f"{codeunit_name}.codeunit.xml")), installedsize, maintainername, maintaineremail, description)
+        self.__sc.create_deb_package(codeunit_name, binary_folder, control_file_content, deb_output_folder, 555)
+
+    @GeneralUtilities.check_arguments
+    def create_zip_file_for_artifact(self, codeunit_folder: str, artifact_source_name: str, name_of_new_artifact: str) -> None:
+        self.assert_is_codeunit_folder(codeunit_folder)
+        src_artifact_folder = GeneralUtilities.resolve_relative_path(f"Other/Artifacts/{artifact_source_name}", codeunit_folder)
+        shutil.make_archive(name_of_new_artifact, 'zip', src_artifact_folder)
+        archive_file = os.path.join(os.getcwd(), f"{name_of_new_artifact}.zip")
+        target_folder = GeneralUtilities.resolve_relative_path(f"Other/Artifacts/{name_of_new_artifact}", codeunit_folder)
+        GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder)
+        shutil.move(archive_file, target_folder)
+
+    def generate_winget_zip_manifest(self, codeunit_folder: str, artifact_name_of_zip: str):
+        self.assert_is_codeunit_folder(codeunit_folder)
+        codeunit_name = os.path.basename(codeunit_folder)
+        codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder,f"{codeunit_name}.codeunit.xml"))
+        build_folder = os.path.join(codeunit_folder, "Other", "Build")
+        artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts", artifact_name_of_zip)
+        manifest_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "WinGet-Manifest")
+        GeneralUtilities.assert_folder_exists(artifacts_folder)
+        artifacts_file = self.__sc.find_file_by_extension(artifacts_folder, "zip")
+        winget_template_file = os.path.join(build_folder, "WinGet-Template.yaml")
+        winget_manifest_file = os.path.join(manifest_folder, "WinGet-Manifest.yaml")
+        GeneralUtilities.assert_file_exists(winget_template_file)
+        GeneralUtilities.ensure_directory_exists(manifest_folder)
+        GeneralUtilities.ensure_file_exists(winget_manifest_file)
+        manifest_content = GeneralUtilities.read_text_from_file(winget_template_file)
+        manifest_content = GeneralUtilities.replace_variable_in_string(manifest_content, "version", codeunit_version)
+        manifest_content = GeneralUtilities.replace_variable_in_string(manifest_content, "sha256_hashvalue", GeneralUtilities.get_sha256_of_file(artifacts_file))
+        GeneralUtilities.write_text_to_file(winget_manifest_file, manifest_content)

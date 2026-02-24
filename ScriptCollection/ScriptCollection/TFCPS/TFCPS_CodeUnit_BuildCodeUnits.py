@@ -32,7 +32,8 @@ class TFCPS_CodeUnit_BuildCodeUnits:
     @GeneralUtilities.check_arguments
     def build_codeunits(self) -> None:
         self.sc.log.log(GeneralUtilities.get_line())
-        self.sc.log.log(f"Start building codeunits. (Target environment-type: {self.target_environment_type})")
+        start_time:datetime=GeneralUtilities.get_now()
+        self.sc.log.log(f"Start building codeunits at {GeneralUtilities.datetime_to_string_with_timezone(start_time)}. (Target environment-type: {self.target_environment_type})")
 
         #check if changelog exists
         changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tfcps_tools_general.get_version_of_project(self.repository)}.md")
@@ -67,7 +68,9 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         if self.is_pre_merge():
             self.__collect_metrics()
             self.__generate_loc_diagram()
-        self.sc.log.log("Finished building codeunits.")
+        end_time:datetime=GeneralUtilities.get_now()
+        duration=end_time-start_time
+        self.sc.log.log(f"Finished building codeunits at {GeneralUtilities.datetime_to_string_with_timezone(start_time)}. (Duration: {GeneralUtilities.timedelta_to_simple_string(duration)})")
         self.sc.log.log(GeneralUtilities.get_line())
 
     @GeneralUtilities.check_arguments
