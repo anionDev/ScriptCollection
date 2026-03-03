@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.44"
+version = "4.2.45"
 __version__ = version
 
 
@@ -2585,7 +2585,7 @@ OCR-content:
         prefix: str = "# last update: "
         for line in lines:
             if line.startswith(prefix):
-                new_lines.append(prefix+GeneralUtilities.datetime_to_string_with_timezone(GeneralUtilities.get_now()))
+                new_lines.append(prefix+GeneralUtilities.datetime_to_string_for_readable_entry(GeneralUtilities.get_now(),False))
             else:
                 new_lines.append(line)
         GeneralUtilities.write_lines_to_file(target_file, new_lines)
