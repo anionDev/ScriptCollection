@@ -2591,7 +2591,7 @@ OCR-content:
         GeneralUtilities.write_lines_to_file(target_file, new_lines)
 
     @GeneralUtilities.check_arguments
-    def do_and_log_task(self, name_of_task: str, task,do_and_log_task:bool=True):
+    def do_and_log_task(self, name_of_task: str, task,log_end_of_Task:bool=True)->int:
         try:
             self.log.log(f"Start action \"{name_of_task}\".", LogLevel.Information)
             result = task()
@@ -2602,7 +2602,7 @@ OCR-content:
             self.log.log_exception(f"Error while running action \"{name_of_task}\".", e, LogLevel.Error)
             return 1
         finally:
-            if do_and_log_task:
+            if log_end_of_Task:
                 self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
 
