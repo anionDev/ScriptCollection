@@ -33,7 +33,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
     def build_codeunits(self) -> None:
         self.sc.log.log(GeneralUtilities.get_line())
         start_time:datetime=GeneralUtilities.get_now()
-        self.sc.log.log(f"Start building codeunits at {GeneralUtilities.datetime_to_string_with_timezone(start_time)}. (Target environment-type: {self.target_environment_type})")
+        self.sc.log.log(f"Start building codeunits at {GeneralUtilities.datetime_to_string_for_readable_entry(start_time,False)}. (Target environment-type: {self.target_environment_type})")
 
         #check if changelog exists
         changelog_file=os.path.join(self.repository,"Other","Resources","Changelog",f"v{self.tfcps_tools_general.get_version_of_project(self.repository)}.md")
@@ -70,7 +70,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             self.__generate_loc_diagram()
         end_time:datetime=GeneralUtilities.get_now()
         duration=end_time-start_time
-        self.sc.log.log(f"Finished building codeunits at {GeneralUtilities.datetime_to_string_with_timezone(start_time)}. (Duration: {GeneralUtilities.timedelta_to_simple_string(duration)})")
+        self.sc.log.log(f"Finished building codeunits at {GeneralUtilities.datetime_to_string_for_readable_entry(end_time,False)}. (Duration: {GeneralUtilities.timedelta_to_simple_string(duration)})")
         self.sc.log.log(GeneralUtilities.get_line())
 
     @GeneralUtilities.check_arguments
@@ -120,7 +120,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             if not old_line.startswith(current_version_string+";") and old_line!=header_line:
                 new_lines.append(old_line)
         c_date:datetime=GeneralUtilities.get_now().astimezone(timezone.utc)
-        commit_date=GeneralUtilities.datetime_to_string_for_logfile_entry(c_date)
+        commit_date=GeneralUtilities.datetime_to_string_for_logfile_entry(c_date,False)
         new_lines.append(f"{current_version_string};{commit_date};{loc}")
         GeneralUtilities.write_lines_to_file(loc_metric_file, new_lines)
 

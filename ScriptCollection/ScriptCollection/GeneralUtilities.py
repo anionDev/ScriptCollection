@@ -45,10 +45,6 @@ class Dependency:
 
 class GeneralUtilities:
 
-    __datetime_format_with_offset: str = "%Y-%m-%d %H:%M:%S %z"
-    __datetime_format: str = "%Y-%m-%dT%H:%M:%S"
-    __date_format: str = "%Y-%m-%d"
-
     empty_string: str = ""
 
     @staticmethod
@@ -141,33 +137,29 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def string_to_datetime(value: str) -> datetime:
+        """expects a value in the format 2022-10-06T19:26:01"""
         if "." in value:
             value = value.split(".")[0]
-        return datetime.strptime(value, GeneralUtilities.__datetime_format)  # value ="2022-10-06T19:26:01" for example
+        return datetime.strptime(value,"%Y-%m-%dT%H:%M:%S") 
 
     @staticmethod
     @check_arguments
     def datetime_to_string(value: datetime) -> str:
-        value = datetime(year=value.year, month=value.month, day=value.day, hour=value.hour, minute=value.minute, second=value.second)
-        return value.strftime(GeneralUtilities.__datetime_format)  # returns "2022-10-06T19:26:01" for example
-
-    @staticmethod
-    @check_arguments
-    def datetime_to_string_with_timezone(value: datetime) -> str:
-        result= value.strftime(GeneralUtilities.__datetime_format_with_offset)  # returns "2025-08-21 15:30:00 +02:00" for example
-        result=result[:-2] + ":" + result[-2:]
-        return result
+        """returns a value in the format 2022-10-06T19:26:01"""
+        return value.strftime("%Y-%m-%dT%H:%M:%S")
 
     @staticmethod
     @check_arguments
     def string_to_date(value: str) -> date:
+        """expects a value in the format 2022-10-06"""
         splitted = value.split("-")
-        return date(int(splitted[0]), int(splitted[1]), int(splitted[2]))  # value ="2022-10-06" for example
-
+        return date(int(splitted[0]), int(splitted[1]), int(splitted[2])) 
+    
     @staticmethod
     @check_arguments
     def date_to_string(value: date) -> str:
-        return value.strftime(GeneralUtilities.__date_format)  # returns "2022-10-06" for example
+        """returns a value in the format 2022-10-06"""
+        return value.strftime("%Y-%m-%d") 
 
     @staticmethod
     @check_arguments
@@ -470,7 +462,7 @@ class GeneralUtilities:
     @check_arguments
     def datetime_to_string_for_readable_entry(datetime_object: datetime, add_milliseconds: bool ) -> str:
         """returns a string like '2025-08-21 15-30-00 +02:00' or '2025-08-21 15-30-00.123 +02:00' depending on the value of add_milliseconds"""
-        return GeneralUtilities.datetime_to_string_base(datetime_object, add_milliseconds, " ", "-", True)
+        return GeneralUtilities.datetime_to_string_base(datetime_object, add_milliseconds, " ", ":", True)
         
     @staticmethod
     @check_arguments
@@ -1003,7 +995,7 @@ class GeneralUtilities:
     @check_arguments
     def get_time_based_logfilename(name: str = "Log") -> str:
         d = GeneralUtilities.get_now()
-        return f"{name}_{GeneralUtilities.datetime_to_string_for_logfile_name(d)}"
+        return f"{name}_{GeneralUtilities.datetime_to_string_for_logfile_name(d,False)}"
 
     @staticmethod
     @check_arguments
