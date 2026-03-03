@@ -456,27 +456,41 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def datetime_to_string_for_logfile_name(datetime_object: datetime, add_timezone_info_to_log: bool = True) -> str:
-        base_pattern: str = "%Y-%m-%d_%H-%M-%S"
-        if add_timezone_info_to_log:
-            return datetime_object.strftime(f'{base_pattern}_%z')
-        else:
-            return datetime_object.strftime(base_pattern)
+    def datetime_to_string_for_logfile_name(datetime_object: datetime, add_milliseconds: bool ) -> str:
+        """returns a string like '2025-08-21T15-30-00+02-00' or '2025-08-21T15-30-00.123+02-00' depending on the value of add_milliseconds"""
+        return GeneralUtilities.datetime_to_string_base(datetime_object, add_milliseconds, "T", "-", False)
 
     @staticmethod
     @check_arguments
-    def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_milliseconds: bool = False) -> str:
-        if datetime_object.tzinfo is None:
-            datetime_object = datetime_object.replace(tzinfo=timezone.utc)  # assume utc when no timezone is given
-        pattern: str = None
-        if add_milliseconds:
-            pattern = "%Y-%m-%dT%H:%M:%S.%f%z"
-        else:
-            pattern = "%Y-%m-%dT%H:%M:%S%z"
-        s = datetime_object.strftime(pattern)
-        s = s[:-2] + ":" + s[-2:]
-        return s
+    def datetime_to_string_for_logfile_entry(datetime_object: datetime, add_milliseconds: bool ) -> str:
+        """returns a string like '2025-08-21T15:30:00+02:00' or '2025-08-21T15:30:00.123+02:00' depending on the value of add_milliseconds"""
+        return GeneralUtilities.datetime_to_string_base(datetime_object, add_milliseconds, "T", ":", False)
 
+    @staticmethod
+    @check_arguments
+    def datetime_to_string_for_readable_entry(datetime_object: datetime, add_milliseconds: bool ) -> str:
+        """returns a string like '2025-08-21 15-30-00 +02:00' or '2025-08-21 15-30-00.123 +02:00' depending on the value of add_milliseconds"""
+        return GeneralUtilities.datetime_to_string_base(datetime_object, add_milliseconds, " ", "-", True)
+        
+    @staticmethod
+    @check_arguments
+    def datetime_to_string_base(datetime_object: datetime, add_milliseconds: bool ,mid_separator:str,time_separator:str,add_whitespace_before_timezone:bool) -> str:
+        dt:datetime=None
+        if datetime_object.tzinfo is None:
+            dt = datetime_object.replace(tzinfo=timezone.utc)  # assume UTC when no timezone is given
+        else:
+            dt = datetime_object
+        pattern = "%Y-%m-%d"+mid_separator+"%H"+time_separator+"%M"+time_separator+"%S"
+        if add_milliseconds:
+            pattern = pattern+".%f"
+        if add_whitespace_before_timezone:
+            pattern = pattern+" "
+        pattern = pattern+"%z"
+
+        result = dt.strftime(pattern)
+        result = result[:-2] + time_separator + result[-2:]
+        return result
+    
     @staticmethod
     @check_arguments
     def string_has_nonwhitespace_content(string: str) -> bool:
