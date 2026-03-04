@@ -270,7 +270,7 @@ class GeneralUtilities:
                             GeneralUtilities.ensure_file_does_not_exist(targetfile)
                         else:
                             raise ValueError(f"Targetfile '{targetfile}' does already exist.")
-                    shutil.copy(file, dstDirFull, copy_function=GeneralUtilities.safe_copy)
+                    GeneralUtilities.safe_copy(file, targetfile)
                     if remove_source:
                         GeneralUtilities.ensure_file_does_not_exist(file)#remove file to save storage
             for sub_folder in GeneralUtilities.get_direct_folders_of_folder(srcDirFull):
