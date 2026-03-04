@@ -244,8 +244,16 @@ class GeneralUtilities:
             if fnmatch.filter([relative_path], pattern):
                 return True
         return False
-    
-    
+
+    @staticmethod
+    @check_arguments
+    def safe_copy(src:str, dst:str):
+        shutil.copy2(src, dst)
+        src_size = os.path.getsize(src)
+        dst_size = os.path.getsize(dst)
+        if src_size != dst_size:
+            raise IOError(f"Copy failed: size mismatch {src} ({src_size}) != {dst} ({dst_size})")
+
     @staticmethod
     @check_arguments
     def __copy_or_move_content_of_folder(source_directory: str, target_directory: str, overwrite_existing_files:bool, remove_source: bool,ignored_glob_patterms: list[str] = None) -> None:
@@ -262,10 +270,9 @@ class GeneralUtilities:
                             GeneralUtilities.ensure_file_does_not_exist(targetfile)
                         else:
                             raise ValueError(f"Targetfile '{targetfile}' does already exist.")
+                    shutil.copy(file, dstDirFull, copy_function=GeneralUtilities.safe_copy)
                     if remove_source:
-                        shutil.move(file, dstDirFull)
-                    else:
-                        shutil.copy(file, dstDirFull)
+                        GeneralUtilities.ensure_file_does_not_exist(file)#remove file to save storage
             for sub_folder in GeneralUtilities.get_direct_folders_of_folder(srcDirFull):
                 if not GeneralUtilities.is_ignored_by_glob_pattern(source_directory,sub_folder, ignored_glob_patterms):
                     foldername = os.path.basename(sub_folder)
@@ -273,6 +280,8 @@ class GeneralUtilities:
                     GeneralUtilities.__copy_or_move_content_of_folder(sub_folder, sub_target, overwrite_existing_files, remove_source,ignored_glob_patterms)
                     if remove_source:
                         GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
+            if overwrite_existing_files:
+                GeneralUtilities.ensure_directory_does_not_exist(target_directory)#remove remaining empty directories
         else:
             raise ValueError(f"Folder '{source_directory}' does not exist")
 

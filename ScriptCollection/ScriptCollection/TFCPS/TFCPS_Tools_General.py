@@ -232,7 +232,8 @@ class TFCPS_Tools_General:
             GeneralUtilities.ensure_directory_does_not_exist(target_folder)
             other_folder = os.path.join(repo_folder, dependent_codeunit, "Other")
             artifacts_folder = os.path.join(other_folder, "Artifacts")
-            shutil.copytree(artifacts_folder, target_folder)
+            GeneralUtilities.ensure_directory_exists(artifacts_folder)
+            GeneralUtilities.copy_content_of_folder(artifacts_folder,target_folder)
 
 
     @GeneralUtilities.check_arguments
