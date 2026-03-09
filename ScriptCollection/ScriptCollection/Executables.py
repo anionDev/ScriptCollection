@@ -7,7 +7,7 @@ import shutil
 import keyboard
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
-from .SCLog import LogLevel
+from .SCLog import LogLevel, SCLog
 from .ImageUpdater import ImageUpdater, VersionEcholon
 from .TFCPS.TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
 from .TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
@@ -564,6 +564,18 @@ def Copy() -> int:
         raise ValueError(f"'{source}' can not be copied because the path does not exist.")
     return 0
 
+def GetSize() -> int:
+    parser = argparse.ArgumentParser(description="This function prints the size of a file.")
+    parser.add_argument('-p', '--path', required=True)
+    args = parser.parse_args()
+
+    path = GeneralUtilities.resolve_relative_path(args.path, os.getcwd())
+
+    if not os.path.isfile(path):
+        raise ValueError(f"File '{path}' does not exist.")
+
+    GeneralUtilities.write_message_to_stdout(str(os.path.getsize(path)))
+    return 0
 
 def PrintOSName() -> int:
     if GeneralUtilities.current_system_is_windows():
@@ -644,27 +656,40 @@ def Espoc() -> int:
     parser = argparse.ArgumentParser(description="Espoc (appreviation for 'exit started programs on close') is a tool to ensure the started processes of your program will also get terminated when the execution of your program is finished.")
     parser.add_argument('-p', '--processid', required=True)
     parser.add_argument('-f', '--file', required=True, help='Specifies the file where the process-ids of the started processes are stored (line by line). This file will be deleted when all started processes are terminated.')
+    parser.add_argument('-l', '--logfile', required=False,default=None)
     args = parser.parse_args()
     process_id = int(args.processid)
     process_list_file: str = args.file
-    if not os.path.isabs(process_list_file):
-        process_list_file = GeneralUtilities.resolve_relative_path(process_list_file, os.getcwd())
-    GeneralUtilities.assert_condition(GeneralUtilities.process_is_running_by_id(process_id), f"Process with id {process_id} is not running.")
-    while GeneralUtilities.process_is_running_by_id(process_id):
-        time.sleep(1)
-    GeneralUtilities.write_message_to_stdout(f"Process with id {process_id} is not running anymore. Start terminating remaining processes.")
-    if os.path.exists(process_list_file):
-        for line in GeneralUtilities.read_nonempty_lines_from_file(process_list_file):
-            current_process_id = int(line.strip())
-            try:
-                GeneralUtilities.kill_process(current_process_id, True)
-            except Exception as exception:
-                GeneralUtilities.write_exception_to_stderr(exception,"Error while terminating process with id "+str(current_process_id))
-        GeneralUtilities.ensure_file_does_not_exist(process_list_file)
-        GeneralUtilities.write_message_to_stdout("All started processes terminated.")
+    log:SCLog=None
+    if args.logfile is None:
+        log=SCLog()
     else:
-        GeneralUtilities.write_message_to_stdout(f"File '{process_list_file}' does not exist. No processes to terminate.")
-    return 0
+        log=SCLog(args.logfile)
+        log.add_overhead_to_logfile=True
+    log.log(f"Start Espoc for process id {process_id} and process list file '{process_list_file}'.")
+    try:
+        if not os.path.isabs(process_list_file):
+            process_list_file = GeneralUtilities.resolve_relative_path(process_list_file, os.getcwd())
+        GeneralUtilities.assert_condition(GeneralUtilities.process_is_running_by_id(process_id), f"Process with id {process_id} is not running.")
+        while GeneralUtilities.process_is_running_by_id(process_id):
+            time.sleep(1)
+        log.log(f"Process with id {process_id} is not running anymore. Start terminating remaining processes.")
+        if os.path.exists(process_list_file):
+            for line in GeneralUtilities.read_nonempty_lines_from_file(process_list_file):
+                current_process_id = int(line.strip())
+                try:
+                    log.log(f"Terminate process {current_process_id}...")
+                    GeneralUtilities.kill_process(current_process_id, True)
+                except Exception as exception:
+                    log.log_exception(f"Error while terminating process with id {current_process_id}.",exception)
+            log.log("All started processes terminated.")
+            GeneralUtilities.ensure_file_does_not_exist(process_list_file)
+        else:
+            log.log(f"File '{process_list_file}' does not exist. No processes to terminate.")
+        return 0
+    except Exception as exception:
+        log.log_exception("Fatal error in Espoc.", exception)
+        return 1
 
 
 def ConvertGitRepositoryToBareRepository() -> int:

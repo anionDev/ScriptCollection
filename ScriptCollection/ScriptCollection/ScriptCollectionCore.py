@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.45"
+version = "4.2.46"
 __version__ = version
 
 
@@ -913,6 +913,18 @@ class ScriptCollectionCore:
             elif exit_code == 2:
                 return False
             raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
+    def get_size(self, path: str) -> int:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():
+            return os.path.getsize(path)  # works only locally, but much more performant than always running an external program
+        else:
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("scgetsize", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code == 0:
+                return int(stdout.replace("\r","").replace("\n","").strip())
+            else:
+                raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
     def is_folder(self, path: str) -> bool:
@@ -2760,7 +2772,8 @@ OCR-content:
         if remove_volumes:
             self.run_program_with_retry("docker","volume prune -f",amount_of_attempts=amount_of_attempts)
         if remove_images:
-            self.run_program_with_retry("docker","image prune -f",amount_of_attempts=amount_of_attempts)
+            self.run_program_with_retry("docker","image prune -a -f",amount_of_attempts=amount_of_attempts)
+        self.run_program_with_retry("docker","builder prune -a -f",amount_of_attempts=amount_of_attempts)
         self.run_program_with_retry("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug,amount_of_attempts=amount_of_attempts)
 
     @GeneralUtilities.check_arguments
