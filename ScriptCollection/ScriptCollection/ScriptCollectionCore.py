@@ -2760,7 +2760,8 @@ OCR-content:
         if remove_volumes:
             self.run_program_with_retry("docker","volume prune -f",amount_of_attempts=amount_of_attempts)
         if remove_images:
-            self.run_program_with_retry("docker","image prune -f",amount_of_attempts=amount_of_attempts)
+            self.run_program_with_retry("docker","image prune -a -f",amount_of_attempts=amount_of_attempts)
+        self.run_program_with_retry("docker","builder prune -a -f",amount_of_attempts=amount_of_attempts)
         self.run_program_with_retry("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug,amount_of_attempts=amount_of_attempts)
 
     @GeneralUtilities.check_arguments

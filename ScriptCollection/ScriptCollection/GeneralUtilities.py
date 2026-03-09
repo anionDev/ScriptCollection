@@ -470,7 +470,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def datetime_to_string_for_readable_entry(datetime_object: datetime, add_milliseconds: bool ) -> str:
-        """returns a string like '2025-08-21 15-30-00 +02:00' or '2025-08-21 15-30-00.123 +02:00' depending on the value of add_milliseconds"""
+        """returns a string like '2025-08-21 15-30-00 +02:00' or '2025-08-21 15:30:00.123 +02:00' depending on the value of add_milliseconds"""
         return GeneralUtilities.datetime_to_string_base(datetime_object, add_milliseconds, " ", ":", True)
         
     @staticmethod
