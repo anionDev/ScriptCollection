@@ -915,6 +915,18 @@ class ScriptCollectionCore:
             raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
 
     @GeneralUtilities.check_arguments
+    def get_size(self, path: str) -> int:
+        """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
+        if self.program_runner.will_be_executed_locally():
+            return os.path.getsize(path)  # works only locally, but much more performant than always running an external program
+        else:
+            exit_code, stdout, stderr, _ = self.run_program_argsasarray("scgetsize", ["--path", path], throw_exception_if_exitcode_is_not_zero=False)  # works platform-indepent
+            if exit_code == 0:
+                return int(stdout.replace("\r","").replace("\n","").strip())
+            else:
+                raise ValueError(f"Fatal error occurrs while checking whether file '{path}' exists. StdErr: '{stderr}'")
+
+    @GeneralUtilities.check_arguments
     def is_folder(self, path: str) -> bool:
         """This function works platform-independent also for non-local-executions if the ScriptCollection commandline-commands are available as global command on the target-system."""
         if self.program_runner.will_be_executed_locally():  # works only locally, but much more performant than always running an external program

@@ -564,6 +564,18 @@ def Copy() -> int:
         raise ValueError(f"'{source}' can not be copied because the path does not exist.")
     return 0
 
+def GetSize() -> int:
+    parser = argparse.ArgumentParser(description="This function prints the size of a file.")
+    parser.add_argument('-p', '--path', required=True)
+    args = parser.parse_args()
+
+    path = GeneralUtilities.resolve_relative_path(args.path, os.getcwd())
+
+    if not os.path.isfile(path):
+        raise ValueError(f"File '{path}' does not exist.")
+
+    GeneralUtilities.write_message_to_stdout(str(os.path.getsize(path)))
+    return 0
 
 def PrintOSName() -> int:
     if GeneralUtilities.current_system_is_windows():
