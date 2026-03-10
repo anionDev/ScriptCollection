@@ -17,7 +17,7 @@ from packaging import version
 import requests
 from lxml import etree
 from ..GeneralUtilities import GeneralUtilities
-from ..ScriptCollectionCore import ScriptCollectionCore
+from ..ScriptCollectionCore import ScriptCollectionCore,VSCodeWorkspaceShellTask
 from ..SCLog import  LogLevel
 from ..ImageUpdater import ConcreteImageUpdater, ImageUpdater, VersionEcholon
 from ..OCIImages.OCIImageManager import OCIImageManager
@@ -609,62 +609,30 @@ class TFCPS_Tools_General:
             self.__sc.assert_is_git_repository(repository_folder)
             workspace_file: str = self.__sc.find_file_by_extension(repository_folder, "code-workspace")
             task_file: str = repository_folder + "/Taskfile.yml"
-            lines: list[str] = ["version: '3'", GeneralUtilities.empty_string, "tasks:", GeneralUtilities.empty_string]
-            workspace_file_content: str = self.__sc.get_file_content(workspace_file)
-            jsoncontent = json.loads(workspace_file_content)
-            tasks = jsoncontent["tasks"]["tasks"]
-            tasks.sort(key=lambda x: x["label"].split("/")[-1], reverse=False)  # sort by the label of the task
-            for task in tasks:
-                if task["type"] == "shell":
-
-                    description: str = task["label"]
-                    name: str = GeneralUtilities.to_pascal_case(description)
-                    command = task["command"]
-                    relative_script_file = task["command"]
-
-                    relative_script_file = "."
-                    cwd: str = None
-                    if "options" in task:
-                        options = task["options"]
-                        if "cwd" in options:
-                            cwd = options["cwd"]
-                            cwd = cwd.replace("${workspaceFolder}", ".")
-                            cwd = cwd.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
-                            relative_script_file = cwd
-                    if len(relative_script_file) == 0:
-                        relative_script_file = "."
-
-                    command_with_args = command
-                    if "args" in task:
-                        args = task["args"]
-                        if len(args) > 1:
-                            command_with_args = f"{command_with_args} {' '.join(args)}"
-
-                    if "description" in task:
-                        additional_description = task["description"]
-                        description = f"{description} ({additional_description})"
-
-                    if append_cli_args_at_end:
-                        command_with_args = f"{command_with_args} {{{{.CLI_ARGS}}}}"
-
-                    description_literal = description.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
-                    command_with_args = command_with_args.replace("\\", "\\\\").replace('"', '\\"')  # escape backslashes and double quotes for YAML
-
-                    lines.append(f"  {name}:")
-                    lines.append(f'    desc: "{description_literal}"')
-                    lines.append('    silent: true')
-                    if cwd is not None:
-                        lines.append(f'    dir: "{cwd}"')
-                    lines.append("    cmds:")
-                    lines.append(f'      - "{command_with_args}"')
-                    lines.append('    aliases:')
-                    lines.append(f'      - {name.lower()}')
-                    if "aliases" in task:
-                        aliases = task["aliases"]
-                        for alias in aliases:
-                            lines.append(f'      - {alias}')
-                    lines.append(GeneralUtilities.empty_string)
-
+            lines: list[str] = [
+                "version: '3'", GeneralUtilities.empty_string,
+                "tasks:", GeneralUtilities.empty_string,
+            ]
+            tasks = self.__sc.parse_tasks_from_codeworkspace_file(workspace_file)
+            tasks.sort(key=lambda task: task.label, reverse=False) 
+            for t in tasks:
+                task:VSCodeWorkspaceShellTask = t
+                lines.append(f"  {GeneralUtilities.escape_yaml_property_value(task.label)}:")
+                if task.description is not None:
+                    lines.append(f'    desc: "{GeneralUtilities.escape_yaml_string_value(task.description)}"')
+                lines.append('    silent: true')
+                if task.work_dir is not None:
+                    lines.append(f'    dir: "{GeneralUtilities.escape_yaml_string_value(task.work_dir)}"')
+                lines.append("    cmds:")
+                command=GeneralUtilities.escape_yaml_string_value(task.command)
+                if task.allow_custom_arguments:
+                    command=command+" {{.CLI_ARGS}}"
+                lines.append(f'      - "{command}"')
+                if task.aliases!=None and len(task.aliases) > 0:
+                    lines.append("    aliases:")
+                    for alias in task.aliases:
+                        lines.append(f'      - {GeneralUtilities.escape_yaml_property_value(alias)}')
+                lines.append(GeneralUtilities.empty_string)
             self.__sc.set_file_content(task_file, "\n".join(lines))
         else:
             self.__sc.run_program("scgeneratetasksfilefromworkspacefile", f"--repositoryfolder {repository_folder}")

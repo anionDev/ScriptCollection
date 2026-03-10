@@ -7,7 +7,7 @@ tasks:
     silent: true
     dir: "."
     cmds:
-      - "scbuildcodeunits {{.CLI_ARGS}}"
+      - "scbuildcodeunits"
     aliases:
       - basebuildallcodeunits
       - bb
@@ -17,7 +17,7 @@ tasks:
     silent: true
     dir: "."
     cmds:
-      - "scbuildcodeunitsc {{.CLI_ARGS}}"
+      - "scbuildcodeunitsc"
     aliases:
       - basebuildallcodeunitscontainerized
       - bd
@@ -27,7 +27,7 @@ tasks:
     silent: true
     dir: "."
     cmds:
-      - "scupdatedependencies {{.CLI_ARGS}}"
+      - "scupdatedependencies"
     aliases:
       - baseupdatedependencies
       - bud
