@@ -35,10 +35,120 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.46"
+version = "4.2.47"
 __version__ = version
 
+class VSCodeWorkspaceShellTask:
+    label:str
+    description:str#nullable
+    work_dir:str#nullable
+    command:str
+    aliases:list[str]
+    allow_custom_arguments:bool
 
+    def __init__(self,label:str,description:str,work_dir:str,command:str,aliases:list[str],allow_custom_arguments:bool):
+        GeneralUtilities.assert_not_null(label,"label")
+        self.label=label
+        self.description=description
+        self.work_dir=work_dir
+        GeneralUtilities.assert_not_null(command,"command")
+        self.command=command
+        GeneralUtilities.assert_not_null(aliases,"aliases")
+        self.aliases=aliases
+        GeneralUtilities.assert_not_null(allow_custom_arguments,"allow_custom_arguments")
+        self.allow_custom_arguments=allow_custom_arguments
+
+
+    def serialize_for_vscode(self)->str:
+        aliases=",".join([f"\"{GeneralUtilities.escape_json_string_value(alias)}\"" for alias in self.aliases])
+
+        cwd:str=None
+        if self.work_dir is None:
+            cwd=GeneralUtilities.empty_string
+        else:
+            cwd=f"\"cwd\": \"{GeneralUtilities.escape_json_string_value(self.work_dir)}\""
+
+        desc:str=None
+        if self.description is None:
+            desc=GeneralUtilities.empty_string
+        else:
+            desc=f"\"description\": \"{GeneralUtilities.escape_json_string_value(self.description)}\","
+
+        result=f"""        {{
+                "label": "{GeneralUtilities.escape_json_string_value(self.label)}",
+                "command": "{GeneralUtilities.escape_json_string_value(self.command)}",
+                "type": "shell",
+                "options": {{
+                    {cwd}
+                }},
+                "aliases": [
+                    {aliases}
+                ],
+                {desc}
+                "allowcustomarguments": {str(self.allow_custom_arguments).lower()}
+            }}"""
+        return result
+
+class VSCodeWorkspaceMariaDBConnection:
+    name:str
+    previewLimit:int=50
+    server:str
+    port:int
+    database:str
+    username:str
+    password:str
+    
+    def __init__(self,name:str,server,port,database,username,password):
+        GeneralUtilities.assert_not_null(name,"name")
+        self.name=name
+        GeneralUtilities.assert_not_null(server,"server")
+        self.server=server
+        GeneralUtilities.assert_not_null(port,"port")
+        self.port=port
+        GeneralUtilities.assert_not_null(database,"database")
+        self.database=database
+        GeneralUtilities.assert_not_null(username,"username")
+        self.username=username
+        GeneralUtilities.assert_not_null(password,"password")
+        self.password=password
+
+    def serialize_for_vscode(self)->str:
+        result=f"""        {{
+                        "name": "{GeneralUtilities.escape_json_string_value(self.name)}",
+                        "mysqlOptions": {{
+                            "authProtocol": "default",
+                            "enableSsl": "Disabled"
+                        }},
+                        "previewLimit": {self.previewLimit},
+                        "server": "{GeneralUtilities.escape_json_string_value(self.server)}",
+                        "port": {self.port},
+                        "driver": "MySQL",
+                        "database": "{GeneralUtilities.escape_json_string_value(self.database)}",
+                        "username": "{GeneralUtilities.escape_json_string_value(self.username)}",
+                        "password": "{GeneralUtilities.escape_json_string_value(self.password)}"
+                    }}
+"""
+        return result
+
+
+class VSCodeWorkspaceMongoDBConnection:
+    name:str
+    connection_string:str
+
+    def __init__(self,name:str,connection_string:str):
+        GeneralUtilities.assert_not_null(name,"name")
+        self.name=name
+        GeneralUtilities.assert_not_null(connection_string,"connection_string")
+        self.connection_string=connection_string
+
+    def serialize_for_vscode(self)->str:
+        result=f"""                    {{
+                        "name": "{GeneralUtilities.escape_json_string_value(self.name)}",
+                        "connectionString": "{GeneralUtilities.escape_json_string_value(self.connection_string)}"
+                    }}
+"""
+        return result
+    
 class ScriptCollectionCore:
 
     # The purpose of this property is to use it when testing your code which uses scriptcollection for external program-calls.
@@ -2810,3 +2920,63 @@ OCR-content:
 
         languages=list(languages)
         return languages
+
+    @GeneralUtilities.check_arguments
+    def parse_tasks_from_codeworkspace_file(self,code_workspace_file:str)->list[VSCodeWorkspaceShellTask]:
+        result=[]
+        jsoncontent = json.loads(GeneralUtilities.read_text_from_file(code_workspace_file))
+        tasks = jsoncontent["tasks"]["tasks"]
+        for task in tasks:
+            if task["type"] == "shell":
+                label: str = task["label"]
+                name: str = GeneralUtilities.to_pascal_case(label)
+                command:str= task["command"]
+                work_dir:str = None
+
+                if "options" in task:
+                    options = task["options"]
+                    if "cwd" in options:
+                        work_dir = options["cwd"]
+                        work_dir = work_dir.replace("${workspaceFolder}", ".")
+
+                command_with_args = command
+                if "args" in task:
+                    args = task["args"]
+                    if len(args) > 1:
+                        command_with_args = f"{command_with_args} {' '.join(args)}"
+
+                description: str =None
+                if "description" in task:
+                    description =  f'{label} ({task["description"]})'
+                else:
+                    description =  label
+
+
+                alias_list:list[str]=[]
+                name_lower=name.lower()
+                if name!=name.lower():
+                    alias_list.append(name_lower)
+
+                if "aliases" in task:
+                    aliases = task["aliases"]
+                    for alias in aliases:
+                        alias_list.append(alias)
+
+                allow_custom_arguments:bool=False
+                if "allowcustomarguments" in task:
+                    allow_custom_arguments = task["allowcustomarguments"]
+
+                result.append(VSCodeWorkspaceShellTask(name, description, work_dir, command_with_args, alias_list, allow_custom_arguments))
+        return result
+
+    @GeneralUtilities.check_arguments
+    def parse_mongodbconnection_from_codeworkspace_file(self,code_workspace_file:str)->list[VSCodeWorkspaceMongoDBConnection]:
+        result=[]
+        #TODO
+        return result
+
+    @GeneralUtilities.check_arguments
+    def parse_sqlconnection_from_codeworkspace_file(self,code_workspace_file:str)->list[VSCodeWorkspaceMariaDBConnection]:
+        result=[]
+        #TODO
+        return result

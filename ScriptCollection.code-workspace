@@ -10,36 +10,39 @@
 		"tasks": [
 			{
 				"label": "Base: Build all codeunits",
-				"command": "scbuildcodeunits {{.CLI_ARGS}}",
+				"command": "scbuildcodeunits",
 				"type": "shell",
 				"options": {
 					"cwd": "${workspaceFolder}"
 				},
 				"aliases": [
 					"bb"
-				]
+				],
+				"allowcustomarguments": true
 			},
 			{
 				"label": "Base: Build all codeunits containerized",
-				"command": "scbuildcodeunitsc {{.CLI_ARGS}}",
+				"command": "scbuildcodeunitsc",
 				"type": "shell",
 				"options": {
 					"cwd": "${workspaceFolder}"
 				},
 				"aliases": [
 					"bd"
-				]
+				],
+				"allowcustomarguments": true
 			},
 			{
 				"label": "Base: Update dependencies",
-				"command": "scupdatedependencies {{.CLI_ARGS}}",
+				"command": "scupdatedependencies",
 				"type": "shell",
 				"options": {
 					"cwd": "${workspaceFolder}"
 				},
 				"aliases": [
 					"bud"
-				]
+				],
+				"allowcustomarguments": true
 			}
 		]
 	},

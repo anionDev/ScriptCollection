@@ -3,6 +3,7 @@ import os
 from os import listdir
 from os.path import isfile, join, isdir
 import platform
+import json
 import inspect
 import ctypes
 import hashlib
@@ -1396,3 +1397,38 @@ class GeneralUtilities:
             res = res.joinpath(part)
         result= res.read_bytes()
         return result
+
+    @staticmethod
+    @check_arguments
+    def escape_json_string_value(str_value: str) -> str:
+        """For input 'a"b\\c' this function returns 'a\\"b\\\\c'. This function does not add surrounding quotes. It only escapes the characters inside the string."""
+        json_escaped = json.dumps(str_value)
+        return json_escaped[1:-1] 
+    
+    @staticmethod
+    @check_arguments
+    def escape_json_property_value(str_value: str) -> str:
+        # remove all characters not in [a-zA-Z0-9_]
+        sanitized = re.sub(r'[^a-zA-Z0-9_]', '', str_value)
+
+        # check if result starts with [a-zA-Z_]
+        if not sanitized or len(sanitized) == 0 or not re.match(r'[a-zA-Z_]', sanitized[0]):
+            raise ValueError(f"Invalid JSON property name after sanitizing: '{sanitized}'. Value must start with [a-zA-Z_].")
+
+        return sanitized
+
+    @staticmethod
+    @check_arguments
+    def escape_yaml_string_value(str_value: str) -> str:
+        """For input 'a"b\\c' this function returns 'a\\"b\\\\c'. This function does not add surrounding quotes. It only escapes the characters inside the string."""
+        result= GeneralUtilities.escape_json_string_value(str_value)
+        #do other adaptions here if desired/required
+        return result
+
+    @staticmethod
+    @check_arguments
+    def escape_yaml_property_value(str_value: str) -> str:
+        result= GeneralUtilities.escape_json_property_value(str_value)
+        #do other adaptions here if desired/required
+        return result
+    
