@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.47"
+version = "4.2.48"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -2972,11 +2972,21 @@ OCR-content:
     @GeneralUtilities.check_arguments
     def parse_mongodbconnection_from_codeworkspace_file(self,code_workspace_file:str)->list[VSCodeWorkspaceMongoDBConnection]:
         result=[]
-        #TODO
+        jsoncontent = json.loads(GeneralUtilities.read_text_from_file(code_workspace_file))
+        settings=jsoncontent["settings"]
+        if "mdb.presetConnections" in settings:
+            connections = settings["mdb.presetConnections"]
+            for connection in connections:
+                result.append(VSCodeWorkspaceMongoDBConnection(connection["name"],connection["connectionString"]))
         return result
 
     @GeneralUtilities.check_arguments
     def parse_sqlconnection_from_codeworkspace_file(self,code_workspace_file:str)->list[VSCodeWorkspaceMariaDBConnection]:
         result=[]
-        #TODO
+        jsoncontent = json.loads(GeneralUtilities.read_text_from_file(code_workspace_file))
+        settings=jsoncontent["settings"]
+        if "sqltools.connections" in settings:
+            connections = settings["sqltools.connections"]
+            for connection in connections:
+                result.append(VSCodeWorkspaceMariaDBConnection(connection["name"],connection["server"],connection["port"],connection["database"],connection["username"],connection["password"]))
         return result
