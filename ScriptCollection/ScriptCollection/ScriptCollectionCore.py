@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.48"
+version = "4.2.49"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -2085,11 +2085,16 @@ class ScriptCollectionCore:
         pid: int
 
     @GeneralUtilities.check_arguments
+    def run_with_epew_with_retry(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  str =None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False,encode_argument_in_base64:bool=False, amount_of_attempts: int = 3, delay_in_seconds: int = 2) -> tuple[int, str, str, int]:
+        return GeneralUtilities.retry_action(lambda: self.run_with_epew(program, argument, working_directory, print_errors_as_information, log_file, timeoutInSeconds, addLogOverhead, title, log_namespace,arguments_for_log, throw_exception_if_exitcode_is_not_zero, custom_argument, interactive, print_live_output,encode_argument_in_base64), amount_of_attempts, delay_in_seconds=delay_in_seconds)
+
+    @GeneralUtilities.check_arguments
     def run_with_epew(self, program: str, argument: str = "", working_directory: str = None, print_errors_as_information: bool = False, log_file: str = None, timeoutInSeconds: int = 600, addLogOverhead: bool = False, title: str = None, log_namespace: str = "", arguments_for_log:  str =None, throw_exception_if_exitcode_is_not_zero: bool = True, custom_argument: object = None, interactive: bool = False,print_live_output:bool=False,encode_argument_in_base64:bool=False) -> tuple[int, str, str, int]:
         epew_argument:list[str]=["-p",program ,"-w", working_directory]
         if encode_argument_in_base64:
             if arguments_for_log is None:
-                arguments_for_log=epew_argument+["-a",f"\"{argument}\""]
+                argument_escaped=argument.replace("\"", "\\\"")
+                arguments_for_log=epew_argument+["-a",f"\"{argument_escaped}\""]
             base64_string = base64.b64encode(argument.encode("utf-8")).decode("utf-8")
             epew_argument=epew_argument+["-a",base64_string,"-b"]
         else:
