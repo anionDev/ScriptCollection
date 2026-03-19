@@ -281,8 +281,6 @@ class GeneralUtilities:
                     GeneralUtilities.__copy_or_move_content_of_folder(sub_folder, sub_target, overwrite_existing_files, remove_source,ignored_glob_patterms)
                     if remove_source:
                         GeneralUtilities.ensure_directory_does_not_exist(sub_folder)
-            if overwrite_existing_files:
-                GeneralUtilities.ensure_directory_does_not_exist(target_directory)#remove remaining empty directories
         else:
             raise ValueError(f"Folder '{source_directory}' does not exist")
 
