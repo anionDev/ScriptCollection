@@ -1125,6 +1125,14 @@ class TFCPS_Tools_General:
         self.__sc.run_program_argsasarray("gh", ["release", "create", f"v{projectversion}", "--repo",  github_repo, "--notes-file", changelog_file, "--title", f"Release v{projectversion}"]+artifact_files)
 
     @GeneralUtilities.check_arguments
+    def get_dependency_version_in_resources_folder(self, resources_folder:str, dependency_name: str) ->str:
+        dependency_folder = os.path.join(resources_folder, "Dependencies", dependency_name)
+        version_file = os.path.join(dependency_folder, "Version.txt")
+        if not os.path.isfile(version_file):
+            raise ValueError(f"Version-file for dependency {dependency_name} does not exist. Expected location: {version_file}")
+        return GeneralUtilities.read_text_from_file(version_file)
+
+    @GeneralUtilities.check_arguments
     def update_dependency_in_resources_folder(self, update_dependencies_file, dependency_name: str, latest_version_function: str) -> None:
         dependency_folder = GeneralUtilities.resolve_relative_path(f"../Resources/Dependencies/{dependency_name}", update_dependencies_file)
         version_file = os.path.join(dependency_folder, "Version.txt")
@@ -1279,7 +1287,6 @@ class TFCPS_Tools_General:
 """)
 
     def set_latest_version_for_clone_repository_as_resource(self,repository_folder:str, resourcename: str, github_link: str, branch: str = "main"):
-
         resrepo_commit_id_folder: str = os.path.join(repository_folder, "Other", "Resources", f"{resourcename}Version")
         resrepo_commit_id_file: str = os.path.join(resrepo_commit_id_folder, f"{resourcename}Version.txt")
         current_version: str = GeneralUtilities.read_text_from_file(resrepo_commit_id_file)

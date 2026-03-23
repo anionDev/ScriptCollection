@@ -73,8 +73,12 @@ class TFCPS_CodeUnit_BuildCodeUnit:
                 self.sc.log.log(line, LogLevel.Warning)
             for line in GeneralUtilities.string_to_lines(linting_result[2]):
                 self.sc.log.log(line, LogLevel.Warning)
+
         self.sc.log.log("Generate reference...")
-        self.sc.run_program("python", "GenerateReference.py", os.path.join(self.codeunit_folder, "Other", "Reference"), print_live_output=self.sc.log.loglevel==LogLevel.Debug)
+        try:
+            self.sc.run_program("python", "GenerateReference.py", os.path.join(self.codeunit_folder, "Other", "Reference"), print_live_output=self.sc.log.loglevel==LogLevel.Debug)
+        except Exception as e:
+            self.sc.log.log_exception(f"Generating reference failed with the following error",e, LogLevel.Warning)
         self.verify_artifact_exists(self.codeunit_folder, dict[str, bool]({"Reference": True}))
 
         if os.path.isfile(os.path.join(self.codeunit_folder, "Other", "OnBuildingFinished.py")):

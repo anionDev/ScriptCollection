@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.50"
+version = "4.2.51"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -202,7 +202,6 @@ class ScriptCollectionCore:
             GeneralUtilities.write_lines_to_file(result,["RegistryName;Username;Password"])
         return result
 
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str)->None:
         registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
         source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
