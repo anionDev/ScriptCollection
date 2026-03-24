@@ -176,14 +176,14 @@ class ScriptCollectionCore:
     def get_scriptcollection_configuration_folder(self)->str:
         user_folder = str(Path.home())
         result = os.path.join(user_folder, ".ScriptCollection")
-        result=GeneralUtilities.normaliza_path(result)
+        result=GeneralUtilities.normalize_path(result)
         GeneralUtilities.ensure_directory_exists(result)
         return result
 
     @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_global_cache_folder(self)->str:
         result = os.path.join(self.get_scriptcollection_configuration_folder(), "GlobalCache")
-        result=GeneralUtilities.normaliza_path(result)
+        result=GeneralUtilities.normalize_path(result)
         GeneralUtilities.ensure_directory_exists(result)
         return result
 
@@ -2626,52 +2626,75 @@ TXDX
         self.run_program_argsasarray("pip", ["install", "-r", filename], folder)
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
-        GeneralUtilities.write_message_to_stdout("Starting OCR analysis of folder " + folder)
+    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str], datafolder: str,base_folder_for_entry: str,ignore_pattern:list[str] ) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
         supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
         changes_files: list[str] = []
+        if base_folder_for_entry is None:
+            base_folder_for_entry=folder
         if extensions is None:
             extensions = supported_extensions
         for file in GeneralUtilities.get_direct_files_of_folder(folder):
+            if GeneralUtilities.is_ignored_by_glob_pattern(os.path.dirname(file),file,ignore_pattern):
+                continue
             file_lower = file.lower()
             for extension in extensions:
                 if file_lower.endswith("."+extension):
-                    if self.ocr_analysis_of_file(file, serviceaddress, languages):
+                    if self.ocr_analysis_of_file(file, serviceaddress, languages,datafolder,base_folder_for_entry):
                         changes_files.append(file)
                     break
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
-            for file in self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions, languages):
+            if GeneralUtilities.is_ignored_by_glob_pattern(os.path.dirname(subfolder),subfolder,ignore_pattern):
+                continue
+            for file in self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions, languages,datafolder,base_folder_for_entry+"/"+os.path.basename(subfolder), ignore_pattern):
                 changes_files.append(file)
         return changes_files
 
+
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> bool:  # Returns true if the ocr-file was generated or updated. Returns false if the existing ocr-file was not changed.
-        GeneralUtilities.write_message_to_stdout("Do OCR analysis of file " + file)
-        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp', 'gif', 'pdf', 'rtf', 'docx', 'doc', 'odt', 'xlsx', 'xls', 'ods', 'pptx', 'ppt', 'odp']
+    def __it_supported_extension(self, file: str, supported_extensions: list[str]) -> bool:
+        file_lower = file.lower()
         for extension in supported_extensions:
-            if file.lower().endswith("."+extension):
-                raise ValueError(f"Extension '{extension}' is not supported. Supported extensions are: {', '.join(supported_extensions)}")
+            if file_lower.endswith("."+extension):
+                return True
+        return False
+    
+    @GeneralUtilities.check_arguments
+    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str], datafolder: str,readable_folder_entry:str ) -> bool:  # Returns true if the ocr-file was generated or updated. Returns false if the existing ocr-file was not changed.
+        GeneralUtilities.write_message_to_stdout(f"Starting OCR analysis of file {file}...")
+        supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp', 'gif', 'pdf', 'rtf', 'docx', 'doc', 'odt', 'xlsx', 'xls', 'ods', 'pptx', 'ppt', 'odp']
+        if not self.__it_supported_extension(file, supported_extensions):
+                raise ValueError(f"File '{file}' is not supported due to unsupported extension. Supported extensions are: {', '.join(supported_extensions)}")
         target_file = file+".ocr.txt"
-        hash_of_current_file: str = GeneralUtilities. get_sha256_of_file(file)
-        if os.path.isfile(target_file):
-            lines = GeneralUtilities.read_lines_from_file(target_file)
-            previous_hash_of_current_file: str = lines[1].split(":")[1].strip()
-            if hash_of_current_file == previous_hash_of_current_file:
-                return False
-        ocr_content = self.get_ocr_content_of_file(file, serviceaddress, languages)
+        hash_of_current_file: str = GeneralUtilities.get_sha256_of_file(file)
+        try:
+            if os.path.isfile(target_file):
+                lines = GeneralUtilities.read_lines_from_file(target_file)
+                previous_hash_of_current_file: str = lines[1].split(":")[1].strip()
+                if hash_of_current_file == previous_hash_of_current_file:
+                    return False
+        except:
+            pass
+        ocr_content = self.get_ocr_content_of_file(file, serviceaddress, languages,datafolder)
         GeneralUtilities.ensure_file_exists(target_file)
-        GeneralUtilities.write_text_to_file(file, f"""Name of file: \"{os.path.basename(file)}\""
+        if readable_folder_entry is None:
+            readable_folder_entry="."
+        readable_folder_entry=readable_folder_entry.replace("\\", "/")
+        GeneralUtilities.write_text_to_file(target_file, f"""Name of file: \"{readable_folder_entry}/{os.path.basename(file)}\""
 Hash of file: {hash_of_current_file}
 OCR-content:
-\"{ocr_content}\"""")
+{ocr_content}""")
         return True
 
     @GeneralUtilities.check_arguments
-    def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> str:  # serviceaddress = None means local executable
+    def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str], datafolder: str) -> str:  # serviceaddress = None means local executable
         result: str = None
         extension = Path(file).suffix
         if serviceaddress is None:
-            program_result = self.run_program_argsasarray("simpleocr", ["--File", file, "--Languages", "+".join(languages)] + languages)
+            arguments= ["OCRAnalysis", "--File", file, "--Languages", "+".join(languages)] 
+            if datafolder is not None:
+                arguments.append("--OCRDataFolder")
+                arguments.append(datafolder)
+            program_result = self.run_program_argsasarray("simpleocrcli",arguments)
             result = program_result[1]
         else:
             languages_for_url = '%2B'.join(languages)
@@ -2684,25 +2707,9 @@ OCR-content:
         return result
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_repository(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> None:
+    def ocr_analysis_of_repository(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str], datafolder: str) -> None:
         self.assert_is_git_repository(folder)
-        changed_files = self.ocr_analysis_of_folder(folder, serviceaddress, extensions, languages)
-        for changed_ocr_file in changed_files:
-            GeneralUtilities.assert_condition(changed_ocr_file.endswith(".ocr.txt"), f"File '{changed_ocr_file}' is not an OCR-file. It should end with '.ocr.txt'.")
-            base_file = changed_ocr_file[:-len(".ocr.txt")]
-            GeneralUtilities.assert_condition(os.path.isfile(base_file), f"Base file '{base_file}' does not exist. The OCR-file '{changed_ocr_file}' is not valid.")
-            base_file_relative_path = os.path.relpath(base_file, folder)
-            base_file_diff_program_result = self.run_program("git", f"diff --quiet -- \"{base_file_relative_path}\"", folder, throw_exception_if_exitcode_is_not_zero=False)
-            has_staged_changes: bool = None
-            if base_file_diff_program_result[0] == 0:
-                has_staged_changes = False
-            elif base_file_diff_program_result[0] == 1:
-                has_staged_changes = True
-            else:
-                raise RuntimeError(f"Unexpected exit code {base_file_diff_program_result[0]} when checking for staged changes of file '{base_file_relative_path}'.")
-            if has_staged_changes:
-                changed_ocr_file_relative_path = os.path.relpath(changed_ocr_file, folder)
-                self.run_program_argsasarray("git", ["add", changed_ocr_file_relative_path], folder)
+        self.ocr_analysis_of_folder(folder, serviceaddress, extensions, languages, datafolder,".",[".git"])
 
     @GeneralUtilities.check_arguments
     def update_timestamp_in_file(self, target_file: str) -> None:
