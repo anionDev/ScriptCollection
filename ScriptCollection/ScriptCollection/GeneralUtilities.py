@@ -235,8 +235,8 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def is_ignored_by_glob_pattern(source_directory:str,path:str, ignored_glob_patterms: list[str]) -> bool:
-        source_directory=source_directory.replace("\\","/")
-        path=path.replace("\\","/")
+        source_directory=GeneralUtilities.normalize_path(source_directory)
+        path=GeneralUtilities.normalize_path(path)
         GeneralUtilities.assert_condition(path.startswith(source_directory), f"Path '{path}' is not located in source directory '{source_directory}'.")
         if ignored_glob_patterms is None:
             return False
@@ -380,7 +380,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def reconfigure_standrd_input_and_outputs():
+    def reconfigure_standard_input_and_outputs():
         sys.stdin.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
         sys.stdout.reconfigure(encoding='utf-8')
@@ -542,7 +542,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def file_ends_with_newline(file: str) -> bool:
-        file=GeneralUtilities.normaliza_path(file)
+        file=GeneralUtilities.normalize_path(file)
         with open(file, "rb") as file_object:
             return GeneralUtilities.ends_with_newline_character(file_object.read())
 
@@ -575,13 +575,13 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def append_line_to_file(file: str, line: str, encoding: str = "utf-8") -> None:
-        file=GeneralUtilities.normaliza_path(file)
+        file=GeneralUtilities.normalize_path(file)
         GeneralUtilities.append_lines_to_file(file, [line], encoding)
 
     @staticmethod
     @check_arguments
     def append_lines_to_file(file: str, lines: list[str], encoding: str = "utf-8") -> None:
-        file=GeneralUtilities.normaliza_path(file)
+        file=GeneralUtilities.normalize_path(file)
         if len(lines) == 0:
             return
         is_first_line = True
@@ -604,7 +604,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def append_to_file(file: str, content: str, encoding: str = "utf-8") -> None:
-        file=GeneralUtilities.normaliza_path(file)
+        file=GeneralUtilities.normalize_path(file)
         GeneralUtilities.assert_condition(not "\n" in content, "Appending multiple lines is not allowed. Use append_lines_to_file instead.")
         with open(file, "a", encoding=encoding) as fileObject:
             fileObject.write(content)
@@ -612,14 +612,14 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def ensure_directory_exists(path: str) -> None:
-        path=GeneralUtilities.normaliza_path(path)
+        path=GeneralUtilities.normalize_path(path)
         if not os.path.isdir(path):
             os.makedirs(path)
 
     @staticmethod
     @check_arguments
     def ensure_file_exists(path: str) -> None:
-        path=GeneralUtilities.normaliza_path(path)
+        path=GeneralUtilities.normalize_path(path)
         if (not os.path.isfile(path)):
             with open(path, "a+", encoding="utf-8"):
                 pass
@@ -786,7 +786,7 @@ class GeneralUtilities:
     @staticmethod
     @check_arguments
     def read_binary_from_file(file: str) -> bytes:
-        file=GeneralUtilities.normaliza_path(file)
+        file=GeneralUtilities.normalize_path(file)
         with open(file, "rb") as file_object:
             return file_object.read()
 
@@ -1281,7 +1281,7 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
-    def normaliza_path(path)->str:
+    def normalize_path(path)->str:
         path=str(path)
         if GeneralUtilities.current_system_is_windows():
             path=path.replace("/","\\")

@@ -282,7 +282,7 @@ def BuildCodeUnitsC() -> int:
     parser.add_argument('--ispremerge', required=False, default=False, action='store_true')
     parser.add_argument('--image', required=False, default="scbuilder:latest")
     args = parser.parse_args()
-    GeneralUtilities.reconfigure_standrd_input_and_outputs()
+    GeneralUtilities.reconfigure_standard_input_and_outputs()
     repo:str=GeneralUtilities.resolve_relative_path(args.repositoryfolder,os.getcwd())
     verbosity=LogLevel(int(args.verbosity))
     t:TFCPS_CodeUnit_BuildCodeUnits=TFCPS_CodeUnit_BuildCodeUnits(repo,verbosity,args.targetenvironment,args.additionalargumentsfile,not args.nocache,args.ispremerge) 
@@ -704,51 +704,47 @@ def ConvertGitRepositoryToBareRepository() -> int:
 def OCRAnalysisOfFolder() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--serviceaddress', required=False, default=None)
-    parser.add_argument('-e', '--extensions', required=False, default=None)
-    parser.add_argument('-l', '--languages', required=False, default="en")
+    parser.add_argument('-e', '--extensions', required=False, default="pdf,docx,jpg,png,xlsx")
+    parser.add_argument('-l', '--languages', required=False, default="eng")
     parser.add_argument('-f', '--folder', required=False, default=None)
+    parser.add_argument('-d', '--datafolder', required=False, default=None)
     args = parser.parse_args()
     sc = ScriptCollectionCore()
     if args.folder is None:
         args.folder = os.getcwd()
-    extensions_value: str = None
-    if args.extensions is not None:
-        if "," in args.extensions:
-            extensions_value = args.extensions.split(",")
-        else:
-            extensions_value = [args.extensions]
-    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions_value, args.languages)
+    languages=args.languages.split(",")
+    extensions=args.extensions.split(",")
+    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions, args.languages,args.datafolder)
     return 0
 
 
 def OCRAnalysisOfFile() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--serviceaddress', required=False, default=None)
-    parser.add_argument('-l', '--languages', required=False, default="en")
+    parser.add_argument('-l', '--languages', required=False, default="eng")
     parser.add_argument('-f', '--file', required=True)
+    parser.add_argument('-d', '--datafolder', required=False, default=None)
     args = parser.parse_args()
     sc = ScriptCollectionCore()
-    sc.ocr_analysis_of_file(args.file, args.serviceaddress, args.languages)
+    languages=args.languages.split(",")
+    sc.ocr_analysis_of_file(args.file, args.serviceaddress, languages,args.datafolder)
     return 0
 
 
 def OCRAnalysisOfRepository() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--serviceaddress', required=False, default=None)
-    parser.add_argument('-e', '--extensions', required=False, default=None)
-    parser.add_argument('-l', '--languages', required=False, default="en")
+    parser.add_argument('-e', '--extensions', required=False, default="pdf,docx,jpg,png,xlsx")
+    parser.add_argument('-l', '--languages', required=False, default="eng")
     parser.add_argument('-f', '--folder', required=False, default=None)
+    parser.add_argument('-d', '--datafolder', required=False, default=None)
     args = parser.parse_args()
     sc = ScriptCollectionCore()
     if args.folder is None:
         args.folder = os.getcwd()
-    extensions_value: str = None
-    if args.extensions is not None:
-        if "," in args.extensions:
-            extensions_value = args.extensions.split(",")
-        else:
-            extensions_value = [args.extensions]
-    sc.ocr_analysis_of_repository(args.folder, args.serviceaddress, extensions_value, args.languages)
+    languages=args.languages.split(",")
+    extensions=args.extensions.split(",")
+    sc.ocr_analysis_of_repository(args.folder, args.serviceaddress, extensions, languages,args.datafolder)
     return 0
 
 
