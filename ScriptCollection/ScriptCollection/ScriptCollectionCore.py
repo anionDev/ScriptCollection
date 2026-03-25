@@ -35,7 +35,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.52"
+version = "4.2.53"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -2663,7 +2663,7 @@ TXDX
         GeneralUtilities.write_message_to_stdout(f"Starting OCR analysis of file {file}...")
         supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp', 'gif', 'pdf', 'rtf', 'docx', 'doc', 'odt', 'xlsx', 'xls', 'ods', 'pptx', 'ppt', 'odp']
         if not self.__it_supported_extension(file, supported_extensions):
-                raise ValueError(f"File '{file}' is not supported due to unsupported extension. Supported extensions are: {', '.join(supported_extensions)}")
+            raise ValueError(f"File '{file}' is not supported due to unsupported extension. Supported extensions are: {', '.join(supported_extensions)}")
         target_file = file+".ocr.txt"
         hash_of_current_file: str = GeneralUtilities.get_sha256_of_file(file)
         try:

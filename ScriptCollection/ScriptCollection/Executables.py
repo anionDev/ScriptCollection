@@ -714,7 +714,7 @@ def OCRAnalysisOfFolder() -> int:
         args.folder = os.getcwd()
     languages=args.languages.split(",")
     extensions=args.extensions.split(",")
-    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions, args.languages,args.datafolder)
+    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions, languages,args.datafolder,args.folder,[])
     return 0
 
 
@@ -727,7 +727,7 @@ def OCRAnalysisOfFile() -> int:
     args = parser.parse_args()
     sc = ScriptCollectionCore()
     languages=args.languages.split(",")
-    sc.ocr_analysis_of_file(args.file, args.serviceaddress, languages,args.datafolder)
+    sc.ocr_analysis_of_file(args.file, args.serviceaddress, languages,args.datafolder,".")
     return 0
 
 
