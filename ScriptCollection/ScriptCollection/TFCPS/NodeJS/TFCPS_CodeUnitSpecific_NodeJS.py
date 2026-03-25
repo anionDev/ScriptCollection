@@ -48,7 +48,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         repository_folder = os.path.dirname(codeunit_folder)
 
         # run testcases
-        self._protected_sc.run_with_epew("npm", f"run test-{self.get_target_environment_type()}", self.get_codeunit_folder(),print_live_output=self._protected_sc.log.loglevel==LogLevel.Diagnostic,encode_argument_in_base64=True)
+        self._protected_sc.run_with_epew_with_retry("npm", f"run test-{self.get_target_environment_type()}", self.get_codeunit_folder(),print_live_output=self._protected_sc.log.loglevel==LogLevel.Diagnostic,encode_argument_in_base64=True)
 
         # rename file
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")

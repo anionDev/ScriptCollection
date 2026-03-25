@@ -31,7 +31,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
             args.append("--no-cache")
         args.append(".")
         codeunit_content_folder = os.path.join(codeunit_folder)
-        self._protected_sc.run_program_argsasarray("docker", args, codeunit_content_folder, print_errors_as_information=True)
+        GeneralUtilities.retry_action(lambda: self._protected_sc.run_program_argsasarray("docker", args, codeunit_content_folder, print_errors_as_information=True), 3)
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
         app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
         GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
