@@ -180,19 +180,10 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_directory_exists(result)
         return result
 
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_global_cache_folder(self)->str:
         result = os.path.join(self.get_scriptcollection_configuration_folder(), "GlobalCache")
         result=GeneralUtilities.normalize_path(result)
         GeneralUtilities.ensure_directory_exists(result)
-        return result
-
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
-    def get_global_docker_image_cache_definition_file(self)->str:
-        result=os.path.join(self.get_global_cache_folder(),"ImageCache.csv")
-        if not os.path.isfile(result):
-            GeneralUtilities.ensure_file_exists(result)
-            GeneralUtilities.write_lines_to_file(result,["ImageName;Image;UpstreamImage"])
         return result
 
     def __get_docker_registry_credentials_file(self)->str:
@@ -201,14 +192,6 @@ class ScriptCollectionCore:
             GeneralUtilities.ensure_file_exists(result)
             GeneralUtilities.write_lines_to_file(result,["RegistryName;Username;Password"])
         return result
-
-    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str)->None:
-        registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
-        source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
-        target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
-        self.run_program("docker",f"pull {source_address}")
-        self.run_program("docker",f"tag {source_address} {target_address}")
-        self.run_program("docker",f"push {target_address}")
 
     def __load_credentials_if_required_and_available(self,registry_url:str,registry_username:str,registry_password:str)->tuple[str,str]:
         if registry_url.startswith("https://"):
@@ -229,7 +212,6 @@ class ScriptCollectionCore:
             GeneralUtilities.assert_not_null(registry_username)
         return (registry_username,registry_password)
 
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         if "/" in image:
@@ -243,8 +225,19 @@ class ScriptCollectionCore:
         images = data.get("repositories", [])
         result=image in images
         return result
+    
+    @GeneralUtilities.check_arguments
+    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str,remove_locally_in_the_end:bool)->None:
+        registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
+        source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
+        target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
+        self.run_program("docker",f"pull {source_address}")
+        self.run_program("docker",f"tag {source_address} {target_address}")
+        self.run_program("docker",f"push {target_address}")
+        if remove_locally_in_the_end:
+            self.run_program("docker",f"rmi {source_address}")
+            self.run_program("docker",f"rmi {target_address}")
 
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_tags_of_images_from_registry(self,registry_base_url:str,image:str,registry_username:str,registry_password:str)->list[str]:
         """registry_base_url must be in the format 'https://myregistry.example.com'
         This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
@@ -261,7 +254,6 @@ class ScriptCollectionCore:
         tags = data.get("tags", [])
         return tags
     
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_url,registry_username,registry_password)
@@ -273,48 +265,7 @@ class ScriptCollectionCore:
         else:
             result = tag in tags 
             return result
-
-    default_fallback_docker_registry:str="docker.io/library"
-
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
-    def custom_registry_for_image_is_defined(self,image:str)->bool:
-        """This function assumes that the custom registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
-        if "/" in image:
-            image=image.rsplit("/", 1)[-1]
-        GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
-        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
-        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
-            imagename=line[0]
-            if imagename==image:
-                return True
-        return False
-
-
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
-    def get_image_with_registry_for_docker_image(self,image:str,tag:str,fallback_registry:str)->str:
-        """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry ) and that the fallback-registry is available without authentication"""
-        tag_with_colon:str=None
-        if tag is None:
-            tag_with_colon=""
-        else:
-            tag_with_colon=":"+tag
-        if "/" in image:
-            image=image.rsplit("/", 1)[-1]
-        GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
-        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
-        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
-            imagename=line[0]
-            imagelink=line[1]#image with custom upstream link, for example "myownregistry1.example.com/debian"
-            upstreamImage=line[2]#pylint:disable=unused-variable
-            if imagename.lower()==image:
-                result = imagelink+tag_with_colon
-                return result
-        if fallback_registry is None:
-            raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)
-        else:
-            self.log.log(f"Using fallback-registry for image \"{image}\". See https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/UsingCustomImageRegistry.md for information about how to setup a fallback-registry.",LogLevel.Warning)
-            return f"{fallback_registry}/{tag_with_colon}"
-
+        
     @GeneralUtilities.check_arguments
     def python_file_has_errors(self, file: str, working_directory: str, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
         errors = list()

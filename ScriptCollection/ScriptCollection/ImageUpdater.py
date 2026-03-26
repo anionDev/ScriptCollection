@@ -10,6 +10,7 @@ from .GeneralUtilities import GeneralUtilities,VersionEcholon
 from .ScriptCollectionCore import ScriptCollectionCore
 
 
+@GeneralUtilities.deprecated("Use OCIImageManager instead.")
 class ImageUpdaterHelper:
 
     @staticmethod
@@ -689,6 +690,7 @@ class ConcreteImageUpdaterForGenericV(ConcreteImageUpdater):
 
 
 
+@GeneralUtilities.deprecated("Use OCIImageManager instead.")
 class ImageUpdater:
 
     updater: list[ConcreteImageUpdater] = None
@@ -858,3 +860,4 @@ class ImageUpdater:
             services = compose_data.get('services', {})
             result = list(services.keys())
             return result
+    
