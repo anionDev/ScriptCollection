@@ -912,3 +912,17 @@ def AddImageToCustomRegistry()->int:
     sc.log.loglevel=LogLevel(verbosity)
     sc.add_image_to_custom_docker_image_registry(args.remotehub,args.imagenameonremotehub,args.ownregistryaddress,args.imagenameonownregistry,args.tag,args.username,args.password)
     return 0
+
+def SyncXlfFiles()->int:
+    parser = argparse.ArgumentParser(description="This function syncs the content of xlf-files in a folder. This is useful to keep the content of xlf-files in sync which are used for translations in software projects.")
+    parser.add_argument('-p', '--prefix',  required=True, help="File prefix. Example: 'message' when the files are named 'message.xlf', 'message.fr.xlf', etc.")
+    parser.add_argument('-l', '--languages',  required=True, help="Comma-separated list of languages. Example: 'en,fr,de'")
+    parser.add_argument('-f', '--folder',  required=False)
+    args = parser.parse_args()
+    sc:ScriptCollectionCore=ScriptCollectionCore()
+    languages=args.languages.split(",")
+    file_prefix
+    folder=GeneralUtilities.resolve_relative_path(args.folder, os.getcwd())
+    files=[f for f in GeneralUtilities.get_direct_files_of_folder(folder) if f.endswith(".xlf")]
+    sc.sync_xlf_files(files)
+    return 0

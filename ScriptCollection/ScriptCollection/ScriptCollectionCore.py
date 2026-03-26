@@ -7,6 +7,7 @@ import multiprocessing
 import time
 from io import BytesIO
 import itertools
+import copy
 import zipfile
 import math
 import base64
@@ -3001,3 +3002,146 @@ OCR-content:
             for connection in connections:
                 result.append(VSCodeWorkspaceMariaDBConnection(connection["name"],connection["server"],connection["port"],connection["database"],connection["username"],connection["password"]))
         return result
+
+    @GeneralUtilities.check_arguments
+    def is_xliff2_file(self,file:str)->bool:
+        tree = ET.parse(file)
+        root = tree.getroot()
+        qname = ET.QName(root)
+        localname = qname.localname
+        namespace = qname.namespace
+        if localname != "xliff":
+            return False
+        if namespace != "urn:oasis:names:tc:xliff:document:2.0":
+            return False
+        if root.get("version") != "2.0":
+            return False
+        return True
+
+    @GeneralUtilities.check_arguments
+    def __sync_xlf2_files(self,base_file:ET.ElementTree, language_files:dict [
+        str,#filepath
+        ET.ElementTree#parsed file
+        ]):
+        """This function assumes that all files are valid xliff2 files and that the base file is the reference for syncing.
+        This function adds new entries from the base file to the language files if they do not already exist using the value from base_file.
+        This function removes entries from the language files if they do not exist in the base file anymore.
+        In the end the updated language files are written to the disk. The base file is not changed."""
+        #The file which was parsed looks like:
+        #<?xml version="1.0" encoding="UTF-8" ?>
+        #<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en">
+        #  <file id="ngi18n" original="ng.template">
+        #    <unit id="logingreeting">
+        #      <notes>
+        #        <note category="location">src/app/modules/home-page/login-form/login-form.component.html:2,4</note>
+        #      </notes>
+        #      <segment>
+        #        <source>Welcome back, please login</source>
+        #      </segment>
+        #    </unit>
+        #    <unit id="username">
+        #      <notes>
+        #        <note category="location">src/app/modules/home-page/login-form/login-form.component.html:5,6</note>
+        #      </notes>
+        #      <segment>
+        #        <source>Username</source>
+        #      </segment>
+        #    </unit>
+        #    <unit id="password">
+        #      <notes>
+        #        <note category="location">src/app/modules/home-page/login-form/login-form.component.html:12,13</note>
+        #      </notes>
+        #      <segment>
+        #        <source>Password</source>
+        #      </segment>
+        #    </unit>
+        #  </file>
+        #</xliff>
+
+        NS = "urn:oasis:names:tc:xliff:document:2.0"
+        NSMAP = {"x": NS}
+        base_root = base_file.getroot()
+        base_file_element = base_root.find("x:file", namespaces=NSMAP)
+        if base_file_element is None:
+            raise ValueError("Invalid XLIFF base file: <file> element not found")
+
+        # Collect base units
+        base_units = {
+            unit.get("id"): unit
+            for unit in base_file_element.findall("x:unit", namespaces=NSMAP)
+        }
+        base_ids = set(base_units.keys())
+        for filepath, lang_tree in language_files.items():
+            lang_root = lang_tree.getroot()
+            lang_file_element = lang_root.find("x:file", namespaces=NSMAP)
+            if lang_file_element is None:
+                raise ValueError(f"{filepath}: <file> element not found")
+
+            # Collect language units
+            lang_units = {
+                unit.get("id"): unit
+                for unit in lang_file_element.findall("x:unit", namespaces=NSMAP)
+            }
+            lang_ids = set(lang_units.keys())
+
+            # Remove obsolete units
+            obsolete_ids = lang_ids - base_ids
+            for unit_id in obsolete_ids:
+                lang_file_element.remove(lang_units[unit_id])
+
+            # Add missing units
+            missing_ids = base_ids - lang_ids
+            for unit_id in missing_ids:
+                new_unit = copy.deepcopy(base_units[unit_id])
+                lang_file_element.append(new_unit)
+
+            # Reorder units to match base order
+            current_units = {
+                unit.get("id"): unit
+                for unit in lang_file_element.findall("x:unit", namespaces=NSMAP)
+            }
+            for unit in list(lang_file_element.findall("x:unit", namespaces=NSMAP)):
+                lang_file_element.remove(unit)
+            for unit_id in base_units.keys():
+                if unit_id in current_units:
+                    lang_file_element.append(current_units[unit_id])
+
+            # Write file back to disk
+            Path(filepath).write_bytes(
+                ET.tostring(
+                    lang_tree,
+                    pretty_print=True,
+                    xml_declaration=True,
+                    encoding="UTF-8"
+                )
+            )
+
+    @GeneralUtilities.check_arguments
+    def sync_xlf2_files(self,prefix:str, languages:list[str], folder:str):
+        #languages=["de", "fr"] for example. the default-language (usually english) must not be included.
+        base_file=os.path.join(folder, f"{prefix}.xlf")
+        base_file_xml:ET.ElementTree=ET.parse(base_file)
+        GeneralUtilities.assert_condition(self.is_xliff2_file(base_file), f"The base file '{base_file}' is not a valid XLIFF 2.0 file.")
+        GeneralUtilities.assert_file_exists(base_file)
+        if len(languages)==0:
+            raise ValueError("No files provided for syncing.")
+        if len(languages)==1:
+            return
+        language_files_list=[os.path.join(folder, f"{prefix}.{language}.xlf") for language in languages]
+        language_files_with_content:dict[str,ET.ElementTree]=dict()
+        not_existing_files:list[str]=[]
+        for language_file in language_files_list:
+            if os.path.isfile(language_file):
+                GeneralUtilities.assert_condition(self.is_xliff2_file(base_file), f"The base file '{base_file}' is not a valid XLIFF 2.0 file.")
+                language_files_with_content[language_file]=ET.parse(language_file)
+            else:
+                not_existing_files.append(language_file)
+
+        #create not existing files
+        for not_existing_file in not_existing_files:
+            GeneralUtilities.ensure_directory_exists(os.path.dirname(not_existing_file))
+            GeneralUtilities.ensure_file_exists(not_existing_file)
+            GeneralUtilities.write_text_to_file(not_existing_file, GeneralUtilities.read_text_from_file(base_file))
+        
+        #sync existing files
+        self.__sync_xlf2_files(base_file_xml, language_files_with_content)
