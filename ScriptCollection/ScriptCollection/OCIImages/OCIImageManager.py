@@ -52,30 +52,20 @@ class OCIImageManager:
             result.append(line[0])
         return result
 
-    def custom_registry_is_defined(self,image_name:str)->str: 
+    def custom_registry_is_defined(self,image_name:str)->bool:
         global_docker_image_registries_file=self.get_global_docker_image_registries_file()
         for line in  GeneralUtilities.read_nonempty_lines_from_file(global_docker_image_registries_file)[1:]:
             splitted_line=line.split(";")
             if image_name==splitted_line[0]:
-                GeneralUtilities.assert_condition( GeneralUtilities.string_has_content(splitted_line[1]),f"No registry defined for image {image_name}.")
+                GeneralUtilities.assert_condition(GeneralUtilities.string_has_content(splitted_line[1]),f"No registry defined for image {image_name}.")
                 return True
         return False
 
-    def get_default_tag(self,repository:str,image_name:str,strict_mode:bool)->str:
-        """this functions returns a string like "17.7" or "latest"."""
-        if self.custom_registry_is_defined(image_name):
-            repository_image_definition_file=self.get_repository_image_definition_file(repository)
-            for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(repository_image_definition_file)[1:]]:
-                if image_name==line[0]:
-                    GeneralUtilities.assert_condition( GeneralUtilities.string_has_content(line[2]),f"No default-tag defined for image {image_name}.")
-                    return line[2]
-        else:
-            if strict_mode:
-                raise ValueError(f"No default-tag is defined for image \"{image_name}\".")
-            else:
-                return "latest"
-
-        raise ValueError(f"No registry defined for image \"{image_name}\".")
+    def get_tag_for_image(self,repository:str,image_name:str,strict_mode:bool)->str:
+        repository_image_definition_file=self.get_repository_image_definition_file(repository)
+        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(repository_image_definition_file)[1:]]:
+            if image_name==line[0]:
+                return line[2]
 
     def get_registry_address_for_image(self,repository:str,image_name:str)->str:
         """if image_name==Debian this function returns something like "myregistry.example.com/debian", always without tag."""
@@ -95,7 +85,7 @@ class OCIImageManager:
         raise ValueError(f"No registry defined for image \"{image_name}\".")
 
     def get_registry_address_for_image_with_default_tag(self,repository:str,image_name:str,strict_mode:bool=True)->str:
-        return f"{self.get_registry_address_for_image(repository,image_name)}:{self.get_default_tag(repository,image_name,strict_mode)}"
+        return f"{self.get_registry_address_for_image(repository,image_name)}:{self.get_tag_for_image(repository,image_name,strict_mode)}"
 
     def update_default_tag_for_image(self,repository:str,image_name:str,echolon:VersionEcholon,search_in_custom_registry_only_if_available:bool)->None:
         pass#TODO update in ImageDefinition.csv using get_available_versions_of_image_which_are_newer
@@ -116,4 +106,4 @@ class OCIImageManager:
         """registry_address must have one of theese formats: "myregistry.example.com/debian" or "docker.io/debian" or "docker.io/myuser/debian".
         returns something like "13.3-slim".
         If there are multiple tags available for a certain version then the image-handler decides which one will be returned."""
-        return self.get_image_handler(image_name).version_to_tag(image_name,registry_address,version)# 
+        return self.get_image_handler(image_name).version_to_tag(image_name,registry_address,version)

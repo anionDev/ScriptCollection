@@ -10,7 +10,7 @@ class AbstractImageHandler(ABC):
     
     def _protected_get_credentials_for_registry(self,registry_address:str,username_str:str)->tuple[str,str]:
         """return (username, password) for basic auth.
-        Data will be taken from "~/.scriptcollection/GlobalCache/RegistryCredentials.csv" if available.
+        Data will be taken from "~/.ScriptCollection/GlobalCache/RegistryCredentials.csv" if available.
         If no credentials are available then None will be returned for the missing values."""
         raise NotImplementedError()
     

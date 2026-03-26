@@ -21,8 +21,9 @@ class CertificateUpdater:
     __log_folder: str = None
     __sc: ScriptCollectionCore = None
     __arguments: ScriptCollectionCore = None
+    __certbot_image_address_with_tag:str=None
 
-    def __init__(self, domains: list[str], email: str, current_file: str, arguments: list[str]):
+    def __init__(self, domains: list[str], email: str, current_file: str, arguments: list[str],certbot_image_address_with_tag:str=None):
         self.__sc = ScriptCollectionCore()
         self.maximal_age_of_certificates_in_days = 15
         self.__domains = domains
@@ -36,6 +37,9 @@ class CertificateUpdater:
         self.__letsencrypt_live_folder = os.path.join(self.__letsencrypt_folder, "live")
         self.__letsencrypt_archive_folder = os.path.join(self.__letsencrypt_folder, "archive")
         self.__log_folder = GeneralUtilities.resolve_relative_path("Logs/Overhead", self.__repository_folder)
+        if certbot_image_address_with_tag is None:
+            certbot_image_address_with_tag="docker.io/certbot/certbot:latest"
+        self.__certbot_image_address_with_tag=certbot_image_address_with_tag
 
     @GeneralUtilities.check_arguments
     def __get_latest_index_by_domain(self, domain: str) -> int:
@@ -102,7 +106,7 @@ class CertificateUpdater:
                 else:
                     GeneralUtilities.write_message_to_stdout(f"Create certificate for domain {domain}")
                 dockerargument = f"run --rm --name {certbot_container_name} --volume {self.__letsencrypt_folder}:/etc/letsencrypt"
-                dockerargument = dockerargument + f" --volume {self.__log_folder}:/var/log/letsencrypt -p 80:80 "+"docker.io/certbot/certbot"#TODO make this replaceable
+                dockerargument = dockerargument + f" --volume {self.__log_folder}:/var/log/letsencrypt -p 80:80 "+self.__certbot_image_address_with_tag
                 certbotargument = f"--standalone --email {self.__email} --agree-tos --force-renewal --rsa-key-size 4096 --non-interactive --no-eff-email --domain {domain}"
                 if (certificate_for_domain_already_exists):
                     self.__sc.run_program("docker", f"{dockerargument} certonly --no-random-sleep-on-renew {certbotargument}", self.__current_folder)
@@ -113,13 +117,6 @@ class CertificateUpdater:
             except Exception as exception:
                 error_occurred = True
                 GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, "Error while updating certificate")
-            finally:
-                enabled=False#disabled because docker run has now the --rm argument
-                if enabled:
-                    try:
-                        self.__sc.run_program("docker", f"container rm {certbot_container_name}", self.__current_folder, throw_exception_if_exitcode_is_not_zero=True)
-                    except Exception as exception:
-                        GeneralUtilities.write_exception_to_stderr_with_traceback(exception, traceback, "Error while removing container")
         self.__sc.git_commit(self.__repository_folder, "Executed certificate-update-process")
         GeneralUtilities.write_message_to_stdout("Finished certificate-update-process")
         if error_occurred:
