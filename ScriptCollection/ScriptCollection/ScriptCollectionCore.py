@@ -7,6 +7,7 @@ import multiprocessing
 import time
 from io import BytesIO
 import itertools
+import copy
 import zipfile
 import math
 import base64
@@ -35,7 +36,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.52"
+version = "4.2.53"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -180,19 +181,10 @@ class ScriptCollectionCore:
         GeneralUtilities.ensure_directory_exists(result)
         return result
 
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_global_cache_folder(self)->str:
         result = os.path.join(self.get_scriptcollection_configuration_folder(), "GlobalCache")
         result=GeneralUtilities.normalize_path(result)
         GeneralUtilities.ensure_directory_exists(result)
-        return result
-
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
-    def get_global_docker_image_cache_definition_file(self)->str:
-        result=os.path.join(self.get_global_cache_folder(),"ImageCache.csv")
-        if not os.path.isfile(result):
-            GeneralUtilities.ensure_file_exists(result)
-            GeneralUtilities.write_lines_to_file(result,["ImageName;Image;UpstreamImage"])
         return result
 
     def __get_docker_registry_credentials_file(self)->str:
@@ -201,14 +193,6 @@ class ScriptCollectionCore:
             GeneralUtilities.ensure_file_exists(result)
             GeneralUtilities.write_lines_to_file(result,["RegistryName;Username;Password"])
         return result
-
-    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str)->None:
-        registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
-        source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
-        target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
-        self.run_program("docker",f"pull {source_address}")
-        self.run_program("docker",f"tag {source_address} {target_address}")
-        self.run_program("docker",f"push {target_address}")
 
     def __load_credentials_if_required_and_available(self,registry_url:str,registry_username:str,registry_password:str)->tuple[str,str]:
         if registry_url.startswith("https://"):
@@ -229,7 +213,6 @@ class ScriptCollectionCore:
             GeneralUtilities.assert_not_null(registry_username)
         return (registry_username,registry_password)
 
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         if "/" in image:
@@ -243,8 +226,19 @@ class ScriptCollectionCore:
         images = data.get("repositories", [])
         result=image in images
         return result
+    
+    @GeneralUtilities.check_arguments
+    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str,remove_locally_in_the_end:bool)->None:
+        registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
+        source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
+        target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
+        self.run_program("docker",f"pull {source_address}")
+        self.run_program("docker",f"tag {source_address} {target_address}")
+        self.run_program("docker",f"push {target_address}")
+        if remove_locally_in_the_end:
+            self.run_program("docker",f"rmi {source_address}")
+            self.run_program("docker",f"rmi {target_address}")
 
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def get_tags_of_images_from_registry(self,registry_base_url:str,image:str,registry_username:str,registry_password:str)->list[str]:
         """registry_base_url must be in the format 'https://myregistry.example.com'
         This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
@@ -261,7 +255,6 @@ class ScriptCollectionCore:
         tags = data.get("tags", [])
         return tags
     
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
     def registry_contains_image_with_tag(self,registry_url:str,image:str,tag:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_url,registry_username,registry_password)
@@ -273,48 +266,7 @@ class ScriptCollectionCore:
         else:
             result = tag in tags 
             return result
-
-    default_fallback_docker_registry:str="docker.io/library"
-
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
-    def custom_registry_for_image_is_defined(self,image:str)->bool:
-        """This function assumes that the custom registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
-        if "/" in image:
-            image=image.rsplit("/", 1)[-1]
-        GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
-        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
-        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
-            imagename=line[0]
-            if imagename==image:
-                return True
-        return False
-
-
-    @GeneralUtilities.deprecated("Use OCIImageManager instead.")
-    def get_image_with_registry_for_docker_image(self,image:str,tag:str,fallback_registry:str)->str:
-        """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry ) and that the fallback-registry is available without authentication"""
-        tag_with_colon:str=None
-        if tag is None:
-            tag_with_colon=""
-        else:
-            tag_with_colon=":"+tag
-        if "/" in image:
-            image=image.rsplit("/", 1)[-1]
-        GeneralUtilities.assert_condition(not ("/" in image) and not (":" in image),f"image-definition-string \"{image}\" is invalid.")
-        docker_image_cache_definition_file=self.get_global_docker_image_cache_definition_file()
-        for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(docker_image_cache_definition_file)[1:]]:
-            imagename=line[0]
-            imagelink=line[1]#image with custom upstream link, for example "myownregistry1.example.com/debian"
-            upstreamImage=line[2]#pylint:disable=unused-variable
-            if imagename.lower()==image:
-                result = imagelink+tag_with_colon
-                return result
-        if fallback_registry is None:
-            raise ValueError(f"For image \"{image}\" no cache-registry and no default-registry is defined.",LogLevel.Warning)
-        else:
-            self.log.log(f"Using fallback-registry for image \"{image}\". See https://github.com/anionDev/ScriptCollection/blob/main/ScriptCollection/Other/Reference/ReferenceContent/Articles/UsingCustomImageRegistry.md for information about how to setup a fallback-registry.",LogLevel.Warning)
-            return f"{fallback_registry}/{tag_with_colon}"
-
+        
     @GeneralUtilities.check_arguments
     def python_file_has_errors(self, file: str, working_directory: str, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
         errors = list()
@@ -2616,8 +2568,24 @@ TXDX
     def format_xml_file(self, file: str) -> None:
         encoding = "utf-8"
         element = ET.XML(GeneralUtilities.read_text_from_file(file, encoding))
+        def trim_texts(elem: ET.Element):
+            if elem.text:
+                elem.text = elem.text.strip()
+            if elem.tail:
+                elem.tail = elem.tail.strip()
+            for child in elem:
+                trim_texts(child)
+        trim_texts(element)
         ET.indent(element)
-        GeneralUtilities.write_text_to_file(file, ET.tostring(element, encoding="unicode"), encoding)
+        GeneralUtilities.write_text_to_file(
+            file,
+            ET.tostring(
+                element,
+                xml_declaration=True,
+                encoding="unicode"
+            ),
+            encoding
+        )
 
     @GeneralUtilities.check_arguments
     def install_requirementstxt_file(self, requirements_txt_file: str):
@@ -2663,7 +2631,7 @@ TXDX
         GeneralUtilities.write_message_to_stdout(f"Starting OCR analysis of file {file}...")
         supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp', 'gif', 'pdf', 'rtf', 'docx', 'doc', 'odt', 'xlsx', 'xls', 'ods', 'pptx', 'ppt', 'odp']
         if not self.__it_supported_extension(file, supported_extensions):
-                raise ValueError(f"File '{file}' is not supported due to unsupported extension. Supported extensions are: {', '.join(supported_extensions)}")
+            raise ValueError(f"File '{file}' is not supported due to unsupported extension. Supported extensions are: {', '.join(supported_extensions)}")
         target_file = file+".ocr.txt"
         hash_of_current_file: str = GeneralUtilities.get_sha256_of_file(file)
         try:
@@ -2739,7 +2707,7 @@ OCR-content:
                 self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
 
-    default_excluded_patterns_for_loc: list[str] = ["**.txt", "**.md", "**.svg", "**.vscode", "**/Resources/**", "**/Reference/**", ".gitignore", ".gitattributes", "Other/Metrics/**"]
+    default_excluded_patterns_for_loc: list[str] = ["**.txt", "**.md", "**.svg", "**.xlf", "**.vscode", "**/Resources/**", "**/Reference/**", ".gitignore", ".gitattributes", "Other/Metrics/**"]
 
     @GeneralUtilities.check_arguments
     def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
@@ -3001,3 +2969,157 @@ OCR-content:
             for connection in connections:
                 result.append(VSCodeWorkspaceMariaDBConnection(connection["name"],connection["server"],connection["port"],connection["database"],connection["username"],connection["password"]))
         return result
+
+    @GeneralUtilities.check_arguments
+    def is_xliff2_file(self,file: str) -> bool:
+        tree = ET.parse(file)
+        root = tree.getroot()
+
+        tag = root.tag  # "{urn:oasis:names:tc:xliff:document:2.0}xliff"
+
+        if tag.startswith("{"):
+            namespace, localname = tag[1:].split("}", 1)
+        else:
+            namespace = None
+            localname = tag
+
+        if localname != "xliff":
+            return False
+
+        if namespace != "urn:oasis:names:tc:xliff:document:2.0":
+            return False
+
+        if root.get("version") != "2.0":
+            return False
+
+        return True
+
+    @GeneralUtilities.check_arguments
+    def __sync_xlf2_files(self,base_file:ET.ElementTree, language_files:dict [
+        str,#filepath
+        ET.ElementTree#parsed file
+        ]):
+        """This function assumes that all files are valid xliff2 files and that the base file is the reference for syncing.
+        This function adds new entries from the base file to the language files if they do not already exist using the value from base_file.
+        This function removes entries from the language files if they do not exist in the base file anymore.
+        In the end the updated language files are written to the disk. The base file is not changed."""
+        #The file which was parsed looks like:
+        #<?xml version="1.0" encoding="UTF-8" ?>
+        #<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en">
+        #  <file id="ngi18n" original="ng.template">
+        #    <unit id="logingreeting">
+        #      <notes>
+        #        <note category="location">src/app/modules/home-page/login-form/login-form.component.html:2,4</note>
+        #      </notes>
+        #      <segment>
+        #        <source>Welcome back, please login</source>
+        #      </segment>
+        #    </unit>
+        #    <unit id="username">
+        #      <notes>
+        #        <note category="location">src/app/modules/home-page/login-form/login-form.component.html:5,6</note>
+        #      </notes>
+        #      <segment>
+        #        <source>Username</source>
+        #      </segment>
+        #    </unit>
+        #    <unit id="password">
+        #      <notes>
+        #        <note category="location">src/app/modules/home-page/login-form/login-form.component.html:12,13</note>
+        #      </notes>
+        #      <segment>
+        #        <source>Password</source>
+        #      </segment>
+        #    </unit>
+        #  </file>
+        #</xliff>
+
+        NS = "urn:oasis:names:tc:xliff:document:2.0"
+        NSMAP = {"x": NS}
+        base_root = base_file.getroot()
+        base_file_element = base_root.find("x:file", namespaces=NSMAP)
+        if base_file_element is None:
+            raise ValueError("Invalid XLIFF base file: <file> element not found")
+
+        # Collect base units
+        base_units = {
+            unit.get("id"): unit
+            for unit in base_file_element.findall("x:unit", namespaces=NSMAP)
+        }
+        base_ids = set(base_units.keys())
+        for filepath, lang_tree in language_files.items():
+            lang_root = lang_tree.getroot()
+            lang_file_element = lang_root.find("x:file", namespaces=NSMAP)
+            if lang_file_element is None:
+                raise ValueError(f"{filepath}: <file> element not found")
+
+            # Collect language units
+            lang_units = {
+                unit.get("id"): unit
+                for unit in lang_file_element.findall("x:unit", namespaces=NSMAP)
+            }
+            lang_ids = set(lang_units.keys())
+
+            # Remove obsolete units
+            obsolete_ids = lang_ids - base_ids
+            for unit_id in obsolete_ids:
+                lang_file_element.remove(lang_units[unit_id])
+
+            # Add missing units
+            missing_ids = base_ids - lang_ids
+            for unit_id in missing_ids:
+                new_unit = copy.deepcopy(base_units[unit_id])
+                lang_file_element.append(new_unit)
+
+            # Reorder units to match base order
+            current_units = {
+                unit.get("id"): unit
+                for unit in lang_file_element.findall("x:unit", namespaces=NSMAP)
+            }
+            for unit in list(lang_file_element.findall("x:unit", namespaces=NSMAP)):
+                lang_file_element.remove(unit)
+            for unit_id in base_units.keys():
+                if unit_id in current_units:
+                    lang_file_element.append(current_units[unit_id])
+
+            #TODO if a translation-unit has the "new"-attribute: set its value from the fallback-language. (if the culture contains a "-": e. g. take value from "de" as fallback-value for "de-AT"; or else: take value from base_file as fallback-value)
+
+            # Write file back to disk
+            ET.register_namespace("", NS)  # Ensure default namespace is declared without prefix
+            Path(filepath).write_bytes(
+                ET.tostring(
+                    lang_tree.getroot(),
+                    xml_declaration=True,
+                    encoding="UTF-8"
+                )
+            )
+            ScriptCollectionCore().format_xml_file(filepath)
+
+    @GeneralUtilities.check_arguments
+    def sync_xlf2_files(self,prefix:str, languages:list[str], folder:str):
+        #languages=["de", "fr"] for example. the default-language (usually english) must not be included.
+        base_file=os.path.join(folder, f"{prefix}.xlf")
+        base_file_xml:ET.ElementTree=ET.parse(base_file)
+        GeneralUtilities.assert_condition(self.is_xliff2_file(base_file), f"The base file '{base_file}' is not a valid XLIFF 2.0 file.")
+        GeneralUtilities.assert_file_exists(base_file)
+        if len(languages)==0:
+            raise ValueError("No files provided for syncing.")
+        if len(languages)==1:
+            return
+        language_files_list=[os.path.join(folder, f"{prefix}.{language}.xlf") for language in languages]
+        language_files_with_content:dict[str,ET.ElementTree]=dict()
+        for language_file in language_files_list:
+            GeneralUtilities.assert_file_exists(language_file)
+            GeneralUtilities.assert_condition(self.is_xliff2_file(language_file), f"The base file '{base_file}' is not a valid XLIFF 2.0 file.")
+            language_files_with_content[language_file]=ET.parse(language_file)
+
+        #sync existing files
+        self.__sync_xlf2_files(base_file_xml, language_files_with_content)
+        
+    @GeneralUtilities.check_arguments
+    def translate_messages_in_folder(self,folder:str,base_language:str, api_server:str):
+        pass#TODO for each file in folder: call self.translate(...)
+        
+    @GeneralUtilities.check_arguments
+    def translate(self,content:str, source_language:str, target_language:str,api_server:str)->str:
+        pass#TODO call libretranslate-api

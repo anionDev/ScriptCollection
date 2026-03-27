@@ -19,7 +19,7 @@ from lxml import etree
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore,VSCodeWorkspaceShellTask
 from ..SCLog import  LogLevel
-from ..ImageUpdater import ConcreteImageUpdater, ImageUpdater, VersionEcholon
+from ..OCIImages.AbstractImageHandler import AbstractImageHandler
 from ..OCIImages.OCIImageManager import OCIImageManager
 
 class TFCPS_Tools_General:
@@ -1028,20 +1028,15 @@ class TFCPS_Tools_General:
         return latest_version
 
     @GeneralUtilities.check_arguments
-    def update_images_in_example_with_default_excluded(self, codeunit_folder: str,custom_updater:list[ConcreteImageUpdater]):
+    def update_images_in_example_with_default_excluded(self, codeunit_folder: str,custom_updater:AbstractImageHandler):
         self.update_images_in_example(codeunit_folder,[],custom_updater)
 
     @GeneralUtilities.check_arguments
-    def update_images_in_example(self, codeunit_folder: str,excluded:list[str],custom_updater:list[ConcreteImageUpdater]):
+    def update_images_in_example(self, codeunit_folder: str,excluded:list[str],custom_updater:AbstractImageHandler):
         #only the version of the project itself must be updated. dependencies like postgresql or adminer for example should be updated by the usual used-image-update-mechanism
-        iu = ImageUpdater()
-        iu.add_default_mapper()
-        if custom_updater is not None:
-            for item in custom_updater:
-                iu.updater.append(item)
         dockercomposefile: str = f"{codeunit_folder}\\Other\\Reference\\ReferenceContent\\Examples\\MinimalDockerComposeFile\\docker-compose.yml"
-        iu.update_all_services_in_docker_compose_file(dockercomposefile, VersionEcholon.LatestPatchOrLatestMinor, excluded)
-        iu.check_for_newest_version(dockercomposefile, excluded)
+        GeneralUtilities.assert_file_exists(dockercomposefile)
+        #TODO update images in docker-compose files
 
     @GeneralUtilities.check_arguments
     def push_wheel_build_artifact(self, push_build_artifacts_file,  codeunitname, repository: str, apikey: str, gpg_identity: str, repository_folder_name: str,verbosity:LogLevel) -> None:
@@ -1362,7 +1357,7 @@ class TFCPS_Tools_General:
         if env_variables is None:
             env_variables={} 
         for image in self.oci_image_manager.get_used_images_in_repository(repository_folder):
-            env_variables[f"image_{image.lower()}"]=self.oci_image_manager.get_registry_address_for_image(repository_folder,image)+":"+self.oci_image_manager.get_default_tag(repository_folder,image, True)
+            env_variables[f"image_{image.lower()}"]=self.oci_image_manager.get_registry_address_for_image(repository_folder,image)+":"+self.oci_image_manager.get_tag_for_image(repository_folder,image, True)
         test_services=GeneralUtilities.get_direct_folders_of_folder(os.path.join(repository_folder,"Other","Resources","LocalTestServices"))
         if 0<len(test_services):
             self.__sc.log.log("Pull images for local test-services...")
