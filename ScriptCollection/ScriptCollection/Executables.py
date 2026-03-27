@@ -8,7 +8,6 @@ import keyboard
 from .ScriptCollectionCore import ScriptCollectionCore
 from .GeneralUtilities import GeneralUtilities
 from .SCLog import LogLevel, SCLog
-from .ImageUpdater import ImageUpdater, VersionEcholon
 from .TFCPS.TFCPS_CodeUnit_BuildCodeUnits import TFCPS_CodeUnit_BuildCodeUnits
 from .TFCPS.TFCPS_Tools_General import TFCPS_Tools_General
 
@@ -749,17 +748,7 @@ def OCRAnalysisOfRepository() -> int:
 
 
 def UpdateImagesInDockerComposeFile() -> int:
-    iu: ImageUpdater = ImageUpdater()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--file', required=False, default=None)
-    parser.add_argument('-v', '--versionecholon', required=False, default=VersionEcholon.LatestVersion.name, dest="Possible values are: " + ", ".join([e.name for e in VersionEcholon]))
-    parser.add_argument("-s", "--servicename", required=True, default=None)
-    parser.add_argument("-u", "--updatertype", required=True, default=None)
-    args = parser.parse_args()
-    if args.file is None:
-        args.file = os.path.join(os.getcwd(), "docker-compose.yml")
-    versionecholonTyped = VersionEcholon[args.versionecholon]
-    iu.update_services_in_docker_compose_file(args.file, [args.servicename], versionecholonTyped, args.updatertype)
+    #TODO use OCIImageUpdater
     return 0
 
 
@@ -906,11 +895,12 @@ def AddImageToCustomRegistry()->int:
     parser.add_argument('-p', '--password', required=False,default=None)
     verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
     parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
+    parser.add_argument('-r', '--removeimagelocally', action='store_true', default=False)
     args = parser.parse_args()
     sc:ScriptCollectionCore=ScriptCollectionCore()
     verbosity=int(args.verbosity)
     sc.log.loglevel=LogLevel(verbosity)
-    sc.add_image_to_custom_docker_image_registry(args.remotehub,args.imagenameonremotehub,args.ownregistryaddress,args.imagenameonownregistry,args.tag,args.username,args.password)
+    sc.add_image_to_custom_docker_image_registry(args.remotehub,args.imagenameonremotehub,args.ownregistryaddress,args.imagenameonownregistry,args.tag,args.username,args.password,args.removeimagelocally)
     return 0
 
 def SyncXlfFiles()->int:
@@ -920,9 +910,7 @@ def SyncXlfFiles()->int:
     parser.add_argument('-f', '--folder',  required=False)
     args = parser.parse_args()
     sc:ScriptCollectionCore=ScriptCollectionCore()
-    languages=args.languages.split(",")
-    file_prefix
+    languages=str(args.languages).split(",")
     folder=GeneralUtilities.resolve_relative_path(args.folder, os.getcwd())
-    files=[f for f in GeneralUtilities.get_direct_files_of_folder(folder) if f.endswith(".xlf")]
-    sc.sync_xlf_files(files)
+    sc.sync_xlf2_files(args.prefix, languages, folder)
     return 0

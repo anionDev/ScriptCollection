@@ -2568,8 +2568,24 @@ TXDX
     def format_xml_file(self, file: str) -> None:
         encoding = "utf-8"
         element = ET.XML(GeneralUtilities.read_text_from_file(file, encoding))
+        def trim_texts(elem: ET.Element):
+            if elem.text:
+                elem.text = elem.text.strip()
+            if elem.tail:
+                elem.tail = elem.tail.strip()
+            for child in elem:
+                trim_texts(child)
+        trim_texts(element)
         ET.indent(element)
-        GeneralUtilities.write_text_to_file(file, ET.tostring(element, encoding="unicode"), encoding)
+        GeneralUtilities.write_text_to_file(
+            file,
+            ET.tostring(
+                element,
+                xml_declaration=True,
+                encoding="unicode"
+            ),
+            encoding
+        )
 
     @GeneralUtilities.check_arguments
     def install_requirementstxt_file(self, requirements_txt_file: str):
@@ -2691,7 +2707,7 @@ OCR-content:
                 self.log.log(f"Finished action \"{name_of_task}\".", LogLevel.Information)
 
 
-    default_excluded_patterns_for_loc: list[str] = ["**.txt", "**.md", "**.svg", "**.vscode", "**/Resources/**", "**/Reference/**", ".gitignore", ".gitattributes", "Other/Metrics/**"]
+    default_excluded_patterns_for_loc: list[str] = ["**.txt", "**.md", "**.svg", "**.xlf", "**.vscode", "**/Resources/**", "**/Reference/**", ".gitignore", ".gitattributes", "Other/Metrics/**"]
 
     @GeneralUtilities.check_arguments
     def get_lines_of_code_with_default_excluded_patterns(self, repository: str) -> int:
@@ -2955,18 +2971,27 @@ OCR-content:
         return result
 
     @GeneralUtilities.check_arguments
-    def is_xliff2_file(self,file:str)->bool:
+    def is_xliff2_file(self,file: str) -> bool:
         tree = ET.parse(file)
         root = tree.getroot()
-        qname = ET.QName(root)
-        localname = qname.localname
-        namespace = qname.namespace
+
+        tag = root.tag  # "{urn:oasis:names:tc:xliff:document:2.0}xliff"
+
+        if tag.startswith("{"):
+            namespace, localname = tag[1:].split("}", 1)
+        else:
+            namespace = None
+            localname = tag
+
         if localname != "xliff":
             return False
+
         if namespace != "urn:oasis:names:tc:xliff:document:2.0":
             return False
+
         if root.get("version") != "2.0":
             return False
+
         return True
 
     @GeneralUtilities.check_arguments
@@ -3057,15 +3082,18 @@ OCR-content:
                 if unit_id in current_units:
                     lang_file_element.append(current_units[unit_id])
 
+            #TODO if a translation-unit has the "new"-attribute: set its value from the fallback-language. (if the culture contains a "-": e. g. take value from "de" as fallback-value for "de-AT"; or else: take value from base_file as fallback-value)
+
             # Write file back to disk
+            ET.register_namespace("", NS)  # Ensure default namespace is declared without prefix
             Path(filepath).write_bytes(
                 ET.tostring(
-                    lang_tree,
-                    pretty_print=True,
+                    lang_tree.getroot(),
                     xml_declaration=True,
                     encoding="UTF-8"
                 )
             )
+            ScriptCollectionCore().format_xml_file(filepath)
 
     @GeneralUtilities.check_arguments
     def sync_xlf2_files(self,prefix:str, languages:list[str], folder:str):
@@ -3080,19 +3108,18 @@ OCR-content:
             return
         language_files_list=[os.path.join(folder, f"{prefix}.{language}.xlf") for language in languages]
         language_files_with_content:dict[str,ET.ElementTree]=dict()
-        not_existing_files:list[str]=[]
         for language_file in language_files_list:
-            if os.path.isfile(language_file):
-                GeneralUtilities.assert_condition(self.is_xliff2_file(base_file), f"The base file '{base_file}' is not a valid XLIFF 2.0 file.")
-                language_files_with_content[language_file]=ET.parse(language_file)
-            else:
-                not_existing_files.append(language_file)
+            GeneralUtilities.assert_file_exists(language_file)
+            GeneralUtilities.assert_condition(self.is_xliff2_file(language_file), f"The base file '{base_file}' is not a valid XLIFF 2.0 file.")
+            language_files_with_content[language_file]=ET.parse(language_file)
 
-        #create not existing files
-        for not_existing_file in not_existing_files:
-            GeneralUtilities.ensure_directory_exists(os.path.dirname(not_existing_file))
-            GeneralUtilities.ensure_file_exists(not_existing_file)
-            GeneralUtilities.write_text_to_file(not_existing_file, GeneralUtilities.read_text_from_file(base_file))
-        
         #sync existing files
         self.__sync_xlf2_files(base_file_xml, language_files_with_content)
+        
+    @GeneralUtilities.check_arguments
+    def translate_messages_in_folder(self,folder:str,base_language:str, api_server:str):
+        pass#TODO for each file in folder: call self.translate(...)
+        
+    @GeneralUtilities.check_arguments
+    def translate(self,content:str, source_language:str, target_language:str,api_server:str)->str:
+        pass#TODO call libretranslate-api

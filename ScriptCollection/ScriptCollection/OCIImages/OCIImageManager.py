@@ -2,7 +2,7 @@ import os
 from packaging.version import Version
 from ..GeneralUtilities import GeneralUtilities
 from ..ScriptCollectionCore import ScriptCollectionCore
-from ..ImageUpdater import VersionEcholon
+from ..GeneralUtilities import VersionEcholon
 from .AbstractImageHandler import AbstractImageHandler
 from .ConcreteImageHandlers.ImageHandlerDebianSlim import ImageHandlerDebianSlim
 
@@ -66,6 +66,7 @@ class OCIImageManager:
         for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(repository_image_definition_file)[1:]]:
             if image_name==line[0]:
                 return line[2]
+        raise ValueError(f"No tag defined for image \"{image_name}\".")
 
     def get_registry_address_for_image(self,repository:str,image_name:str)->str:
         """if image_name==Debian this function returns something like "myregistry.example.com/debian", always without tag."""
@@ -81,7 +82,6 @@ class OCIImageManager:
             for line in [f.split(";") for f in GeneralUtilities.read_nonempty_lines_from_file(repository_image_definition_file)[1:]]:
                 if image_name==line[0]:
                     return line[1]
-
         raise ValueError(f"No registry defined for image \"{image_name}\".")
 
     def get_registry_address_for_image_with_default_tag(self,repository:str,image_name:str,strict_mode:bool=True)->str:

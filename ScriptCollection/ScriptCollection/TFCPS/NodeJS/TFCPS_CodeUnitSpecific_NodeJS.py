@@ -1,5 +1,8 @@
 import os
 import re
+import json
+from pathlib import Path
+import xml.etree.ElementTree as ET
 from lxml import etree
 from ...GeneralUtilities import GeneralUtilities
 from ...SCLog import  LogLevel
@@ -110,7 +113,6 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.run_with_epew("cyclonedx-npm", f"--output-format xml --output-file {relative_path_to_bom_file}", self.get_codeunit_folder(),print_live_output=self._protected_sc.log.loglevel==LogLevel.Diagnostic,encode_argument_in_base64=True)
         self._protected_sc.format_xml_file(self.get_codeunit_folder()+"/"+relative_path_to_bom_file)
 
-    
     def get_dependencies(self)->dict[str,set[str]]:
         return dict[str,set[str]]()#TODO
     
@@ -156,6 +158,53 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
     def get_available_cultures_for_angular_app(self)->None:
         return self._protected_sc.get_available_cultures_for_angular_app(self.get_codeunit_folder()+"/angular.json")
     
+    @GeneralUtilities.check_arguments
+    def __ensure_translations_exist(self,languages:list[str])->None:
+        base_file=os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations",f"messages.xlf")
+        for language in languages:
+            target_file=os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations",f"messages.{language}.xlf")
+            if not os.path.isfile(target_file):
+                GeneralUtilities.ensure_file_exists(target_file)
+                GeneralUtilities.write_text_to_file(target_file, GeneralUtilities.read_text_from_file(base_file))
+                
+                #set new attribute
+                tree = ET.parse(target_file)
+                root = tree.getroot()
+                ns_prefix = "{urn:oasis:names:tc:xliff:document:2.0}" 
+                for unit in root.findall(f".//{ns_prefix}unit"):
+                    for segment in unit.findall(f"{ns_prefix}segment"):
+                        segment.set("state", "initial")
+                tree.write(target_file, encoding="utf-8", xml_declaration=True)
+
+        angular_json_file=self.get_codeunit_folder()+"/angular.json"
+        if os.path.isfile(angular_json_file):
+            angular_json_path = Path(angular_json_file)
+            with angular_json_path.open(encoding="utf-8") as f:
+                angular_config = json.load(f)
+            project_name = "ConSurvFrontend"
+            i18n_config = angular_config["projects"][project_name]["i18n"]
+            new_locales = {
+                lang: f"Other/Resources/Translations/messages.{lang}.xlf"
+                for lang in languages
+            }
+            i18n_config.setdefault("locales", {}).update(new_locales)
+            with angular_json_path.open("w", encoding="utf-8") as f:
+                json.dump(angular_config, f, ensure_ascii=False, indent=2)
+
+    @GeneralUtilities.check_arguments
+    def organize_translations(self,languages:list[str])->None:
+        self.__ensure_translations_exist(languages)
+        self._protected_sc.run_with_epew("npm","run extract-translations",self.get_codeunit_folder())
+        self._protected_sc.sync_xlf2_files("messages",languages,os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations"))
+
+    @GeneralUtilities.check_arguments
+    def translate_safe(self)->None:
+        pass#TODO if ~/.ScriptCollection/TranslationService.txt exists: use this and call translate(...)
+    
+    @GeneralUtilities.check_arguments
+    def translate(self,api_server:str)->None:
+        pass#TODO if Other/Resources/Translations exists: call sc.translate_messages_in_folder(...)
+
 class TFCPS_CodeUnitSpecific_NodeJS_CLI:
 
     @staticmethod
