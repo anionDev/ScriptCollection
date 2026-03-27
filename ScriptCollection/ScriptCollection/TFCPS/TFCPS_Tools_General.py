@@ -1429,3 +1429,13 @@ class TFCPS_Tools_General:
         manifest_content = GeneralUtilities.replace_variable_in_string(manifest_content, "version", codeunit_version)
         manifest_content = GeneralUtilities.replace_variable_in_string(manifest_content, "sha256_hashvalue", GeneralUtilities.get_sha256_of_file(artifacts_file))
         GeneralUtilities.write_text_to_file(winget_manifest_file, manifest_content)
+
+    def try_update_basic_codeunitreference_from_examples_repository(self,codeunit_folder:str,example_codeunit_name: str):
+        source=f"https://github.com/anionDev/CommonProjectStructureExamples/blob/main/{example_codeunit_name}/Other/Reference/ReferenceContent/HowToBuild.md"
+        target=f"{codeunit_folder}/Other/Reference/ReferenceContent/HowToBuild.md"
+        pass#TODO copy source to target. replace entire content. create target-file if it does not exist. ignore any error but print a warning in that case.
+
+    def try_update_basic_repositoryreference_from_examples_repository(self,repository_folder:str):
+        source=f"https://github.com/anionDev/CommonProjectStructureExamples/blob/main/Other/Reference/RepositoryStructure.md"
+        target=f"{repository_folder}/Other/Reference/RepositoryStructure.md"
+        pass#TODO copy source to target. replace entire content. create target-file if it does not exist. ignore any error but print a warning in that case.

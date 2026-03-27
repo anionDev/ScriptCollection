@@ -72,7 +72,10 @@ class AnionBuildPlatform:
         # Added changelog entry and build to verify buildability and to update versions etc.
         if self.__configuration.lazy_mode:
             self.__sc.run_program("sccreatechangelogentry","-m Update.",repository)
-            self.__sc.run_program("task","bb",repository)
+            arguments:str="bb --"
+            if self.__configuration.verbosity == LogLevel.Debug:
+                arguments+=f" --verbosity {self.__configuration.verbosity.value}"
+            self.__sc.run_program("task",arguments,repository)
             self.__sc.git_commit(repository,"update")
 
         # Update dependencies
