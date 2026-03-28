@@ -1430,12 +1430,20 @@ class TFCPS_Tools_General:
         manifest_content = GeneralUtilities.replace_variable_in_string(manifest_content, "sha256_hashvalue", GeneralUtilities.get_sha256_of_file(artifacts_file))
         GeneralUtilities.write_text_to_file(winget_manifest_file, manifest_content)
 
+    def download_file(self,source:str,target:str):
+        GeneralUtilities.ensure_directory_exists(os.path.dirname(target))
+        GeneralUtilities.ensure_file_exists(target)
+        response = requests.get(source)
+        response.raise_for_status()
+        with open(target, "wb") as f:
+            f.write(response.content)
+
     def try_update_basic_codeunitreference_from_examples_repository(self,codeunit_folder:str,example_codeunit_name: str):
-        source=f"https://github.com/anionDev/CommonProjectStructureExamples/blob/main/{example_codeunit_name}/Other/Reference/ReferenceContent/HowToBuild.md"
+        source=f"https://raw.githubusercontent.com/anionDev/CommonProjectStructureExamples/refs/heads/main/{example_codeunit_name}/Other/Reference/ReferenceContent/HowToBuild.md"
         target=f"{codeunit_folder}/Other/Reference/ReferenceContent/HowToBuild.md"
-        pass#TODO copy source to target. replace entire content. create target-file if it does not exist. ignore any error but print a warning in that case.
+        self.download_file(source,target)   
 
     def try_update_basic_repositoryreference_from_examples_repository(self,repository_folder:str):
-        source=f"https://github.com/anionDev/CommonProjectStructureExamples/blob/main/Other/Reference/RepositoryStructure.md"
+        source=f"https://raw.githubusercontent.com/anionDev/CommonProjectStructureExamples/refs/heads/main/Other/Reference/RepositoryStructure.mdd"
         target=f"{repository_folder}/Other/Reference/RepositoryStructure.md"
-        pass#TODO copy source to target. replace entire content. create target-file if it does not exist. ignore any error but print a warning in that case.
+        self.download_file(source,target)   
