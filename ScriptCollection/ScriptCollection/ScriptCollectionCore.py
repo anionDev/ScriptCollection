@@ -37,7 +37,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.55"
+version = "4.2.56"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -3123,11 +3123,80 @@ OCR-content:
 
         #sync existing files
         self.__sync_xlf2_files(base_file_xml, language_files_with_content)
-        
+            
     @GeneralUtilities.check_arguments
-    def translate_messages_in_folder(self,folder:str,base_language:str, api_server:str):
-        pass#TODO for each file in folder: call self.translate(...)
-        
+    def translate_xlf_files_in_folder(self, folder: str, base_language: str, libre_translate_api_server: str):
+        """Translates all .xlf files directly in the given folder (non-recursive)."""
+        pattern = re.compile(r'^.+\.[a-z]{2,3}\.xlf$')
+        for filename in os.listdir(folder):
+            if not pattern.match(filename):
+                continue
+            file_path = os.path.join(folder, filename)
+            self.translate_xlf_file(file_path, base_language, libre_translate_api_server)
+
     @GeneralUtilities.check_arguments
-    def translate(self,content:str, source_language:str, target_language:str,api_server:str)->str:
-        pass#TODO call libretranslate-api
+    def translate_xlf_file(self, file: str, base_language: str, libre_translate_api_server: str):
+        """
+        Translates all segments with state='initial' in a XLIFF 2.0 file.
+        The target language is extracted from the filename (e.g. 'messages.es.xlf' -> 'es').
+        """
+        ns_uri = "urn:oasis:names:tc:xliff:document:2.0"
+        ns = {"xliff": ns_uri}
+
+        filename = os.path.basename(file)
+        parts = filename.split(".")
+        if len(parts) < 3:
+            raise ValueError(f"Cannot extract language from filename: {filename}")
+        target_language = parts[-2]
+
+        tree = ET.parse(file)
+        root = tree.getroot()
+
+        for segment in root.findall(".//xliff:segment[@state='initial']", ns):
+            source_el = segment.find("xliff:source", ns)
+            if source_el is None or not source_el.text:
+                continue
+
+            translated_text = self.translate(source_el.text, base_language, target_language, libre_translate_api_server)
+
+            target_el = segment.find("xliff:target", ns)
+            if target_el is None:
+                target_el = ET.SubElement(segment, f"{{{ns_uri}}}target")
+
+            target_el.text = translated_text
+            segment.set("state", "translated")
+
+        ET.register_namespace("", ns_uri)
+        xml_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+        with open(file, "wb") as f:
+            f.write(xml_bytes)
+
+    @GeneralUtilities.check_arguments
+    def translate(self, content: str, source_language: str, target_language: str, libre_translate_api_server: str) -> str:
+        """Translates text using the LibreTranslate API."""
+        url = f"{libre_translate_api_server.rstrip('/')}/translate"
+        if "-" in source_language:
+            source_language=source_language.split("-")[0]
+        if "-" in target_language:
+            target_language=target_language.split("-")[0]
+        payload = {
+            "q": content,
+            "source": source_language,
+            "target": target_language,
+            "format": "text"
+        }
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()["translatedText"]
+
+    @GeneralUtilities.check_arguments
+    def detect_language(self, content: str, libre_translate_api_server: str) -> str:
+        """Detects the language of the given text using the LibreTranslate API."""
+        url = f"{libre_translate_api_server.rstrip('/')}/detect"
+        payload = {"q": content}
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        results = response.json()
+        if not results:
+            raise ValueError("Language detection returned no results.")
+        return results[0]["language"]
