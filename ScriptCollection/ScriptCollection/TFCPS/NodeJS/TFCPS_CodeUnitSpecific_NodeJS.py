@@ -181,8 +181,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
             angular_json_path = Path(angular_json_file)
             with angular_json_path.open(encoding="utf-8") as f:
                 angular_config = json.load(f)
-            project_name = "ConSurvFrontend"
-            i18n_config = angular_config["projects"][project_name]["i18n"]
+            i18n_config = angular_config["projects"][self.get_codeunit_name()]["i18n"]
             new_locales = {
                 lang: f"Other/Resources/Translations/messages.{lang}.xlf"
                 for lang in languages
