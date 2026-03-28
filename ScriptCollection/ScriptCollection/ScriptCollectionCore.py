@@ -3,6 +3,7 @@ import json
 import binascii
 import filecmp
 import hashlib
+import logging
 import multiprocessing
 import time
 from io import BytesIO
@@ -2779,10 +2780,17 @@ OCR-content:
     @GeneralUtilities.check_arguments
     def generate_chart_diagram(self,source_file:str,target_file:str):
         workingfolder=os.path.dirname(source_file)
-        argument=f"{source_file} {target_file}"
+        argument=f"\"{source_file}\" \"{target_file}\""
+        loglevelMap = {
+            LogLevel.Error: "error",
+            LogLevel.Warning: "warn",
+            LogLevel.Information: "info",
+            LogLevel.Debug: "debug",
+        }
         if self.log.loglevel==LogLevel.Debug:
-            argument=f"-l debug {argument}"
-        self.run_with_epew("vl2svg",argument,workingfolder)#this uses vega-light. to use vega "vg2svg" should be used instead.
+            argument=f"-l {loglevelMap[self.log.loglevel]} {argument}"
+        self.run_with_epew("vl2svg",argument,workingfolder,encode_argument_in_base64=True)
+        #this uses vega-light. to use vega "vg2svg" should be used instead.
 
     @GeneralUtilities.check_arguments
     def inspect_container(self, container_name: str) :
