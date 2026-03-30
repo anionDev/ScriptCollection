@@ -3,7 +3,6 @@ import json
 import binascii
 import filecmp
 import hashlib
-import logging
 import multiprocessing
 import time
 from io import BytesIO
@@ -37,7 +36,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.56"
+version = "4.2.57"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -2880,7 +2879,7 @@ OCR-content:
         lines=program_result[1].split("\n")[1:]
         for line in lines:
             splitted=[item for item in line.split(' ') if GeneralUtilities.string_has_content(item)]
-            result.append(splitted[1])
+            result.append(splitted[1].replace("\n","").replace("\r","").strip())
         return result
 
     @GeneralUtilities.check_arguments
@@ -3185,7 +3184,7 @@ OCR-content:
             "target": target_language,
             "format": "text"
         }
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=30)
         response.raise_for_status()
         return response.json()["translatedText"]
 
@@ -3194,9 +3193,28 @@ OCR-content:
         """Detects the language of the given text using the LibreTranslate API."""
         url = f"{libre_translate_api_server.rstrip('/')}/detect"
         payload = {"q": content}
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=30)
         response.raise_for_status()
         results = response.json()
         if not results:
             raise ValueError("Language detection returned no results.")
         return results[0]["language"]
+
+    @GeneralUtilities.check_arguments
+    def get_all_files_in_git_repository(self,repository_folder:str,include_submodules: bool = True) -> list[str]:
+        """returns all files in a git-repository except ignored files"""
+        cmd = ["ls-files", "--cached", "--exclude-standard"]
+        if include_submodules:
+            cmd.append("--recurse-submodules")
+        output=self.run_program_argsasarray("git", cmd,repository_folder)
+        files = [ GeneralUtilities.normalize_path("./" + line) for line in output[1].splitlines()if line.strip() ]
+        return files
+
+    @GeneralUtilities.check_arguments
+    def write_file_list_for_repository(self,repository_folder:str,target_file:str="./FileList.txt") -> None:
+        if os.path.isabs(target_file):
+            target_file=GeneralUtilities.resolve_relative_path(target_file,repository_folder)
+        target_file=GeneralUtilities.normalize_path(target_file)
+        files=self.get_all_files_in_git_repository(repository_folder)
+        GeneralUtilities.ensure_file_exists(target_file)
+        GeneralUtilities.write_lines_to_file(target_file, files)

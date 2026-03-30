@@ -726,7 +726,7 @@ class TFCPS_Tools_General:
         if generate_certificate:
             self.__sc.generate_certificate_authority(ca_folder, ca_name, "DE", "SubjST", "SubjL", "SubjO", "SubjOU")
         # TODO add switch to auto-install the script if desired
-        # for windows: powershell Import-Certificate -FilePath ConSurvCA_20241121000236.crt -CertStoreLocation 'Cert:\CurrentUser\Root'
+        # for windows: powershell Import-Certificate -FilePath MyProjectCA_20241121000236.crt -CertStoreLocation 'Cert:\CurrentUser\Root'
         # for linux: (TODO)
 
     @GeneralUtilities.check_arguments
@@ -1433,7 +1433,7 @@ class TFCPS_Tools_General:
     def download_file(self,source:str,target:str):
         GeneralUtilities.ensure_directory_exists(os.path.dirname(target))
         GeneralUtilities.ensure_file_exists(target)
-        response = requests.get(source)
+        response = requests.get(source, timeout=30)
         response.raise_for_status()
         with open(target, "wb") as f:
             f.write(response.content)
