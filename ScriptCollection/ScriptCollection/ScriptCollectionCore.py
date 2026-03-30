@@ -3,7 +3,6 @@ import json
 import binascii
 import filecmp
 import hashlib
-import logging
 import multiprocessing
 import time
 from io import BytesIO
@@ -32,12 +31,12 @@ import qrcode
 import pycdlib
 import send2trash
 from pypdf import PdfReader, PdfWriter
-from ScriptCollection.GeneralUtilities import GeneralUtilities
-from ScriptCollection.ProgramRunnerBase import ProgramRunnerBase
-from ScriptCollection.ProgramRunnerPopen import ProgramRunnerPopen
-from ScriptCollection.SCLog import SCLog, LogLevel
+from .GeneralUtilities import GeneralUtilities
+from .ProgramRunnerBase import ProgramRunnerBase
+from .ProgramRunnerPopen import ProgramRunnerPopen
+from .SCLog import SCLog, LogLevel
 
-version = "4.2.56"
+version = "4.2.57"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -2880,7 +2879,7 @@ OCR-content:
         lines=program_result[1].split("\n")[1:]
         for line in lines:
             splitted=[item for item in line.split(' ') if GeneralUtilities.string_has_content(item)]
-            result.append(splitted[1])
+            result.append(splitted[1].replace("\n","").replace("\r","").strip())
         return result
 
     @GeneralUtilities.check_arguments
@@ -3185,7 +3184,7 @@ OCR-content:
             "target": target_language,
             "format": "text"
         }
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=30)
         response.raise_for_status()
         return response.json()["translatedText"]
 
@@ -3194,7 +3193,7 @@ OCR-content:
         """Detects the language of the given text using the LibreTranslate API."""
         url = f"{libre_translate_api_server.rstrip('/')}/detect"
         payload = {"q": content}
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=30)
         response.raise_for_status()
         results = response.json()
         if not results:
@@ -3219,4 +3218,3 @@ OCR-content:
         files=self.get_all_files_in_git_repository(repository_folder)
         GeneralUtilities.ensure_file_exists(target_file)
         GeneralUtilities.write_lines_to_file(target_file, files)
-    

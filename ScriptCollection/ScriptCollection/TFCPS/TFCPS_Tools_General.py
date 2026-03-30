@@ -1433,7 +1433,7 @@ class TFCPS_Tools_General:
     def download_file(self,source:str,target:str):
         GeneralUtilities.ensure_directory_exists(os.path.dirname(target))
         GeneralUtilities.ensure_file_exists(target)
-        response = requests.get(source)
+        response = requests.get(source, timeout=30)
         response.raise_for_status()
         with open(target, "wb") as f:
             f.write(response.content)
