@@ -32,10 +32,10 @@ import qrcode
 import pycdlib
 import send2trash
 from pypdf import PdfReader, PdfWriter
-from .GeneralUtilities import GeneralUtilities
-from .ProgramRunnerBase import ProgramRunnerBase
-from .ProgramRunnerPopen import ProgramRunnerPopen
-from .SCLog import SCLog, LogLevel
+from ScriptCollection.GeneralUtilities import GeneralUtilities
+from ScriptCollection.ProgramRunnerBase import ProgramRunnerBase
+from ScriptCollection.ProgramRunnerPopen import ProgramRunnerPopen
+from ScriptCollection.SCLog import SCLog, LogLevel
 
 version = "4.2.56"
 __version__ = version
@@ -3200,3 +3200,23 @@ OCR-content:
         if not results:
             raise ValueError("Language detection returned no results.")
         return results[0]["language"]
+
+    @GeneralUtilities.check_arguments
+    def get_all_files_in_git_repository(self,repository_folder:str,include_submodules: bool = True) -> list[str]:
+        """returns all files in a git-repository except ignored files"""
+        cmd = ["ls-files", "--cached", "--exclude-standard"]
+        if include_submodules:
+            cmd.append("--recurse-submodules")
+        output=self.run_program_argsasarray("git", cmd,repository_folder)
+        files = [ GeneralUtilities.normalize_path("./" + line) for line in output[1].splitlines()if line.strip() ]
+        return files
+
+    @GeneralUtilities.check_arguments
+    def write_file_list_for_repository(self,repository_folder:str,target_file:str="./FileList.txt") -> None:
+        if os.path.isabs(target_file):
+            target_file=GeneralUtilities.resolve_relative_path(target_file,repository_folder)
+        target_file=GeneralUtilities.normalize_path(target_file)
+        files=self.get_all_files_in_git_repository(repository_folder)
+        GeneralUtilities.ensure_file_exists(target_file)
+        GeneralUtilities.write_lines_to_file(target_file, files)
+    
