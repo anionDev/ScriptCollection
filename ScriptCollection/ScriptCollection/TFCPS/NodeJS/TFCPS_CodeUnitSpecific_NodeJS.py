@@ -157,7 +157,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
     @GeneralUtilities.check_arguments
     def get_available_cultures_for_angular_app(self)->None:
         return self._protected_sc.get_available_cultures_for_angular_app(self.get_codeunit_folder()+"/angular.json")
-    
+
     @GeneralUtilities.check_arguments
     def __ensure_translations_exist(self,languages:list[str])->None:
         base_file=os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations",f"messages.xlf")
@@ -166,7 +166,6 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
             if not os.path.isfile(target_file):
                 GeneralUtilities.ensure_file_exists(target_file)
                 GeneralUtilities.write_text_to_file(target_file, GeneralUtilities.read_text_from_file(base_file))
-                
                 #set new attribute
                 tree = ET.parse(target_file)
                 root = tree.getroot()
@@ -197,12 +196,22 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.sync_xlf2_files("messages",languages,os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations"))
 
     @GeneralUtilities.check_arguments
-    def translate_safe(self)->None:
-        pass#TODO if ~/.ScriptCollection/TranslationService.txt exists: use this and call translate(...)
-    
+    def translate_safe(self,base_language:str="en")->None:
+        """Translates XLF files if a translation service is configured. The translation service can be configured by creating a file at ~/.ScriptCollection/TranslationServiceProperties.txt with the content 'LibreTranslateAPI=your_api_server_url'."""
+        translationservice_file:str=self._protected_sc.get_global_cache_folder()+"/TranslationServiceProperties.txt"
+        api_server:str=None
+        if os.path.isfile(translationservice_file):
+            lines=GeneralUtilities.read_nonempty_lines_from_file(translationservice_file)
+            for line in lines:
+                if line.startswith("LibreTranslateAPI="):
+                    api_server=line.replace("LibreTranslateAPI=","").strip()
+        GeneralUtilities.assert_not_null(api_server,"No translation service configured. Please create a file at ~/.ScriptCollection/TranslationServiceProperties.txt with the content 'LibreTranslateAPI=your_api_server_url' to enable automatic translation of XLF files.")
+        self.translate(api_server,base_language)
+
     @GeneralUtilities.check_arguments
-    def translate(self,api_server:str)->None:
-        pass#TODO if Other/Resources/Translations exists: call sc.translate_messages_in_folder(...)
+    def translate(self,api_server:str,base_language:str="en")->None:
+        folder:str=os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations")
+        self._protected_sc.translate_xlf_files_in_folder(folder, base_language, api_server)
 
 class TFCPS_CodeUnitSpecific_NodeJS_CLI:
 

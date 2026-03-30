@@ -36,7 +36,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.57"
+version = "4.2.58"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -3123,6 +3123,7 @@ OCR-content:
         #sync existing files
         self.__sync_xlf2_files(base_file_xml, language_files_with_content)
             
+
     @GeneralUtilities.check_arguments
     def translate_xlf_files_in_folder(self, folder: str, base_language: str, libre_translate_api_server: str):
         """Translates all .xlf files directly in the given folder (non-recursive)."""
