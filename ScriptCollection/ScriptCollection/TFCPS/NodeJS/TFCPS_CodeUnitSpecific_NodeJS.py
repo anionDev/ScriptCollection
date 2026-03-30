@@ -192,8 +192,8 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def organize_translations(self,languages:list[str])->None:
-        self.__ensure_translations_exist(languages)
         self._protected_sc.run_with_epew("npm","run extract-translations",self.get_codeunit_folder())
+        self.__ensure_translations_exist(languages)
         self._protected_sc.sync_xlf2_files("messages",languages,os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations"))
 
     @GeneralUtilities.check_arguments
