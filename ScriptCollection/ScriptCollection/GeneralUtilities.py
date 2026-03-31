@@ -35,6 +35,12 @@ class VersionEcholon(Enum):
     LatestPatchOrLatestMinorOrNextMajor = 2
     LatestVersion = 3
 
+class Platform(Enum):
+    WindowsAMD64 = 0
+    LinuxAMD64 = 1
+    LinuxARM64 = 2
+    MacOSARM64 = 3
+
 
 class Dependency:
     dependencyname:str
@@ -1429,4 +1435,102 @@ class GeneralUtilities:
         result= GeneralUtilities.escape_json_property_value(str_value)
         #do other adaptions here if desired/required
         return result
+    
+        
+    @staticmethod
+    @check_arguments
+    def get_current_platform() -> Platform:
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+
+        if system == "windows" and machine in ("x86_64", "amd64"):
+            return Platform.WindowsAMD64
+        elif system == "linux" and machine in ("x86_64", "amd64"):
+            return Platform.LinuxAMD64
+        elif system == "linux" and machine in ("arm64", "aarch64"):
+            return Platform.LinuxARM64
+        elif system == "darwin" and machine in ("x86_64", "amd64"):
+            return Platform.MacOSARM64
+        else:
+            raise ValueError(f"Unsupported platform: {system}/{machine}")
+
+    @staticmethod
+    @check_arguments
+    def platform_to_short_str(platform_value: Platform) -> str:
+        mapping = {
+            Platform.WindowsAMD64: "win-x64",
+            Platform.LinuxAMD64:   "linux-x64",
+            Platform.LinuxARM64:   "linux-arm64",
+            Platform.MacOSARM64:   "osx-arm64",
+        }
+        return mapping[platform_value]
+    
+    @staticmethod
+    @check_arguments
+    def platform_from_short_str(platform_str: str) -> Platform:
+        mapping = {
+            "win-x64": Platform.WindowsAMD64,
+            "linux-x64":   Platform.LinuxAMD64,
+            "linux-arm64": Platform.LinuxARM64,
+            "osx-arm64":   Platform.MacOSARM64,
+        }
+        if platform_str not in mapping:
+            raise ValueError(f"Unsupported platform string: {platform_str}")
+        return mapping[platform_str]
+    
+    @staticmethod
+    @check_arguments
+    def platform_to_dash_str(platform_value: Platform) -> str:
+        mapping = {
+            Platform.WindowsAMD64: "Windows-x64",
+            Platform.LinuxAMD64:   "Linux-x64",
+            Platform.LinuxARM64:   "Linux-arm64",
+            Platform.MacOSARM64:   "MacOS-arm64",
+        }
+        return mapping[platform_value]
+
+    @staticmethod
+    @check_arguments
+    def platform_from_dash_str(platform_str: str) -> Platform:
+        mapping = {
+            "Windows-x64": Platform.WindowsAMD64,
+            "Linux-x64":   Platform.LinuxAMD64,
+            "Linux-arm64": Platform.LinuxARM64,
+            "MacOS-arm64":   Platform.MacOSARM64,
+        }
+        if platform_str not in mapping:
+            raise ValueError(f"Unsupported platform string: {platform_str}")
+        return mapping[platform_str]
+
+    @staticmethod
+    @check_arguments
+    def platform_to_docker_platform_str(platform_value: Platform) -> str:
+        mapping = {
+            Platform.WindowsAMD64: "windows/amd64",
+            Platform.LinuxAMD64:   "linux/amd64",
+            Platform.LinuxARM64:   "linux/arm64",
+            Platform.MacOSARM64:   "linux/arm64",  # macOS → linux container
+        }
+        return mapping[platform_value]
+    
+    @staticmethod
+    @check_arguments
+    def platform_to_dotnet_runtime_identifier(platform_value: Platform) -> str:
+        mapping = {
+            Platform.WindowsAMD64: "win-x64",
+            Platform.LinuxAMD64:   "linux-x64",
+            Platform.LinuxARM64:   "linux-arm64",
+            Platform.MacOSARM64:   "osx-arm64",
+        }
+        return mapping[platform_value]
+
+    @staticmethod
+    @check_arguments
+    def get_all_platforms() -> list[Platform]:
+        return [
+            Platform.WindowsAMD64, 
+            Platform.LinuxAMD64, 
+            Platform.LinuxARM64, 
+            Platform.MacOSARM64,
+        ]
     

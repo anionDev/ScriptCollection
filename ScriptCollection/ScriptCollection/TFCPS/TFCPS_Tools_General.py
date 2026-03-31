@@ -16,7 +16,7 @@ import urllib.request
 from packaging import version
 import requests
 from lxml import etree
-from ..GeneralUtilities import GeneralUtilities
+from ..GeneralUtilities import GeneralUtilities,Platform
 from ..ScriptCollectionCore import ScriptCollectionCore,VSCodeWorkspaceShellTask
 from ..SCLog import  LogLevel
 from ..OCIImages.AbstractImageHandler import AbstractImageHandler
@@ -38,7 +38,7 @@ class TFCPS_Tools_General:
         return GeneralUtilities.string_to_boolean(str(root.xpath('//cps:codeunit/@enabled', namespaces={'cps': 'https://projects.aniondev.de/PublicProjects/Common/ProjectTemplates/-/tree/main/Conventions/RepositoryStructure/CommonProjectStructure'})[0]))
 
     @GeneralUtilities.check_arguments
-    def ensure_cyclonedxcli_is_available(self, target_folder: str,enforce_update:bool) -> str:
+    def ensure_cyclonedxcli_is_available(self,enforce_update:bool) -> str:
         local_filename = "cyclonedx-cli"
         filename_on_github: str
         if GeneralUtilities.current_system_is_windows():
@@ -46,20 +46,20 @@ class TFCPS_Tools_General:
             local_filename = local_filename+".exe"
         else:
             filename_on_github = "cyclonedx-linux-x64"
-        return self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "CycloneDX", "cyclonedx-cli", "CycloneDXCLI", local_filename, lambda latest_version: filename_on_github,enforce_update=enforce_update)
+        return self.ensure_file_from_github_assets_is_available_with_retry("CycloneDX",  "cyclonedx-cli", "CycloneDXCLI",local_filename,lambda latest_version: filename_on_github,enforce_update=enforce_update)
     
     @GeneralUtilities.check_arguments
-    def ensure_file_from_github_assets_is_available_with_retry(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5,enforce_update:bool=False) -> str:
-        return GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(target_folder, githubuser, githubprojectname, resource_name, local_filename, get_filename_on_github,enforce_update), amount_of_attempts)
+    def ensure_file_from_github_assets_is_available_with_retry(self, githubuser: str, githubprojectname: str, local_resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5,enforce_update:bool=False) -> str:
+        return GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(githubuser, githubprojectname, local_resource_name, local_filename, get_filename_on_github,enforce_update), amount_of_attempts)
 
     @GeneralUtilities.check_arguments
-    def ensure_file_from_github_assets_is_available(self, target_folder: str, githubuser: str, githubprojectname: str, resource_name: str, local_filename: str, get_filename_on_github,enforce_update:bool) -> str:
+    def ensure_file_from_github_assets_is_available(self,githubuser: str, githubprojectname: str, local_resource_name: str, local_filename: str, get_filename_on_github,enforce_update:bool) -> str:
         #TODO use or remove target_folder-parameter
-        resource_folder =os.path.join( self.__sc.get_global_cache_folder(),"Tools",resource_name)
+        resource_folder =os.path.join( self.__sc.get_global_cache_folder(),"Tools",local_resource_name)
         file = f"{resource_folder}/{local_filename}"
         file_exists = os.path.isfile(file)
         if not file_exists:
-            self.__sc.log.log(f"Download Asset \"{githubuser}/{githubprojectname}: {resource_name}\" from GitHub to global cache...", LogLevel.Information)
+            self.__sc.log.log(f"Download Asset \"{githubuser}/{githubprojectname}: {local_resource_name}\" from GitHub to global cache...", LogLevel.Information)
             GeneralUtilities.ensure_folder_exists_and_is_empty(resource_folder)
             headers = { 'User-Agent': 'Mozilla/5.0'}
             self.__add_github_api_key_if_available(headers)
@@ -459,7 +459,7 @@ class TFCPS_Tools_General:
         target_original_sbom_file_relative = os.path.dirname(target_sbom_file_relative)+"/"+os.path.basename(target_sbom_file_relative)+".original.xml"
         os.rename(os.path.join(repository_folder, target_sbom_file_relative), os.path.join(repository_folder, target_original_sbom_file_relative))
 
-        cyclonedx_exe:str=self.ensure_cyclonedxcli_is_available(repository_folder,not use_cache)
+        cyclonedx_exe:str=self.ensure_cyclonedxcli_is_available(not use_cache)
         self.__sc.run_program(cyclonedx_exe, f"merge --input-files {source_sbom_file_relative} {target_original_sbom_file_relative} --output-file {target_sbom_file_relative}", repository_folder)
         GeneralUtilities.ensure_file_does_not_exist(os.path.join(repository_folder, target_original_sbom_file_relative))
         self.__sc.format_xml_file(os.path.join(repository_folder, target_sbom_file_relative))
@@ -496,21 +496,20 @@ class TFCPS_Tools_General:
     def generate_svg_files_from_plantuml_files_for_repository(self, repository_folder: str,use_cache:bool) -> None:
         self.__sc.log.log("Generate svg-files from plantuml-files...")
         self.__sc.assert_is_git_repository(repository_folder)
-        plantuml_jar_file=self.ensure_plantuml_is_available(repository_folder,not use_cache)
+        plantuml_jar_file=self.ensure_plantuml_is_available(not use_cache)
         target_folder = os.path.join(repository_folder, "Other",  "Reference")
         self.__generate_svg_files_from_plantuml(target_folder, plantuml_jar_file)
 
     @GeneralUtilities.check_arguments
     def generate_svg_files_from_plantuml_files_for_codeunit(self, codeunit_folder: str,use_cache:bool) -> None:
         self.assert_is_codeunit_folder(codeunit_folder)
-        repository_folder = os.path.dirname(codeunit_folder)
-        plantuml_jar_file=self.ensure_plantuml_is_available(repository_folder,not use_cache)
+        plantuml_jar_file=self.ensure_plantuml_is_available(not use_cache)
         target_folder = os.path.join(codeunit_folder, "Other", "Reference")
         self.__generate_svg_files_from_plantuml(target_folder, plantuml_jar_file)
 
     @GeneralUtilities.check_arguments
-    def ensure_plantuml_is_available(self, target_folder: str,enforce_update:bool) -> str:
-        return self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar",enforce_update=enforce_update)
+    def ensure_plantuml_is_available(self,enforce_update:bool) -> str:
+        return self.ensure_file_from_github_assets_is_available_with_retry("plantuml", "plantuml", "PlantUML", "plantuml.jar", lambda latest_version: "plantuml.jar",enforce_update=enforce_update)
 
     @GeneralUtilities.check_arguments
     def __generate_svg_files_from_plantuml(self, diagrams_files_folder: str, plantuml_jar_file: str) -> None:
@@ -578,7 +577,7 @@ class TFCPS_Tools_General:
             target_folder_extracted = os.path.join(self.__sc.get_global_cache_folder(),"Tools",resource_name)
             update:bool=not os.path.isdir(target_folder_extracted) or GeneralUtilities.folder_is_empty(target_folder_extracted) or enforce_update
             if update:
-                downloaded_file=self.ensure_file_from_github_assets_is_available_with_retry(target_folder_unextracted, "trufflesecurity", "trufflehog", resource_name+"_Unextracted", zip_filename, lambda latest_version: f"trufflehog_{latest_version[1:]}_{osname_in_github_asset}_amd64.tar.gz",enforce_update=enforce_update)
+                downloaded_file=self.ensure_file_from_github_assets_is_available_with_retry( "trufflesecurity", "trufflehog", resource_name+"_Unextracted", zip_filename, lambda latest_version: f"trufflehog_{latest_version[1:]}_{osname_in_github_asset}_amd64.tar.gz",enforce_update=enforce_update)
                 #TODO add option to also download arm-version
                 local_zip_file: str = downloaded_file
                 GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
@@ -639,33 +638,50 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def ensure_androidappbundletool_is_available(self, target_folder: str,enforce_update:bool) -> str:
-        return self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar",enforce_update=enforce_update)
+        return self.ensure_file_from_github_assets_is_available_with_retry( "google", "bundletool", "AndroidAppBundleTool", "bundletool.jar", lambda latest_version: f"bundletool-all-{latest_version}.jar",enforce_update=enforce_update)
 
     @GeneralUtilities.check_arguments
     def ensure_mediamtx_is_available(self, target_folder: str,enforce_update:bool) -> None:
-        def download_and_extract(osname: str, osname_in_github_asset: str, extension: str):
-            resource_name: str = f"MediaMTX_{osname}"
-            zip_filename: str = f"{resource_name}.{extension}"
+        def download_and_extract(osname: str, osname_in_github_asset: str, extension: str,architecture:Platform):
+            resource_name: str = f"MediaMTX_{GeneralUtilities.platform_to_dash_str(architecture)}"
             resource_folder: str = os.path.join(target_folder, "Other", "Resources", resource_name)
             target_folder_extracted = os.path.join(resource_folder, "MediaMTX")
             update:bool=not os.path.isdir(target_folder_extracted) or GeneralUtilities.folder_is_empty(target_folder_extracted) or enforce_update
             if update:
-                self.ensure_file_from_github_assets_is_available_with_retry(target_folder, "bluenviron", "mediamtx", resource_name, zip_filename, lambda latest_version: f"mediamtx_{latest_version}_{osname_in_github_asset}_amd64.{extension}",enforce_update=enforce_update)
-                local_zip_file: str = os.path.join(resource_folder, f"{resource_name}.{extension}")
+                platform_str:str=None
+                match architecture:
+                    case Platform.WindowsAMD64:
+                        platform_str = "windows_amd64"
+                    case Platform.LinuxARM64:
+                        platform_str = "linux_arm64"
+                    case Platform.LinuxAMD64:
+                        platform_str = "linux_amd64"
+                    case Platform.MacOSARM64:
+                        platform_str = "darwin_arm64"
+                    case _:
+                        raise ValueError(f"Unknown platform: {str(architecture)}")
+
+                resource_filename_name_remote:str=f"mediamtx_{platform_str}.{extension}"
+                resource_name_local:str=f"MediaMTCX_{platform_str}"
+                global_cache_file=os.path.join( self.__sc.get_global_cache_folder(),"Tools",resource_name_local,resource_filename_name_remote)
+                if (not os.path.isfile( global_cache_file )) or enforce_update:
+                    self.ensure_file_from_github_assets_is_available_with_retry( "bluenviron", "mediamtx", resource_name_local, resource_filename_name_remote, lambda latest_version: f"mediamtx_{latest_version}_{platform_str}.{extension}",enforce_update=enforce_update)
+                    GeneralUtilities.assert_file_exists(global_cache_file)
+                GeneralUtilities.assert_file_exists(global_cache_file)
                 GeneralUtilities.ensure_folder_exists_and_is_empty(target_folder_extracted)
                 if extension == "zip":
-                    with zipfile.ZipFile(local_zip_file, 'r') as zip_ref:
+                    with zipfile.ZipFile(global_cache_file, 'r') as zip_ref:
                         zip_ref.extractall(target_folder_extracted)
                 elif extension == "tar.gz": 
-                    with tarfile.open(local_zip_file, "r:gz") as tar:
+                    with tarfile.open(global_cache_file, "r:gz") as tar:
                         tar.extractall(path=target_folder_extracted)
                 else:
                     raise ValueError(f"Unknown extension: \"{extension}\"")
-                GeneralUtilities.ensure_file_does_not_exist(local_zip_file)
 
-        download_and_extract("Windows", "windows", "zip")
-        download_and_extract("Linux", "linux", "tar.gz")
-        download_and_extract("MacOS", "darwin", "tar.gz")
+        download_and_extract("Windows", "windows", "zip",Platform.WindowsAMD64)
+        download_and_extract("Linux", "linux", "tar.gz",Platform.LinuxAMD64)
+        download_and_extract("Linux", "linux", "tar.gz",Platform.LinuxARM64)
+        download_and_extract("MacOS", "darwin", "tar.gz",Platform.MacOSARM64)
  
     @GeneralUtilities.check_arguments
     def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None,use_cache:bool=True) -> None:
@@ -1144,9 +1160,8 @@ class TFCPS_Tools_General:
         if write_to_file:
             GeneralUtilities.write_text_to_file(version_file, latest_version_function)
 
-
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, push_readme: bool, repository_folder_name: str, remote_image_name: str = None) -> None:
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, push_readme: bool, repository_folder_name: str, remote_image_name: str = None,default_platform:Platform=None) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         filename = os.path.basename(push_artifacts_file)
         codeunitname_regex: str = "([a-zA-Z0-9]+)"
@@ -1160,27 +1175,44 @@ class TFCPS_Tools_General:
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         artifacts_folder = os.path.join(repository_folder,codeunitname, "Other", "Artifacts")
         applicationimage_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
-        image_file = self.__sc.find_file_by_extension(applicationimage_folder, "tar")
-        image_filename = os.path.basename(image_file)
         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         if remote_image_name is None:
             remote_image_name = codeunitname
-        remote_image_name = remote_image_name.lower()
-        local_image_name = codeunitname.lower()
-        remote_repo = f"{registry}/{remote_image_name}"
-        remote_image_latest = f"{remote_repo}:latest"
-        remote_image_version = f"{remote_repo}:{codeunit_version}"
-        self.__sc.log.log("Load image...")
-        self.__sc.run_program("docker", f"load --input {image_filename}", applicationimage_folder)
-        self.__sc.log.log("Tag image...")
-        self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_latest}")
-        self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{codeunit_version} {remote_image_version}")
-        self.__sc.log.log("Push image...")
-        self.__sc.run_program_with_retry("docker", f"push {remote_image_latest}")
-        self.__sc.run_program_with_retry("docker", f"push {remote_image_version}")
-        if push_readme:
-            self.__sc.run_program_with_retry("docker-pushrm", f"{remote_repo}", codeunit_folder)
 
+        def push_image(tar_file:str,tag:str,remote_image_name:str):
+            GeneralUtilities.assert_condition(tag==tag.lower(), f"Tag \"{tag}\" must be in lower-case.")
+            remote_image_name = remote_image_name.lower()
+            local_image_name = codeunitname.lower()
+            remote_repo = f"{registry}/{remote_image_name}"
+            remote_image_version = f"{remote_repo}:{tag}"
+            self.__sc.log.log("Load image...")
+            self.__sc.run_program("docker", f"load --input {tar_file}", applicationimage_folder)
+            self.__sc.log.log("Tag image...")
+            self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{tag} {remote_image_version}")
+            self.__sc.log.log("Push image...")
+            self.__sc.run_program_with_retry("docker", f"push {remote_image_version}")
+            if push_readme:
+                self.__sc.run_program_with_retry("docker-pushrm", f"{remote_repo}", codeunit_folder)
+
+        default_tar_image_file:str=None
+        for image_file in GeneralUtilities.get_direct_files_of_folder(applicationimage_folder):
+            image_filename = os.path.basename(image_file)
+            platform:Platform=self.platform_from_filename(image_filename)
+            tag=codeunit_version+"-"+GeneralUtilities.platform_to_short_str(platform).lower()
+            if platform == default_platform:
+                default_tar_image_file:str=image_file
+            push_image(image_file,tag,remote_image_name)
+        if default_tar_image_file is not None:
+            push_image(default_tar_image_file,"latest",remote_image_name)
+            push_image(default_tar_image_file,codeunit_version,remote_image_name)
+
+    @GeneralUtilities.check_arguments
+    def platform_from_filename(self,filename: str) -> Platform:
+        match = re.search(r'_([^_]+)\.tar', filename)
+        if not match:
+            raise ValueError(f"Cannot extract platform from filename: {filename}")        
+        return GeneralUtilities.platform_from_dash_str(match.group(1))
+    
     def prepare_building_codeunits(self,repository_folder:str,use_cache:bool,generate_development_certificate:bool):        
         if generate_development_certificate:
             self.ensure_certificate_authority_for_development_purposes_is_generated(repository_folder)
@@ -1207,10 +1239,14 @@ class TFCPS_Tools_General:
             self.__sc.run_program("docker", f"container rm -f {container_name}", throw_exception_if_exitcode_is_not_zero=False)
         
     @GeneralUtilities.check_arguments
-    def load_docker_image(self, oci_image_artifacts_folder:str) -> None:
-        image_filename = os.path.basename(self.__sc.find_file_by_extension(oci_image_artifacts_folder, "tar"))
-        self.__sc.log.log("Load docker-image...")
-        self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder)
+    def load_docker_image(self, oci_image_artifacts_folder:str,platform:Platform) -> None:
+        for file in GeneralUtilities.get_direct_files_of_folder(oci_image_artifacts_folder):
+            if file.endswith(f"_{GeneralUtilities.platform_to_dash_str(platform)}.tar"):
+                image_filename = file
+                self.__sc.log.log("Load docker-image...")
+                self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder)
+                return
+        raise ValueError(f"No docker-image found for platform {GeneralUtilities.platform_to_dash_str(platform)} in folder {oci_image_artifacts_folder}.")
 
     @GeneralUtilities.check_arguments
     def start_dockerfile_example(self, current_file: str,remove_old_container: bool, remove_volumes_folder: bool, env_file: str) -> None:
@@ -1225,7 +1261,7 @@ class TFCPS_Tools_General:
             self.__sc.log.log(f"Ensure container of {docker_compose_file} do not exist...")
         oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder_of_current_file)
         self.ensure_containers_are_not_running(container_names_to_remove)
-        self.load_docker_image(oci_image_artifacts_folder)
+        self.load_docker_image(oci_image_artifacts_folder,GeneralUtilities.get_current_platform())
         example_name = os.path.basename(folder_of_current_file)
         codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder_of_current_file))
         if remove_volumes_folder:
