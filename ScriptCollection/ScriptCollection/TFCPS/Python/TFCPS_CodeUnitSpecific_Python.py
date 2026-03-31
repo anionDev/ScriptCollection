@@ -23,8 +23,7 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
     def generate_bom_for_python_project(self) -> None:
         codeunit_folder: str=self.get_codeunit_folder()
         codeunitname: str=self.get_codeunit_name()
-        repository_folder = os.path.dirname(codeunit_folder) 
-        
+        repository_folder = os.path.dirname(codeunit_folder)
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(self.get_codeunit_file())
         bom_folder = "Other/Artifacts/BOM"
         bom_folder_full = os.path.join(codeunit_folder, bom_folder)
@@ -40,7 +39,7 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
 
         GeneralUtilities.ensure_file_exists(bom_file_json)
         GeneralUtilities.write_text_to_file(bom_file_json, result[1])
-        cyclonedx_exe=self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(repository_folder,not self.use_cache())
+        cyclonedx_exe=self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(not self.use_cache())
         self._protected_sc.run_program(cyclonedx_exe, f"convert --input-file ./{codeunitname}/{bom_file_relative_json} --input-format json --output-file ./{codeunitname}/{bom_file_relative_xml} --output-format xml", repository_folder)
         self._protected_sc.format_xml_file(bom_file_xml)
         GeneralUtilities.ensure_file_does_not_exist(bom_file_json)

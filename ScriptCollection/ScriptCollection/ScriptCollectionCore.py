@@ -31,12 +31,12 @@ import qrcode
 import pycdlib
 import send2trash
 from pypdf import PdfReader, PdfWriter
-from .GeneralUtilities import GeneralUtilities
+from .GeneralUtilities import GeneralUtilities,Platform
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.58"
+version = "4.2.59"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -227,17 +227,29 @@ class ScriptCollectionCore:
         result=image in images
         return result
     
+    def docker_platform_to_slug(self,platform_value: Platform) -> str:
+        if platform_value == Platform.LinuxAMD64:
+            return "linux-amd64"
+        elif platform_value == Platform.LinuxARM64:
+            return "linux-arm64"
+        raise ValueError(f"Unsupported platform: {platform_value}")
+
     @GeneralUtilities.check_arguments
-    def add_image_to_custom_docker_image_registry(self,remote_hub:str,imagename_on_remote_hub:str,own_registry_address:str,imagename_on_own_registry:str,tag:str,registry_username:str,registry_password:str,remove_locally_in_the_end:bool)->None:
-        registry_username,registry_password=self.__load_credentials_if_required_and_available(remote_hub,registry_username,registry_password)
-        source_address=f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
-        target_address=f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
-        self.run_program("docker",f"pull {source_address}")
-        self.run_program("docker",f"tag {source_address} {target_address}")
-        self.run_program("docker",f"push {target_address}")
-        if remove_locally_in_the_end:
-            self.run_program("docker",f"rmi {source_address}")
-            self.run_program("docker",f"rmi {target_address}")
+    def add_image_to_custom_docker_image_registry(
+        self,
+        remote_hub: str,
+        imagename_on_remote_hub: str,
+        own_registry_address: str,
+        imagename_on_own_registry: str,
+        tag: str,
+        registry_username: str,
+        registry_password: str,
+    ) -> None:
+        registry_username, registry_password = self.__load_credentials_if_required_and_available(remote_hub, registry_username, registry_password)
+        source_address = f"{remote_hub}/{imagename_on_remote_hub}:{tag}"
+        target_address = f"{own_registry_address}/{imagename_on_own_registry}:{tag}"
+        self.run_program("docker", f"buildx imagetools create --tag {target_address} {source_address}")#this does pull and push for each platform
+
 
     def get_tags_of_images_from_registry(self,registry_base_url:str,image:str,registry_username:str,registry_password:str)->list[str]:
         """registry_base_url must be in the format 'https://myregistry.example.com'
@@ -2870,6 +2882,7 @@ OCR-content:
         if remove_images:
             self.run_program_with_retry("docker","image prune -a -f",amount_of_attempts=amount_of_attempts)
         self.run_program_with_retry("docker","builder prune -a -f",amount_of_attempts=amount_of_attempts)
+        self.run_program_with_retry("docker","buildx prune -f",amount_of_attempts=amount_of_attempts,throw_exception_if_exitcode_is_not_zero=False) # buildx prune is not available on every machine.
         self.run_program_with_retry("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug,amount_of_attempts=amount_of_attempts)
 
     @GeneralUtilities.check_arguments
@@ -3202,9 +3215,11 @@ OCR-content:
         return results[0]["language"]
 
     @GeneralUtilities.check_arguments
-    def get_all_files_in_git_repository(self,repository_folder:str,include_submodules: bool = True) -> list[str]:
-        """returns all files in a git-repository except ignored files"""
-        cmd = ["ls-files", "--cached", "--exclude-standard"]
+    def get_all_files_in_git_repository(self,repository_folder:str,ignore_ignored_files:bool=True,include_submodules: bool = True) -> list[str]:
+        """Returns a list of all files in a git-repository."""
+        cmd = ["ls-files", "--cached"]
+        if ignore_ignored_files:
+            cmd.append("--exclude-standard")
         if include_submodules:
             cmd.append("--recurse-submodules")
         output=self.run_program_argsasarray("git", cmd,repository_folder)
@@ -3212,10 +3227,10 @@ OCR-content:
         return files
 
     @GeneralUtilities.check_arguments
-    def write_file_list_for_repository(self,repository_folder:str,target_file:str="./FileList.txt") -> None:
+    def write_file_list_for_repository(self,repository_folder:str,target_file:str="./FileList.txt",ignore_ignored_files:bool=True,include_submodules: bool = True) -> None:
         if os.path.isabs(target_file):
             target_file=GeneralUtilities.resolve_relative_path(target_file,repository_folder)
         target_file=GeneralUtilities.normalize_path(target_file)
-        files=self.get_all_files_in_git_repository(repository_folder)
+        files=self.get_all_files_in_git_repository(repository_folder,ignore_ignored_files,include_submodules)
         GeneralUtilities.ensure_file_exists(target_file)
         GeneralUtilities.write_lines_to_file(target_file, files)
