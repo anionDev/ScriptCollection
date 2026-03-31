@@ -3,7 +3,7 @@ from urllib import request
 import time
 import ssl
 from datetime import timedelta,datetime
-from ...GeneralUtilities import GeneralUtilities
+from ...GeneralUtilities import GeneralUtilities, Platform
 from ...SCLog import  LogLevel
 from ..TFCPS_CodeUnitSpecific_Base import TFCPS_CodeUnitSpecific_Base,TFCPS_CodeUnitSpecific_Base_CLI
 
@@ -13,32 +13,36 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
     def __init__(self,current_file:str,verbosity:LogLevel,targetenvironmenttype:str,use_cache:bool,is_pre_merge:bool):
         super().__init__(current_file, verbosity,targetenvironmenttype,use_cache,is_pre_merge)
 
+    
     @GeneralUtilities.check_arguments
-    def build(self,custom_arguments:dict[str,str]) -> None:
+    def build(self,platforms:list[Platform],custom_arguments:dict[str,str]) -> None:
         codeunitname: str =self.get_codeunit_name()
-        codeunit_folder =self.get_codeunit_folder() 
+        codeunit_folder =self.get_codeunit_folder()
         codeunitname_lower = codeunitname.lower()
         codeunit_file =self.get_codeunit_file()
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)
-        args = ["image", "build", "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}"]
         if custom_arguments is None:
             custom_arguments=dict[str,str]()
-        for custom_argument_key, custom_argument_value in custom_arguments.items():
-            args.append("--build-arg")
-            args.append(f"{custom_argument_key}={custom_argument_value}")
-        args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
-        if not self.use_cache():
-            args.append("--no-cache")
-        args.append(".")
-        codeunit_content_folder = os.path.join(codeunit_folder)
-        GeneralUtilities.retry_action(lambda: self._protected_sc.run_program_argsasarray("docker", args, codeunit_content_folder, print_errors_as_information=True), 3)
-        artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
-        app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
-        GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
-        GeneralUtilities.ensure_directory_exists(app_artifacts_folder)
-        self._protected_sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{codeunitversion}.tar", f"{codeunitname_lower}:{codeunitversion}"], app_artifacts_folder, print_errors_as_information=True)
-        self.copy_source_files_to_output_directory()
+        for platform in platforms:
+            #builder must be created once before with "docker buildx create --use"
+            args = ["buildx","build", "--platform",GeneralUtilities.platform_to_docker_platform_str(platform), "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}"]
+            for custom_argument_key, custom_argument_value in custom_arguments.items():
+                args.append("--build-arg")
+                args.append(f"{custom_argument_key}={custom_argument_value}")
+            args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
+            if not self.use_cache():
+                args.append("--no-cache")
+            args.append(".")
+            codeunit_content_folder = os.path.join(codeunit_folder)
+            GeneralUtilities.retry_action(lambda a=args, f=codeunit_content_folder: self._protected_sc.run_program_argsasarray("docker", a, f, print_errors_as_information=True), 3)
+            artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
+            app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
+            GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
+            GeneralUtilities.ensure_directory_exists(app_artifacts_folder)
+            
+            self._protected_sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar", f"{codeunitname_lower}:{codeunitversion}"], app_artifacts_folder, print_errors_as_information=True)
         self.__generate_sbom_for_docker_image()
+        self.copy_source_files_to_output_directory()
 
 
     @GeneralUtilities.check_arguments
@@ -93,10 +97,11 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
             timeout=timedelta(seconds=120)
         if environment_variables is None:
             environment_variables={}
+        current_platform = GeneralUtilities.get_current_platform()
         oci_image_artifacts_folder :str= GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_OCIImage", self.get_codeunit_folder())
         container_name:str=f"{self.get_codeunit_name()}finaltest".lower()
         self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
-        self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder)
+        self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder,current_platform)
         codeunit_file:str=os.path.join(self.get_codeunit_folder(),f"{self.get_codeunit_name()}.codeunit.xml")
         image=f"{self.get_codeunit_name()}:{self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)}".lower()
         argument=f"run -d --name {container_name}"

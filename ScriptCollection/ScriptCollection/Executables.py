@@ -900,7 +900,7 @@ def AddImageToCustomRegistry()->int:
     sc:ScriptCollectionCore=ScriptCollectionCore()
     verbosity=int(args.verbosity)
     sc.log.loglevel=LogLevel(verbosity)
-    sc.add_image_to_custom_docker_image_registry(args.remotehub,args.imagenameonremotehub,args.ownregistryaddress,args.imagenameonownregistry,args.tag,args.username,args.password,args.removeimagelocally)
+    sc.add_image_to_custom_docker_image_registry(args.remotehub,args.imagenameonremotehub,args.ownregistryaddress,args.imagenameonownregistry,args.tag,args.username,args.password)
     return 0
 
 def SyncXlfFiles()->int:
