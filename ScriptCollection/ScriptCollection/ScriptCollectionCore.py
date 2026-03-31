@@ -3212,10 +3212,10 @@ OCR-content:
         return files
 
     @GeneralUtilities.check_arguments
-    def write_file_list_for_repository(self,repository_folder:str,target_file:str="./FileList.txt") -> None:
+    def write_file_list_for_repository(self,repository_folder:str,target_file:str="./FileList.txt",include_submodules:bool) -> None:
         if os.path.isabs(target_file):
             target_file=GeneralUtilities.resolve_relative_path(target_file,repository_folder)
         target_file=GeneralUtilities.normalize_path(target_file)
-        files=self.get_all_files_in_git_repository(repository_folder)
+        files=self.get_all_files_in_git_repository(repository_folder,include_submodules)
         GeneralUtilities.ensure_file_exists(target_file)
         GeneralUtilities.write_lines_to_file(target_file, files)
