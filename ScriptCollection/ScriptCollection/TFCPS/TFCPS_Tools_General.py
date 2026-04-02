@@ -650,13 +650,13 @@ class TFCPS_Tools_General:
             if update:
                 platform_str:str=None
                 match architecture:
-                    case Platform.WindowsAMD64:
+                    case Platform.Windows_AMD64:
                         platform_str = "windows_amd64"
-                    case Platform.LinuxARM64:
+                    case Platform.Linux_ARM64:
                         platform_str = "linux_arm64"
-                    case Platform.LinuxAMD64:
+                    case Platform.Linux_AMD64:
                         platform_str = "linux_amd64"
-                    case Platform.MacOSARM64:
+                    case Platform.MacOS_ARM64:
                         platform_str = "darwin_arm64"
                     case _:
                         raise ValueError(f"Unknown platform: {str(architecture)}")
@@ -678,10 +678,10 @@ class TFCPS_Tools_General:
                 else:
                     raise ValueError(f"Unknown extension: \"{extension}\"")
 
-        download_and_extract("Windows", "windows", "zip",Platform.WindowsAMD64)
-        download_and_extract("Linux", "linux", "tar.gz",Platform.LinuxAMD64)
-        download_and_extract("Linux", "linux", "tar.gz",Platform.LinuxARM64)
-        download_and_extract("MacOS", "darwin", "tar.gz",Platform.MacOSARM64)
+        download_and_extract("Windows", "windows", "zip",Platform.Windows_AMD64)
+        download_and_extract("Linux", "linux", "tar.gz",Platform.Linux_AMD64)
+        download_and_extract("Linux", "linux", "tar.gz",Platform.Linux_ARM64)
+        download_and_extract("MacOS", "darwin", "tar.gz",Platform.MacOS_ARM64)
  
     @GeneralUtilities.check_arguments
     def clone_repository_as_resource(self, local_repository_folder: str, remote_repository_link: str, resource_name: str, repository_subname: str = None,use_cache:bool=True) -> None:
@@ -1161,7 +1161,7 @@ class TFCPS_Tools_General:
             GeneralUtilities.write_text_to_file(version_file, latest_version_function)
 
     @GeneralUtilities.check_arguments
-    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, push_readme: bool, repository_folder_name: str, remote_image_name: str = None,default_platform:Platform=None) -> None:
+    def push_docker_build_artifact(self, push_artifacts_file: str, registry: str, push_readme: bool, repository_folder_name: str, remote_image_name: str = None) -> None:
         folder_of_this_file = os.path.dirname(push_artifacts_file)
         filename = os.path.basename(push_artifacts_file)
         codeunitname_regex: str = "([a-zA-Z0-9]+)"
@@ -1169,8 +1169,7 @@ class TFCPS_Tools_General:
         if match := re.search(filename_regex, filename, re.IGNORECASE):
             codeunitname = match.group(1)
         else:
-            raise ValueError(f"Expected push-artifacts-file to match the regex \"{filename_regex}\" where \"{codeunitname_regex}\" represents the codeunit-name.")
-        
+            raise ValueError(f"Expected push-artifacts-file to match the regex \"{filename_regex}\" where \"{codeunitname_regex}\" represents the codeunit-name.")        
         repository_folder = GeneralUtilities.resolve_relative_path(f"..{os.path.sep}..{os.path.sep}Submodules{os.path.sep}{repository_folder_name}", folder_of_this_file)
         codeunit_folder = os.path.join(repository_folder, codeunitname)
         artifacts_folder = os.path.join(repository_folder,codeunitname, "Other", "Artifacts")
@@ -1178,40 +1177,78 @@ class TFCPS_Tools_General:
         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         if remote_image_name is None:
             remote_image_name = codeunitname
+        tar_files=[f for f in GeneralUtilities.get_direct_files_of_folder(applicationimage_folder) if f.endswith(".tar")]
+        target_image_address=f"{registry}/{remote_image_name}"
+        tar_files_with_platforms: list[tuple[str, str, str]] = []
+        for tar_file in tar_files:
+            filename=os.path.basename(tar_file)#filename looks like "{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar"
+            platform:Platform=self.platform_from_filename(filename)#GeneralUtilities.platform_from_dash_str( filename.split("_")[-1].split(".")[0])
+            platform_os_in_docker_format :str = None
+            platform_arch_in_docker_format :str = None
+            if platform==Platform.Windows_AMD64:
+                raise NotImplementedError("Building docker images for Windows is not implemented yet.")
+            elif platform==Platform.Linux_AMD64:
+                platform_os_in_docker_format = "linux"
+                platform_arch_in_docker_format = "amd64"
+            elif platform==Platform.Linux_ARM64: 
+                platform_os_in_docker_format = "linux"
+                platform_arch_in_docker_format = "arm64"
+            elif platform==Platform.MacOS_ARM64:
+                raise NotImplementedError("Building docker images for MacOS is not implemented yet.")
+            else:
+                raise ValueError(f"Unsupported platform {platform} extracted from filename {filename}.")
+            tar_files_with_platforms.append((tar_file, platform_os_in_docker_format, platform_arch_in_docker_format))
+        self.push_docker_build_artifact_as_multi_arch_artifact(tar_files_with_platforms,target_image_address, "v"+codeunit_version)
+        self.push_docker_build_artifact_as_multi_arch_artifact(tar_files_with_platforms,target_image_address, "latest")
+        if push_readme:
+            self.__sc.run_program_with_retry("docker-pushrm", target_image_address, codeunit_folder)
 
-        def push_image(tar_file:str,tag:str,remote_image_name:str):
-            GeneralUtilities.assert_condition(tag==tag.lower(), f"Tag \"{tag}\" must be in lower-case.")
-            remote_image_name = remote_image_name.lower()
-            local_image_name = codeunitname.lower()
-            remote_repo = f"{registry}/{remote_image_name}"
-            remote_image_version = f"{remote_repo}:{tag}"
-            self.__sc.log.log("Load image...")
-            self.__sc.run_program("docker", f"load --input {tar_file}", applicationimage_folder)
-            self.__sc.log.log("Tag image...")
-            self.__sc.run_program_with_retry("docker", f"tag {local_image_name}:{tag} {remote_image_version}")
-            self.__sc.log.log("Push image...")
-            self.__sc.run_program_with_retry("docker", f"push {remote_image_version}")
-            if push_readme:
-                self.__sc.run_program_with_retry("docker-pushrm", f"{remote_repo}", codeunit_folder)
+    def push_docker_build_artifact_as_multi_arch_artifact(self,tar_files: list[tuple[str, str, str]], image_address: str, tag: str):
+        """
+        tar_files: list of (tar_path, os, arch) tuples
+        for example [
+            ("MyApp.Linux.arm64.tar", "linux", "arm64"),
+            ("MyApp.Linux.amd64.tar", "linux", "amd64")
+        ]
+        image_address for example: "myregistry.example.com/myapp"
+        tag for example: "1.0.0"
+        """
+        arch_tags = []
 
-        default_tar_image_file:str=None
-        for image_file in GeneralUtilities.get_direct_files_of_folder(applicationimage_folder):
-            image_filename = os.path.basename(image_file)
-            platform:Platform=self.platform_from_filename(image_filename)
-            tag=codeunit_version+"-"+GeneralUtilities.platform_to_short_str(platform).lower()
-            if platform == default_platform:
-                default_tar_image_file:str=image_file
-            push_image(image_file,tag,remote_image_name)
-        if default_tar_image_file is not None:
-            push_image(default_tar_image_file,"latest",remote_image_name)
-            push_image(default_tar_image_file,codeunit_version,remote_image_name)
+        for tar_path, os_name, arch in tar_files:
+            arch_tag = f"{image_address}:{tag}-{os_name}-{arch}"
+            arch_tags.append(arch_tag)
+
+            # Load tar → local image
+            print(f"Loading {tar_path}...")
+            result = self.__sc.run_program_argsasarray("docker",[ "load", "-i", tar_path], capture_output=True)
+            # docker load outputs: "Loaded image: sha256:abc123..." or "Loaded image ID: ..."
+            # we need the loaded image ID
+            loaded_id = None
+            for line in GeneralUtilities.string_to_lines(result[1]):
+                if "Loaded image" in line:
+                    loaded_id = line.split(":", 1)[1].strip()
+                    break
+
+            if not loaded_id:
+                raise RuntimeError(f"Could not determine loaded image from output: \"{result[1]}\"")
+
+            # Retag + push
+            self.__sc.run_program_argsasarray("docker",[ "tag", loaded_id, arch_tag])
+            self.__sc.run_program_argsasarray("docker",[ "push", arch_tag])
+
+        # Create multi-arch manifest
+        final_tag = f"{image_address}:{tag}"
+        self.__sc.run_program_argsasarray("docker", [ "buildx", "imagetools", "create", "--tag", final_tag] + arch_tags)
+
 
     @GeneralUtilities.check_arguments
     def platform_from_filename(self,filename: str) -> Platform:
         match = re.search(r'_([^_]+)\.tar', filename)
-        if not match:
-            raise ValueError(f"Cannot extract platform from filename: {filename}")        
-        return GeneralUtilities.platform_from_dash_str(match.group(1))
+        if match:
+            return GeneralUtilities.platform_from_dash_str(match.group(1))
+        else:
+            raise ValueError(f"Cannot extract platform from filename: \"{filename}\"")
     
     def prepare_building_codeunits(self,repository_folder:str,use_cache:bool,generate_development_certificate:bool):        
         if generate_development_certificate:
