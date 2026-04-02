@@ -23,22 +23,22 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         codeunitversion = self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)
         if custom_arguments is None:
             custom_arguments=dict[str,str]()
+        artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
+        app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
+        GeneralUtilities.ensure_folder_exists_and_is_empty(app_artifacts_folder)
         for platform in platforms:
             #builder must be created once before with "docker buildx create --use"
-            args = ["buildx","build", "--platform",GeneralUtilities.platform_to_docker_platform_str(platform), "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}"]
+            args = ["buildx","build", "--platform",GeneralUtilities.platform_to_docker_platform_str(platform), "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}", "--build-arg", f"Platform={GeneralUtilities.platform_to_dash_str(platform)}", "--build-arg", f"DotNetRuntime={GeneralUtilities.platform_to_dotnet_runtime_identifier(platform)}"]
             for custom_argument_key, custom_argument_value in custom_arguments.items():
                 args.append("--build-arg")
                 args.append(f"{custom_argument_key}={custom_argument_value}")
             args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
             if not self.use_cache():
                 args.append("--no-cache")
+            args.append("--load")
             args.append(".")
-            codeunit_content_folder = os.path.join(codeunit_folder)
+            codeunit_content_folder = codeunit_folder
             GeneralUtilities.retry_action(lambda a=args, f=codeunit_content_folder: self._protected_sc.run_program_argsasarray("docker", a, f, print_errors_as_information=True), 3)
-            artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
-            app_artifacts_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
-            GeneralUtilities.ensure_directory_does_not_exist(app_artifacts_folder)
-            GeneralUtilities.ensure_directory_exists(app_artifacts_folder)
             
             self._protected_sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar", f"{codeunitname_lower}:{codeunitversion}"], app_artifacts_folder, print_errors_as_information=True)
         self.__generate_sbom_for_docker_image()
@@ -98,10 +98,21 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         if environment_variables is None:
             environment_variables={}
         current_platform = GeneralUtilities.get_current_platform()
+        platform_for_test:Platform=None
+        if current_platform == Platform.Windows_AMD64:
+            platform_for_test=Platform.Linux_AMD64
+        elif current_platform == Platform.Linux_AMD64:
+            platform_for_test=Platform.Linux_AMD64
+        elif current_platform == Platform.Linux_ARM64:
+            platform_for_test=Platform.Linux_ARM64
+        elif current_platform == Platform.MacOS_ARM64:
+            platform_for_test=Platform.Linux_ARM64
+        else:
+            raise ValueError(f"Current platform {current_platform} is not supported for testing.")
         oci_image_artifacts_folder :str= GeneralUtilities.resolve_relative_path("Other/Artifacts/BuildResult_OCIImage", self.get_codeunit_folder())
         container_name:str=f"{self.get_codeunit_name()}finaltest".lower()
         self.tfcps_Tools_General.ensure_containers_are_not_running([container_name])
-        self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder,current_platform)
+        self.tfcps_Tools_General.load_docker_image(oci_image_artifacts_folder,platform_for_test)
         codeunit_file:str=os.path.join(self.get_codeunit_folder(),f"{self.get_codeunit_name()}.codeunit.xml")
         image=f"{self.get_codeunit_name()}:{self.tfcps_Tools_General.get_version_of_codeunit(codeunit_file)}".lower()
         argument=f"run -d --name {container_name}"

@@ -36,7 +36,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.59"
+version = "4.2.60"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -215,22 +215,30 @@ class ScriptCollectionCore:
 
     def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
-        if "/" in image:
-            image=image.rsplit("/", 1)[-1]
-        registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_url,registry_username,registry_password)
-        catalog_url = f"{registry_url}/v2/_catalog"
-        response = requests.get(catalog_url, auth=(registry_username, registry_password),timeout=20)
-        response.raise_for_status() # check if statuscode = 200
-        data = response.json()
-        # expected: {"repositories": ["nginx", "myapp"]}
-        images = data.get("repositories", [])
-        result=image in images
-        return result
+        try:
+            if "/" in image:
+                image=image.rsplit("/", 1)[-1]
+            registry_username,registry_password=self.__load_credentials_if_required_and_available(registry_url,registry_username,registry_password)
+            catalog_url = f"{registry_url}/v2/_catalog"
+            response = requests.get(catalog_url, auth=(registry_username, registry_password),timeout=20)
+            response.raise_for_status() # check if statuscode = 200
+            data = response.json()
+            # expected: {"repositories": ["nginx", "myapp"]}
+            images = data.get("repositories", [])
+            if not (image in images):
+                return False
+        
+            if self.get_tags_of_images_from_registry(registry_url,image,registry_username,registry_password)<1:
+                return False
+            
+            return True
+        except Exception:
+            return False
     
     def docker_platform_to_slug(self,platform_value: Platform) -> str:
-        if platform_value == Platform.LinuxAMD64:
+        if platform_value == Platform.Linux_AMD64:
             return "linux-amd64"
-        elif platform_value == Platform.LinuxARM64:
+        elif platform_value == Platform.Linux_ARM64:
             return "linux-arm64"
         raise ValueError(f"Unsupported platform: {platform_value}")
 
@@ -3234,3 +3242,22 @@ OCR-content:
         files=self.get_all_files_in_git_repository(repository_folder,ignore_ignored_files,include_submodules)
         GeneralUtilities.ensure_file_exists(target_file)
         GeneralUtilities.write_lines_to_file(target_file, files)
+
+    @GeneralUtilities.check_arguments
+    def get_all_commits_in_git_repository(self,repository_folder:str,include_all_heads:bool=False) -> list[str]:
+        """Returns a textual visualization of all commits in a git-repository."""
+        #do 'git log --reverse --all --pretty=format:"%ci | %H | %cn <%ce> | %s"'
+        args = ["log", "--reverse", "--pretty=format:%ci | %H | %cn <%ce> | %s"]
+        if include_all_heads:
+            args.append("--all")
+        result=self.run_program_argsasarray("git", args, repository_folder, throw_exception_if_exitcode_is_not_zero=True)
+        return result[1]
+
+    @GeneralUtilities.check_arguments
+    def write_commit_list_for_repository(self,repository_folder:str,target_file:str,include_all_heads:bool=False) -> None:
+        if os.path.isabs(target_file):
+            target_file=GeneralUtilities.resolve_relative_path(target_file,repository_folder)
+        target_file=GeneralUtilities.normalize_path(target_file)
+        commits=self.get_all_commits_in_git_repository(repository_folder, include_all_heads)
+        GeneralUtilities.ensure_file_exists(target_file)
+        GeneralUtilities.write_lines_to_file(target_file, commits)
