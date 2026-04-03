@@ -36,7 +36,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.61"
+version = "4.2.62"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -1657,9 +1657,9 @@ class ScriptCollectionCore:
         self.run_program("docker", f"container rm -f {container_name}")
 
     @GeneralUtilities.check_arguments
-    def get_latest_apt_package_version_in_debian(sc:ScriptCollectionCore, image: str,package) -> str:
+    def get_latest_apt_package_version_in_debian(self, image: str,package) -> str:
         #docker run --rm -it debian:13.4-slim bash -c "apt update && apt list -a tor"
-        output=sc.run_with_epew("docker", f"run --rm -it {image} bash -c \"apt --color=false update && apt --color=false list -a tor\"",os.getcwd(),encode_argument_in_base64=True)
+        output=self.run_with_epew("docker", f"run --rm -it {image} bash -c \"apt --color=false update && apt --color=false list -a tor\"",os.getcwd(),encode_argument_in_base64=True)
         stdout=output[1]
         version_line=[line.strip() for line in GeneralUtilities.string_to_lines(stdout) if GeneralUtilities.string_has_nonwhitespace_content(line) and line.startswith(package+"/")]
         GeneralUtilities.assert_condition(len(version_line) ==1, f"No version found for package '{package}' in image '{image}'.")
