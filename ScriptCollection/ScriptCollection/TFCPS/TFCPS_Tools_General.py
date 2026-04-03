@@ -1213,12 +1213,13 @@ class TFCPS_Tools_General:
         image_address for example: "myregistry.example.com/myapp"
         tag for example: "1.0.0"
         """
+        GeneralUtilities.write_message_to_stdout(f"Creating multi-arch artifact {image_address}:{tag}...")
         arch_tags = []
         for tar_path, os_name, arch in tar_files:
             arch_tag = f"{image_address}:{tag}-{os_name}-{arch}"
             arch_tags.append(arch_tag)
             # Load tar → local image
-            print(f"Loading {tar_path}...")
+            GeneralUtilities.write_message_to_stdout(f"Loading {tar_path}...")
             result = self.__sc.run_program_argsasarray("docker",[ "load", "-i", tar_path])
             # docker load outputs: "Loaded image: sha256:abc123..." or "Loaded image ID: ..."
             # we need the loaded image ID
