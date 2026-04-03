@@ -1657,25 +1657,16 @@ class ScriptCollectionCore:
         self.run_program("docker", f"container rm -f {container_name}")
 
     @GeneralUtilities.check_arguments
-    def get_docker_debian_version(self, image_tag: str) -> str:
-        result = ScriptCollectionCore().run_program_argsasarray("docker", ['run', f'debian:{image_tag}', 'bash', '-c', 'apt-get -y update && apt-get -y install lsb-release && lsb_release -cs'])
-        result_line = GeneralUtilities.string_to_lines(result[1])[-1]
-        return result_line
+    def get_latest_apt_package_version_in_debian(sc:ScriptCollectionCore, image: str,package) -> str:
+        #docker run --rm -it debian:13.4-slim bash -c "apt update && apt list -a tor"
+        output=sc.run_with_epew("docker", f"run --rm -it {image} bash -c \"apt --color=false update && apt --color=false list -a tor\"",os.getcwd(),encode_argument_in_base64=True)
+        stdout=output[1]
+        version_line=[line.strip() for line in GeneralUtilities.string_to_lines(stdout) if GeneralUtilities.string_has_nonwhitespace_content(line) and line.startswith(package+"/")]
+        GeneralUtilities.assert_condition(len(version_line) ==1, f"No version found for package '{package}' in image '{image}'.")
+        result = version_line[0].split(" ")[1]
+        return result
 
     @GeneralUtilities.check_arguments
-    def get_latest_tor_version_of_debian_repository(self, debian_version: str) -> str:
-        package_url: str = f"https://deb.torproject.org/torproject.org/dists/{debian_version}/main/binary-amd64/Packages"
-        headers = {'Cache-Control': 'no-cache'}
-        r = requests.get(package_url, timeout=5, headers=headers)
-        if r.status_code != 200:
-            raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
-        lines = GeneralUtilities.string_to_lines(GeneralUtilities.bytes_to_string(r.content))
-        version_line_prefix = "Version: "
-        version_content_line = [line for line in lines if line.startswith(version_line_prefix)][1]
-        version_with_overhead = version_content_line[len(version_line_prefix):]
-        tor_version = version_with_overhead.split("~")[0]
-        return tor_version
-
     def run_testcases_for_python_project(self, repository_folder: str):
         self.assert_is_git_repository(repository_folder)
         self.run_program("coverage", "run -m pytest", repository_folder)
