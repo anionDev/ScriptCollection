@@ -1515,3 +1515,7 @@ class TFCPS_Tools_General:
         source=f"https://raw.githubusercontent.com/anionDev/CommonProjectStructureExamples/refs/heads/main/Other/Reference/RepositoryStructure.mdd"
         target=f"{repository_folder}/Other/Reference/RepositoryStructure.md"
         self.download_file(source,target)   
+
+
+    def update_dependent_oci_images(self,repo:str):
+        pass#TODO update all image-tags in repo/.ScriptCollection/OCIImages/ImageDefinition.csv if possible using the custom defined registries in ~/.ScriptCollection if possible.
