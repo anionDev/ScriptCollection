@@ -1214,14 +1214,12 @@ class TFCPS_Tools_General:
         tag for example: "1.0.0"
         """
         arch_tags = []
-
         for tar_path, os_name, arch in tar_files:
             arch_tag = f"{image_address}:{tag}-{os_name}-{arch}"
             arch_tags.append(arch_tag)
-
             # Load tar → local image
             print(f"Loading {tar_path}...")
-            result = self.__sc.run_program_argsasarray("docker",[ "load", "-i", tar_path], capture_output=True)
+            result = self.__sc.run_program_argsasarray("docker",[ "load", "-i", tar_path])
             # docker load outputs: "Loaded image: sha256:abc123..." or "Loaded image ID: ..."
             # we need the loaded image ID
             loaded_id = None
@@ -1229,18 +1227,14 @@ class TFCPS_Tools_General:
                 if "Loaded image" in line:
                     loaded_id = line.split(":", 1)[1].strip()
                     break
-
             if not loaded_id:
                 raise RuntimeError(f"Could not determine loaded image from output: \"{result[1]}\"")
-
             # Retag + push
             self.__sc.run_program_argsasarray("docker",[ "tag", loaded_id, arch_tag])
             self.__sc.run_program_argsasarray("docker",[ "push", arch_tag])
-
         # Create multi-arch manifest
         final_tag = f"{image_address}:{tag}"
         self.__sc.run_program_argsasarray("docker", [ "buildx", "imagetools", "create", "--tag", final_tag] + arch_tags)
-
 
     @GeneralUtilities.check_arguments
     def platform_from_filename(self,filename: str) -> Platform:
