@@ -38,9 +38,9 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
             args.append("--load")
             args.append(".")
             codeunit_content_folder = codeunit_folder
-            GeneralUtilities.retry_action(lambda a=args, f=codeunit_content_folder: self._protected_sc.run_program_argsasarray("docker", a, f, print_errors_as_information=True), 3)
+            self._protected_sc.run_program_argsasarray("docker", args, codeunit_content_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
             
-            self._protected_sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar", f"{codeunitname_lower}:{codeunitversion}"], app_artifacts_folder, print_errors_as_information=True)
+            self._protected_sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar", f"{codeunitname_lower}:{codeunitversion}"], app_artifacts_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
         self.__generate_sbom_for_docker_image()
         self.copy_source_files_to_output_directory()
 
