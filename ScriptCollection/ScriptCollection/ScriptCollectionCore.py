@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from functools import cmp_to_key
 import json
 import binascii
 import filecmp
@@ -36,7 +37,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.63"
+version = "4.2.64"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -1657,14 +1658,33 @@ class ScriptCollectionCore:
         self.run_program("docker", f"container rm -f {container_name}")
 
     @GeneralUtilities.check_arguments
-    def get_latest_apt_package_version_in_debian(self, image: str,package) -> str:
-        #docker run --rm -it debian:13.4-slim bash -c "apt update && apt list -a tor"
+    def get_latest_apt_package_version_in_debian(self, image: str,package:str) -> str:
+        #docker run --rm -it debian bash -c "apt update && apt list -a tor"
         output=self.run_with_epew("docker", f"run --rm -it {image} bash -c \"apt --color=false update && apt --color=false list -a tor\"",os.getcwd(),encode_argument_in_base64=True)
         stdout=output[1]
-        version_line=[line.strip() for line in GeneralUtilities.string_to_lines(stdout) if GeneralUtilities.string_has_nonwhitespace_content(line) and line.startswith(package+"/")]
-        GeneralUtilities.assert_condition(len(version_line) ==1, f"No version found for package '{package}' in image '{image}'.")
-        result = version_line[0].split(" ")[1]
-        return result
+        version_lines=[line.strip() for line in GeneralUtilities.string_to_lines(stdout) if GeneralUtilities.string_has_nonwhitespace_content(line) and line.startswith(package+"/")]
+        GeneralUtilities.assert_condition(0<len(version_lines), f"No version found for package '{package}' in image '{image}'.")
+        versions = [version_line.split(" ")[1] for version_line in version_lines]
+        def my_comparer(a, b) -> int:
+            # return:
+            #  -1 → a < b
+            #   0 → a = b
+            #   1 → a > b
+            # dpkg --compare-versions <a> lt <b>  → exit 0 wenn a < b
+            def dpkg_compare(op: str) -> bool:
+                result = self.run_program_argsasarray("docker", [ "run", "--rm",image, "dpkg", "--compare-versions", a, op, b],throw_exception_if_exitcode_is_not_zero=False)
+                GeneralUtilities.assert_condition(result[1]==GeneralUtilities.empty_string)
+                GeneralUtilities.assert_condition(result[2]==GeneralUtilities.empty_string)
+                return result[0] == 0
+
+            if dpkg_compare("lt"): # a < b
+                return -1
+            elif dpkg_compare("gt"): # a > b
+                return 1
+            else:
+                return 0
+        sorted_versions = sorted(versions, key=cmp_to_key(my_comparer))
+        return sorted_versions[-1]
 
     @GeneralUtilities.check_arguments
     def run_testcases_for_python_project(self, repository_folder: str):
