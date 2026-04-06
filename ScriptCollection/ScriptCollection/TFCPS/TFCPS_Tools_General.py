@@ -1176,7 +1176,7 @@ class TFCPS_Tools_General:
         applicationimage_folder = os.path.join(artifacts_folder, "BuildResult_OCIImage")
         codeunit_version = self.get_version_of_codeunit(os.path.join(codeunit_folder, f"{codeunitname}.codeunit.xml"))
         if remote_image_name is None:
-            remote_image_name = codeunitname
+            remote_image_name = codeunitname.lower()
         tar_files=[f for f in GeneralUtilities.get_direct_files_of_folder(applicationimage_folder) if f.endswith(".tar")]
         target_image_address=f"{registry}/{remote_image_name}"
         tar_files_with_platforms: list[tuple[str, str, str]] = []
