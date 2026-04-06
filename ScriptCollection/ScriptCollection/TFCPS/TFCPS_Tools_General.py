@@ -1201,6 +1201,7 @@ class TFCPS_Tools_General:
         self.push_docker_build_artifact_as_multi_arch_artifact(tar_files_with_platforms,target_image_address, "v"+codeunit_version)
         self.push_docker_build_artifact_as_multi_arch_artifact(tar_files_with_platforms,target_image_address, "latest")
         if push_readme:
+            GeneralUtilities.assert_file_exists(os.path.join(codeunit_folder, "ReadMe.md"))
             self.__sc.run_program_with_retry("docker-pushrm", target_image_address, codeunit_folder)
 
     def push_docker_build_artifact_as_multi_arch_artifact(self,tar_files: list[tuple[str, str, str]], image_address: str, tag: str):
