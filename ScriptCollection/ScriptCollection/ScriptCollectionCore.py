@@ -37,7 +37,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.63"
+version = "4.2.64"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -1658,9 +1658,9 @@ class ScriptCollectionCore:
         self.run_program("docker", f"container rm -f {container_name}")
 
     @GeneralUtilities.check_arguments
-    def get_latest_apt_package_version_in_debian(sc:ScriptCollectionCore, image: str,package:str) -> str:
+    def get_latest_apt_package_version_in_debian(self, image: str,package:str) -> str:
         #docker run --rm -it debian bash -c "apt update && apt list -a tor"
-        output=sc.run_with_epew("docker", f"run --rm -it {image} bash -c \"apt --color=false update && apt --color=false list -a tor\"",os.getcwd(),encode_argument_in_base64=True)
+        output=self.run_with_epew("docker", f"run --rm -it {image} bash -c \"apt --color=false update && apt --color=false list -a tor\"",os.getcwd(),encode_argument_in_base64=True)
         stdout=output[1]
         version_lines=[line.strip() for line in GeneralUtilities.string_to_lines(stdout) if GeneralUtilities.string_has_nonwhitespace_content(line) and line.startswith(package+"/")]
         GeneralUtilities.assert_condition(0<len(version_lines), f"No version found for package '{package}' in image '{image}'.")
@@ -1672,7 +1672,7 @@ class ScriptCollectionCore:
             #   1 → a > b
             # dpkg --compare-versions <a> lt <b>  → exit 0 wenn a < b
             def dpkg_compare(op: str) -> bool:
-                result = sc.run_program_argsasarray("docker", [ "run", "--rm",image, "dpkg", "--compare-versions", a, op, b],throw_exception_if_exitcode_is_not_zero=False  )
+                result = self.run_program_argsasarray("docker", [ "run", "--rm",image, "dpkg", "--compare-versions", a, op, b],throw_exception_if_exitcode_is_not_zero=False)
                 GeneralUtilities.assert_condition(result[1]==GeneralUtilities.empty_string)
                 GeneralUtilities.assert_condition(result[2]==GeneralUtilities.empty_string)
                 return result[0] == 0
