@@ -93,7 +93,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
             self._protected_sc.run_program("dotnet", "clean", csproj_file_folder)
             GeneralUtilities.ensure_directory_exists(outputfolder)
             self._protected_sc.run_program("dotnet", "restore", codeunit_folder,print_live_output=self.get_verbosity()==LogLevel.Debug)
-            self._protected_sc.run_program_argsasarray("dotnet", ["build", csproj_file_name, "-c", dotnet_build_configuration, "-o", outputfolder, "--runtime", runtime], csproj_file_folder,print_live_output=self.get_verbosity()==4)
+            self._protected_sc.run_program_argsasarray("dotnet", ["build", csproj_file_name, "-c", dotnet_build_configuration, "-o", outputfolder, "--runtime", runtime], csproj_file_folder,print_live_output=self.get_verbosity()==LogLevel.Debug)
             if copy_license_file_to_target_folder:
                 license_file = os.path.join(repository_folder, "License.txt")
                 target = os.path.join(outputfolder, f"{codeunit_name}.License.txt")
@@ -122,7 +122,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def standardized_tasks_build_for_dotnet_library_project(self,runtimes:list[str]) -> None:
-        self.__standardized_tasks_build_for_dotnet_project( runtimes)
+        self.__standardized_tasks_build_for_dotnet_project(runtimes)
         self.__standardized_tasks_build_nupkg_for_dotnet_create_package(runtimes)
 
  
@@ -425,7 +425,7 @@ class TFCPS_CodeUnitSpecific_DotNet_Functions(TFCPS_CodeUnitSpecific_Base):
         if os.path.isfile(os.path.join(codeunit_folder, runsettings_file)):
             arg = f"{arg} --settings {runsettings_file}"
         arg = f"{arg} /p:CollectCoverage=true /p:CoverletOutput=../Other/Artifacts/TestCoverage/Testcoverage /p:CoverletOutputFormat=cobertura"
-        self._protected_sc.run_with_epew_with_retry("dotnet", arg, codeunit_folder, print_live_output=self.get_verbosity()==LogLevel.Debug,timeoutInSeconds=600*20)
+        self._protected_sc.run_program("dotnet", arg, codeunit_folder, print_live_output=self.get_verbosity()==LogLevel.Debug,timeoutInSeconds=60*20)
         target_file = os.path.join(coverage_file_folder,  "TestCoverage.xml")
         GeneralUtilities.ensure_file_does_not_exist(target_file)
         os.rename(os.path.join(coverage_file_folder,  "Testcoverage.cobertura.xml"), target_file)

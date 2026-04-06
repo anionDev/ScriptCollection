@@ -37,7 +37,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.64"
+version = "4.2.65"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -2901,7 +2901,7 @@ OCR-content:
         if remove_images:
             self.run_program_with_retry("docker","image prune -a -f",amount_of_attempts=amount_of_attempts)
         self.run_program_with_retry("docker","builder prune -a -f",amount_of_attempts=amount_of_attempts)
-        self.run_program_with_retry("docker","buildx prune -f",amount_of_attempts=amount_of_attempts,throw_exception_if_exitcode_is_not_zero=False) # buildx prune is not available on every machine.
+        self.run_program_with_retry("docker","buildx prune -a -f",amount_of_attempts=amount_of_attempts,throw_exception_if_exitcode_is_not_zero=False) # buildx prune is not available on every machine.
         self.run_program_with_retry("docker","system df",print_live_output=self.log.loglevel==LogLevel.Debug,amount_of_attempts=amount_of_attempts)
 
     @GeneralUtilities.check_arguments

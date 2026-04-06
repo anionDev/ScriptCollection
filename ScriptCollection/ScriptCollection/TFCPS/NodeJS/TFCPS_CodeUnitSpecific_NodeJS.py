@@ -18,13 +18,13 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def build(self) -> None:
-        self._protected_sc.run_with_epew("npm", "run build", self.get_codeunit_folder(),print_live_output=self._protected_sc.log.loglevel==LogLevel.Diagnostic,encode_argument_in_base64=True)
+        self._protected_sc.run_with_epew("npm", "run build", self.get_codeunit_folder(),print_live_output=self.get_verbosity()==LogLevel.Debug,encode_argument_in_base64=True)
         self.standardized_tasks_build_bom_for_node_project()
         self.copy_source_files_to_output_directory()
 
     @GeneralUtilities.check_arguments
     def linting(self) -> None:
-        self._protected_sc.run_with_epew("npm", "run lint", self.get_codeunit_folder(),print_live_output=self._protected_sc.log.loglevel==LogLevel.Diagnostic,encode_argument_in_base64=True)
+        self._protected_sc.run_with_epew("npm", "run lint", self.get_codeunit_folder(),print_live_output=self.get_verbosity()==LogLevel.Debug,encode_argument_in_base64=True)
 
     @GeneralUtilities.check_arguments
     def do_common_tasks(self,current_codeunit_version:str)-> None:
@@ -51,7 +51,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         repository_folder = os.path.dirname(codeunit_folder)
 
         # run testcases
-        self._protected_sc.run_with_epew_with_retry("npm", f"run test-{self.get_target_environment_type()}", self.get_codeunit_folder(),print_live_output=self._protected_sc.log.loglevel==LogLevel.Diagnostic,encode_argument_in_base64=True)
+        self._protected_sc.run_with_epew("npm", f"run test-{self.get_target_environment_type()}", self.get_codeunit_folder(),print_live_output=self.get_verbosity()==LogLevel.Debug,encode_argument_in_base64=True)
 
         # rename file
         coverage_folder = os.path.join(codeunit_folder, "Other", "Artifacts", "TestCoverage")
