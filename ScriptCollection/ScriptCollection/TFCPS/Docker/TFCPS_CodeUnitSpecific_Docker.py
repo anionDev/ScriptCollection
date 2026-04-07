@@ -46,6 +46,7 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
 
     @GeneralUtilities.check_arguments
     def __generate_sbom_for_docker_image(self) -> None:
+        return #FIXME due to the change of building docker images now using "docker builx build ..." the image is not available locally anymore. for this reason syft can not access the "product:tag"-image anymore to generate a sbom-file. solution: the tar-file must be loaded and tagged.
         codeunitname=self.get_codeunit_name()
         codeunit_folder =self.get_codeunit_folder()
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)
