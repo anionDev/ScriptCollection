@@ -36,7 +36,8 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
             if not self.use_cache():
                 args.append("--no-cache")
             target_file=os.path.join(app_artifacts_folder,f"{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar")
-            args.append("--output",f"type=docker,dest={target_file}")
+            args.append("--output")
+            args.append(f"type=docker,dest={target_file}")
             args.append(".")
             self._protected_sc.run_program_argsasarray("docker", args, codeunit_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
         self.__generate_sbom_for_docker_image()
