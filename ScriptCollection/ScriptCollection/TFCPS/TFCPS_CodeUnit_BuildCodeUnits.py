@@ -54,6 +54,7 @@ class TFCPS_CodeUnit_BuildCodeUnits:
             self.tfcps_tools_general.mark_current_version_as_supported(self.repository,project_version,from_day,until_day)
 
         codeunits:list[str]=self.tfcps_tools_general.get_codeunits(self.repository)
+        GeneralUtilities.assert_condition(0<len(codeunits),f"No codeunits found in repository {self.repository}.")
         self.sc.log.log("Codeunits will be built in the following order:")
         for codeunit_name in codeunits:
             self.sc.log.log(f"  - {codeunit_name}")

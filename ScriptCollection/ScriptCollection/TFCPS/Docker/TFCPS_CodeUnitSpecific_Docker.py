@@ -35,12 +35,10 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
             args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
             if not self.use_cache():
                 args.append("--no-cache")
-            args.append("--load")
+            target_file=os.path.join(app_artifacts_folder,f"{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar")
+            args.append(f"--output type=docker,dest={target_file}")
             args.append(".")
-            codeunit_content_folder = codeunit_folder
-            self._protected_sc.run_program_argsasarray("docker", args, codeunit_content_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
-            
-            self._protected_sc.run_program_argsasarray("docker", ["save", "--output", f"{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar", f"{codeunitname_lower}:{codeunitversion}"], app_artifacts_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
+            self._protected_sc.run_program_argsasarray("docker", args, codeunit_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
         self.__generate_sbom_for_docker_image()
         self.copy_source_files_to_output_directory()
 
