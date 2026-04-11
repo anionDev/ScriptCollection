@@ -712,6 +712,7 @@ class ScriptCollectionCore:
         self.git_merge(repository_folder, f"{remote}/{branch}", branch)
         self.git_push_with_retry(repository_folder, remote, branch, branch)
         self.git_checkout(repository_folder, branch)
+        #TODO opeional: checkfor merge conflicts and if there is one merge conflict print a warning
 
     @GeneralUtilities.check_arguments
     def git_merge_abort(self, directory: str) -> None:
