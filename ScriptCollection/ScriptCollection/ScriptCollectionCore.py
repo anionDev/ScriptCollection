@@ -37,7 +37,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.69"
+version = "4.2.70"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -214,6 +214,19 @@ class ScriptCollectionCore:
             GeneralUtilities.assert_not_null(registry_username)
         return (registry_username,registry_password)
 
+    def __get_docker_registry_credentials(self)->list[tuple[str,str,str]]:
+        result=[]
+        credential_file=self.__get_docker_registry_credentials_file()
+        if os.path.isfile(credential_file):
+            lines=GeneralUtilities.read_nonempty_lines_from_file(credential_file)[1:]
+            for line in lines:
+                splitted=line.split(";")
+                registry=splitted[0]
+                username=splitted[1]
+                password=splitted[2]
+                result.append((registry,username,password))
+        return result
+
     def registry_contains_image(self,registry_url:str,image:str,registry_username:str,registry_password:str)->bool:
         """This function assumes that the registry is a custom deployed docker-registry (see https://hub.docker.com/_/registry )"""
         try:
@@ -287,6 +300,16 @@ class ScriptCollectionCore:
         else:
             result = tag in tags 
             return result
+    
+    def login_to_defined_docker_registries(self)->None:
+        registries=self.__get_docker_registry_credentials()
+        if len(registries)==0:
+            self.log.log("No docker registry credentials defined. Skipping docker login.",LogLevel.Debug)
+        else:
+            for registry,username,password in registries:
+                arg=f"login {registry} -u {username} -p {password}"
+                arg_for_log=f"login {registry} -u {username} -p ***"
+                self.run_program("docker",arg,arguments_for_log=arg_for_log,print_live_output=self.log.loglevel==LogLevel.Debug)
         
     @GeneralUtilities.check_arguments
     def python_file_has_errors(self, file: str, working_directory: str, treat_warnings_as_errors: bool = True) -> tuple[bool, list[str]]:
@@ -2620,10 +2643,35 @@ TXDX
         )
 
     @GeneralUtilities.check_arguments
+    def get_pip_index_url_arguments_from_local_cache(self)->list[str]:
+        arguments=[]
+        pip_folder=GeneralUtilities.normalize_path(self.get_global_cache_folder()+"/Pip")
+        if os.path.isdir(pip_folder):
+            main_index_file=GeneralUtilities.normalize_path(os.path.join(pip_folder, "MainIndex.txt"))
+            if os.path.isfile(main_index_file):
+                lines=GeneralUtilities.read_nonempty_lines_from_file(main_index_file)
+                url=[line for line in lines if line.startswith("IndexURL: ")][0].split(":")[1].strip()
+                arguments.append("--index-url")
+                arguments.append(url)
+            extra_index_folder=GeneralUtilities.normalize_path(os.path.join(pip_folder, "ExtraIndexURLs"))
+            if os.path.isdir(extra_index_folder):
+                index_files=GeneralUtilities.get_direct_files_of_folder(extra_index_folder)
+                if len(index_files) > 0:
+                    for indexurl_file in index_files:
+                        lines=GeneralUtilities.read_nonempty_lines_from_file(indexurl_file)
+                        url=[line for line in lines if line.startswith("IndexURL: ")][0].split(":")[1].strip()
+                        arguments.append("--extra-index-url")
+                        arguments.append(url)
+        return arguments
+
+    @GeneralUtilities.check_arguments
     def install_requirementstxt_file(self, requirements_txt_file: str):
         folder: str = os.path.dirname(requirements_txt_file)
         filename: str = os.path.basename(requirements_txt_file)
-        self.run_program_argsasarray("pip", ["install", "-r", filename], folder)
+        arguments= ["install", "-r", filename]
+        for argument in self.get_pip_index_url_arguments_from_local_cache():
+            arguments.append(argument)
+        self.run_program_argsasarray("pip", arguments, folder,print_live_output=self.log.loglevel==LogLevel.Debug)
 
     @GeneralUtilities.check_arguments
     def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str], datafolder: str,base_folder_for_entry: str,ignore_pattern:list[str] ) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
@@ -3273,3 +3321,8 @@ OCR-content:
         commits=self.get_all_commits_in_git_repository(repository_folder, include_all_heads)
         GeneralUtilities.ensure_file_exists(target_file)
         GeneralUtilities.write_lines_to_file(target_file, commits)
+
+
+    @GeneralUtilities.check_arguments
+    def is_runnning_in_container(self) ->bool:
+        return os.environ.get("ISRUNNINGINCONTAINER") == "true"

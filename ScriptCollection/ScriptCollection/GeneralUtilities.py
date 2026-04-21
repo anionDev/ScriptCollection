@@ -1456,6 +1456,18 @@ class GeneralUtilities:
 
     @staticmethod
     @check_arguments
+    def current_system_is_x64():
+        arch = platform.machine().lower()
+        return arch in ("x86_64", "amd64")
+
+    @staticmethod
+    @check_arguments
+    def current_system_is_arm64():
+        arch = platform.machine().lower()
+        return arch in ("arm", "aarch64")
+    
+    @staticmethod
+    @check_arguments
     def platform_to_short_str(platform_value: Platform) -> str:
         mapping = {
             Platform.Windows_AMD64: "win-x64",
@@ -1521,6 +1533,14 @@ class GeneralUtilities:
             Platform.Linux_AMD64:   "linux-x64",
             Platform.Linux_ARM64:   "linux-arm64",
             Platform.MacOS_ARM64:   "osx-arm64",
+        }
+        return mapping[platform_value]
+    @staticmethod
+    @check_arguments
+    def platform_to_go_runtime_identifier(platform_value: Platform) -> str:
+        mapping = {
+            Platform.Linux_AMD64:   "amd64",
+            Platform.Linux_ARM64:   "arm64",
         }
         return mapping[platform_value]
 
