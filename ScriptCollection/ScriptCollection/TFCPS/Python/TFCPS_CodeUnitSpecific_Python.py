@@ -37,12 +37,14 @@ class TFCPS_CodeUnitSpecific_Python_Functions(TFCPS_CodeUnitSpecific_Base):
         bom_file_json = os.path.join(codeunit_folder, bom_file_relative_json)
         bom_file_xml = os.path.join(codeunit_folder, bom_file_relative_xml)
 
-        GeneralUtilities.ensure_file_exists(bom_file_json)
-        GeneralUtilities.write_text_to_file(bom_file_json, result[1])
-        cyclonedx_exe=self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(not self.use_cache())
-        self._protected_sc.run_program(cyclonedx_exe, f"convert --input-file ./{codeunitname}/{bom_file_relative_json} --input-format json --output-file ./{codeunitname}/{bom_file_relative_xml} --output-format xml", repository_folder)
-        self._protected_sc.format_xml_file(bom_file_xml)
-        GeneralUtilities.ensure_file_does_not_exist(bom_file_json)
+        enabled:bool=False
+        if enabled:#TODO cyclonedx must be available for all platforms in the global sc-cache-folder
+            GeneralUtilities.ensure_file_exists(bom_file_json)
+            GeneralUtilities.write_text_to_file(bom_file_json, result[1])
+            cyclonedx_exe=self.tfcps_Tools_General.ensure_cyclonedxcli_is_available(not self.use_cache())
+            self._protected_sc.run_program(cyclonedx_exe, f"convert --input-file ./{codeunitname}/{bom_file_relative_json} --input-format json --output-file ./{codeunitname}/{bom_file_relative_xml} --output-format xml", repository_folder)
+            self._protected_sc.format_xml_file(bom_file_xml)
+            GeneralUtilities.ensure_file_does_not_exist(bom_file_json)
 
     @GeneralUtilities.check_arguments
     def linting(self) -> None:

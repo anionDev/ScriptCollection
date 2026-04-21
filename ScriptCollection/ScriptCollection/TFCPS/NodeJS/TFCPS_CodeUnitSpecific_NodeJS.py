@@ -196,7 +196,7 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
         self._protected_sc.sync_xlf2_files("messages",languages,os.path.join(self.get_codeunit_folder(),"Other","Resources","Translations"))
 
     @GeneralUtilities.check_arguments
-    def translate_safe(self,base_language:str="en")->None:
+    def translate_safe(self,base_language:str="en", throw_if_no_credentials:bool=False)->None:
         """Translates XLF files if a translation service is configured. The translation service can be configured by creating a file at ~/.ScriptCollection/TranslationServiceProperties.txt with the content 'LibreTranslateAPI=your_api_server_url'."""
         translationservice_file:str=self._protected_sc.get_global_cache_folder()+"/TranslationServiceProperties.txt"
         api_server:str=None
@@ -205,8 +205,11 @@ class TFCPS_CodeUnitSpecific_NodeJS_Functions(TFCPS_CodeUnitSpecific_Base):
             for line in lines:
                 if line.startswith("LibreTranslateAPI="):
                     api_server=line.replace("LibreTranslateAPI=","").strip()
-        GeneralUtilities.assert_not_null(api_server,"No translation service configured. Please create a file at ~/.ScriptCollection/TranslationServiceProperties.txt with the content 'LibreTranslateAPI=your_api_server_url' to enable automatic translation of XLF files.")
-        self.translate(api_server,base_language)
+        if api_server is None:
+            if throw_if_no_credentials:
+                raise ValueError("No translation service configured. Please create a file at ~/.ScriptCollection/TranslationServiceProperties.txt with the content 'LibreTranslateAPI=your_api_server_url' to enable automatic translation of XLF files.")
+        else:
+            self.translate(api_server,base_language)
 
     @GeneralUtilities.check_arguments
     def translate(self,api_server:str,base_language:str="en")->None:

@@ -79,7 +79,9 @@ class TFCPS_CodeUnit_BuildCodeUnits:
         pre_script_file:str=os.path.join( self.sc.get_scriptcollection_configuration_folder(),"TFCPS","CustomPreCodeUnitBuildScript.py")
         if  os.path.isfile( pre_script_file):
             self.sc.log.log("Run custom pre-codeunitbuild script...")
-            argument= f"CustomPreCodeUnitBuildScript.py --repository \"{self.repository}\" --targetenvironmenttype {self.target_environment_type} --additionalargumentsfile \"{self.additionalargumentsfile}\" --verbosity {int(self.sc.log.loglevel)}"
+            argument= f"CustomPreCodeUnitBuildScript.py --repository {self.repository} --targetenvironmenttype {self.target_environment_type} --verbosity {int(self.sc.log.loglevel)}"
+            if GeneralUtilities.string_has_content(self.additionalargumentsfile):
+                argument=f"{argument} --additionalargumentsfile {self.additionalargumentsfile}"
             if not self.__use_cache:
                 argument=f"{argument} --nocache"
             self.sc.run_program("python",argument, os.path.join( self.sc.get_scriptcollection_configuration_folder(),"TFCPS"),print_live_output=True)

@@ -39,15 +39,33 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def ensure_cyclonedxcli_is_available(self,enforce_update:bool) -> str:
-        local_filename = "cyclonedx-cli"
-        filename_on_github: str
+        local_resource_name="CycloneDXCLI"
+        self.ensure_file_from_github_assets_is_available_with_retry("CycloneDX",  "cyclonedx-cli", local_resource_name,"cyclonedx-linux-arm64",lambda latest_version: "cyclonedx-linux-arm64",enforce_update=enforce_update)
+        self.ensure_file_from_github_assets_is_available_with_retry("CycloneDX",  "cyclonedx-cli", local_resource_name,"cyclonedx-linux-x64",lambda latest_version: "cyclonedx-linux-x64",enforce_update=enforce_update)
+        self.ensure_file_from_github_assets_is_available_with_retry("CycloneDX",  "cyclonedx-cli", local_resource_name,"cyclonedx-win-arm64.exe",lambda latest_version: "cyclonedx-win-arm64.exe",enforce_update=enforce_update)
+        self.ensure_file_from_github_assets_is_available_with_retry("CycloneDX",  "cyclonedx-cli", local_resource_name, "cyclonedx-win-x64.exe",lambda latest_version: "cyclonedx-win-x64.exe",enforce_update=enforce_update)
+        
+        resource_folder =os.path.join( self.__sc.get_global_cache_folder(),"Tools",local_resource_name)
+
+        is_x64:bool=GeneralUtilities.current_system_is_x64()
+        is_arm:bool=GeneralUtilities.current_system_is_arm64()
         if GeneralUtilities.current_system_is_windows():
-            filename_on_github = "cyclonedx-win-x64.exe"
-            local_filename = local_filename+".exe"
+            if is_x64:
+                return os.path.join(resource_folder, "cyclonedx-win-x64.exe")            
+            elif is_arm:
+                return os.path.join(resource_folder, "cyclonedx-win-arm64.exe")
+            else:
+                raise ValueError("Unsupported architecture for cyclonedx-cli on windows.")
+        elif GeneralUtilities.current_system_is_linux():
+            if is_x64:
+                return os.path.join(resource_folder, "cyclonedx-linux-x64")
+            elif is_arm:
+                return os.path.join(resource_folder, "cyclonedx-linux-arm64")
+            else:
+                raise ValueError("Unsupported architecture for cyclonedx-cli on linux.")
         else:
-            filename_on_github = "cyclonedx-linux-x64"
-        return self.ensure_file_from_github_assets_is_available_with_retry("CycloneDX",  "cyclonedx-cli", "CycloneDXCLI",local_filename,lambda latest_version: filename_on_github,enforce_update=enforce_update)
-    
+            raise ValueError("Unsupported operating system for cyclonedx-cli.")
+
     @GeneralUtilities.check_arguments
     def ensure_file_from_github_assets_is_available_with_retry(self, githubuser: str, githubprojectname: str, local_resource_name: str, local_filename: str, get_filename_on_github, amount_of_attempts: int = 5,enforce_update:bool=False) -> str:
         return GeneralUtilities.retry_action(lambda: self.ensure_file_from_github_assets_is_available(githubuser, githubprojectname, local_resource_name, local_filename, get_filename_on_github,enforce_update), amount_of_attempts)
@@ -384,6 +402,7 @@ class TFCPS_Tools_General:
 
     @GeneralUtilities.check_arguments
     def generate_diff_report(self, repository_folder: str, codeunit_name: str, current_version: str) -> None:
+        #TODO refactor this. if new changes (committed or uncommitted) since last git-tag: diff-report from last tag to "now". if no new changes (curren-commit==commit on a vx.y-tag): take diff from last tag to this tag
         self.__sc.assert_is_git_repository(repository_folder)
         codeunit_folder = os.path.join(repository_folder, codeunit_name)
         target_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts/DiffReport", codeunit_folder)
@@ -1182,21 +1201,21 @@ class TFCPS_Tools_General:
         tar_files_with_platforms: list[tuple[str, str, str]] = []
         for tar_file in tar_files:
             filename=os.path.basename(tar_file)#filename looks like "{codeunitname}_v{codeunitversion}_{GeneralUtilities.platform_to_dash_str(platform)}.tar"
-            platform:Platform=self.platform_from_filename(filename)#GeneralUtilities.platform_from_dash_str( filename.split("_")[-1].split(".")[0])
+            platform_of_file:Platform=self.platform_from_filename(filename)#GeneralUtilities.platform_from_dash_str( filename.split("_")[-1].split(".")[0])
             platform_os_in_docker_format :str = None
             platform_arch_in_docker_format :str = None
-            if platform==Platform.Windows_AMD64:
+            if platform_of_file==Platform.Windows_AMD64:
                 raise NotImplementedError("Building docker images for Windows is not implemented yet.")
-            elif platform==Platform.Linux_AMD64:
+            elif platform_of_file==Platform.Linux_AMD64:
                 platform_os_in_docker_format = "linux"
                 platform_arch_in_docker_format = "amd64"
-            elif platform==Platform.Linux_ARM64: 
+            elif platform_of_file==Platform.Linux_ARM64: 
                 platform_os_in_docker_format = "linux"
                 platform_arch_in_docker_format = "arm64"
-            elif platform==Platform.MacOS_ARM64:
+            elif platform_of_file==Platform.MacOS_ARM64:
                 raise NotImplementedError("Building docker images for MacOS is not implemented yet.")
             else:
-                raise ValueError(f"Unsupported platform {platform} extracted from filename {filename}.")
+                raise ValueError(f"Unsupported platform {platform_of_file} extracted from filename {filename}.")
             tar_files_with_platforms.append((tar_file, platform_os_in_docker_format, platform_arch_in_docker_format))
         self.push_docker_build_artifact_as_multi_arch_artifact(tar_files_with_platforms,target_image_address, "v"+codeunit_version)
         self.push_docker_build_artifact_as_multi_arch_artifact(tar_files_with_platforms,target_image_address, "latest")
@@ -1272,14 +1291,14 @@ class TFCPS_Tools_General:
             self.__sc.run_program("docker", f"container rm -f {container_name}", throw_exception_if_exitcode_is_not_zero=False)
         
     @GeneralUtilities.check_arguments
-    def load_docker_image(self, oci_image_artifacts_folder:str,platform:Platform) -> None:
-        for file in GeneralUtilities.get_direct_files_of_folder(oci_image_artifacts_folder):
-            if file.endswith(f"_{GeneralUtilities.platform_to_dash_str(platform)}.tar"):
+    def load_docker_image(self, oci_image_artifacts_folder:str,platform_for_image:Platform) -> None:
+        for file in GeneralUtilities.get_direct_files_of_folder(oci_image_artifacts_folder):            
+            if file.endswith(f"_{GeneralUtilities.platform_to_dash_str(platform_for_image)}.tar"):
                 image_filename = file
-                self.__sc.log.log("Load docker-image...")
+                self.__sc.log.log(f"Load docker-image {image_filename}...")
                 self.__sc.run_program("docker", f"load -i {image_filename}", oci_image_artifacts_folder)
                 return
-        raise ValueError(f"No docker-image found for platform {GeneralUtilities.platform_to_dash_str(platform)} in folder {oci_image_artifacts_folder}.")
+        raise ValueError(f"No docker-image found for platform {GeneralUtilities.platform_to_dash_str(platform_for_image)} in folder {oci_image_artifacts_folder}.")
 
     @GeneralUtilities.check_arguments
     def start_dockerfile_example(self, current_file: str,remove_old_container: bool, remove_volumes_folder: bool, env_file: str) -> None:
@@ -1294,7 +1313,14 @@ class TFCPS_Tools_General:
             self.__sc.log.log(f"Ensure container of {docker_compose_file} do not exist...")
         oci_image_artifacts_folder = GeneralUtilities.resolve_relative_path("../../../../Artifacts/BuildResult_OCIImage", folder_of_current_file)
         self.ensure_containers_are_not_running(container_names_to_remove)
-        self.load_docker_image(oci_image_artifacts_folder,GeneralUtilities.get_current_platform())
+        platform_for_image :Platform=None
+        if GeneralUtilities.current_system_is_x64():
+            platform_for_image=Platform.Linux_AMD64
+        elif GeneralUtilities.current_system_is_arm64():
+            platform_for_image=Platform.Linux_ARM64
+        else:
+            raise ValueError("Unsupported platform for docker-image. Only AMD64 and ARM64 are supported.")
+        self.load_docker_image(oci_image_artifacts_folder,platform_for_image)
         example_name = os.path.basename(folder_of_current_file)
         codeunit_name = os.path.basename(GeneralUtilities.resolve_relative_path("../../../../..", folder_of_current_file))
         if remove_volumes_folder:
@@ -1428,8 +1454,10 @@ class TFCPS_Tools_General:
         for image in self.oci_image_manager.get_used_images_in_repository(repository_folder):
             env_variables[f"image_{image.lower()}"]=self.oci_image_manager.get_registry_address_for_image(repository_folder,image)+":"+self.oci_image_manager.get_tag_for_image(repository_folder,image, True)
         test_services=GeneralUtilities.get_direct_folders_of_folder(os.path.join(repository_folder,"Other","Resources","LocalTestServices"))
-        if 0<len(test_services):
-            self.__sc.log.log("Pull images for local test-services...")
+        if len(test_services)==0:
+            return
+        self.__sc.log.log("Pull images for local test-services...")
+        self.__sc.login_to_defined_docker_registries()
         for test_service_folder in test_services:
             test_service_name=os.path.basename(test_service_folder)
             self.__sc.log.log(f"Pull images for test-service {test_service_name}...")
@@ -1441,7 +1469,8 @@ class TFCPS_Tools_General:
                 lines=lines+[f"{k}={v}"]
             GeneralUtilities.write_lines_to_file(env_variables_file,lines)
             arguments=arguments + " --env-file Parameters.env pull --quiet"
-            self.__sc.run_program_with_retry("docker",arguments,test_service_folder,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
+            arguments_for_log=arguments
+            self.__sc.run_program_with_retry("docker",arguments,test_service_folder,arguments_for_log=arguments_for_log,print_live_output=self.__sc.log.loglevel==LogLevel.Debug)
 
     def load_deb_control_file_content(self, file: str, codeunitname: str, codeunitversion: str, installedsize: int, maintainername: str, maintaineremail: str, description: str) -> str:
         content = GeneralUtilities.read_text_from_file(file)

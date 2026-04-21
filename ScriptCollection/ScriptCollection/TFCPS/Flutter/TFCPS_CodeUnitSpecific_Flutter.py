@@ -20,7 +20,7 @@ class TFCPS_CodeUnitSpecific_Flutter_Functions(TFCPS_CodeUnitSpecific_Base):
         if package_name is None:
             src_folder = codeunit_folder
         else:
-            src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder)  # TODO replace packagename
+            src_folder = GeneralUtilities.resolve_relative_path(package_name, codeunit_folder) # TODO replace packagename
         artifacts_folder = os.path.join(codeunit_folder, "Other", "Artifacts")
         
         target_names: dict[str, str] = {
@@ -39,32 +39,38 @@ class TFCPS_CodeUnitSpecific_Flutter_Functions(TFCPS_CodeUnitSpecific_Base):
                 GeneralUtilities.ensure_directory_exists(web_folder)
                 GeneralUtilities.copy_content_of_folder(web_relase_folder, web_folder)
             elif target == "windows":
-                windows_release_folder = os.path.join(src_folder, "build/windows/x64/runner/Release")
-                windows_folder = os.path.join(artifacts_folder, "BuildResult_Windows")
-                GeneralUtilities.ensure_directory_does_not_exist(windows_folder)
-                GeneralUtilities.ensure_directory_exists(windows_folder)
-                GeneralUtilities.copy_content_of_folder(windows_release_folder, windows_folder)
+                enabled=False
+                if enabled:#TODO move to external because this is not platform indepent
+                    windows_release_folder = os.path.join(src_folder, "build/windows/x64/runner/Release")
+                    windows_folder = os.path.join(artifacts_folder, "BuildResult_Windows")
+                    GeneralUtilities.ensure_directory_does_not_exist(windows_folder)
+                    GeneralUtilities.ensure_directory_exists(windows_folder)
+                    GeneralUtilities.copy_content_of_folder(windows_release_folder, windows_folder)
             elif target == "ios":
-                raise ValueError("building for ios is not implemented yet")
+                enabled=False
+                if enabled:#TODO move to external because this is not platform indepent
+                    raise ValueError("building for ios is not implemented yet")
             elif target == "appbundle":
-                aab_folder = os.path.join(artifacts_folder, "BuildResult_AAB")
-                GeneralUtilities.ensure_directory_does_not_exist(aab_folder)
-                GeneralUtilities.ensure_directory_exists(aab_folder)
-                aab_relase_folder = os.path.join(src_folder, "build/app/outputs/bundle/release")
-                aab_file_original = self._protected_sc.find_file_by_extension(aab_relase_folder, "aab")
-                aab_file = os.path.join(aab_folder, f"{codeunit_name}.aab")
-                shutil.copyfile(aab_file_original, aab_file)
-                
-                bundletool = self.tfcps_Tools_General.ensure_androidappbundletool_is_available(None,self.use_cache())
-                apk_folder = os.path.join(artifacts_folder, "BuildResult_APK")
-                GeneralUtilities.ensure_directory_does_not_exist(apk_folder)
-                GeneralUtilities.ensure_directory_exists(apk_folder)
-                apks_file = f"{apk_folder}/{codeunit_name}.apks"
-                self._protected_sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder)
-                with zipfile.ZipFile(apks_file, "r") as zip_ref:
-                    zip_ref.extract("universal.apk", apk_folder)
-                GeneralUtilities.ensure_file_does_not_exist(apks_file)
-                os.rename(f"{apk_folder}/universal.apk", f"{apk_folder}/{codeunit_name}.apk")
+                enabled=False
+                if enabled:#TODO move to external because this is not platform indepent
+                    aab_folder = os.path.join(artifacts_folder, "BuildResult_AAB")
+                    GeneralUtilities.ensure_directory_does_not_exist(aab_folder)
+                    GeneralUtilities.ensure_directory_exists(aab_folder)
+                    aab_relase_folder = os.path.join(src_folder, "build/app/outputs/bundle/release")
+                    aab_file_original = self._protected_sc.find_file_by_extension(aab_relase_folder, "aab")
+                    aab_file = os.path.join(aab_folder, f"{codeunit_name}.aab")
+                    shutil.copyfile(aab_file_original, aab_file)
+                    
+                    bundletool = self.tfcps_Tools_General.ensure_androidappbundletool_is_available(None,self.use_cache())
+                    apk_folder = os.path.join(artifacts_folder, "BuildResult_APK")
+                    GeneralUtilities.ensure_directory_does_not_exist(apk_folder)
+                    GeneralUtilities.ensure_directory_exists(apk_folder)
+                    apks_file = f"{apk_folder}/{codeunit_name}.apks"
+                    self._protected_sc.run_program("java", f"-jar {bundletool} build-apks --bundle={aab_file} --output={apks_file} --mode=universal", aab_relase_folder)
+                    with zipfile.ZipFile(apks_file, "r") as zip_ref:
+                        zip_ref.extract("universal.apk", apk_folder)
+                    GeneralUtilities.ensure_file_does_not_exist(apks_file)
+                    os.rename(f"{apk_folder}/universal.apk", f"{apk_folder}/{codeunit_name}.apk")
             else:
                 raise ValueError(f"Not supported target: {target}")
         self.copy_source_files_to_output_directory()

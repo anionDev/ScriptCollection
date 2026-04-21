@@ -28,10 +28,14 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
         GeneralUtilities.ensure_folder_exists_and_is_empty(app_artifacts_folder)
         for platform in platforms:
             #builder must be created once before with "docker buildx create --use"
-            args = ["buildx","build", "--platform",GeneralUtilities.platform_to_docker_platform_str(platform), "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}", "--build-arg", f"Platform={GeneralUtilities.platform_to_dash_str(platform)}", "--build-arg", f"DotNetRuntime={GeneralUtilities.platform_to_dotnet_runtime_identifier(platform)}"]
+            args = ["buildx","build", "--platform",GeneralUtilities.platform_to_docker_platform_str(platform), "--pull", "--force-rm", "--progress=plain", "--build-arg", f"TargetEnvironmentType={self.get_target_environment_type()}", "--build-arg", f"CodeUnitName={codeunitname}", "--build-arg", f"CodeUnitVersion={codeunitversion}", "--build-arg", f"CodeUnitOwnerName={self.tfcps_Tools_General.get_codeunit_owner_name(self.get_codeunit_file())}", "--build-arg", f"CodeUnitOwnerEMailAddress={self.tfcps_Tools_General.get_codeunit_owner_emailaddress(self.get_codeunit_file())}", "--build-arg", f"Platform={GeneralUtilities.platform_to_dash_str(platform)}", "--build-arg", f"DotNetRuntime={GeneralUtilities.platform_to_dotnet_runtime_identifier(platform)}", "--build-arg", f"PlatformForGoVersion={GeneralUtilities.platform_to_go_runtime_identifier(platform)}"]
             for custom_argument_key, custom_argument_value in custom_arguments.items():
                 args.append("--build-arg")
                 args.append(f"{custom_argument_key}={custom_argument_value}")
+            pip_args=self._protected_sc.get_pip_index_url_arguments_from_local_cache()
+            if len(pip_args)>0:
+                args.append("--build-arg")
+                args.append(f"PipIndexUrlArguments=\"{pip_args}\"")
             args = args+["--tag", f"{codeunitname_lower}:latest", "--tag", f"{codeunitname_lower}:{codeunitversion}", "--file", f"{codeunitname}/Dockerfile"]
             if not self.use_cache():
                 args.append("--no-cache")
@@ -40,13 +44,14 @@ class TFCPS_CodeUnitSpecific_Docker_Functions(TFCPS_CodeUnitSpecific_Base):
             args.append(f"type=docker,dest={target_file}")
             args.append(".")
             self._protected_sc.run_program_argsasarray("docker", args, codeunit_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
+            self._protected_sc.run_program_argsasarray("docker", ["load", "-i", target_file], codeunit_folder, print_errors_as_information=True,print_live_output=self.get_verbosity()==LogLevel.Debug)
+
         self.__generate_sbom_for_docker_image()
         self.copy_source_files_to_output_directory()
 
 
     @GeneralUtilities.check_arguments
     def __generate_sbom_for_docker_image(self) -> None:
-        return #FIXME due to the change of building docker images now using "docker builx build ..." the image is not available locally anymore. for this reason syft can not access the "product:tag"-image anymore to generate a sbom-file. solution: the tar-file must be loaded and tagged.
         codeunitname=self.get_codeunit_name()
         codeunit_folder =self.get_codeunit_folder()
         artifacts_folder = GeneralUtilities.resolve_relative_path("Other/Artifacts", codeunit_folder)

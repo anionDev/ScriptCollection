@@ -167,7 +167,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
             if not os.path.isfile(combined_file):
                 raise ValueError(f'The mandatory file "{file}" does not exist in the codeunit-folder.')
 
-        if os.path.isfile(os.path.join(codeunit_folder, "Other", "requirements.txt")):
+        if os.path.isfile(os.path.join(codeunit_folder, "requirements.txt")):
             self.install_requirementstxt_for_codeunit()
 
         # check developer
@@ -416,7 +416,7 @@ class TFCPS_CodeUnitSpecific_Base(ABC):
 
     @GeneralUtilities.check_arguments
     def install_requirementstxt_for_codeunit(self):
-        self._protected_sc.install_requirementstxt_file(self.get_codeunit_folder()+"/Other/requirements.txt")
+        self._protected_sc.install_requirementstxt_file(self.get_codeunit_folder()+"/requirements.txt")
 
 class TFCPS_CodeUnitSpecific_Base_CLI():
 
