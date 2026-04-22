@@ -76,26 +76,22 @@ class TFCPS_CodeUnit_BuildCodeUnits:
 
     @GeneralUtilities.check_arguments
     def run_prepare_script(self):
-        pre_script_file:str=os.path.join( self.sc.get_scriptcollection_configuration_folder(),"TFCPS","CustomPreCodeUnitBuildScript.py")
-        if  os.path.isfile( pre_script_file):
+        args=["--repository",self.repository,"--targetenvironmenttype",self.target_environment_type,"--verbosity",str(int(self.sc.log.loglevel))]
+        if GeneralUtilities.string_has_content(self.additionalargumentsfile):
+            args=args+["--additionalargumentsfile", self.additionalargumentsfile]
+        if not self.__use_cache:            
+            if self.sc.git_repository_has_uncommitted_changes(self.repository):
+                self.sc.log.log("No-cache-option can not be applied because there are uncommited changes in the repository.",LogLevel.Warning)
+            else:
+                args=args+["--nocache"]
+
+        if  os.path.isfile( os.path.join( self.sc.get_scriptcollection_configuration_folder(),"TFCPS","CustomPreCodeUnitBuildScript.py")):
             self.sc.log.log("Run custom pre-codeunitbuild script...")
-            argument= f"CustomPreCodeUnitBuildScript.py --repository {self.repository} --targetenvironmenttype {self.target_environment_type} --verbosity {int(self.sc.log.loglevel)}"
-            if GeneralUtilities.string_has_content(self.additionalargumentsfile):
-                argument=f"{argument} --additionalargumentsfile {self.additionalargumentsfile}"
-            if not self.__use_cache:
-                argument=f"{argument} --nocache"
-            self.sc.run_program("python",argument, os.path.join( self.sc.get_scriptcollection_configuration_folder(),"TFCPS"),print_live_output=True)
+            self.sc.run_program_argsasarray("python",["CustomPreCodeUnitBuildScript.py"]+args, os.path.join( self.sc.get_scriptcollection_configuration_folder(),"TFCPS"),print_live_output=True)
 
         if  os.path.isfile( os.path.join(self.repository,"Other","Scripts","PrepareBuildCodeunits.py")):
-            arguments:str=f"--targetenvironmenttype {self.target_environment_type} --additionalargumentsfile \"{self.additionalargumentsfile}\" --verbosity {int(self.sc.log.loglevel)}"
-            if not self.__use_cache:
-                arguments=f"{arguments} --nocache"
-                if self.sc.git_repository_has_uncommitted_changes(self.repository):
-                    self.sc.log.log("No-cache-option can not be applied because there are uncommited changes in the repository.",LogLevel.Warning)
-                else:
-                    self.sc.run_program("git","clean -dfx",self.repository)
             self.sc.log.log("Prepare build codeunits...")
-            self.sc.run_program("python", f"PrepareBuildCodeunits.py {arguments}", os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
+            self.sc.run_program_argsasarray("python",["PrepareBuildCodeunits.py"]+args, os.path.join(self.repository,"Other","Scripts"),print_live_output=True)
 
     @GeneralUtilities.check_arguments
     def build_codeunits_in_container(self) -> None:
