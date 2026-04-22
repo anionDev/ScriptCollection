@@ -34,6 +34,7 @@ class TFCPS_Generic_CLI:
     def parse(file:str)->TFCPS_Generic_Functions:
         parser = argparse.ArgumentParser()
         verbosity_values = ", ".join(f"{lvl.value}={lvl.name}" for lvl in LogLevel)
+        parser.add_argument('-r', '--repository', required=False, default=None)
         parser.add_argument('-e', '--targetenvironmenttype', required=False, default="QualityCheck")
         parser.add_argument('-a', '--additionalargumentsfile', required=False, default=None)
         parser.add_argument('-v', '--verbosity', required=False, default=3, help=f"Sets the loglevel. Possible values: {verbosity_values}")
