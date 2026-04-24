@@ -706,14 +706,13 @@ def OCRAnalysisOfFolder() -> int:
     parser.add_argument('-e', '--extensions', required=False, default="pdf,docx,jpg,png,xlsx")
     parser.add_argument('-l', '--languages', required=False, default="eng")
     parser.add_argument('-f', '--folder', required=False, default=None)
-    parser.add_argument('-d', '--datafolder', required=False, default=None)
     args = parser.parse_args()
     sc = ScriptCollectionCore()
     if args.folder is None:
         args.folder = os.getcwd()
     languages=args.languages.split(",")
     extensions=args.extensions.split(",")
-    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions, languages,args.datafolder,args.folder,[])
+    sc.ocr_analysis_of_folder(args.folder, args.serviceaddress, extensions, languages,args.folder,[])
     return 0
 
 
