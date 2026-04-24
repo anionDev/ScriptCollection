@@ -36,6 +36,7 @@ from .GeneralUtilities import GeneralUtilities,Platform
 from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
+from .OCRRunnerInformation import OCRRunnerInformationUtilities,OCRRunnerInformation,OCRRunnerInformationVisitor,OCRRunnerInformationVisitorT
 
 version = "4.2.72"
 __version__ = version
@@ -2753,6 +2754,11 @@ OCR-content:
                 raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
             result = GeneralUtilities.bytes_to_string(r.content)
         return result
+
+    @GeneralUtilities.check_arguments
+    def get_ocr_content_of_file_new(self,ocr_runner_information:OCRRunnerInformation, file: str,languages:list[str]) -> str:  # serviceaddress = None means local executable
+        result: str = None
+        class 
 
     @GeneralUtilities.check_arguments
     def ocr_analysis_of_repository(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str], datafolder: str) -> None:
