@@ -37,7 +37,7 @@ from .ProgramRunnerBase import ProgramRunnerBase
 from .ProgramRunnerPopen import ProgramRunnerPopen
 from .SCLog import SCLog, LogLevel
 
-version = "4.2.72"
+version = "4.2.73"
 __version__ = version
 
 class VSCodeWorkspaceShellTask:
@@ -2674,7 +2674,14 @@ TXDX
         self.run_program_argsasarray("pip", arguments, folder,print_live_output=self.log.loglevel==LogLevel.Debug)
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str], datafolder: str,base_folder_for_entry: str,ignore_pattern:list[str] ) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
+    def ocr_analysis_of_folder_using_local_docker_image(self, folder: str, extensions: list[str], languages: list[str],base_folder_for_entry: str,ignore_pattern:list[str] ) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
+        #TODO start docker server
+        serviceaddress:str=None#TODO
+        self.ocr_analysis_of_folder(folder, serviceaddress, extensions, languages, base_folder_for_entry,ignore_pattern)
+        #TODO stop docker server
+
+    @GeneralUtilities.check_arguments
+    def ocr_analysis_of_folder(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str],base_folder_for_entry: str,ignore_pattern:list[str] ) -> list[str]:  # Returns a list of changed files due to ocr-analysis.
         supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'gif', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt']
         changes_files: list[str] = []
         if base_folder_for_entry is None:
@@ -2687,13 +2694,13 @@ TXDX
             file_lower = file.lower()
             for extension in extensions:
                 if file_lower.endswith("."+extension):
-                    if self.ocr_analysis_of_file(file, serviceaddress, languages,datafolder,base_folder_for_entry):
+                    if self.ocr_analysis_of_file(file, serviceaddress, languages,base_folder_for_entry):
                         changes_files.append(file)
                     break
         for subfolder in GeneralUtilities.get_direct_folders_of_folder(folder):
             if GeneralUtilities.is_ignored_by_glob_pattern(os.path.dirname(subfolder),subfolder,ignore_pattern):
                 continue
-            for file in self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions, languages,datafolder,base_folder_for_entry+"/"+os.path.basename(subfolder), ignore_pattern):
+            for file in self.ocr_analysis_of_folder(subfolder, serviceaddress, extensions, languages,base_folder_for_entry+"/"+os.path.basename(subfolder), ignore_pattern):
                 changes_files.append(file)
         return changes_files
 
@@ -2707,8 +2714,7 @@ TXDX
         return False
     
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str], datafolder: str,readable_folder_entry:str ) -> bool:  # Returns true if the ocr-file was generated or updated. Returns false if the existing ocr-file was not changed.
-        GeneralUtilities.write_message_to_stdout(f"Starting OCR analysis of file {file}...")
+    def ocr_analysis_of_file(self, file: str, serviceaddress: str, languages: list[str], readable_folder_entry:str ) -> bool:  # Returns true if the ocr-file was generated or updated. Returns false if the existing ocr-file was not changed.
         supported_extensions = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp', 'gif', 'pdf', 'rtf', 'docx', 'doc', 'odt', 'xlsx', 'xls', 'ods', 'pptx', 'ppt', 'odp']
         if not self.__it_supported_extension(file, supported_extensions):
             raise ValueError(f"File '{file}' is not supported due to unsupported extension. Supported extensions are: {', '.join(supported_extensions)}")
@@ -2722,7 +2728,8 @@ TXDX
                     return False
         except:
             pass
-        ocr_content = self.get_ocr_content_of_file(file, serviceaddress, languages,datafolder)
+        GeneralUtilities.write_message_to_stdout(f"Starting OCR-analysis of file \"{file}\"...")
+        ocr_content = self.get_ocr_content_of_file(file, serviceaddress, languages)
         GeneralUtilities.ensure_file_exists(target_file)
         if readable_folder_entry is None:
             readable_folder_entry="."
@@ -2734,30 +2741,44 @@ OCR-content:
         return True
 
     @GeneralUtilities.check_arguments
-    def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str], datafolder: str) -> str:  # serviceaddress = None means local executable
+    def get_ocr_content_of_file(self, file: str, serviceaddress: str, languages: list[str]) -> str:
         result: str = None
-        extension = Path(file).suffix
+        extension = Path(file).suffix[1:]
+        mime_types = {
+            "pdf": "application/pdf",
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "txt": "text/plain",
+            "json": "application/json",
+        }
         if serviceaddress is None:
-            arguments= ["OCRAnalysis", "--File", file, "--Languages", "+".join(languages)] 
-            if datafolder is not None:
-                arguments.append("--OCRDataFolder")
-                arguments.append(datafolder)
-            program_result = self.run_program_argsasarray("simpleocrcli",arguments)
-            result = program_result[1]
-        else:
-            languages_for_url = '%2B'.join(languages)
-            package_url: str = f"https://{serviceaddress}/GetOCRContent?languages={languages_for_url}&fileType={extension}"
-            headers = {'Cache-Control': 'no-cache'}
-            r = requests.put(package_url, timeout=5, headers=headers, data=GeneralUtilities.read_binary_from_file(file))
+            server_url_file:str= GeneralUtilities.normalize_path(f"{str(Path.home())}/.ScriptCollection/OCR/ServiceURL.txt")
+            if os.path.isfile(server_url_file):
+                for line in GeneralUtilities.read_nonempty_lines_from_file(server_url_file):
+                    if not line.startswith("#"):
+                        serviceaddress = line.strip()
+                        break
+        GeneralUtilities.assert_not_null(serviceaddress, "ocr-service-address must not be null.")
+        mime_type = mime_types.get(extension.lower(), "application/octet-stream")
+        service_url: str = f"{serviceaddress}/API/v1/SimpleOCR/GetOCRContent?mimeType={mime_type}"
+        for language in languages:
+            service_url = service_url + f"&languages={language}"
+        headers = {'Cache-Control': 'no-cache'}
+        with open(file, "rb") as f:
+            files_to_analyse = {
+                "fileContent": (os.path.basename(file), f, mime_type)
+            }
+            r = requests.put(service_url, timeout=600, headers=headers,  files=files_to_analyse)
             if r.status_code != 200:
                 raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
             result = GeneralUtilities.bytes_to_string(r.content)
         return result
 
     @GeneralUtilities.check_arguments
-    def ocr_analysis_of_repository(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str], datafolder: str) -> None:
+    def ocr_analysis_of_repository(self, folder: str, serviceaddress: str, extensions: list[str], languages: list[str]) -> None:
         self.assert_is_git_repository(folder)
-        self.ocr_analysis_of_folder(folder, serviceaddress, extensions, languages, datafolder,".",[".git"])
+        self.ocr_analysis_of_folder(folder, serviceaddress, extensions, languages,".",[".git"])
 
     @GeneralUtilities.check_arguments
     def update_timestamp_in_file(self, target_file: str) -> None:
@@ -3299,7 +3320,7 @@ OCR-content:
         if os.path.isabs(target_file):
             target_file=GeneralUtilities.resolve_relative_path(target_file,repository_folder)
         target_file=GeneralUtilities.normalize_path(target_file)
-        files=self.get_all_files_in_git_repository(repository_folder,ignore_ignored_files,include_submodules)
+        files=[path.replace("\\","/") for path in self.get_all_files_in_git_repository(repository_folder,ignore_ignored_files,include_submodules)]
         GeneralUtilities.ensure_file_exists(target_file)
         GeneralUtilities.write_lines_to_file(target_file, files)
 
@@ -3322,7 +3343,7 @@ OCR-content:
         GeneralUtilities.ensure_file_exists(target_file)
         GeneralUtilities.write_lines_to_file(target_file, commits)
 
-
     @GeneralUtilities.check_arguments
     def is_runnning_in_container(self) ->bool:
+        """this function is based on a convention and does not do a real check."""
         return os.environ.get("ISRUNNINGINCONTAINER") == "true"
