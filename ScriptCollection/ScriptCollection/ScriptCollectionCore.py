@@ -2751,6 +2751,10 @@ OCR-content:
             "jpeg": "image/jpeg",
             "txt": "text/plain",
             "json": "application/json",
+            "doc": "application/msword",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "xls": "application/vnd.ms-excel",
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         }
         if serviceaddress is None:
             server_url_file:str= GeneralUtilities.normalize_path(f"{str(Path.home())}/.ScriptCollection/OCR/ServiceURL.txt")
@@ -2769,9 +2773,13 @@ OCR-content:
             files_to_analyse = {
                 "fileContent": (os.path.basename(file), f, mime_type)
             }
-            r = requests.put(service_url, timeout=600, headers=headers,  files=files_to_analyse)
+            r = requests.put(service_url, timeout=3600, headers=headers, files=files_to_analyse,verify=True)
             if r.status_code != 200:
-                raise ValueError(f"Checking for latest tor package resulted in HTTP-response-code {r.status_code}.")
+                if r.status_code == 400:
+                    return f"Could not calculate ocr-content for file \"{file}\". File may be broken."
+                else:
+                    raise ValueError(f"Retrieving ocr-content for file \"{file}\" resulted in HTTP-response-code {r.status_code}.")
+
             result = GeneralUtilities.bytes_to_string(r.content)
         return result
 
