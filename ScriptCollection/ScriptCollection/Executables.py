@@ -390,7 +390,7 @@ def GenerateARC42ReferenceTemplate() -> int:
 def CreateChangelogEntry() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--repositorypath', required=False, default=".")
-    parser.add_argument('-m', '--message', required=False, default="Updates.")
+    parser.add_argument('-m', '--message', required=False, default=None)
     parser.add_argument('-c', '--commit', action='store_true', required=False, default=False)
     parser.add_argument('-f', '--force', action='store_true', required=False, default=False)
     args = parser.parse_args()
