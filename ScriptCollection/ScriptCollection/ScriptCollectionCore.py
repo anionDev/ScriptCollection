@@ -650,12 +650,14 @@ class ScriptCollectionCore:
         # TODO check if this will also be done for submodules
 
     @GeneralUtilities.check_arguments
-    def git_commit(self, directory: str, message: str = "Saved changes.", author_name: str = None, author_email: str = None, stage_all_changes: bool = True, no_changes_behavior: int = 0) -> str:
+    def git_commit(self, directory: str, message: str = "Saved changes.", author_name: str = None, author_email: str = None, stage_all_changes: bool = True, no_changes_behavior: int = 0,commit_message_body:str=None) -> str:
         """no_changes_behavior=0 => No commit; no_changes_behavior=1 => Commit anyway; no_changes_behavior=2 => Exception"""
         self.assert_is_git_repository(directory)
         author_name = GeneralUtilities.str_none_safe(author_name).strip()
         author_email = GeneralUtilities.str_none_safe(author_email).strip()
         argument = ['commit', '--quiet', '--allow-empty', '--message', message]
+        if commit_message_body is not None:
+            argument.extend(['--message', commit_message_body])
         if (GeneralUtilities.string_has_content(author_name)):
             argument.append(f'--author="{author_name} <{author_email}>"')
         git_repository_has_uncommitted_changes = self.git_repository_has_uncommitted_changes(directory)
